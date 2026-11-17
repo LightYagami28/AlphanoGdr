@@ -26,8 +26,18 @@ if (!is_string($_POST['username'] ?? '') || !is_string($_POST['password'] ?? '')
 $username = trim($_POST['username'] ?? '');
 $password = (string)($_POST['password'] ?? '');
 
+// Controllo tentativi falliti consecutivi per prevenire attacchi a forza bruta
+alphano_session();
+$failedAttempts = (int)($_SESSION['alphano_login_fails'] ?? 0);
+$lastFailTime   = (int)($_SESSION['alphano_login_fail_time'] ?? 0);
+if ($failedAttempts >= 5 && (time() - $lastFailTime) < 60) {
+    alphano_fail('Troppi tentativi di accesso non riusciti. Attendi un minuto prima di riprovare.', 429);
+}
+
 // 4) Tenta il login
 if (!doLogin($username, $password)) {
+    $_SESSION['alphano_login_fails']     = $failedAttempts + 1;
+    $_SESSION['alphano_login_fail_time'] = time();
     // Post/Redirect/Get: a failed login remains readable without parent scripts.
     // Never retain the submitted password or distinguish unknown characters.
     $_SESSION['alphano_login_error']=['username'=>mb_substr($username,0,20)];
@@ -35,6 +45,8 @@ if (!doLogin($username, $password)) {
     header('Location: '.(($_POST['credit_recovery']??'')==='1'?'/credits/restore.php?login=failed':'/?login=failed#accesso'),true,303);
     exit;
 }
+
+unset($_SESSION['alphano_login_fails'], $_SESSION['alphano_login_fail_time']);
 
 if(($_POST['credit_recovery']??'')==='1'){header('Location: /credits/restore.php',true,303);exit;}
 

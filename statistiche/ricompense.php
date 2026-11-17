@@ -3,27 +3,31 @@
 	require_once("../libs/libpg.inc.php");
 	require_once("../libs/libequip.inc.php");
 	alphano_require_login();
+	$user = alphano_user();
+	if (!$user || (empty($user['admin']) && empty($user['fatepower']))) {
+		alphano_fail('Accesso riservato ai Master e agli Amministratori.', 403);
+	}
 	$db=ConnectDB();
 
-	$_GET["master"]=isset($_GET["master"]) ? (int)$_GET["master"] : null;
-    $_GET["sessione"]=isset($_GET["sessione"]) ? (int)$_GET["sessione"] : null;
-    switch(TRUE) {
-		case isset($_GET["master"]):
-			$condition="logs_adminpg.esecutore='{$_GET["master"]}' AND logs_adminpg.data BETWEEN sessioni.datain AND sessioni.dataout";
-			break;
-		case isset($_GET["sessione"]):
-			$query="SELECT id, datain, dataout FROM sessioni WHERE id='{$_GET["sessione"]}'";
-			$res=$db->query($query);
-			$dati=LegacyFetchRow($res);
-            if (!$dati) { http_response_code(404); exit('Sessione non trovata'); }
-			$condition="sessioni.id='{$dati["id"]}' AND logs_adminpg.data BETWEEN {$dati["datain"]} AND {$dati["dataout"]}";
-			break;
-		default:
-			die("Nessun tipo di indagine selezionato");
+	$master = isset($_GET["master"]) ? (int)$_GET["master"] : null;
+	$sessione = isset($_GET["sessione"]) ? (int)$_GET["sessione"] : null;
+	$condition = "";
+	$params = [];
+
+	if ($master !== null && $master > 0) {
+		$condition = "logs_adminpg.esecutore = ? AND logs_adminpg.data BETWEEN sessioni.datain AND sessioni.dataout";
+		$params = [$master];
+	} elseif ($sessione !== null && $sessione > 0) {
+		$dati = $db->query("SELECT id, datain, dataout FROM sessioni WHERE id = ?", [$sessione])[0] ?? null;
+		if (!$dati) { http_response_code(404); exit('Sessione non trovata'); }
+		$condition = "sessioni.id = ? AND logs_adminpg.data BETWEEN ? AND ?";
+		$params = [(int)$dati["id"], (int)$dati["datain"], (int)$dati["dataout"]];
+	} else {
+		alphano_fail("Nessun tipo di indagine selezionato.", 400);
 	}
 
 	$query="SELECT sessioni.id,sessioni.nome,logs_adminpg.obj,logs_adminpg.azione,logs_adminpg.qta,logs_adminpg.esecutore AS master,master.nome AS nomemaster,destinatario.nome AS nomedestinatario,destinatario.id AS destinatario FROM `logs_adminpg`,sessioni,utenti AS destinatario,utenti AS master WHERE logs_adminpg.azione LIKE 'ricompensa%' AND destinatario.id=logs_adminpg.destinatario AND master.id=logs_adminpg.esecutore AND logs_adminpg.chat=sessioni.chat AND $condition";
-	$res=$db->query($query);
+	$res=$db->query($query, $params);
 	$sessioni=array();
 	while($dati=LegacyFetchRow($res)) {
 		$sessioni[$dati["id"]]["nome"]=$dati["nome"];
@@ -52,17 +56,20 @@
 				<LI>
 					Sessione: <?=htmlentities($dati1["nome"])?><br>
 <?PHP
-			$query="SELECT * FROM sessioni WHERE id='$key'";
-			$res=$db->query($query);
-			$dati=LegacyFetchRow($res);
+			$dati = $db->query('SELECT * FROM sessioni WHERE id = ?', [(int)$key])[0] ?? [];
 ?>
-					Aperta da: <A href="javascript:openProfileId('<?=$dati["masterin"]?>')"><?=htmlentities(GetPGFromID($dati["masterin"]))?></A> in data <?=FormatTimestamp($dati["datain"])?><br>
-					Chiusa da: <A href="javascript:openProfileId('<?=$dati["masterout"]?>')"><?=htmlentities(GetPGFromID($dati["masterout"]))?></A> in data <?=FormatTimestamp($dati["dataout"])?><br>
+					Aperta da: <A href="javascript:openProfileId('<?=(int)($dati["masterin"] ?? 0)?>')"><?=htmlentities(GetPGFromID($dati["masterin"] ?? 0))?></A> in data <?=FormatTimestamp((int)($dati["datain"] ?? 0))?><br>
+					Chiusa da: <A href="javascript:openProfileId('<?=(int)($dati["masterout"] ?? 0)?>')"><?=htmlentities(GetPGFromID($dati["masterout"] ?? 0))?></A> in data <?=FormatTimestamp((int)($dati["dataout"] ?? 0))?><br>
 <?PHP
-			$query="SELECT id,nome FROM utenti WHERE id IN ('".implode("','",explode(";",substr($dati["partecipanti"],1,-1)))."') ORDER BY nome";
-			$res=$db->query($query);
-			$partecipanti=array();
-			while($dati=LegacyFetchRow($res)) $partecipanti[]="<A href=\"javascript:openProfileId('{$dati["id"]}')\">".htmlentities($dati["nome"])."</A>";
+			$rawIds = array_filter(array_map('intval', explode(';', trim((string)($dati['partecipanti'] ?? ''), ';'))));
+			$partecipanti = [];
+			if ($rawIds) {
+				$ph = implode(',', array_fill(0, count($rawIds), '?'));
+				$res = $db->query("SELECT id,nome FROM utenti WHERE id IN ($ph) ORDER BY nome", array_values($rawIds));
+				foreach ($res as $partRow) {
+					$partecipanti[] = "<A href=\"javascript:openProfileId('" . (int)$partRow['id'] . "')\">" . htmlentities($partRow['nome']) . "</A>";
+				}
+			}
 ?>
 					Partecipanti: <?=implode(", ",$partecipanti)?><br>
 					Ricompense:<br>
@@ -71,13 +78,13 @@
 			foreach($dati1["master"] as $id2 => $dati2) {
 ?>
 						<LI>
-							<A href="javascript:openProfileId('<?=$id2?>')"><?=$dati2["nome"]?></A><br>
+							<A href="javascript:openProfileId('<?=(int)$id2?>')"><?=htmlentities($dati2["nome"])?></A><br>
 							<UL>
 <?PHP
 				foreach($dati2["ricompense"] as $id3 => $dati3) {
 ?>
 								<LI>
-									<A href="javascript:openProfileId('<?=$id3?>')"><?=htmlentities($dati3["nome"])?></A>
+									<A href="javascript:openProfileId('<?=(int)$id3?>')"><?=htmlentities($dati3["nome"])?></A>
 <?PHP
 					if(($dati3["soldi"] ?? 0)) {
 ?>

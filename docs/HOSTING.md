@@ -43,7 +43,7 @@ Fonti: [avvisi ufficiali PHP di ottobre 2026](https://www.php.net/archive/2026.p
 
 ## Directory private e permessi
 
-`config/local.php` contiene la connessione; `private/settings.json` le impostazioni e gli eventuali segreti SMTP/IA. Questi file non devono entrare in Git o negli archivi pubblici. Il webserver deve negare l’accesso a `private/`, `config/`, `database/`, `libs/`, `vendor/`, `templates/`, `tests/`, `bin/` e ai file di configurazione/log. Le regole Apache incluse lo fanno; su Nginx configura gli stessi divieti prima della pubblicazione. Gli upload non devono poter eseguire PHP, HTML o SVG caricati dagli utenti.
+`config/local.php` contiene la connessione; `private/settings.json` le impostazioni e gli eventuali segreti SMTP/IA. Questi file non devono entrare in Git o negli archivi pubblici. Il webserver deve negare l’accesso a `private/`, `config/`, `database/`, `libs/`, `vendor/`, `templates/`, `tests/`, `bin/` e ai file di configurazione/log. Le regole Apache incluse lo fanno; su Nginx configura gli stessi divieti prima della pubblicazione (un modello di riferimento pronto all'uso è disponibile in `docs/nginx.conf.example`). Gli upload non devono poter eseguire PHP, HTML o SVG caricati dagli utenti.
 
 L’installazione scrive la configurazione in modo atomico, usa CSRF e rifiuta database occupati. Dopo il primo passaggio `/install/` risponde 404; la configurazione successiva richiede l’amministratore completo. Solo il gestore può riaprire le registrazioni.
 

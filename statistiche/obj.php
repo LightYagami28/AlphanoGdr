@@ -7,24 +7,26 @@
 
 	$db=ConnectDB();
 	$timer=GeneratePastTimestamp(30);
-	$dati=["num"=>0];
-    $query="SELECT NULL AS nomeobj,0 AS num,0 AS avgprz";
-    $_POST["obj"]=(int)($_POST["obj"] ?? 0);
-    switch($_POST["verso"] ?? "")
-	{
-		case "1":
-			$query="SELECT nomeobj FROM trasferimenti WHERE obj='{$_POST["obj"]}' AND verso='1'";
-			$res=$db->query($query);
-			$nomi=array();
-			$dati=LegacyFetchRow($res);
-			$query=sprintf("SELECT nomeobj, COUNT(*) AS num, AVG(prezzo) AS avgprz FROM trasferimenti WHERE nomeobj='%s' AND stato='5' AND data>'%s' GROUP BY nomeobj",addslashes($dati["nomeobj"]),$timer);
-			break;
-		case "2":
-			$query="SELECT nomeobj, COUNT(*) AS num, AVG(prezzo) AS avgprz FROM trasferimenti WHERE obj='{$_POST["obj"]}' AND (stato='7' OR stato='5') AND verso='2' AND data>'$timer' GROUP BY obj";
-			break;
+	$dati=["num"=>0, "nomeobj"=>"", "avgprz"=>0];
+	$objId=(int)($_POST["obj"] ?? 0);
+	$verso=(string)($_POST["verso"] ?? "");
+
+	if ($verso === "1") {
+		$row = $db->query("SELECT nomeobj FROM trasferimenti WHERE obj = ? AND verso = '1' LIMIT 1", [$objId])[0] ?? null;
+		if ($row && !empty($row["nomeobj"])) {
+			$res = $db->query(
+				"SELECT nomeobj, COUNT(*) AS num, AVG(prezzo) AS avgprz FROM trasferimenti WHERE nomeobj = ? AND stato = '5' AND data > ? GROUP BY nomeobj",
+				[$row["nomeobj"], $timer]
+			);
+			$dati = $res[0] ?? $dati;
+		}
+	} elseif ($verso === "2") {
+		$res = $db->query(
+			"SELECT nomeobj, COUNT(*) AS num, AVG(prezzo) AS avgprz FROM trasferimenti WHERE obj = ? AND (stato = '7' OR stato = '5') AND verso = '2' AND data > ? GROUP BY obj",
+			[$objId, $timer]
+		);
+		$dati = $res[0] ?? $dati;
 	}
-	$res=$db->query($query);
-	$dati=LegacyFetchRow($res);
 ?>
 <html>
 	<head>
@@ -44,7 +46,7 @@
 		<table class="column-width-100">
 			<TR>
 				<TD class="Valore align-center">Oggetto</TD>
-				<TD class="Valore align-center"><?=$dati["nomeobj"]?></TD>
+				<TD class="Valore align-center"><?=htmlspecialchars((string)$dati["nomeobj"], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')?></TD>
 			</TR>
 			<TR>
 				<TD class="Valore align-center">Numero Transazioni</TD>

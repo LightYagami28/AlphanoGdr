@@ -8,8 +8,9 @@ require_once __DIR__ . '/../libs/libpg.inc.php';
 
 
 // ─── Bootstrap ───────────────────────────────────────────────────────
+alphano_require_login();
 $db     = ConnectDB();
-$pgid   = GetIDPG(false, true);
+$pgid   = GetIDPG(true);
 
 
 // ─── 1. Personaggi ──────────────────────────────────────────────────
@@ -57,10 +58,12 @@ foreach ($db->query(
     $k = (int)$d['razza'];
     $razze[$k] = round(100 * $d['tot'] / max($max,1), 2);
 }
-// licantropi (3) e ancestrali (6)
-foreach ([[3,'infetto'], [6,'ancestrale']] as [$k,$col]) {
-    $n = $db->query("SELECT COUNT(*) AS tot FROM utenti WHERE $col=1")[0]['tot'] ?? 0;
-    $razze[$k] = ($razze[$k] ?? 0) + round(100 * $n / max($max,1), 2);
+// licantropi (3) e ancestrali (6) visibili solo ai gestori per evitare metagaming sulle condizioni speciali
+if (IsAdmin($pgid)) {
+    foreach ([[3,'infetto'], [6,'ancestrale']] as [$k,$col]) {
+        $n = $db->query("SELECT COUNT(*) AS tot FROM utenti WHERE $col=1")[0]['tot'] ?? 0;
+        $razze[$k] = ($razze[$k] ?? 0) + round(100 * $n / max($max,1), 2);
+    }
 }
 
 // ─── 4. Etnie ───────────────────────────────────────────────────────

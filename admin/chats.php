@@ -198,8 +198,8 @@ switch ($act) {
 <?php if(isDebug()): ?>
   <div class="debug">
 DEBUG $_POST:
-<?=print_r($P,true)?>
-<?php if($md) echo "\nDEBUG \$md:\n".print_r($md,true); ?>
+<?=h(print_r($P,true))?>
+<?php if($md) echo "\nDEBUG \$md:\n".h(print_r($md,true)); ?>
   </div>
 <?php endif; ?>
 

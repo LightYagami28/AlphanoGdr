@@ -49,9 +49,9 @@
 	foreach($master AS $id => $dati) {
 ?>
 			master[<?=$i?>] = new Object();
-			master[<?=$i?>]["id"] = new Number("<?=$id?>");
-			master[<?=$i?>]["nome"] = new String("<?=addslashes(htmlentities($dati["nome"]))?>");
-			master[<?=$i?>]["ricompense"] = new Number("<?=$dati["ricompense"]?>");
+			master[<?=$i?>]["id"] = <?=(int)$id?>;
+			master[<?=$i?>]["nome"] = <?=json_encode((string)$dati["nome"], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE)?>;
+			master[<?=$i?>]["ricompense"] = <?=(int)$dati["ricompense"]?>;
 <?PHP
 		$numpar=0;
 		$media=0;
@@ -68,10 +68,10 @@
 		if($numpar) $media=$somma/$numpar;
 		else $media=0;
 ?>
-			master[<?=$i?>]["media"] = new Number("<?=round($media,2)?>");
-			master[<?=$i?>]["somma"] = new Number("<?=$somma?>");
-			master[<?=$i?>]["numero"] = new Number("<?=round($numero,2)?>");
-			master[<?=$i?>]["sessioni"] = new Number("<?=count($sessioni[$id] ?? [])?>");
+			master[<?=$i?>]["media"] = <?=(float)round($media,2)?>;
+			master[<?=$i?>]["somma"] = <?=(int)$somma?>;
+			master[<?=$i?>]["numero"] = <?=(float)round($numero,2)?>;
+			master[<?=$i?>]["sessioni"] = <?=count($sessioni[$id] ?? [])?>;
 <?PHP
 		$i++;
 	}

@@ -174,6 +174,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                      : 'Impossibile inserire la nota';
             } else { $msg = ALPHANO_MSG_PARAMETRI_NON_ESAURIENTI_B98C; }
             break;
+        default: break;
     }
     } catch (Throwable $error) {
         $status=$error instanceof InvalidArgumentException ? 400 : (int)$error->getCode();

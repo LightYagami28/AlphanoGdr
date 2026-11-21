@@ -145,6 +145,7 @@ switch ($_POST['azione'] ?? '') {
             $msg = ALPHANO_MSG_PARAMETRI_NON_ESAURIENTI_B98C;
         }
         break;
+    default: break;
 }
 
 // ———————————————————————————

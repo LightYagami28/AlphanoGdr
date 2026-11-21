@@ -90,4 +90,33 @@ final class FrontendSourceCheckTest extends \PHPUnit\Framework\TestCase
         }
         self::assertSame('6px', $report['css/theme/maps.css']);
     }
+
+    /**
+     * Le assegnazioni e i nomi dichiarati vengono estratti con il numero di riga.
+     */
+    public function testAnalisiSorgenteJs(): void
+    {
+        $source = "const riga = 1;\nriga = 2;\nfor (let cn=0;cn<2;cn++) {}\n";
+        $assignments = alphanoJsAssignments($source);
+        self::assertCount(3, $assignments);
+        self::assertSame(['line' => 1, 'name' => 'riga', 'value' => '1'], $assignments[0]);
+        self::assertSame(2, $assignments[1]['line']);
+        self::assertSame('cn', $assignments[2]['name']);
+        self::assertSame(['riga', 'cn'], alphanoJsDeclaredNames($source));
+        self::assertSame([], alphanoJsAssignments(''));
+        self::assertSame([], alphanoJsDeclaredNames(''));
+        self::assertSame(['riga'], alphanoJsImplicitAssignments("riga = 1;\nriga = 2;\n"));
+    }
+
+    /**
+     * Le dichiarazioni CSS vengono indicizzate per proprieta'.
+     */
+    public function testDichiarazioniCss(): void
+    {
+        self::assertSame(
+            ['color' => 'red', 'r' => '6px'],
+            alphanoCssDeclarations('.map-dot { color: red; r: 6px; }')
+        );
+        self::assertSame([], alphanoCssDeclarations(''));
+    }
 }

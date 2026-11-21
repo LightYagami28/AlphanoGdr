@@ -134,11 +134,11 @@ function GMLQ(obj)
 
 function Inserisci(obj,txt)
 {
-	var tmp = obj.scrollTop;
+	const tmp = obj.scrollTop;
 	if(document.selection)
 	{
 		obj.focus();
-		var sel = document.selection.createRange();
+		const sel = document.selection.createRange();
 		sel.text = txt;
 	}
 	else if(obj.selectionStart || obj.selectionStart == "0") obj.value = obj.value.substring(0, obj.selectionStart) + txt + obj.value.substring(obj.selectionEnd, obj.value.length);

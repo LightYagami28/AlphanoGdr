@@ -15,26 +15,64 @@ function alphanoFrontendJsFiles(): array
 }
 
 /**
+ * Elenca le assegnazioni alle variabili storiche, con numero di riga.
+ *
+ * @return array<int,array{line:int,name:string,value:string}>
+ */
+function alphanoJsAssignments(string $source): array
+{
+    $assignments = [];
+    $lines = preg_split('/\R/u', $source) ?: [];
+    foreach ($lines as $number => $line) {
+        if (preg_match('/(?:^|[;{}\s])(riga|tmp|sel|ci|cu|cl|cn|i)\s*=\s*([^;]+)/', $line, $match) !== 1) {
+            continue;
+        }
+        $assignments[] = [
+            'line'  => $number + 1,
+            'name'  => $match[1],
+            'value' => trim($match[2]),
+        ];
+    }
+    return $assignments;
+}
+
+/**
+ * Elenca i nomi dichiarati con var, let o const.
+ *
+ * @return array<int,string>
+ */
+function alphanoJsDeclaredNames(string $source): array
+{
+    $names = [];
+    if (preg_match_all('/\b(?:var|let|const)\s+(riga|tmp|sel|ci|cu|cl|cn|i)\b/', $source, $matches) > 0) {
+        foreach ($matches[1] as $name) {
+            if (!in_array($name, $names, true)) {
+                $names[] = $name;
+            }
+        }
+    }
+    return $names;
+}
+
+/**
  * Restituisce i nomi di variabile ancora assegnati senza dichiarazione.
  *
  * @return array<int,string>
  */
 function alphanoJsImplicitAssignments(string $source): array
 {
-    $body = (string)preg_replace(
-        '/\b(?:var|let|const)\s+(?:riga|tmp|sel|ci|cu|cl|cn|i)\b/',
-        '',
-        $source
-    );
+    $declared = alphanoJsDeclaredNames($source);
     $found = [];
-    foreach (['riga', 'tmp', 'sel', 'ci', 'cu', 'cl', 'cn', 'i'] as $name) {
-        if (preg_match('/(?:^|[;{}\s])'.$name.'\s*=/m', $body) === 1) {
-            $found[] = $name;
+    foreach (alphanoJsAssignments($source) as $assignment) {
+        if (!in_array($assignment['name'], $declared, true) && !in_array($assignment['name'], $found, true)) {
+            $found[] = $assignment['name'];
         }
     }
-    if (preg_match('/\bfor\s*\(\s*(ci|cu|cl|cn|i)\s*(?:in|=)/', $body, $match) === 1
-        && !in_array($match[1], $found, true)) {
-        $found[] = $match[1];
+    foreach (['ci', 'cu', 'cl', 'cn', 'i'] as $name) {
+        $inLoop = preg_match('/\bfor\s*\(\s*'.$name.'\s*(?:in|=)/', $source) === 1;
+        if ($inLoop && !in_array($name, $declared, true) && !in_array($name, $found, true)) {
+            $found[] = $name;
+        }
     }
     return $found;
 }
@@ -48,14 +86,28 @@ function alphanoJsExplicitDeclarations(string $source): bool
 }
 
 /**
+ * Estrae le dichiarazioni CSS come mappa proprieta' => valore.
+ *
+ * @return array<string,string>
+ */
+function alphanoCssDeclarations(string $css): array
+{
+    $declarations = [];
+    if (preg_match_all('/\b([a-z-]+)\s*:\s*([^;]+)\s*;/i', $css, $matches, PREG_SET_ORDER) > 0) {
+        foreach ($matches as $match) {
+            $declarations[strtolower($match[1])] = trim($match[2]);
+        }
+    }
+    return $declarations;
+}
+
+/**
  * Estrae il valore della proprieta' r dal CSS, se presente.
  */
 function alphanoCssRadiusValue(string $css): ?string
 {
-    if (preg_match('/\br\s*:\s*(\d+(?:px|em|rem|%)?)\s*;/i', $css, $matches) !== 1) {
-        return null;
-    }
-    return $matches[1];
+    $declarations = alphanoCssDeclarations($css);
+    return $declarations['r'] ?? null;
 }
 
 /**

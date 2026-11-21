@@ -10,7 +10,7 @@ function ShowChat()
 {
 	if(righe.length) while(righe.length)
 	{
-		var riga = righe.pop();
+		const riga = righe.pop();
 		if(locations["" + owner + ""] && riga["pg"]!=owner && locations["" + riga["pg"] + ""] && locations["" + owner + ""].length && Compara(locations["" + owner + ""],locations["" + riga["pg"] + ""])) document.getElementById("chatbox").innerHTML = "<DIV class=\"riga same-location\">" + riga["testo"] + "</DIV>" + document.getElementById("chatbox").innerHTML;
 		else document.getElementById("chatbox").innerHTML = "<DIV class=\"riga\">" + riga["testo"] + "</DIV>" + document.getElementById("chatbox").innerHTML;
 	}

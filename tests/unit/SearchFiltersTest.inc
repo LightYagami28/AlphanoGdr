@@ -29,7 +29,7 @@ final class SearchFiltersTest extends \PHPUnit\Framework\TestCase
      */
     public function testFiltriEspliciti(): void
     {
-        $filters = alphano_search_filters(
+        $filters = alphanoSearchFilters(
             ['nome', 'luogo', 'razza'],
             ['nome' => 'Mario', 'luogo' => 'Piazza', 'extra' => 'ignorato']
         );
@@ -43,7 +43,7 @@ final class SearchFiltersTest extends \PHPUnit\Framework\TestCase
      */
     public function testValoriNonScalari(): void
     {
-        $filters = alphano_search_filters(
+        $filters = alphanoSearchFilters(
             ['nome', 'online'],
             ['nome' => ['x'], 'online' => new stdClass()]
         );
@@ -55,7 +55,7 @@ final class SearchFiltersTest extends \PHPUnit\Framework\TestCase
      */
     public function testValoriScalari(): void
     {
-        $filters = alphano_search_filters(['org'], ['org' => 12]);
+        $filters = alphanoSearchFilters(['org'], ['org' => 12]);
         self::assertSame(['org' => '12'], $filters);
     }
 
@@ -66,11 +66,37 @@ final class SearchFiltersTest extends \PHPUnit\Framework\TestCase
     {
         foreach (['', 'nome-p rogue', '1nome', 'Nome', 'nome;x'] as $name) {
             try {
-                alphano_search_filters([$name], []);
+                alphanoSearchFilters([$name], []);
                 self::fail('Il nome '.$name.' doveva essere rifiutato');
             } catch (InvalidArgumentException $e) {
                 self::assertSame('Nome filtro non valido', $e->getMessage());
             }
         }
+    }
+
+    /**
+     * I nomi dei filtri sono centralizzati e completi.
+     */
+    public function testNomiFiltri(): void
+    {
+        $names = alphanoSearchFilterNames();
+        self::assertContains('nome', $names);
+        self::assertContains('city', $names);
+        self::assertNotContains('__proto__', $names);
+        self::assertCount(14, $names);
+    }
+
+    /**
+     * La lettura dalla richiesta unisce GET e POST senza valori dinamici.
+     */
+    public function testFiltriDaRichiesta(): void
+    {
+        $filters = alphanoSearchFiltersFromRequest(
+            ['nome', 'razza'],
+            ['nome' => 'Mario'],
+            ['razza' => '3']
+        );
+        self::assertSame(['nome' => 'Mario', 'razza' => '3'], $filters);
+        self::assertSame(['nome' => '', 'razza' => ''], alphanoSearchFiltersFromRequest(['nome', 'razza'], [], []));
     }
 }

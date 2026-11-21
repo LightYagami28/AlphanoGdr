@@ -2,6 +2,20 @@
 declare(strict_types=1);
 
 /**
+ * Nomi dei filtri ammessi nella ricerca personaggi.
+ *
+ * @return array<int,string>
+ */
+function alphanoSearchFilterNames(): array
+{
+    return [
+        'nome', 'luogo', 'razza', 'online', 'araldica', 'caricacorporazione',
+        'caricaorganizzazione', 'categoria', 'corporazione', 'organizzazione',
+        'al', 'sesso', 'etnia', 'city',
+    ];
+}
+
+/**
  * Estrae i filtri di ricerca in un array associativo esplicito.
  *
  * Sostituisce le variabili variabili: il nome di ogni filtro e' sempre una
@@ -11,7 +25,7 @@ declare(strict_types=1);
  * @param array<string,mixed>      $input Parametri della richiesta
  * @return array<string,string>
  */
-function alphano_search_filters(array $names, array $input): array
+function alphanoSearchFilters(array $names, array $input): array
 {
     $filters = [];
     foreach ($names as $name) {
@@ -22,4 +36,16 @@ function alphano_search_filters(array $names, array $input): array
         $filters[$name] = is_scalar($value) ? (string)$value : '';
     }
     return $filters;
+}
+
+/**
+ * Legge i filtri dalla richiesta HTTP con priorita' esplicita.
+ *
+ * @param array<string,mixed> $get  Parametri GET
+ * @param array<string,mixed> $post Parametri POST
+ * @return array<string,string>
+ */
+function alphanoSearchFiltersFromRequest(array $names, array $get, array $post): array
+{
+    return alphanoSearchFilters($names, array_merge($get, $post));
 }

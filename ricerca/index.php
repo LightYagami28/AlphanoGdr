@@ -51,10 +51,7 @@ $admin = ($userRow['admin'] || $userRow['fatepower']);
 // ------------------------------------------------------------------
 // 3. Parametri GET
 // ------------------------------------------------------------------
-$params = ["nome","luogo","razza","online","araldica","caricacorporazione",
-           "caricaorganizzazione","categoria","corporazione","organizzazione",
-           "al","sesso","etnia","city"];
-$filters = alphano_search_filters($params, $_GET);
+$filters = alphanoSearchFiltersFromRequest(alphanoSearchFilterNames(), $_GET, []);
 
 // ------------------------------------------------------------------
 // 4. Query dinamica

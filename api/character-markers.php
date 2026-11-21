@@ -6,14 +6,15 @@ require_once __DIR__.'/../libs/race-presentation.inc.php';
 require_once __DIR__.'/../libs/player-labels.inc.php';
 
 require_once __DIR__.'/../libs/online-presence.inc.php';
+const ALPHANO_MARKERS_INVALID_LIST = 'Elenco personaggi non valido.';
 /** Public character labels only: no location, last activity or private NPC profile. */
 player_api(static function():array{
  alphano_require_login(true);
  $parse=static function($raw):array{
-  if(!is_string($raw)||strlen($raw)>1600||($raw!==''&&!preg_match('/^\d+(?:,\d+)*$/D',$raw))){ throw new DomainException('Elenco personaggi non valido.',422); }
+  if(!is_string($raw)||strlen($raw)>1600||($raw!==''&&!preg_match('/^\d+(?:,\d+)*$/D',$raw))){ throw new DomainException(ALPHANO_MARKERS_INVALID_LIST,422); }
   $ids=$raw===''?[]:array_values(array_unique(array_map('intval',explode(',',$raw))));
-  if(count($ids)>100){ throw new DomainException('Elenco personaggi non valido.',422); }
-  foreach($ids as $id){ if($id<1){ throw new DomainException('Elenco personaggi non valido.',422); } }
+  if(count($ids)>100){ throw new DomainException(ALPHANO_MARKERS_INVALID_LIST,422); }
+  foreach($ids as $id){ if($id<1){ throw new DomainException(ALPHANO_MARKERS_INVALID_LIST,422); } }
   return $ids;
  };
  $players=$parse($_GET['players']??'');$npcs=$parse($_GET['npcs']??'');$items=[];$db=ConnectDB();$races=array_column($db->query('SELECT id,nome FROM razze'),'nome','id');

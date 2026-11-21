@@ -34,7 +34,13 @@ foreach ($groups as $key => $group) {
 $rows = [];
 foreach (['Punti ferita' => $profile['hit_points'], alphano_currency_text('Corone') => number_format((int)$profile['money'], 0, ',', '.'), 'Ferite' => $profile['wounds'] ?: 'Nessuna', 'Allineamento' => processAl($profile['alignment']), 'Corporazione' => GetCorporazione((int)$profile['corporation_id']) ?: 'Nessuna', 'Organizzazione' => GetOrg((int)$profile['organization_id']) ?: 'Nessuna', 'Araldica' => GetAraldica((int)$profile['heraldry_id']) ?: 'Nessuna'] as $label => $value) { $rows[] = ['label' => $label, 'html' => $escape($value)]; }
 $sections[] = ['id' => 'stato', 'title' => 'Condizione e appartenenze', 'icon' => 'shield', 'rows' => $rows];
-if ($profile['details']) { $sections[] = ['id' => 'dettagli', 'title' => 'Altre informazioni', 'icon' => 'scroll', 'rows' => array_map(static fn(array $detail): array => ['label' => $detail['label'], 'html' => nl2br($escape($detail['value']))], $profile['details'])]; }
+if ($profile['details']) {
+    $detailRows = [];
+    foreach ($profile['details'] as $detail) {
+        $detailRows[] = ['label' => $detail['label'], 'html' => nl2br($escape($detail['value']))];
+    }
+    $sections[] = ['id' => 'dettagli', 'title' => 'Altre informazioni', 'icon' => 'scroll', 'rows' => $detailRows];
+}
 $gear=[];foreach(ai_game_inventory('npc',$id) as $item){ if($item['slot']!==''){ $gear[]=['label'=>$item['nome']?:$item['shortDesc'],'html'=>$escape($item['slot'])]; } }if($gear){ $sections[]=['id'=>'dotazioni','title'=>'Dotazioni visibili','icon'=>'shield','rows'=>$gear]; }
 $identity = [GetRazza((int)$profile['race_id']), $profile['sex'], GetEtnia((int)$profile['ethnicity_id']) ?: 'Provenienza non indicata'];
 if ($profile['age']) { $identity[] = (int)$profile['age'] . ' anni'; }

@@ -70,7 +70,13 @@ $sections = [
 ];
 if (!empty($viewer['admin']) || !empty($viewer['fatepower'])) {
     $notes = $db->query('SELECT n.data,n.master,n.nota,u.nome AS author FROM notepg n LEFT JOIN utenti u ON u.id=n.master WHERE n.pg=? ORDER BY n.id', [$cid]);
-    if ($notes) { $sections[] = ['id' => 'note', 'title' => 'Note del Master', 'icon' => 'book', 'rows' => array_map(static fn(array $note): array => ['label' => FormatTimestamp((int)$note['data']) . ' · ' . (string)($note['author'] ?: 'Master'), 'html' => ProcessText((string)$note['nota'])], $notes)]; }
+    if ($notes) {
+        $noteRows = [];
+        foreach ($notes as $note) {
+            $noteRows[] = ['label' => FormatTimestamp((int)$note['data']) . ' · ' . (string)($note['author'] ?: 'Master'), 'html' => ProcessText((string)$note['nota'])];
+        }
+        $sections[] = ['id' => 'note', 'title' => 'Note del Master', 'icon' => 'book', 'rows' => $noteRows];
+    }
 }
 $adminRows=[];
 if (!empty($viewer['admin']) || !empty($viewer['adminaccademia'])) {

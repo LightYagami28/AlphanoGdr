@@ -30,9 +30,9 @@ final class FrontendSourceCheckTest extends \PHPUnit\Framework\TestCase
     public function testSorgentiJsCorretti(): void
     {
         $root = dirname(__DIR__, 2);
-        foreach (['js/chats.js', 'js/gml.js', 'js/password.js'] as $file) {
+        foreach (alphanoFrontendJsFiles() as $file) {
             self::assertTrue(
-                alphano_js_explicit_declarations((string)file_get_contents($root.'/'.$file)),
+                alphanoJsExplicitDeclarations((string)file_get_contents($root.'/'.$file)),
                 $file.' contiene dichiarazioni implicite'
             );
         }
@@ -43,17 +43,19 @@ final class FrontendSourceCheckTest extends \PHPUnit\Framework\TestCase
      */
     public function testRilevamentoGlobaliImpliciti(): void
     {
-        self::assertFalse(alphano_js_explicit_declarations('riga = righe.pop();'));
-        self::assertFalse(alphano_js_explicit_declarations('tmp = obj.scrollTop;'));
-        self::assertFalse(alphano_js_explicit_declarations('sel = document.selection.createRange();'));
-        self::assertFalse(alphano_js_explicit_declarations('for (c in punctuations) {}'));
-        self::assertFalse(alphano_js_explicit_declarations('for (i in membership) {}'));
+        self::assertSame(['riga'], alphanoJsImplicitAssignments('riga = righe.pop();'));
+        self::assertSame(['tmp'], alphanoJsImplicitAssignments('tmp = obj.scrollTop;'));
+        self::assertSame(['sel'], alphanoJsImplicitAssignments('sel = document.selection.createRange();'));
+        self::assertSame(['ci'], alphanoJsImplicitAssignments('for (ci in punctuations) {}'));
+        self::assertSame(['i'], alphanoJsImplicitAssignments('for (i in membership) {}'));
 
-        self::assertTrue(alphano_js_explicit_declarations('var riga = righe.pop();'));
-        self::assertTrue(alphano_js_explicit_declarations('var tmp = obj.scrollTop;'));
-        self::assertTrue(alphano_js_explicit_declarations('var sel = document.selection.createRange();'));
-        self::assertTrue(alphano_js_explicit_declarations('for (var c in punctuations) {}'));
-        self::assertTrue(alphano_js_explicit_declarations('for (var i in membership) {}'));
+        self::assertSame([], alphanoJsImplicitAssignments('var riga = righe.pop();'));
+        self::assertSame([], alphanoJsImplicitAssignments('var tmp = obj.scrollTop;'));
+        self::assertSame([], alphanoJsImplicitAssignments('var sel = document.selection.createRange();'));
+        self::assertSame([], alphanoJsImplicitAssignments('for (var ci in punctuations) {}'));
+        self::assertSame([], alphanoJsImplicitAssignments('for (var i in membership) {}'));
+        self::assertTrue(alphanoJsExplicitDeclarations('var cn = 0;'));
+        self::assertFalse(alphanoJsExplicitDeclarations('cn = 0;'));
     }
 
     /**
@@ -62,8 +64,30 @@ final class FrontendSourceCheckTest extends \PHPUnit\Framework\TestCase
     public function testUnitaCss(): void
     {
         $css = (string)file_get_contents(dirname(__DIR__, 2).'/css/theme/maps.css');
-        self::assertTrue(alphano_css_radius_has_unit($css));
-        self::assertFalse(alphano_css_radius_has_unit('body .map-dot { r: 6; }'));
-        self::assertTrue(alphano_css_radius_has_unit('body .map-dot { r: 6px; }'));
+        self::assertSame('6px', alphanoCssRadiusValue($css));
+        self::assertTrue(alphanoCssRadiusHasUnit($css));
+        self::assertSame('6', alphanoCssRadiusValue('body .map-dot { r: 6; }'));
+        self::assertFalse(alphanoCssRadiusHasUnit('body .map-dot { r: 6; }'));
+        self::assertNull(alphanoCssRadiusValue('body .map-dot { fill: red; }'));
+    }
+
+    /**
+     * L'elenco dei file frontend è esplicito e completo.
+     */
+    public function testElencoFile(): void
+    {
+        self::assertSame(['js/chats.js', 'js/gml.js', 'js/password.js'], alphanoFrontendJsFiles());
+    }
+
+    /**
+     * Il rapporto dei sorgenti non segnala globali impliciti ne' raggi senza unita'.
+     */
+    public function testReportSorgenti(): void
+    {
+        $report = alphanoFrontendSourceReport(dirname(__DIR__, 2));
+        foreach (alphanoFrontendJsFiles() as $file) {
+            self::assertSame([], $report[$file]);
+        }
+        self::assertSame('6px', $report['css/theme/maps.css']);
     }
 }

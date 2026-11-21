@@ -9,32 +9,32 @@ function checkQuality(pass) {
 	var hasLowercase = false;
 	var hasNumber = false;
 	var membership = [];
-	for (var c in punctuations) {
-		if (pass.indexOf(punctuations[c]) != -1) {
+	for (var ci in punctuations) {
+		if (pass.indexOf(punctuations[ci]) != -1) {
 			score++;
 			hasPunctuation = true;
-			membership[pass.indexOf(punctuations[c])] = 'P';
+			membership[pass.indexOf(punctuations[ci])] = 'P';
 		}
 	}
-	for (var c in uppercases) {
-		if (pass.indexOf(uppercases[c]) != -1) {
+	for (var cu in uppercases) {
+		if (pass.indexOf(uppercases[cu]) != -1) {
 			score += .5;
 			hasUppercase = true;
-			membership[pass.indexOf(uppercases[c])] = 'U';
+			membership[pass.indexOf(uppercases[cu])] = 'U';
 		}
 	}
-	for (var c in lowercases) {
-		if (pass.indexOf(lowercases[c]) != -1) {
+	for (var cl in lowercases) {
+		if (pass.indexOf(lowercases[cl]) != -1) {
 			score += .5;
 			hasLowercase = true;
-			membership[pass.indexOf(lowercases[c])] = 'L';
+			membership[pass.indexOf(lowercases[cl])] = 'L';
 		}
 	}
-	for (var c=0;c<=9;c++) {
-		if (pass.indexOf(c) != -1) {
+	for (var cn=0;cn<=9;cn++) {
+		if (pass.indexOf(cn) != -1) {
 			score += .5;
 			hasNumber = true;
-			membership[pass.indexOf(c)] = 'N';
+			membership[pass.indexOf(cn)] = 'N';
 		}
 	}
 	// calculate the "noisyness" of the password

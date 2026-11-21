@@ -9,28 +9,28 @@ function checkQuality(pass) {
 	var hasLowercase = false;
 	var hasNumber = false;
 	var membership = [];
-	for (c in punctuations) {
+	for (var c in punctuations) {
 		if (pass.indexOf(punctuations[c]) != -1) {
 			score++;
 			hasPunctuation = true;
 			membership[pass.indexOf(punctuations[c])] = 'P';
 		}
 	}
-	for (c in uppercases) {
+	for (var c in uppercases) {
 		if (pass.indexOf(uppercases[c]) != -1) {
 			score += .5;
 			hasUppercase = true;
 			membership[pass.indexOf(uppercases[c])] = 'U';
 		}
 	}
-	for (c in lowercases) {
+	for (var c in lowercases) {
 		if (pass.indexOf(lowercases[c]) != -1) {
 			score += .5;
 			hasLowercase = true;
 			membership[pass.indexOf(lowercases[c])] = 'L';
 		}
 	}
-	for (c=0;c<=9;c++) {
+	for (var c=0;c<=9;c++) {
 		if (pass.indexOf(c) != -1) {
 			score += .5;
 			hasNumber = true;
@@ -42,7 +42,7 @@ function checkQuality(pass) {
 	// NoI$yNeSs of that string is 4.25
 	// noisyness of that string is .25
 	var lastType = '';
-	for (i in membership) {
+	for (var i in membership) {
 		if (lastType != membership[i]) {
 			score += .25;
 			lastType = membership[i];

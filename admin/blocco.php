@@ -144,6 +144,7 @@ switch ($_POST['azione'] ?? '') {
             $msg = 'Parametri non esaurienti';
         }
         break;
+    default: break;
 }
 
 // ———————————————————————————

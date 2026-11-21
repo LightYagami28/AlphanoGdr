@@ -100,7 +100,8 @@ $conversation=alphano_mail_contact_conversation($row,$idpg,$before);
 $hasEarlier=count($conversation)>80;if($hasEarlier){ array_shift($conversation); }
 if(!$conversation){ $conversation=[$row]; }
 $readIds=[];foreach($conversation as $letter){ if((int)$letter['iddestinatario']===$idpg&&!(int)$letter['letto']){ $readIds[]=(int)$letter['id']; } }
-if($readIds){ $db->execute('UPDATE mail SET letto=1 WHERE iddestinatario=? AND id IN('.implode(',',array_fill(0,count($readIds),'?')).')',[$idpg,...$readIds]); }
+$readIds=alphano_sql_ids($readIds);
+if($readIds){ $marks=alphano_sql_placeholders(count($readIds)); $db->execute("UPDATE mail SET letto=1 WHERE iddestinatario=? AND id IN($marks)",[$idpg,...$readIds]); }
 $replyToId=(int)$conversation[count($conversation)-1]['id'];
 $readNoticeId=$readIds[0]??($isDest?$msgId:0);
 $title = $otherId>0 ? "Conversazione con $otherName" : "Avviso di Alphano";

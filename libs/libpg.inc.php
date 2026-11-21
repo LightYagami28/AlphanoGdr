@@ -1084,13 +1084,16 @@ function TrovaDoppi(
     );
 
     $idsTrasf = $idsRic = [];
+    $idPlaceholders = $idSet ? implode(',', array_fill(0, count($idSet), '?')) : 'NULL';
+    $idParams = array_merge($idSet, $idSet);
     if ($trasferimenti) {
         $idsTrasf = array_unique(array_merge(...$db->query(
             "SELECT esecutore, destinatario
                FROM logs_adminpg
               WHERE azione='trasferimento'
-                AND esecutore IN (".implode(',', $idSet).")
-                AND destinatario IN (".implode(',', $idSet).")"
+                AND esecutore IN ($idPlaceholders)
+                AND destinatario IN ($idPlaceholders)",
+            $idParams
         )));
     }
     if ($ricompense) {
@@ -1098,8 +1101,9 @@ function TrovaDoppi(
             "SELECT esecutore, destinatario
                FROM logs_adminpg
               WHERE azione LIKE 'ricompensa(%'
-                AND esecutore IN (".implode(',', $idSet).")
-                AND destinatario IN (".implode(',', $idSet).")"
+                AND esecutore IN ($idPlaceholders)
+                AND destinatario IN ($idPlaceholders)",
+            $idParams
         )));
     }
 

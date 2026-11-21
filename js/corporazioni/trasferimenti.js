@@ -10,11 +10,11 @@ document.addEventListener('DOMContentLoaded', () => {
   tradeTabs.forEach(id => document.getElementById('m'+id)?.addEventListener('click', () => openTab(id)));
   openTab(location.hash.slice(1) || 'corp');
   window.addEventListener('hashchange',()=>openTab(location.hash.slice(1) || 'corp'));
-  loadAll().then(()=>{const id=Number(new URLSearchParams(location.search).get('trade'));if(id>0)manageTrade(id);});
+  loadAll().then(()=>{const id=Number(new URLSearchParams(location.search).get('trade'));if(id>0){manageTrade(id);}});
 });
 function openTab(active) {
-  if (!document.getElementById(active)) active='personal';
-  if(location.hash!=='#'+active)history.replaceState(null,'','#'+active);
+  if (!document.getElementById(active)) {active='personal';}
+  if(location.hash!=='#'+active){history.replaceState(null,'','#'+active);}
   tradeTabs.forEach(id => {
     const panel=document.getElementById(id), button=document.getElementById('m'+id);
     if (panel) { panel.hidden=id!==active; panel.classList.toggle('active',id===active); }
@@ -26,15 +26,15 @@ function tplTable(headers, rows) {
 }
 function tradeSection(id,title,headers,rows,empty) {
   const panel=document.getElementById(id);
-  if (panel) panel.innerHTML=`<h3>${title}</h3>`+(rows.length ? tplTable(headers,rows) : `<p>${empty}</p>`);
+  if (panel) {panel.innerHTML=`<h3>${title}</h3>`+(rows.length ? tplTable(headers,rows) : `<p>${empty}</p>`);}
 }
 async function loadAll() {
   try {
     const response=await fetch('/api/corporazioni/trasferimenti.php?azione=list&corp='+encodeURIComponent(document.body.dataset.corporation||''));
     const data=await response.json();
-    if (!response.ok || !data.success) throw Error(data.message || 'Dati non disponibili');
+    if (!response.ok || !data.success) {throw Error(data.message || 'Dati non disponibili');}
     const balance=document.getElementById('corporate-trade-balance');
-    if (balance) balance.textContent=String(data.budget);
+    if (balance) {balance.textContent=String(data.budget);}
     renderTransazioni(data.transazioni || []);
     renderStoricoAcq(data.storicoAcq || []);
     renderOrdiniClienti(data.ordini || []);
@@ -76,16 +76,16 @@ function renderOrdiniPresi(rows) {
     return `<tr><td>${tradeEscape(d.data)}</td><td>${tradeProfile(d.pg,d.interlocutore)}</td><td>${tradeEscape(d.nomeobj)}</td><td>${qty}</td><td>${price}</td><td>${Number(d.qta)*Number(d.prezzo)} ${window.AlphanoCurrency.html("Corone")}</td><td>${tradeEscape(d.statoText)}</td><td>${actions}</td></tr>`;
   }),'Nessun ordine assegnato a te.');
 }
-function tradeCount(tab,count,label){const button=document.getElementById('m'+tab);if(!button)return;button.dataset.commerceCount='true';let badge=button.querySelector('.notification-badge');if(!badge){badge=document.createElement('span');badge.className='notification-badge';button.append(badge);}badge.hidden=!count;badge.textContent=String(count);badge.setAttribute('aria-label',`${count} ${label}`);}
+function tradeCount(tab,count,label){const button=document.getElementById('m'+tab);if(!button){return;}button.dataset.commerceCount='true';let badge=button.querySelector('.notification-badge');if(!badge){badge=document.createElement('span');badge.className='notification-badge';button.append(badge);}badge.hidden=!count;badge.textContent=String(count);badge.setAttribute('aria-label',`${count} ${label}`);}
 const materialLayout=new ResizeObserver(entries=>{for(const {target} of entries){const count=target.children.length,cols=Math.min(count,Math.max(Math.ceil(count/2),Math.floor(target.parentElement.clientWidth/96)));target.style.gridTemplateColumns=`repeat(${Math.max(1,cols)},minmax(76px,1fr))`;if(target.parentElement.dataset.restoreScroll){target.parentElement.scrollLeft=Number(target.parentElement.dataset.restoreScroll);delete target.parentElement.dataset.restoreScroll;}}});
 function renderMagazzino(rows) {
-  const panel=document.getElementById('produzione');if(!panel)return;const scrollLeft=panel.querySelector('.commerce-material-scroll')?.scrollLeft||0;panel.querySelectorAll('.commerce-material-grid').forEach(el=>materialLayout.unobserve(el));
+  const panel=document.getElementById('produzione');if(!panel){return;}const scrollLeft=panel.querySelector('.commerce-material-scroll')?.scrollLeft||0;panel.querySelectorAll('.commerce-material-grid').forEach(el=>materialLayout.unobserve(el));
   const stock=rows.filter(d=>Number(d.qta)>0);
   panel.innerHTML='<h3>Magazzino materie prime</h3>'+(stock.length?`<div class="commerce-material-scroll" role="region" aria-label="Materiali disponibili" tabindex="0"><div class="commerce-material-grid">${stock.map(d=>`<figure class="commerce-material"><div class="armory-item"><img src="${tradeEscape(d.image)}" alt="${tradeEscape(d.name||d.materia)}" loading="lazy"><b class="armory-quantity" aria-label="Quantità ${Number(d.qta)}">x${Number(d.qta)}</b></div><figcaption>${tradeEscape(d.name||d.materia)}</figcaption></figure>`).join('')}</div></div>`:'<p>Magazzino vuoto.</p>');
   const grid=panel.querySelector('.commerce-material-grid');if(grid){grid.parentElement.dataset.restoreScroll=String(scrollLeft);materialLayout.observe(grid);}
 }
 function renderConsegne(rows) {
-  const panel=document.getElementById('produzione');if (!panel)return;
+  const panel=document.getElementById('produzione');if (!panel){return;}
   panel.insertAdjacentHTML('beforeend','<h3>Ordini da consegnare</h3><p>La consegna produce gli oggetti, consuma le materie prime e addebita al cliente il totale concordato.</p>'+(rows.length ? tplTable(['Data','Cliente','Oggetto','Quantità','Prezzo unitario','Totale','Azioni'],rows.map(d=>`<tr><td>${tradeEscape(d.data)}</td><td>${tradeProfile(d.pg,d.interlocutore)}</td><td><span class="commerce-delivery-item"><img src="${tradeEscape(d.image)}" alt="" loading="lazy"><strong>${tradeEscape(d.nomeobj)}</strong></span></td><td>${Number(d.qta)}</td><td>${Number(d.prezzo)} ${window.AlphanoCurrency.html("Corone")}</td><td>${Number(d.qta)*Number(d.prezzo)} ${window.AlphanoCurrency.html("Corone")}</td><td>${tradeButton('manageTrade',d.id,'Gestisci consegna')}</td></tr>`)) : '<p>Nessuna consegna assegnata a te.</p>'));
 }
 function openProfile(id){window.openProfileId(id);}
@@ -102,7 +102,7 @@ function tradeValue(id,label,max=2147483647) {
   input.removeAttribute('aria-invalid');return raw;
 }
 async function postAction(payload) {
-  if (tradeBusy) return;
+  if (tradeBusy) {return;}
   tradeBusy=true;
   document.querySelectorAll('button').forEach(b=>b.disabled=true);
   tradeStatus('Operazione in corso…');
@@ -118,14 +118,14 @@ async function postAction(payload) {
 }
 async function takeOrder(id){const result=await postAction({azione:'prendiincarico',id});if(result?.success){openTab('stven');tradeStatus('Ordine preso in carico: puoi proporre il prezzo da I miei ordini.');}return result;}
 function acceptTransf(id){return postAction({azione:'admintransf',id,accetta:1});}
-function updateTransf(id){const prezzo=tradeValue('prz_t'+id,'il prezzo totale');if(prezzo===null)return;const qta=tradeValue('qta_t'+id,'la quantità',10000);if(qta===null)return;return postAction({azione:'admintransf',id,prezzo,qta});}
+function updateTransf(id){const prezzo=tradeValue('prz_t'+id,'il prezzo totale');if(prezzo===null){return;}const qta=tradeValue('qta_t'+id,'la quantità',10000);if(qta===null){return;}return postAction({azione:'admintransf',id,prezzo,qta});}
 function deleteTransf(id){return postAction({azione:'admintransf',id,elimina:1});}
 function acceptOrder(id){return postAction({azione:'adminorder',id,accetta:1});}
-function updateOrder(id){const prezzo=tradeValue('prezzo_o'+id,'il prezzo unitario');if(prezzo===null)return;const qta=tradeValue('qta_o'+id,'la quantità',10000);if(qta===null)return;return postAction({azione:'adminorder',id,prezzo,qta});}
+function updateOrder(id){const prezzo=tradeValue('prezzo_o'+id,'il prezzo unitario');if(prezzo===null){return;}const qta=tradeValue('qta_o'+id,'la quantità',10000);if(qta===null){return;}return postAction({azione:'adminorder',id,prezzo,qta});}
 function deleteOrder(id){return postAction({azione:'adminorder',id,elimina:1});}
 function deliver(id){return postAction({azione:'consegna',id});}
 
 function manageTrade(id){return window.alphanoCommerce.open(id);}
-let corporateRefreshBusy=false;document.addEventListener('alphano:commerce-refresh',async event=>{if(event.detail?.action==='take'&&Number(event.detail.corp)===Number(document.body.dataset.corporation)){openTab('stven');tradeStatus('Ordine #'+Number(event.detail.id)+' preso in carico. Prosegui con Gestisci trattativa.');}if(tradeBusy||corporateRefreshBusy||document.body.dataset.commerceDirty==='true'||document.activeElement?.matches('input,select,textarea'))return;corporateRefreshBusy=true;try{await loadAll();}finally{corporateRefreshBusy=false;}});setInterval(()=>{if(!document.hidden)document.dispatchEvent(new CustomEvent('alphano:commerce-refresh'));},30000);
+let corporateRefreshBusy=false;document.addEventListener('alphano:commerce-refresh',async event=>{if(event.detail?.action==='take'&&Number(event.detail.corp)===Number(document.body.dataset.corporation)){openTab('stven');tradeStatus('Ordine #'+Number(event.detail.id)+' preso in carico. Prosegui con Gestisci trattativa.');}if(tradeBusy||corporateRefreshBusy||document.body.dataset.commerceDirty==='true'||document.activeElement?.matches('input,select,textarea')){return;}corporateRefreshBusy=true;try{await loadAll();}finally{corporateRefreshBusy=false;}});setInterval(()=>{if(!document.hidden){document.dispatchEvent(new CustomEvent('alphano:commerce-refresh'));}},30000);
 
-document.addEventListener('input',event=>{if(event.target.matches('input,select,textarea'))document.body.dataset.commerceDirty='true';});
+document.addEventListener('input',event=>{if(event.target.matches('input,select,textarea')){document.body.dataset.commerceDirty='true';}});

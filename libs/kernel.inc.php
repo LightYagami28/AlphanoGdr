@@ -25,6 +25,31 @@ function alphano_canonical_inside(string $base, string $path): ?string
     $prefix = rtrim($root, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
     return str_starts_with($real, $prefix) ? $real : null;
 }
+
+/** Normalizza un elenco di identificativi a interi positivi, scartando valori non validi. */
+function alphano_sql_ids(mixed $values): array
+{
+    if (!is_array($values)) {
+        return [];
+    }
+    $ids = [];
+    foreach ($values as $value) {
+        if (!is_int($value) && !(is_string($value) && preg_match('/^[1-9][0-9]*$/D', $value) === 1)) {
+            continue;
+        }
+        $id = (int)$value;
+        if ($id > 0) {
+            $ids[$id] = $id;
+        }
+    }
+    return array_values($ids);
+}
+
+/** Genera i segnaposto `?` per una lista di identificativi gia' validata. */
+function alphano_sql_placeholders(int $count): string
+{
+    return $count > 0 ? implode(',', array_fill(0, $count, '?')) : '';
+}
 define('numerorighe', 20);
 define('tempomax', 900);
 define('mintimelican', 7200);

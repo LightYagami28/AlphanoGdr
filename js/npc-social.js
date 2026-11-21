@@ -1,17 +1,17 @@
 /* Private relationship actions. The backend always derives the player from the session. */
 (() => {
  'use strict';
- const npc=Number(document.querySelector('[data-social-npc]')?.dataset.socialNpc);if(!npc)return;
+ const npc=Number(document.querySelector('[data-social-npc]')?.dataset.socialNpc);if(!npc){return;}
  const dossier=document.querySelector('[data-npc-knowledge]'),readOnly=dossier?.dataset.relationReadOnly==='1',player=Number(dossier?.dataset.relationPlayer);
- const text=(selector,value)=>{const el=document.querySelector(selector);if(el)el.textContent=String(value);};
+ const text=(selector,value)=>{const el=document.querySelector(selector);if(el){el.textContent=String(value);}};
  const signed=value=>Number(value)>0?'+'+Number(value):String(Number(value)||0);
- const updateMeter=(meter,value)=>{if(!meter)return;value=Math.max(-100,Math.min(100,Number(value)||0));const point=50+value/2;meter.style.setProperty('--meter-start',Math.min(50,point)+'%');meter.style.setProperty('--meter-width',Math.abs(value)/2+'%');meter.style.setProperty('--meter-point',point+'%');meter.setAttribute('aria-valuenow',value);meter.setAttribute('aria-valuetext',signed(value));};
+ const updateMeter=(meter,value)=>{if(!meter){return;}value=Math.max(-100,Math.min(100,Number(value)||0));const point=50+value/2;meter.style.setProperty('--meter-start',Math.min(50,point)+'%');meter.style.setProperty('--meter-width',Math.abs(value)/2+'%');meter.style.setProperty('--meter-point',point+'%');meter.setAttribute('aria-valuenow',value);meter.setAttribute('aria-valuetext',signed(value));};
  let refreshing=false;
  async function refresh(){
-  if(refreshing||document.hidden)return;refreshing=true;
+  if(refreshing||document.hidden){return;}refreshing=true;
   try{
    const response=await fetch('/api/ai-social.php?action='+(readOnly?'staff_context':'profile')+'&npc_id='+encodeURIComponent(npc)+(readOnly?'&player_id='+encodeURIComponent(player):''),{cache:'no-store',credentials:'same-origin'});
-   if(!response.ok)return;const profile=await response.json(),bond=profile.bond;
+   if(!response.ok){return;}const profile=await response.json(),bond=profile.bond;
    if(bond){
     const panel=document.querySelector('[data-npc-bond]'),meter=document.querySelector('[data-npc-bond-meter]');
     if(panel){panel.dataset.tone=bond.tone;panel.dataset.unknown=String(bond.value===null);}
@@ -21,20 +21,20 @@
 
    }
    text('[data-npc-relation-state]',profile.state.charAt(0).toUpperCase()+profile.state.slice(1));
-   for(const name of ['encounters','interactions','meaningful'])text('[data-npc-count="'+name+'"]',profile[name]??0);
+   for(const name of ['encounters','interactions','meaningful']){text('[data-npc-count="'+name+'"]',profile[name]??0);}
    for(const [key,metric] of Object.entries(profile.metrics??{})){
-    const item=document.querySelector('[data-npc-metric="'+key+'"]');if(!item)continue;
+    const item=document.querySelector('[data-npc-metric="'+key+'"]');if(!item){continue;}
     const meter=item.querySelector('[data-signed-meter]');updateMeter(meter,metric.value);item.dataset.unknown='false';item.dataset.metricSign=(metric.value??0)<0?'negative':'positive';
     item.querySelector('output').textContent=signed(metric.value);
 
    }
    if(profile.development){
-    const node=(tag,content)=>{const el=document.createElement(tag);if(content!==undefined)el.textContent=content;return el;};
+    const node=(tag,content)=>{const el=document.createElement(tag);if(content!==undefined){el.textContent=content;}return el;};
     const story=document.querySelector('[data-npc-development-story]'),wishes=document.querySelector('[data-npc-aspirations]');
     if(story){
      const fragment=document.createDocumentFragment();
      for(const episode of profile.development.story??[]){const item=node('li'),date=new Date(episode.created_at*1000),time=node('time',date.toLocaleString('it-IT'));time.dateTime=date.toISOString();item.append(time,node('strong',episode.category==='trauma'?'Un incontro che ha segnato il PNG':'Il legame è cambiato'),node('p',episode.summary));fragment.append(item);}
-     story.replaceChildren(fragment);const empty=document.querySelector('[data-npc-development-empty]');if(empty)empty.hidden=story.children.length>0;
+     story.replaceChildren(fragment);const empty=document.querySelector('[data-npc-development-empty]');if(empty){empty.hidden=story.children.length>0;}
     }
     if(wishes){
      const fragment=document.createDocumentFragment();
@@ -46,7 +46,7 @@
    if(known&&profile.knowledge?.allowed){
     const fragment=document.createDocumentFragment();
     for(const item of profile.knowledge.items??[]){
-     const node=(tag,className,content)=>{const el=document.createElement(tag);if(className)el.className=className;if(content!==undefined)el.textContent=content;return el;};
+     const node=(tag,className,content)=>{const el=document.createElement(tag);if(className){el.className=className;}if(content!==undefined){el.textContent=content;}return el;};
      const article=node('article','revelation-card is-known'),header=node('header','revelation-card-header'),person=node('a','revelation-person');person.href=item.profile_url;person.dataset.characterMarkers='off';
      const portrait=node('img');portrait.src=item.portrait;portrait.alt='Ritratto di '+item.name;portrait.width=76;portrait.height=76;portrait.loading='lazy';
      const identity=node('span');identity.append(node('small','',item.observer_kind==='npc'?'Personaggio non giocante':'Personaggio giocante'),node('strong','',item.name));
@@ -63,19 +63,19 @@
   finally{refreshing=false;}
  }
  window.addEventListener('focus',refresh);
- document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
- setInterval(()=>{if(document.hasFocus())refresh();},10000);
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden){refresh();}});
+ setInterval(()=>{if(document.hasFocus()){refresh();}},10000);
  document.querySelectorAll('form[data-npc-action]').forEach(form=>form.addEventListener('submit',async event=>{
-  event.preventDefault();if(form.dataset.busy)return;form.dataset.busy='1';
+  event.preventDefault();if(form.dataset.busy){return;}form.dataset.busy='1';
   const feedback=document.querySelector('[data-npc-feedback]');
   const buttons=[...form.querySelectorAll('button')];buttons.forEach(b=>b.disabled=true);
   const payload={...Object.fromEntries(new FormData(form)),action:form.dataset.npcAction,npc_id:npc};
   form.querySelectorAll('input[type=checkbox]').forEach(el=>payload[el.name]=el.checked?1:0);
-  for(const key of ['character_age','romance_enabled','intimacy_enabled','amount','offer_id'])if(key in payload)payload[key]=Number(payload[key]);
+  for(const key of ['character_age','romance_enabled','intimacy_enabled','amount','offer_id'])if(key in payload){payload[key]=Number(payload[key]);}
   form.dataset.requestId ||= crypto.randomUUID();payload.request_id=form.dataset.requestId;
   try {
    const res=await fetch('/api/ai-social.php',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':document.querySelector('meta[name=csrf-token]').content},body:JSON.stringify(payload)});
-   const result=await res.json();if(!res.ok)throw Error(result.error||'Operazione non riuscita.');
+   const result=await res.json();if(!res.ok){throw Error(result.error||'Operazione non riuscita.');}
    feedback.textContent=result.receipt?'Movimento registrato.':'Preferenze aggiornate.';location.reload();
   }catch(error){feedback.textContent=error.message;buttons.forEach(b=>b.disabled=false);delete form.dataset.busy;}
  }));

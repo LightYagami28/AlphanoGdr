@@ -1,6 +1,6 @@
 /* Every game overlay is rendered in the outer shell, even from nested chat frames. */
 (()=>{
- 'use strict';if(window.alphanoBoardNotices)return;
+ 'use strict';if(window.alphanoBoardNotices){return;}
  const memory=new Map(),inflight=new Map();
  function storage(key,value){try{if(value!==undefined){sessionStorage.setItem(key,value);const keys=Object.keys(sessionStorage).filter(k=>k.startsWith('alphano:board-overlay:'));keys.slice(0,Math.max(0,keys.length-150)).forEach(k=>sessionStorage.removeItem(k));}return sessionStorage.getItem(key);}catch{return memory.get(key);}}
  function urlOf(g){return g.url||'/chat/index.php?'+new URLSearchParams({chat:g.chat||'',board_game:g.id});}
@@ -23,20 +23,20 @@
   else if(g.status==='declined'){title='La sfida si chiude qui';message='L’invito è stato rifiutato o ritirato. Nessuna posta è stata addebitata.';}
   else if(g.status==='cancelled'){title='Partita annullata';message=r.reason||g.detail||'Le eventuali poste sono state restituite ai proprietari.';}
   const chips=[];
-  if(g.status==='pending'&&g.terms){chips.push(Math.round(Number(g.terms.total||0)/60)+' min a testa','+'+Number(g.terms.increment||0)+' s per mossa');if(g.expires_at)chips.push('Scade alle '+new Date(g.expires_at*1000).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}));}
-  if(g.status==='finished'){chips.push(Math.floor(Number(r.duration||0)/60)+' min '+Number(r.duration||0)%60+' s',Number(r.plies||0)+(Number(r.plies)===1?' mossa individuale':' mosse individuali'));if(r.computer)chips.push('Allenamento · senza premi o ELO');else if(own){chips.push('Intelligenza +'+Number(r.intelligence?.[viewer]||0));const elo=Number(r.elo?.[viewer]||0);chips.push('ELO '+(elo>=0?'+':'')+elo);}}
+  if(g.status==='pending'&&g.terms){chips.push(Math.round(Number(g.terms.total||0)/60)+' min a testa','+'+Number(g.terms.increment||0)+' s per mossa');if(g.expires_at){chips.push('Scade alle '+new Date(g.expires_at*1000).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}));}}
+  if(g.status==='finished'){chips.push(Math.floor(Number(r.duration||0)/60)+' min '+Number(r.duration||0)%60+' s',Number(r.plies||0)+(Number(r.plies)===1?' mossa individuale':' mosse individuali'));if(r.computer){chips.push('Allenamento · senza premi o ELO');}else if(own){chips.push('Intelligenza +'+Number(r.intelligence?.[viewer]||0));const elo=Number(r.elo?.[viewer]||0);chips.push('ELO '+(elo>=0?'+':'')+elo);}}
   return {variant:'board-game',gameTone:tone,gameSymbol:symbol,eyebrow:'Alphano · '+game+' · Tavolo #'+Number(g.id),title,message,gamePlayers:g.players||[],gameChips:chips,
    detail:g.status==='finished'&&!r.computer?(r.prizes?.length?(winner?'Le poste sono state assegnate al vincitore.':'Le poste sono state restituite ai rispettivi proprietari.'):'Nessuna posta da trasferire.'):undefined,
    iconImage:'/assets/placeholder.svg',buttonLabel:g.onTable?'Torna al tavolo':button,cancelLabel:g.onTable?undefined:'Più tardi',actionUrl:g.onTable?undefined:urlOf(g)};
  }
  async function show(game){
-  try{if(window.parent!==window&&window.parent.location.origin===location.origin&&window.parent.alphanoBoardNotices)return window.parent.alphanoBoardNotices.show(game);}catch{}
-  if(!window.alphanoDialog)return 'unavailable';
+  try{if(window.parent!==window&&window.parent.location.origin===location.origin&&window.parent.alphanoBoardNotices){return window.parent.alphanoBoardNotices.show(game);}}catch{}
+  if(!window.alphanoDialog){return 'unavailable';}
   const g={...game},viewer=Number(g.viewer||document.getElementById('app-script')?.dataset.idpg||0);
   g.viewer=viewer;
   const draw=g.status==='active'&&g.draw_by&&Number(g.draw_by)!==viewer;const version=g.status==='pending'||draw?Number(g.version||1):0,key='alphano:board-overlay:'+viewer+':'+g.id+':'+g.status+(draw?':draw':'')+':'+version;
-  const previous=memory.get(key)||storage(key);if(previous)return previous;
-  if(inflight.has(key))return inflight.get(key);
+  const previous=memory.get(key)||storage(key);if(previous){return previous;}
+  if(inflight.has(key)){return inflight.get(key);}
   const task=window.alphanoDialog.notice(options(g));inflight.set(key,task);
   try{const result=await task;memory.set(key,result);storage(key,result);return result;}
   finally{inflight.delete(key);}
@@ -44,7 +44,7 @@
  window.alphanoBoardNotices={show,options,async fromNotice(n,viewer){
   let p=n.data?.presentation||{};
   if(p.status==='pending'){
-   try{const r=await fetch('/api/board-games.php?'+new URLSearchParams({action:'view',id:n.data?.game_id||p.id}),{cache:'no-store'});if(!r.ok)return 'dismiss';const live=await r.json();if(live.status!=='pending')return 'dismiss';p=live;}catch{return 'dismiss';}
+   try{const r=await fetch('/api/board-games.php?'+new URLSearchParams({action:'view',id:n.data?.game_id||p.id}),{cache:'no-store'});if(!r.ok){return 'dismiss';}const live=await r.json();if(live.status!=='pending'){return 'dismiss';}p=live;}catch{return 'dismiss';}
   }
   return show({...p,id:Number(n.data?.game_id||p.id||0),status:p.status||'update',game:p.game||(n.title?.includes('Dama')?'dama':'scacchi'),url:n.url,detail:n.detail,viewer});
  }};

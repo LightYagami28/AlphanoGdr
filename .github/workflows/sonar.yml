@@ -35,11 +35,18 @@ jobs:
           coverage: none
           tools: composer:v2
 
+      - name: Installa Java 21
+        uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          distribution: temurin
+          java-version: '21'
+
       - name: Installa SonarScanner
         run: |
           curl -fSLo /tmp/sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
           unzip -t /tmp/sonar-scanner.zip
           unzip -q /tmp/sonar-scanner.zip -d /tmp/sonar-scanner
+          sed -i 's/^use_embedded_jre=true$/use_embedded_jre=false/' /tmp/sonar-scanner/sonar-scanner-5.0.1.3006-linux/bin/sonar-scanner
           echo "/tmp/sonar-scanner/sonar-scanner-5.0.1.3006-linux/bin" >> "$GITHUB_PATH"
 
       - name: Analisi

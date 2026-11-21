@@ -40,12 +40,12 @@ $avatar = (string)(($row[$avatarKey] ?? '') ?: ($row['avatar'] ?? ''));
 $avatarDir = __DIR__ . '/pg/' . $cid;
 $avatarPath = $avatar !== '' ? alphano_canonical_inside($avatarDir, $avatarDir . '/' . $avatar) : null;
 if ($avatarPath !== null && !empty($row['upload']) && is_file($avatarPath)) { $avatar = '/profili/pg/' . $cid . '/' . basename($avatarPath); }
-$doppiRaw = TrovaDoppi($cid) ?: [];
+$doppiRaw = alphano_sql_ids(TrovaDoppi($cid) ?: []);
 $visits = (int)$row['visite'];
-if (!in_array($visitorId, array_map('intval', $doppiRaw), true)) { $visits += IncrementaVisite($visitorId, $cid); }
+if (!in_array($visitorId, $doppiRaw, true)) { $visits += IncrementaVisite($visitorId, $cid); }
 $doppi = [];
 if ($doppiRaw) {
-    $placeholders = implode(',', array_fill(0, count($doppiRaw), '?'));
+    $placeholders = alphano_sql_placeholders(count($doppiRaw));
     foreach ($db->query("SELECT id,nome FROM utenti WHERE id IN ($placeholders) ORDER BY nome", $doppiRaw) as $other) { $doppi[] = '<a href="/profili/?Id=' . (int)$other['id'] . '">' . $escape($other['nome']) . '</a>'; }
 }
 $textRow = static fn(string $label, mixed $value, string $fallback = 'Non dichiarato'): array => ['label' => $label, 'html' => $escape($value !== null && $value !== '' ? $value : $fallback)];
@@ -72,7 +72,13 @@ $sections = [
 ];
 if (!empty($viewer['admin']) || !empty($viewer['fatepower'])) {
     $notes = $db->query('SELECT n.data,n.master,n.nota,u.nome AS author FROM notepg n LEFT JOIN utenti u ON u.id=n.master WHERE n.pg=? ORDER BY n.id', [$cid]);
-    if ($notes) { $sections[] = ['id' => 'note', 'title' => 'Note del Master', 'icon' => 'book', 'rows' => array_map(static fn(array $note): array => ['label' => FormatTimestamp((int)$note['data']) . ' · ' . (string)($note['author'] ?: 'Master'), 'html' => ProcessText((string)$note['nota'])], $notes)]; }
+    if ($notes) {
+        $noteRows = [];
+        foreach ($notes as $note) {
+            $noteRows[] = ['label' => FormatTimestamp((int)$note['data']) . ' · ' . (string)($note['author'] ?: 'Master'), 'html' => ProcessText((string)$note['nota'])];
+        }
+        $sections[] = ['id' => 'note', 'title' => 'Note del Master', 'icon' => 'book', 'rows' => $noteRows];
+    }
 }
 $adminRows=[];
 if (!empty($viewer['admin']) || !empty($viewer['adminaccademia'])) {

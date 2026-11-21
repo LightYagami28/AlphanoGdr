@@ -16,8 +16,9 @@ try {
     if ($action==='portrait' && $method==='GET') {
         $name=ai_field($in,'file',40,true);
         $portraitDir=ai_portrait_directory();
-        $file=alphano_canonical_inside($portraitDir, $portraitDir.'/'.$name);
-        if (!preg_match('/^[a-f0-9]{32}\.png$/D',$name) || $file===null || !is_file($file)) { throw new DomainException('Ritratto non disponibile.',404); }
+        $root=realpath($portraitDir);
+        $file=($root!==false && preg_match('/^[a-f0-9]{32}\.png$/D',$name)===1) ? realpath($portraitDir.'/'.$name) : false;
+        if ($file===false || !str_starts_with($file, rtrim($root, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR) || !is_file($file)) { throw new DomainException('Ritratto non disponibile.',404); }
         header('Content-Type: image/png');header('X-Content-Type-Options: nosniff');
         session_write_close();readfile($file);exit;
     }

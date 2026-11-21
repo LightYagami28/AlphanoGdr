@@ -19,6 +19,13 @@ require_once __DIR__.'/libs/media-assets.inc.php';
 
 use Alphano\Database\PDOMySQLDriver;
 
+$jsEncode = static function (mixed $value): string {
+    $json = json_encode(
+        $value,
+        JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE | JSON_UNESCAPED_UNICODE
+    );
+    return $json === false ? 'null' : $json;
+};
 
 
 /* -----------------------------------------------------------------
@@ -133,23 +140,23 @@ $sorgecala = LicanTime()
 
       /* 1. Aggiorno meteo / orologio nel frame padre */
       parent.UpdateMTop(
-        "<?= addslashes($sorgecala) ?>",
+        <?= $jsEncode($sorgecala) ?>,
         <?= abs($meteo['cielo']) ?>,
-        "<?= addslashes($cielo[$meteo['cielo']]) ?>",
+        <?= $jsEncode($cielo[$meteo['cielo']]) ?>,
         <?= abs($meteo['tempo']) ?>,
-        "<?= addslashes(GetDescrTempo($meteo['tempo'], $meteo['temperatura'])) ?>",
+        <?= $jsEncode(GetDescrTempo($meteo['tempo'], $meteo['temperatura'])) ?>,
         <?= abs($meteo['vento']) ?>,
-        "<?= addslashes($vento[$meteo['vento']]) ?>",
-        "<?= $meteo['temperatura'] ?>",
-        "<?= addslashes($luna) ?>",
+        <?= $jsEncode($vento[$meteo['vento']]) ?>,
+        <?= $jsEncode($meteo['temperatura']) ?>,
+        <?= $jsEncode($luna) ?>,
         <?= DaysToFullMoon() ?>,
         <?= $leggere ?>,
         <?= json_encode(alphano_weather_icons($meteo,$luna,time()<$alba||time()>=$tramonto),JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) ?>
       );
 
       /* 2. Verifico se devo rigenerare il menu */
-      const paramPHP = "<?= addslashes($param) ?>";
-      const paramGET = <?= isset($_GET['param']) ? '"'.addslashes($_GET['param']).'"' : 'null' ?>;
+      const paramPHP = <?= $jsEncode($param) ?>;
+      const paramGET = <?= $jsEncode(isset($_GET['param']) && is_string($_GET['param']) ? $_GET['param'] : null) ?>;
 
       // DEBUG – attiva se serve
       // console.log('[control] paramPHP:', paramPHP, '| paramGET:', paramGET);
@@ -162,12 +169,12 @@ $sorgecala = LicanTime()
            *--------------------------------------------------------*/
           parent.document.getElementById('spaziomenu').classList.add('is-blocked');
           parent.document.getElementById('spaziomenu').innerHTML =
-            "<?= addslashes(
+            <?= $jsEncode(
                   ($user['sesso']==='Maschio' ? 'Sei stato bloccato' : 'Sei stata bloccata')
                   . ($user['lockby'] ? ' da '.htmlentities(GetPGFromID($user['lockby'])) : '')
                   . ' fino al ' . FormatTimestamp($user['datasblocco'])
                   . '<br>' . ProcessText($user['motivo'])
-              ) ?>";
+              ) ?>;
         <?php else: ?>
           /*----------------------------------------------------------
            *  Costruisco l’array vocimenu

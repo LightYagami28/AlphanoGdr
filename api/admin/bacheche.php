@@ -1,5 +1,11 @@
 <?php
 declare(strict_types=1);
+const ALPHANO_MSG_ID_NON_VALIDO_B62E = 'ID non valido';
+const ALPHANO_MSG_SELECT_ID_FROM_LUOGHI_WHERE_ID_7250 = 'SELECT id FROM luoghi WHERE id=?';
+const ALPHANO_MSG_BACHECA_NON_TROVATA_6CD1 = 'Bacheca non trovata';
+const ALPHANO_MSG_SELECT_LOCATION_FROM_LUOGHI_WHER_EE6B = 'SELECT location FROM luoghi WHERE id = ?';
+const ALPHANO_MSG_VIOLAZIONE_DIRITTI_E970 = 'Violazione diritti';
+const ALPHANO_MSG_DELETE_FROM_STORICOBACHECHE_WHER_8EE4 = 'DELETE FROM storicobacheche WHERE oldid IN(SELECT id FROM bacheche WHERE bacheca=?)';
 // api/admin/bacheche.php
 
 // 1) Forza buffering ed evita output spuri
@@ -73,14 +79,14 @@ try {
         switch ($act) {
             case 'svuota':
                 $id = (int)($in['id'] ?? 0);
-                if ($id <= 0) { throw new \Exception('ID non valido', 400); }
-                if (!$db->query('SELECT id FROM luoghi WHERE id=?',[$id])) { throw new \Exception('Bacheca non trovata',404); }
+                if ($id <= 0) { throw new \Exception(ALPHANO_MSG_ID_NON_VALIDO_B62E, 400); }
+                if (!$db->query(ALPHANO_MSG_SELECT_ID_FROM_LUOGHI_WHERE_ID_7250,[$id])) { throw new \Exception(ALPHANO_MSG_BACHECA_NON_TROVATA_6CD1,404); }
                 if ($cityFilter !== null) {
-                    $loc = $db->query('SELECT location FROM luoghi WHERE id = ?', [$id])[0]['location'] ?? '';
-                    if ($loc !== $cityFilter) { throw new \Exception('Violazione diritti', 403); }
+                    $loc = $db->query(ALPHANO_MSG_SELECT_LOCATION_FROM_LUOGHI_WHER_EE6B, [$id])[0]['location'] ?? '';
+                    if ($loc !== $cityFilter) { throw new \Exception(ALPHANO_MSG_VIOLAZIONE_DIRITTI_E970, 403); }
                 }
                 $db->beginTransaction();
-                $db->execute('DELETE FROM storicobacheche WHERE oldid IN(SELECT id FROM bacheche WHERE bacheca=?)',[$id]);
+                $db->execute(ALPHANO_MSG_DELETE_FROM_STORICOBACHECHE_WHER_8EE4,[$id]);
                 $db->execute('DELETE FROM bacheche WHERE bacheca = ?', [$id]);
                 $db->commit();
                 $msg = 'Bacheca svuotata';
@@ -95,9 +101,9 @@ try {
                 if ($id <= 0 || $loc === '' || $nome === '' || trim(strip_tags($desc)) === '') {
                     throw new \Exception('Parametri mancanti', 400);
                 }
-                if (!$db->query('SELECT id FROM luoghi WHERE id=?',[$id])) { throw new Exception('Bacheca non trovata',404); }
+                if (!$db->query(ALPHANO_MSG_SELECT_ID_FROM_LUOGHI_WHERE_ID_7250,[$id])) { throw new Exception(ALPHANO_MSG_BACHECA_NON_TROVATA_6CD1,404); }
                 if ($cityFilter !== null && ($loc !== $cityFilter || ($act==='modifica' && ($db->query('SELECT location FROM luoghi WHERE id=?',[$id])[0]['location'] ?? null) !== $cityFilter))) {
-                    throw new \Exception('Violazione diritti', 403);
+                    throw new \Exception(ALPHANO_MSG_VIOLAZIONE_DIRITTI_E970, 403);
                 }
                 $db->execute(
                     'UPDATE luoghi
@@ -111,11 +117,11 @@ try {
 
             case 'permessi':
                 $id = (int)($in['id'] ?? 0);
-                if ($id <= 0) { throw new \Exception('ID non valido', 400); }
-                if (!$db->query('SELECT id FROM luoghi WHERE id=?',[$id])) { throw new \Exception('Bacheca non trovata',404); }
+                if ($id <= 0) { throw new \Exception(ALPHANO_MSG_ID_NON_VALIDO_B62E, 400); }
+                if (!$db->query(ALPHANO_MSG_SELECT_ID_FROM_LUOGHI_WHERE_ID_7250,[$id])) { throw new \Exception(ALPHANO_MSG_BACHECA_NON_TROVATA_6CD1,404); }
                 if ($cityFilter !== null) {
-                    $loc = $db->query('SELECT location FROM luoghi WHERE id = ?', [$id])[0]['location'] ?? '';
-                    if ($loc !== $cityFilter) { throw new \Exception('Violazione diritti', 403); }
+                    $loc = $db->query(ALPHANO_MSG_SELECT_LOCATION_FROM_LUOGHI_WHER_EE6B, [$id])[0]['location'] ?? '';
+                    if ($loc !== $cityFilter) { throw new \Exception(ALPHANO_MSG_VIOLAZIONE_DIRITTI_E970, 403); }
                 }
                 $flags = [
                     !empty($in['all']),
@@ -150,7 +156,7 @@ try {
                     if (!$isAdmin) { throw new Exception('Privilegi amministrativi richiesti',403); }
                     $db->beginTransaction();
                     foreach ($db->query('SELECT id FROM luoghi WHERE location=?',[$group]) as $board) {
-                        $db->execute('DELETE FROM storicobacheche WHERE oldid IN(SELECT id FROM bacheche WHERE bacheca=?)',[$board['id']]);
+                        $db->execute(ALPHANO_MSG_DELETE_FROM_STORICOBACHECHE_WHER_8EE4,[$board['id']]);
                         $db->execute('DELETE FROM bacheche WHERE bacheca=?',[$board['id']]);
                         $db->execute('DELETE FROM diritti WHERE bacheca=?',[(string)$board['id']]);
                     }
@@ -160,16 +166,16 @@ try {
                     break;
                 }
                 $all = !empty($in['all']) ? 1 : 0;
-                if ($id <= 0) { throw new \Exception('ID non valido', 400); }
-                if (!$db->query('SELECT id FROM luoghi WHERE id=?',[$id])) { throw new \Exception('Bacheca non trovata',404); }
+                if ($id <= 0) { throw new \Exception(ALPHANO_MSG_ID_NON_VALIDO_B62E, 400); }
+                if (!$db->query(ALPHANO_MSG_SELECT_ID_FROM_LUOGHI_WHERE_ID_7250,[$id])) { throw new \Exception(ALPHANO_MSG_BACHECA_NON_TROVATA_6CD1,404); }
                 if ($cityFilter !== null) {
-                    $loc = $db->query('SELECT location FROM luoghi WHERE id = ?', [$id])[0]['location'] ?? '';
-                    if ($loc !== $cityFilter) { throw new \Exception('Violazione diritti', 403); }
+                    $loc = $db->query(ALPHANO_MSG_SELECT_LOCATION_FROM_LUOGHI_WHER_EE6B, [$id])[0]['location'] ?? '';
+                    if ($loc !== $cityFilter) { throw new \Exception(ALPHANO_MSG_VIOLAZIONE_DIRITTI_E970, 403); }
                 }
                 $db->beginTransaction();
                 $ok = true;
                 if ($db->execute('DELETE FROM luoghi WHERE id = ?', [$id]) === false) { $ok = false; }
-                if($all){$db->execute('DELETE FROM storicobacheche WHERE oldid IN(SELECT id FROM bacheche WHERE bacheca=?)',[$id]);if($db->execute('DELETE FROM bacheche WHERE bacheca = ?', [$id])===false){ $ok=false; }}
+                if($all){$db->execute(ALPHANO_MSG_DELETE_FROM_STORICOBACHECHE_WHER_8EE4,[$id]);if($db->execute('DELETE FROM bacheche WHERE bacheca = ?', [$id])===false){ $ok=false; }}
                 $db->execute('DELETE FROM diritti WHERE bacheca=?',[(string)$id]);
                 $db->commit();
                 $msg = $ok ? 'Bacheca cancellata' : 'Errore cancellazione';
@@ -184,7 +190,7 @@ try {
                     throw new \Exception('Parametri mancanti', 400);
                 }
                 if ($cityFilter !== null && ($loc !== $cityFilter || ($act==='modifica' && ($db->query('SELECT location FROM luoghi WHERE id=?',[$id])[0]['location'] ?? null) !== $cityFilter))) {
-                    throw new \Exception('Violazione diritti', 403);
+                    throw new \Exception(ALPHANO_MSG_VIOLAZIONE_DIRITTI_E970, 403);
                 }
                 $db->beginTransaction();
                 $db->execute(

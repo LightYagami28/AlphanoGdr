@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+const ALPHANO_MSG_PARAMETRI_NON_ESAURIENTI_B98C = 'Parametri non esaurienti';
 
 foreach (array_merge($_GET,$_POST) as $value) {
     if (is_array($value) || is_object($value)) {
@@ -134,7 +135,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $msg .= 'Errore nella modifica della carica';
                 }
             } else {
-                $msg .= 'Parametri non esaurienti';
+                $msg .= ALPHANO_MSG_PARAMETRI_NON_ESAURIENTI_B98C;
             }
             break;
 
@@ -167,7 +168,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $msg .= 'Errore nella modifica del costo';
                 }
             } else {
-                $msg .= 'Parametri non esaurienti';
+                $msg .= ALPHANO_MSG_PARAMETRI_NON_ESAURIENTI_B98C;
             }
             break;
 
@@ -204,7 +205,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
             } elseif ($action!=='modifyquartiere' || isset($_POST['indirizzo'])) {
-                $msg .= 'Parametri non esaurienti';
+                $msg .= ALPHANO_MSG_PARAMETRI_NON_ESAURIENTI_B98C;
             }
             break;
 

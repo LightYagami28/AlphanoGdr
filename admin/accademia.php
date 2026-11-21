@@ -178,6 +178,7 @@ switch ($azione) {
             $msg = $ok ? 'OK' : 'KO';
         }
         break;
+    default: break;
 }
 
 $academyAfter=$academyState();

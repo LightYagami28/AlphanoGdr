@@ -41,11 +41,11 @@ function checkQuality(pass) {
 	// each transition from one group of symbols to the next adds .25 to the score
 	// NoI$yNeSs of that string is 4.25
 	// noisyness of that string is .25
-	var lastType = '';
+	var lastType = { value: '' };
 	for (var index in membership) {
-		if (lastType !== membership[index]) {
+		if (lastType.value !== membership[index]) {
 			score += .25;
-			lastType = membership[index];
+			lastType.value = membership[index];
 		}
 	}
 	if (hasPunctuation) score++;

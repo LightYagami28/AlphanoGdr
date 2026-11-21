@@ -1,4 +1,5 @@
 # AlphanoGdr V1.0
+![CI](https://github.com/LightYagami28/AlphanoGdr/actions/workflows/verify.yml/badge.svg) ![License](https://img.shields.io/github/license/LightYagami28/AlphanoGdr) ![Stars](https://img.shields.io/github/stars/LightYagami28/AlphanoGdr)
 
 **Versione corrente: V1.0** · [Licenza GNU AGPL-3.0](LICENSE) · [Registro delle modifiche](CHANGELOG.md)
 

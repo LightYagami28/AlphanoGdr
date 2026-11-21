@@ -104,6 +104,9 @@ final class FrontendSourceCheckTest extends \PHPUnit\Framework\TestCase
         self::assertSame(['riga', 'ci'], alphanoJsDeclaredNames($source));
         self::assertSame(['ci'], alphanoJsLoopNames($source));
         self::assertSame([], alphanoJsLoopNames(''));
+        self::assertSame(['digit', 'index'], alphanoJsForOfNames("for (const digit of '0123') {}\nfor (const index of membri) {}\n"));
+        self::assertSame(['digit'], alphanoJsForOfNames("for (const digit of '0') {}\nfor (const digit of '1') {}\n"));
+        self::assertSame([], alphanoJsForOfNames(''));
         self::assertSame([], alphanoJsAssignments(''));
         self::assertSame([], alphanoJsDeclaredNames(''));
         self::assertSame(['riga'], alphanoJsImplicitAssignments("riga = 1;\nriga = 2;\n"));

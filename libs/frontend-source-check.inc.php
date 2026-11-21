@@ -55,14 +55,32 @@ function alphanoJsDeclaredNames(string $source): array
 }
 
 /**
+ * Elenca le variabili dichiarate nei loop for-of.
+ *
+ * @return array<int,string>
+ */
+function alphanoJsForOfNames(string $source): array
+{
+    $names = [];
+    if (preg_match_all('/\bfor\s*\(\s*(?:const|let|var)\s+([a-z][a-zA-Z0-9]*)\s+of\b/', $source, $matches) > 0) {
+        foreach ($matches[1] as $name) {
+            if (!in_array($name, $names, true)) {
+                $names[] = $name;
+            }
+        }
+    }
+    return $names;
+}
+
+/**
  * Elenca le variabili di loop dichiarate o meno in un for-in/for-of.
  *
  * @return array<int,string>
  */
 function alphanoJsLoopNames(string $source): array
 {
-    $names = [];
-    if (preg_match_all('/\bfor\s*\(\s*(?:const|let|var)?\s*([a-z][a-zA-Z0-9]*)\s+(?:in|of)\b/', $source, $matches) > 0) {
+    $names = alphanoJsForOfNames($source);
+    if (preg_match_all('/\bfor\s*\(\s*(?:const|let|var)?\s*([a-z][a-zA-Z0-9]*)\s+in\b/', $source, $matches) > 0) {
         foreach ($matches[1] as $name) {
             if (!in_array($name, $names, true)) {
                 $names[] = $name;

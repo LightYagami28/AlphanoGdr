@@ -12,7 +12,7 @@ define('maxmissive', 50);
 define('maxpuntif', 1000);
 
 /** Normalizza un elenco di identificativi a interi positivi, scartando valori non validi. */
-function alphano_sql_ids(mixed $values): array
+function alphanoSqlIds(mixed $values): array
 {
     if (!is_array($values)) {
         return [];
@@ -31,7 +31,7 @@ function alphano_sql_ids(mixed $values): array
 }
 
 /** Genera i segnaposto `?` per una lista di identificativi gia' validata. */
-function alphano_sql_placeholders(int $count): string
+function alphanoSqlPlaceholders(int $count): string
 {
     return $count > 0 ? implode(',', array_fill(0, $count, '?')) : '';
 }

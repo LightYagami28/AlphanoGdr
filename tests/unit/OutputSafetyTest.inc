@@ -29,10 +29,10 @@ final class OutputSafetyTest extends \PHPUnit\Framework\TestCase
      */
     public function testEscapeMetacaratteri(): void
     {
-        self::assertSame('&lt;script&gt;&amp;&quot;&#039;', alphano_html_escape('<script>&"\''));
-        self::assertSame('123', alphano_html_escape(123));
-        self::assertSame('', alphano_html_escape(null));
-        self::assertSame('città', alphano_html_escape('città'));
+        self::assertSame('&lt;script&gt;&amp;&quot;&#039;', alphanoHtmlEscape('<script>&"\''));
+        self::assertSame('123', alphanoHtmlEscape(123));
+        self::assertSame('', alphanoHtmlEscape(null));
+        self::assertSame('città', alphanoHtmlEscape('città'));
     }
 
     /**
@@ -43,7 +43,7 @@ final class OutputSafetyTest extends \PHPUnit\Framework\TestCase
         foreach (['<img src=x onerror=1>', 'a" onfocus="b', "x'y", 'città & dintorni'] as $value) {
             self::assertSame(
                 htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
-                alphano_html_escape($value)
+                alphanoHtmlEscape($value)
             );
         }
     }
@@ -53,10 +53,10 @@ final class OutputSafetyTest extends \PHPUnit\Framework\TestCase
      */
     public function testParametriNonScalari(): void
     {
-        self::assertSame('', alphano_request_parameter([['pgName' => ['x']]], 'pgName'));
-        self::assertSame('', alphano_request_parameter([['pgName' => new stdClass()]], 'pgName'));
-        self::assertSame('', alphano_request_parameter([], 'pgName'));
-        self::assertSame('', alphano_request_parameter([['nome' => 'x']], 'pgName'));
+        self::assertSame('', alphanoRequestParameter([['pgName' => ['x']]], 'pgName'));
+        self::assertSame('', alphanoRequestParameter([['pgName' => new stdClass()]], 'pgName'));
+        self::assertSame('', alphanoRequestParameter([], 'pgName'));
+        self::assertSame('', alphanoRequestParameter([['nome' => 'x']], 'pgName'));
     }
 
     /**
@@ -66,9 +66,9 @@ final class OutputSafetyTest extends \PHPUnit\Framework\TestCase
     {
         $post = ['pgName' => 'Post', 'org' => 12];
         $get  = ['pgName' => 'Get', 'nome' => 'Mario'];
-        self::assertSame('Post', alphano_request_parameter([$post, $get], 'pgName'));
-        self::assertSame('12', alphano_request_parameter([$post, $get], 'org'));
-        self::assertSame('Mario', alphano_request_parameter([$post, $get], 'nome'));
-        self::assertSame('Get', alphano_request_parameter([[], $get], 'pgName'));
+        self::assertSame('Post', alphanoRequestParameter([$post, $get], 'pgName'));
+        self::assertSame('12', alphanoRequestParameter([$post, $get], 'org'));
+        self::assertSame('Mario', alphanoRequestParameter([$post, $get], 'nome'));
+        self::assertSame('Get', alphanoRequestParameter([[], $get], 'pgName'));
     }
 }

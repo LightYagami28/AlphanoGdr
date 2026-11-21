@@ -207,6 +207,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $db->query($sql, $params);
         $msg = $_POST['azione']==='modifyramo2' ? "Ramo modificato con successo" : "Ramo inserito con successo";
         break;
+        default: break;
     }
 }
 

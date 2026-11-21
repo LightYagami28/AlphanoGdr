@@ -158,7 +158,7 @@ $sorgecala = LicanTime()
 
       /* 2. Verifico se devo rigenerare il menu */
       const paramPHP = <?= $jsEncode($param) ?>;
-      const paramGET = <?= $jsEncode($paramGet) ?>;
+      const paramGET = <?= json_encode($paramGet, JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_INVALID_UTF8_SUBSTITUTE|JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR) ?>;
 
       // DEBUG – attiva se serve
       // console.log('[control] paramPHP:', paramPHP, '| paramGET:', paramGET);

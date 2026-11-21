@@ -30,7 +30,7 @@ if(($_SERVER['REQUEST_METHOD']??'GET')==='POST'){
   header('Location: /install/complete.php',true,303);exit;
  }catch(DomainException $e){http_response_code(422);$error=$e->getMessage();}}
 }
-$detectedHost=preg_match('/^[a-z0-9.-]+(?::[0-9]+)?$/iD',$_SERVER['HTTP_HOST']??'')?$_SERVER['HTTP_HOST']:'localhost';
+$detectedHost=preg_match('/^[a-z0-9.-]+(?::\d+)?$/iD',$_SERVER['HTTP_HOST']??'')?$_SERVER['HTTP_HOST']:'localhost';
 $values=array_replace($defaults,['base_url'=>(alphano_https_context()?'https':'http').'://'.$detectedHost,'db_host'=>'localhost','db_name'=>'','admin_name'=>'Admin','mail_transport'=>'disabled','support_email'=>'','mail_from'=>''],array_filter($_POST,static fn($k)=>!in_array($k,['db_pass','admin_password','admin_password_confirm','smtp_pass'],true),ARRAY_FILTER_USE_KEY));
 function field(string $name,string $label,string $type='text',bool $required=true):void{global $values;echo '<label>'.alphano_escape($label).'<input name="'.alphano_escape($name).'" type="'.$type.'" '.($required?'required ':'').($name==='currency_name'?'maxlength="60" ':'').'value="'.alphano_escape($type==='password'?'':($values[$name]??'')).'" '.($type==='password'?'autocomplete="new-password"':'').'></label>';}
 ?>

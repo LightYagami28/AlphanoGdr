@@ -9,7 +9,7 @@ function alphano_profile_contact_value(string $field,string $value):string {
  $value=trim($value);
  if($field==='telegram'){
   $value=ltrim($value,'@');if($value==='')return '';
-  if(!preg_match('/^[A-Za-z0-9_]{1,64}$/D',$value))throw new DomainException('Telegram: inserisci il nome utente, con o senza @, usando lettere, numeri e trattini bassi.');
+  if(!preg_match('/^\w{1,64}$/D',$value))throw new DomainException('Telegram: inserisci il nome utente, con o senza @, usando lettere, numeri e trattini bassi.');
   return '@'.$value;
  }
  if($field!=='discord')throw new DomainException('Contatto non valido.');

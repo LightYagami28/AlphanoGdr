@@ -419,7 +419,7 @@ function processAraldica(int $id, string $jsVar = ''): string
     $src = alphano_badge_url('cariche', $id);
 
     // Attributi accessibilità + eventuale tooltip JS
-    if (preg_match('/^[a-zA-Z_$][a-zA-Z0-9_$]*(?:\[[0-9]+\])?$/D', $jsVar)) {
+    if (preg_match('/^[a-zA-Z_$][a-zA-Z0-9_$]*(?:\[\d+\])?$/D', $jsVar)) {
         $attr = "onmouseover=\"MostraDescrizione('hint',{$jsVar})\" " .
                 "onmouseout=\"NascondiDescrizione('hint')\"";
     } else {
@@ -611,7 +611,7 @@ function GetCaricaOrg(int $org, int $carica, bool $appendName = true, string $js
     )[0] ?? null;
     if (!$row) { return 'Nessuna'; }
 
-    $jsVar = preg_match('/^[a-zA-Z_$][a-zA-Z0-9_$]*(?:\[[0-9]+\])?$/D', $jsVar) ? $jsVar : '';
+    $jsVar = preg_match('/^[a-zA-Z_$][a-zA-Z0-9_$]*(?:\[\d+\])?$/D', $jsVar) ? $jsVar : '';
     $attr = $jsVar && $row['descrizione']
         ? "onmouseover=\"MostraDescrizione('hint',$jsVar)\" onmouseout=\"NascondiDescrizione('hint')\""
         : 'alt="'.htmlentities($row['nome']).'" title="'.htmlentities($row['nome']).'"';
@@ -814,7 +814,7 @@ function GetCaricaCorp(int $corp, int $carica, bool $appendName = true, string $
     )[0] ?? null;
     if (!$row) { return 'Nessuna'; }
 
-    $jsVar = preg_match('/^[a-zA-Z_$][a-zA-Z0-9_$]*(?:\[[0-9]+\])?$/D', $jsVar) ? $jsVar : '';
+    $jsVar = preg_match('/^[a-zA-Z_$][a-zA-Z0-9_$]*(?:\[\d+\])?$/D', $jsVar) ? $jsVar : '';
     $attr = $jsVar && $row['descrizione']
         ? "onmouseover=\"MostraDescrizione('hint',$jsVar)\" onmouseout=\"NascondiDescrizione('hint')\""
         : 'alt="'.htmlentities($row['nome']).'" title="'.htmlentities($row['nome']).'"';

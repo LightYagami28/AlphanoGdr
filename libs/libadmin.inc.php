@@ -269,7 +269,7 @@ function AlphanoSQLValue(mixed $value): string
 /** Inserimento SQL autosufficiente per dump e backup recuperabili. */
 function AlphanoRowInsert(string $table,array $row): string
 {
-    if (!$row || !preg_match('/^[a-zA-Z0-9_]+$/D',$table)) throw new InvalidArgumentException('Tabella backup non valida');
+    if (!$row || !preg_match('/^\w+$/D',$table)) throw new InvalidArgumentException('Tabella backup non valida');
     $columns=implode(',',array_map(static fn($column) => '`'.str_replace('`','``',(string)$column).'`',array_keys($row)));
     return 'INSERT INTO `'.$table.'` ('.$columns.') VALUES ('.implode(',',array_map('AlphanoSQLValue',$row)).')';
 }

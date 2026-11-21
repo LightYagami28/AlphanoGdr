@@ -79,9 +79,9 @@ function player_discussion_access(string $type, array $user): bool
 {
     if ($type === 'M') $allowed = !empty($user['fatepower']) || !empty($user['admin']);
     elseif ($type === 'A') $allowed = !empty($user['adminaccademia']) || !empty($user['admin']);
-    elseif (preg_match('/^Org([1-9][0-9]*)$/D', $type, $m)) $allowed = (int)$user['organizzazione'] === (int)$m[1] || !empty($user['admin']);
-    elseif (preg_match('/^Corp([1-9][0-9]*)$/D', $type, $m)) $allowed = (int)$user['corporazione'] === (int)$m[1] || !empty($user['admin']);
-    elseif (preg_match('/^Appunti([1-9][0-9]*)$/D', $type, $m)) $allowed = (int)$user['id'] === (int)$m[1];
+    elseif (preg_match('/^Org([1-9]\d*)$/D', $type, $m)) $allowed = (int)$user['organizzazione'] === (int)$m[1] || !empty($user['admin']);
+    elseif (preg_match('/^Corp([1-9]\d*)$/D', $type, $m)) $allowed = (int)$user['corporazione'] === (int)$m[1] || !empty($user['admin']);
+    elseif (preg_match('/^Appunti([1-9]\d*)$/D', $type, $m)) $allowed = (int)$user['id'] === (int)$m[1];
     else throw new RuntimeException('Tipo non valido', 400);
     if (!$allowed) throw new RuntimeException('Accesso negato', 403);
     return !empty($user['admin']) || ($type === 'M' && !empty($user['fatepower'])) || ($type === 'A' && !empty($user['adminaccademia']))

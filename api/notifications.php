@@ -30,7 +30,7 @@ try{
         if($_GET['box']!=='1')alphano_fail('Registro notifiche non valido',400,true);
         $view=$_GET['view']??'unread';$group=$_GET['group']??'';$section=$_GET['section']??'';$page=$_GET['page']??'1';
         if(!is_string($view)||!in_array($view,['unread','history'],true)||!is_string($group)||!in_array($group,['','gioco','organizzazioni','corporazioni','citta','accademia','bacheche','master','gestione'],true)
-            ||!is_string($section)||($section!==''&&!preg_match('/^[a-z0-9_-]{1,64}$/D',$section))||!is_string($page)||!preg_match('/^[1-9][0-9]{0,5}$/D',$page))alphano_fail('Filtro notifiche non valido',400,true);
+            ||!is_string($section)||($section!==''&&!preg_match('/^[a-z0-9_-]{1,64}$/D',$section))||!is_string($page)||!preg_match('/^[1-9]\d{0,5}$/D',$page))alphano_fail('Filtro notifiche non valido',400,true);
         $result['inbox']=alphano_notification_inbox($user,$view,$group?:null,$section?:null,(int)$page,$allActivity);
     }
     $result['activity']=alphano_trade_notice_summaries($result['activity'],$user);

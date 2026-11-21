@@ -157,7 +157,7 @@ function ListaPrestitiPGCorp(int $pg, int $corp): array
 /** Importi di modulo: mai troncare decimali, esponenti o valori fuori intervallo. */
 function EconomiaIntero(mixed $value, int $min = 0, int $max = PHP_INT_MAX): ?int
 {
-    if (!is_scalar($value) || !preg_match('/^[0-9]+$/D', (string)$value)) return null;
+    if (!is_scalar($value) || !preg_match('/^\d+$/D', (string)$value)) return null;
     $number = filter_var($value, FILTER_VALIDATE_INT, ['options'=>['min_range'=>$min,'max_range'=>$max]]);
     return $number === false ? null : $number;
 }
@@ -166,7 +166,7 @@ function EconomiaPercentuale(mixed $value): ?float
 {
     if (!is_scalar($value)) return null;
     $number=str_replace(',','.',(string)$value);
-    if (!preg_match('/^[0-9]+(?:\.[0-9]{1,4})?$/D',$number)) return null;
+    if (!preg_match('/^\d+(?:\.\d{1,4})?$/D',$number)) return null;
     $rate=(float)$number;
     return is_finite($rate) && $rate>=0 && $rate<=100 ? $rate : null;
 }
@@ -372,7 +372,7 @@ function CommercioIntero(mixed $value, int $min = 1, int $max = 2147483647): ?in
 {
     if (!is_int($value) && !is_string($value)) return null;
     $value=(string)$value;
-    if (!preg_match('/^[0-9]+$/D',$value)) return null;
+    if (!preg_match('/^\d+$/D',$value)) return null;
     $trimmed=ltrim($value,'0');
     if (strlen($trimmed)>10) return null;
     $number=(int)$value;

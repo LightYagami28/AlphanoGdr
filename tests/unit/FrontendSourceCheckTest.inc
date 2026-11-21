@@ -96,13 +96,14 @@ final class FrontendSourceCheckTest extends \PHPUnit\Framework\TestCase
      */
     public function testAnalisiSorgenteJs(): void
     {
-        $source = "const riga = 1;\nriga = 2;\nfor (let cn=0;cn<2;cn++) {}\n";
+        $source = "const riga = 1;\nriga = 2;\nfor (const ci in punti) {}\n";
         $assignments = alphanoJsAssignments($source);
-        self::assertCount(3, $assignments);
+        self::assertCount(2, $assignments);
         self::assertSame(['line' => 1, 'name' => 'riga', 'value' => '1'], $assignments[0]);
         self::assertSame(2, $assignments[1]['line']);
-        self::assertSame('cn', $assignments[2]['name']);
-        self::assertSame(['riga', 'cn'], alphanoJsDeclaredNames($source));
+        self::assertSame(['riga', 'ci'], alphanoJsDeclaredNames($source));
+        self::assertSame(['ci'], alphanoJsLoopNames($source));
+        self::assertSame([], alphanoJsLoopNames(''));
         self::assertSame([], alphanoJsAssignments(''));
         self::assertSame([], alphanoJsDeclaredNames(''));
         self::assertSame(['riga'], alphanoJsImplicitAssignments("riga = 1;\nriga = 2;\n"));
@@ -118,5 +119,10 @@ final class FrontendSourceCheckTest extends \PHPUnit\Framework\TestCase
             alphanoCssDeclarations('.map-dot { color: red; r: 6px; }')
         );
         self::assertSame([], alphanoCssDeclarations(''));
+        self::assertSame(
+            ['color' => 'red', 'background-color' => 'blue'],
+            alphanoCssColorDeclarations('.x { color: red; background-color: blue; r: 6px; }')
+        );
+        self::assertSame([], alphanoCssColorDeclarations(''));
     }
 }

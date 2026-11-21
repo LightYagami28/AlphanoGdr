@@ -9,32 +9,32 @@ function checkQuality(pass) {
 	var hasLowercase = false;
 	var hasNumber = false;
 	var membership = [];
-	for (const ci in punctuations) {
-		if (pass.indexOf(punctuations[ci]) != -1) {
-			score++;
+	for (const punctuation of punctuations) {
+		if (pass.includes(punctuation)) {
+			score += 1;
 			hasPunctuation = true;
-			membership[pass.indexOf(punctuations[ci])] = 'P';
+			membership[pass.indexOf(punctuation)] = 'P';
 		}
 	}
-	for (const cu in uppercases) {
-		if (pass.indexOf(uppercases[cu]) != -1) {
+	for (const uppercase of uppercases) {
+		if (pass.includes(uppercase)) {
 			score += .5;
 			hasUppercase = true;
-			membership[pass.indexOf(uppercases[cu])] = 'U';
+			membership[pass.indexOf(uppercase)] = 'U';
 		}
 	}
-	for (const cl in lowercases) {
-		if (pass.indexOf(lowercases[cl]) != -1) {
+	for (const lowercase of lowercases) {
+		if (pass.includes(lowercase)) {
 			score += .5;
 			hasLowercase = true;
-			membership[pass.indexOf(lowercases[cl])] = 'L';
+			membership[pass.indexOf(lowercase)] = 'L';
 		}
 	}
-	for (let cn=0;cn<=9;cn++) {
-		if (pass.indexOf(cn) != -1) {
+	for (const digit of '0123456789') {
+		if (pass.includes(digit)) {
 			score += .5;
 			hasNumber = true;
-			membership[pass.indexOf(cn)] = 'N';
+			membership[pass.indexOf(digit)] = 'N';
 		}
 	}
 	// calculate the "noisyness" of the password

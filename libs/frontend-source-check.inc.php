@@ -44,7 +44,25 @@ function alphanoJsAssignments(string $source): array
 function alphanoJsDeclaredNames(string $source): array
 {
     $names = [];
-    if (preg_match_all('/\b(?:var|let|const)\s+(riga|tmp|sel|ci|cu|cl|cn|i)\b/', $source, $matches) > 0) {
+    if (preg_match_all('/\b(?:var|let|const)\s+([a-z][a-zA-Z0-9]*)\b/', $source, $matches) > 0) {
+        foreach ($matches[1] as $name) {
+            if (!in_array($name, $names, true)) {
+                $names[] = $name;
+            }
+        }
+    }
+    return $names;
+}
+
+/**
+ * Elenca le variabili di loop dichiarate o meno in un for-in/for-of.
+ *
+ * @return array<int,string>
+ */
+function alphanoJsLoopNames(string $source): array
+{
+    $names = [];
+    if (preg_match_all('/\bfor\s*\(\s*(?:const|let|var)?\s*([a-z][a-zA-Z0-9]*)\s+(?:in|of)\b/', $source, $matches) > 0) {
         foreach ($matches[1] as $name) {
             if (!in_array($name, $names, true)) {
                 $names[] = $name;
@@ -68,9 +86,8 @@ function alphanoJsImplicitAssignments(string $source): array
             $found[] = $assignment['name'];
         }
     }
-    foreach (['ci', 'cu', 'cl', 'cn', 'i'] as $name) {
-        $inLoop = preg_match('/\bfor\s*\(\s*'.$name.'\s*(?:in|=)/', $source) === 1;
-        if ($inLoop && !in_array($name, $declared, true) && !in_array($name, $found, true)) {
+    foreach (alphanoJsLoopNames($source) as $name) {
+        if (!in_array($name, $declared, true) && !in_array($name, $found, true)) {
             $found[] = $name;
         }
     }
@@ -99,6 +116,22 @@ function alphanoCssDeclarations(string $css): array
         }
     }
     return $declarations;
+}
+
+/**
+ * Filtra le dichiarazioni CSS relative ai colori.
+ *
+ * @return array<string,string>
+ */
+function alphanoCssColorDeclarations(string $css): array
+{
+    $colors = [];
+    foreach (alphanoCssDeclarations($css) as $property => $value) {
+        if (str_contains($property, 'color') && $value !== '') {
+            $colors[$property] = $value;
+        }
+    }
+    return $colors;
 }
 
 /**

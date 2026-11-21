@@ -270,6 +270,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
             break;
+        default: break;
     }
 
     $activityAfter=$activityState();
@@ -474,8 +475,8 @@ $statuto         = $newStatuto !== ''
     <input type="number" name="costopvt" value="<?=$costopvt?>" required>
     <label>Affitto Organizzazione</label>
     <input type="number" name="costoorg" value="<?=$costoorg?>" required>
-	<label>Affitto Corporazione</label>
-	<input type="number" name="costocorp" value="<?=$costocorp?>" required>
+    <label>Affitto Corporazione</label>
+    <input type="number" name="costocorp" value="<?=$costocorp?>" required>
     <?php if ($elezioni && !($electiontime || $votetime)): ?>
       <label>Costo Proposta Elezioni</label>
       <input type="number" name="costoelezioni" value="<?=$costoelezioni?>" required>

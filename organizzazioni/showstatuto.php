@@ -110,7 +110,7 @@ $statuto = GetStatutoOrg($org, (bool)$modify);
     </div>
     <form name="statutoForm" method="post">
       <input type="hidden" name="_request_key" value="<?=bin2hex(random_bytes(16))?>">
-      <input type="hidden" name="org"    value="<?= $org ?>">
+      <input type="hidden" name="org"    value="<?=htmlspecialchars((string)$org, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')?>">
       <input type="hidden" name="modify" value="1">
       <script>CreateGMLHelper("document.statutoForm.statuto")</script>
       <textarea name="statuto"><?= htmlspecialchars($statuto, ENT_QUOTES) ?></textarea>
@@ -124,7 +124,7 @@ $statuto = GetStatutoOrg($org, (bool)$modify);
     <?php if ($admin || $adminorg): ?>
       <form method="post">
       <input type="hidden" name="_request_key" value="<?=bin2hex(random_bytes(16))?>">
-        <input type="hidden" name="org"    value="<?= $org ?>">
+        <input type="hidden" name="org"    value="<?=htmlspecialchars((string)$org, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')?>">
         <input type="hidden" name="modify" value="1">
         <button type="submit" class="btn">Modifica</button>
       </form>

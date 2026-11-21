@@ -44,6 +44,7 @@ require_once __DIR__ . '/../../libs/libposta.inc.php';
 require_once __DIR__ . '/../../libs/libtext.inc.php';
 require_once __DIR__ . '/../../libs/libequip.inc.php';
 require_once __DIR__.'/../../libs/item-engine.inc.php';
+require_once __DIR__ . '/../../libs/sql-builder.inc.php';
 
 
 use function Alphano\Libs\ResizeImage;
@@ -271,14 +272,15 @@ try {
                 $db->execute('DELETE FROM newequip WHERE id = ?', [$id]);
                 $db->execute('DELETE FROM accademia WHERE obj = ?', [$id]);
 
-                // inserisco la nuova proposta
-                $cols = implode(',', array_map(fn($c)=>"`{$c}`", array_keys($fields)));
-                $phs  = implode(',', array_fill(0,count($fields),'?'));
-                $vals = array_values($fields);
-                $db->execute(
-                  "INSERT INTO newequip (`id`,{$cols}) VALUES (?,{$phs})",
-                  array_merge([$id], $vals)
-                );
+                // inserisco la nuova proposta: colonne da whitelist, valori solo nei bind
+                $columns = [
+                    'shortDesc','desc','peso','tipo','taglia','mani','sacro','restore',
+                    'lavorazione','destinatario','destorg','immagine','approvato','durata',
+                    'datamodifica','idcreatore','corp','game_rules','department',
+                    ...\MATERIE_PRIME,
+                ];
+                [$sql, $params] = alphano_sql_insert('newequip', array_merge(['id'], $columns), ['id' => $id] + $fields);
+                $db->execute($sql, $params);
 
                 // notifica gli accademici
                 $subject = "Modifica proposta oggetto: {$shortDesc}";
@@ -334,10 +336,14 @@ try {
                 foreach (\MATERIE_PRIME as $mp) {
                     $fields[$mp] = (int)($_POST[$mp] ?? 0);
                 }
-                $cols = implode(',', array_map(fn($c)=>"`{$c}`", array_keys($fields)));
-                $phs  = implode(',', array_fill(0,count($fields),'?'));
-                $vals = array_values($fields);
-                $db->execute("INSERT INTO equip ({$cols}) VALUES ({$phs})", $vals);
+                $columns = [
+                    'shortDesc','desc','peso','tipo','taglia','mani','sacro','restore',
+                    'lavorazione','destinatario','destorg','approvato','durata','immagine',
+                    'datacreazione','idcreatore','corp',
+                    ...\MATERIE_PRIME,
+                ];
+                [$sql, $params] = alphano_sql_insert('equip', $columns, $fields);
+                $db->execute($sql, $params);
                 $newId = (int)$db->lastInsertID();
                 if (isset($tempImg) && $newId > 0) {
                     $path = htmlroot . "/uploads/equipment-pending/{$newId}";

@@ -198,20 +198,20 @@ function renderOrdiniPresi(rows){
   const b=rows.map(d=>{
     const edit = d.stato <= 2;
     const qtaCell   = edit
-      ? `<input id="qta_o${d.id}" size="3" value="${d.qta}">`
-      : d.qta;
+      ? `<input id="qta_o${Number(d.id)}" size="3" value="${Number(d.qta)}">`
+      : Number(d.qta);
     const prezzoCell = edit
-      ? `<input id="prezzo_o${d.id}" size="3" value="${d.prezzo}"> ${window.AlphanoCurrency.html("Corone")}`
-      : `${d.prezzo} ${window.AlphanoCurrency.html("Corone")}`;
+      ? `<input id="prezzo_o${Number(d.id)}" size="3" value="${Number(d.prezzo)}"> ${window.AlphanoCurrency.html("Corone")}`
+      : `${Number(d.prezzo)} ${window.AlphanoCurrency.html("Corone")}`;
     const azioni=edit
-      ? `<button onclick="updateOrder(${d.id})">Invia</button>
-         <button onclick="deleteOrder(${d.id})">Elimina</button>`
-      : `<button onclick="deleteOrder(${d.id})">Elimina</button>`;
+      ? `<button onclick="updateOrder(${Number(d.id)})">Invia</button>
+         <button onclick="deleteOrder(${Number(d.id)})">Elimina</button>`
+      : `<button onclick="deleteOrder(${Number(d.id)})">Elimina</button>`;
 
     return `<tr>
-      <td>${d.data}</td>
-      <td><a href="#" onclick="openProfile(${d.pg})">${d.interlocutore}</a></td>
-      <td>${d.nomeobj}</td>
+      <td>${commerceEscape(d.data)}</td>
+      <td><a href="#" onclick="openProfile(${Number(d.pg)})">${commerceEscape(d.interlocutore)}</a></td>
+      <td>${commerceEscape(d.nomeobj)}</td>
       <td>${qtaCell}</td>
       <td>${prezzoCell}</td>
       <td>${d.statoText}</td>
@@ -229,8 +229,8 @@ function renderOrdiniPresi(rows){
 function renderMagazzino(m){
   if(!m||!Object.keys(m).length){return;}
   const c=document.getElementById('cronobj');
-  const h=Object.keys(m).map(k=>`<th>${k}</th>`).join('');
-  const r=Object.keys(m).map(k=>`<td>${m[k]}</td>`).join('');
+  const h=Object.keys(m).map(k=>`<th>${commerceEscape(k)}</th>`).join('');
+  const r=Object.keys(m).map(k=>`<td>${commerceEscape(m[k])}</td>`).join('');
   c.innerHTML+=`<h3>Magazzino</h3><div class="ui-table-scroll" tabindex="0" role="region" aria-label="Magazzino"><table class="ui-data-table"><thead><tr>${h}</tr></thead><tbody><tr>${r}</tr></tbody></table></div>`;
 }
 
@@ -238,14 +238,14 @@ function renderConsegne(rows){
   const c=document.getElementById('cronobj');
   if(!rows.length){return;}
   const b=rows.map(d=>`<tr>
-    <td>${d.data}</td>
-    <td>${d.interlocutore}</td>
-    <td>${d.nomeobj}</td>
-    <td>${d.qta}</td>
-    <td>${d.prezzo} ${window.AlphanoCurrency.html("Corone")}</td>
+    <td>${commerceEscape(d.data)}</td>
+    <td>${commerceEscape(d.interlocutore)}</td>
+    <td>${commerceEscape(d.nomeobj)}</td>
+    <td>${Number(d.qta)}</td>
+    <td>${Number(d.prezzo)} ${window.AlphanoCurrency.html("Corone")}</td>
     <td>
-      <button onclick="deliver(${d.id})">Consegna</button>
-      <button onclick="deleteOrder(${d.id})">Elimina</button>
+      <button onclick="deliver(${Number(d.id)})">Consegna</button>
+      <button onclick="deleteOrder(${Number(d.id)})">Elimina</button>
     </td>
   </tr>`);
   c.innerHTML+=`<h3>Consegne</h3>`+

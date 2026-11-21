@@ -50,7 +50,7 @@ switch ($_POST['aztartarcontrol'] ?? '') {
                     $righe[] = [$field => $v];
                 }
             }
-            list($idpgs, $idobjs, $idcitys, $idorgs) = Smista($righe);
+            list($idpgs, $idobjs, $idcitys, $idorgs) = smista($righe);
         }
         break;
 
@@ -70,12 +70,13 @@ switch ($_POST['aztartarcontrol'] ?? '') {
                     $params[] = (string)$_POST[$field];
                 }
             }
-            list($idpgs, $idobjs, $idcitys, $idorgs) = Smista($righe);
+            list($idpgs, $idobjs, $idcitys, $idorgs) = smista($righe);
             $sql = 'SELECT * FROM `' . $tabella . '`'
                  . (count($conds) ? ' WHERE '. implode(' AND ', $conds) : '');
             $results = $db->query($sql . ' ORDER BY data DESC LIMIT 1000', $params);
         }
         break;
+    default: break;
 }
 ?>
 <!DOCTYPE html>
@@ -140,12 +141,12 @@ switch ($_POST['aztartarcontrol'] ?? '') {
                       <?php foreach ($vals as $v): ?>
                         <option value="<?= htmlspecialchars((string)$v) ?>"
                           <?= (($_POST[$field]??'')===$v ? 'selected':'') ?>>
-                          <?= Converti($field, $v, $idpgs, $idobjs, $idcitys, $idorgs, false) ?>
+                          <?= converti($field, $v, $idpgs, $idobjs, $idcitys, $idorgs, false) ?>
                         </option>
                       <?php endforeach; ?>
                     </select><br>
                   <?php else: ?>
-                    <?= Converti($field, $vals[0], $idpgs, $idobjs, $idcitys, $idorgs, false) ?>
+                    <?= converti($field, $vals[0], $idpgs, $idobjs, $idcitys, $idorgs, false) ?>
                   <?php endif; ?>
                   <input type="text" name="<?= htmlspecialchars($field) ?>"
                          value="<?= htmlspecialchars($_POST[$field] ?? '') ?>">
@@ -166,7 +167,7 @@ switch ($_POST['aztartarcontrol'] ?? '') {
             <?php foreach ($results as $row): ?>
               <tr>
                 <?php foreach ($campi as $field => $_): ?>
-                  <td><?= Converti($field, $row[$field], $idpgs, $idobjs, $idcitys, $idorgs, true) ?></td>
+                  <td><?= converti($field, $row[$field], $idpgs, $idobjs, $idcitys, $idorgs, true) ?></td>
                 <?php endforeach; ?>
               </tr>
             <?php endforeach; ?>
@@ -182,7 +183,7 @@ switch ($_POST['aztartarcontrol'] ?? '') {
 // — Helpers —
 
 // trasforma codici in etichette, con link JS se $html=true
-function Converti(
+function converti(
     string $campo,
     $dato,
     array $idpgs,
@@ -191,29 +192,32 @@ function Converti(
     array $idorgs,
     bool $html
 ): string {
+    $escape = static fn(mixed $value): string => htmlspecialchars((string)$value,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
+    $jsArg  = static fn(mixed $value): string => json_encode((string)$value,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_INVALID_UTF8_SUBSTITUTE) ?: '""';
     switch ($campo) {
         case 'esecutore':
         case 'destinatario':
         case 'origine':
         case 'pg':
-            $label = $idpgs[$dato] ?? (string)$dato;
+            $label = $escape($idpgs[$dato] ?? (string)$dato);
             return $html
-                 ? "<a href=\"javascript:openProfileId('".$dato."')\">$label</a>"
+                 ? "<a href=\"javascript:openProfileId(".$jsArg($dato).")\">$label</a>"
                  : $label;
         case 'nome':
+            $label = $escape($dato);
             return $html
-                 ? "<a href=\"javascript:openProfile('".$dato."')\">".htmlspecialchars($dato)."</a>"
-                 : htmlspecialchars((string)$dato);
-        case 'obj':  return $idobjs[$dato]  ?? (string)$dato;
+                 ? "<a href=\"javascript:openProfile(".$jsArg($dato).")\">$label</a>"
+                 : $label;
+        case 'obj':  return $escape($idobjs[$dato]  ?? (string)$dato);
         case 'data': return FormatTimestamp((int)$dato);
-        case 'city': return $idcitys[$dato] ?? (string)$dato;
-        case 'org':  return $idorgs[$dato]  ?? (string)$dato;
-        default:     return htmlspecialchars((string)$dato);
+        case 'city': return $escape($idcitys[$dato] ?? (string)$dato);
+        case 'org':  return $escape($idorgs[$dato]  ?? (string)$dato);
+        default:     return $escape($dato);
     }
 }
 
 // raccoglie tutti i valori distinti in $righe e costruisce le mappe id→label
-function Smista(array $righe): array {
+function smista(array $righe): array {
     $db = ConnectDB();
     $idpgs=[]; $idobjs=[]; $idcitys=[]; $idorgs=[];
     foreach ($righe as $r) {

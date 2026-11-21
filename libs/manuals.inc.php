@@ -109,7 +109,8 @@ function alphano_manual_live(string $name):string {
             foreach($a['requirements']['stats']??[] as $k=>$v){ $requirements[]=rpg_stat_name($k).' '.$v; }
             foreach($a['requirements']['abilities']??[] as $id){ foreach($catalog['abilities'] as $prior){ if($prior['id']===$id){ $requirements[]=$prior['name']; } } }
             $rows[]=[$a['name'],implode(', ',$races),rpg_ability_learnable($a)?($a['category']==='innate'?'Innata · 4 gratuite, altre ':'').$a['cost'].' PE':'Innata di razza',implode('; ',$requirements)?:'Nessun prerequisito aggiuntivo',$a['cooldown']?$a['cooldown'].' giri':'Nessun recupero'];
-        } }
+        }
+        }
         return alphano_manual_table(['Capacità','Razze di base','Acquisizione','Requisiti','Recupero'],$rows);
     }
     if($name==='human-heritage'){

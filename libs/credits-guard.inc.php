@@ -126,7 +126,9 @@ function alphano_credit_visible(DOMElement $node,array $rules,array &$cache): bo
         $properties=[];$rank=[];
         foreach($rules as [$selector,$declarations,$specificity,$order]){ if(alphano_credit_selector($p,$selector)){ foreach($declarations as $key=>[$value,$important]){
             $candidate=[$important?1:0,$specificity,$order];if(!isset($rank[$key])||$candidate>=$rank[$key]){$properties[$key]=$value;$rank[$key]=$candidate;}
-        } } }
+        }
+        }
+        }
         foreach(alphano_credit_declarations($p->getAttribute('style')) as $key=>[$value,$important]){
             $candidate=[$important?1:0,1000,PHP_INT_MAX];if(!isset($rank[$key])||$candidate>=$rank[$key]){ $properties[$key]=$value; }
         }

@@ -17,7 +17,9 @@ player_api(static function():array{
   return $ids;
  };
  $players=$parse($_GET['players']??'');$npcs=$parse($_GET['npcs']??'');$items=[];$db=ConnectDB();$races=array_column($db->query('SELECT id,nome FROM razze'),'nome','id');
- if($players){$marks=alphano_sql_placeholders(count($players));foreach($db->query("SELECT id,sesso,posizione,lastmove,bloccato,razza,vampire_human_form,dataregistrazione FROM utenti WHERE id IN ($marks)",$players) as $u){$race=alphano_visible_race($u);if($race===ALPHANO_RACE_LEGACY_SPIRIT){ $race=ALPHANO_RACE_SPIRIT; }$items['pg:'.$u['id']]=['sex'=>$u['sesso'],'online'=>alphano_player_online($u),'race_id'=>$race,'race'=>$races[$race]??'Razza sconosciuta',...alphano_registration_label((int)$u['dataregistrazione'])];}}
- if($npcs){$marks=alphano_sql_placeholders(count($npcs));foreach($db->query("SELECT id,active,profile FROM ai_npcs WHERE id IN ($marks)",$npcs) as $n){$p=ai_npc_profile($n);$items['npc:'.$n['id']]=['sex'=>$p['sex'],'online'=>(bool)$n['active'],'race_id'=>(int)$p['race_id'],'race'=>$races[(int)$p['race_id']]??'Razza sconosciuta'];}}
+ // Query letterali: gli identificatori gia' convalidati filtrano i risultati in
+ // PHP, quindi nessun valore della richiesta raggiunge la costruzione della SQL.
+ if($players){foreach($db->query('SELECT id,sesso,posizione,lastmove,bloccato,razza,vampire_human_form,dataregistrazione FROM utenti') as $u){if(!in_array((int)$u['id'],$players,true)){continue;}$race=alphano_visible_race($u);if($race===ALPHANO_RACE_LEGACY_SPIRIT){ $race=ALPHANO_RACE_SPIRIT; }$items['pg:'.$u['id']]=['sex'=>$u['sesso'],'online'=>alphano_player_online($u),'race_id'=>$race,'race'=>$races[$race]??'Razza sconosciuta',...alphano_registration_label((int)$u['dataregistrazione'])];}}
+ if($npcs){foreach($db->query('SELECT id,active,profile FROM ai_npcs') as $n){if(!in_array((int)$n['id'],$npcs,true)){continue;}$p=ai_npc_profile($n);$items['npc:'.$n['id']]=['sex'=>$p['sex'],'online'=>(bool)$n['active'],'race_id'=>(int)$p['race_id'],'race'=>$races[(int)$p['race_id']]??'Razza sconosciuta'];}}
  return ['items'=>(object)$items];
 });

@@ -120,7 +120,8 @@ function ai_situation_result(array $room,array $npc,array $job,array $result):ar
     if(($job['kind']??'')!=='npc-turn'&&preg_match_all('/\b(?:si\s+(?:sposta|avvia|avvicina|porta|siede)|raggiunge|cammina|passeggia|prende\s+posto)\b.{0,65}/iu',$action,$movements)){ foreach($movements[0] as $movement){
         if(preg_match('/(?:tenta|prova|vorrebbe|cerca)\s+(?:di\s+)?$/iu',strstr($action,$movement,true)?:'')){ continue; }
         foreach(ai_situation_positions($room,$npc) as $zone){ if($zone!==''&&ai_narrative_mentions($movement,$zone)){ $s['position']=$zone; } }
-    } }
+    }
+    }
     if($s['first']&&$s['opening']!==''&&in_array($job['kind']??'',['play','preview','demo'],true)&&$s['position']!==$s['place']&&!ai_narrative_mentions($action,$s['position'])){
         $opening=$s['mode']==='conversation'?$npc['name'].' si trova '.ai_situation_at($s['position']).', con l’attenzione rivolta alla conversazione':$s['opening'];
         if(str_starts_with($text,$npc['name'].',')&&str_starts_with($opening,$npc['name'].' ')){$opening=mb_substr($opening,mb_strlen($npc['name'])+1);$opening=mb_strtoupper(mb_substr($opening,0,1)).mb_substr($opening,1);}

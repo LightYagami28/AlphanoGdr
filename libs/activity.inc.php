@@ -32,7 +32,8 @@ function alphano_record_activity(string $type,int $actor,array $audiences,string
                 ||json_decode($stored['data_json'],true,20,JSON_THROW_ON_ERROR)!=$data||$normalize($existing)!==$normalize($audiences)){ throw new RuntimeException('Identificativo della ricevuta già usato con dati diversi.',409); }
         }
         if($created){ foreach($audiences as $a){ $db->execute('INSERT IGNORE INTO activity_event_audiences(event_id,audience_scope,scope_id,section_key,access_role) VALUES(?,?,?,?,?)',
-            [$event,$a['scope'],$a['id'],$a['section'],$a['role']??'member']); } }
+            [$event,$a['scope'],$a['id'],$a['section'],$a['role']??'member']); }
+            }
         if($own){ $db->commit(); }return $event;
     }catch(Throwable $error){if($own&&$db->inTransaction()){ $db->rollBack(); }throw $error;}
 }

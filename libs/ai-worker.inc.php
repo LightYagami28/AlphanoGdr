@@ -141,7 +141,8 @@ function ai_work_job(array $job):bool {
             $quest=ai_quest_row($job['chat_key']);
             if($quest&&ai_quest_auto_continue($quest)){ try{return ai_quest_work_job($job,true);}catch(Throwable $recovery){
                 if($db->inTransaction()){ $db->rollBack(); }$e=$recovery;
-            } }
+            }
+            }
         }
         $cancel=$e instanceof DomainException;
         $attempts=(int)$job['attempts']+1;

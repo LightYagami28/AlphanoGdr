@@ -95,7 +95,8 @@ function ai_social_manifested_emotions(array $npc,string $reply,bool $physical=t
                     // score. Trust's explicit refusal is itself a public stance.
                     if($key!=='trust'&&preg_match('/\\bnon\\b.{0,18}(?:'.$pattern.')/iu',$sentence)){ continue; }
                     $shown[$key]=true;
-                } }
+                }
+                }
                 continue;
             }
             if(!$physical){ continue; }

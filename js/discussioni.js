@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let tipo=config.tipo,showClosed=false,canModerate=false,currentThread=0,page='list',generation=0;
   async function api(params,method='GET') {
     const opts={method,headers:{'X-CSRF-Token':config.csrfToken}};
-    let url=config.apiBaseUrl+'/discussioni/index.php';
+    let url='/api/discussioni/index.php';
     if(method==='GET'){url+='?'+new URLSearchParams({...params,tipo});}else {opts.body=new URLSearchParams({...params,tipo});}
     const res=await fetch(url,opts),data=await res.json();if(!res.ok){throw new Error(data.error||'Richiesta non riuscita');}return data;
   }

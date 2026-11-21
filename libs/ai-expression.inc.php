@@ -151,6 +151,7 @@ function ai_expression_retry_hint(string $error,?array $perception=null):?string
         // is not authority to restore panic that the current scene has resolved.
         if($perception!==null&&str_starts_with($hint,'La scena richiede paura visibile')&&empty($perception['shock'])&&(int)($perception['scene_state']['fear_intensity']??0)<60){ return null; }
         return $hint;
-    } }
+    }
+    }
     return null;
 }

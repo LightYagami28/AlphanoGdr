@@ -16,7 +16,8 @@ function alphano_session_context_entry(array $row):?array {
         $href=$link->getAttribute('href');
         if(preg_match('~^/profili/png\.php\?Id=(\d+)~i',$href,$m)){$kind='npc';$id=(int)$m[1];break;}
         if(preg_match('~^/profili/(?:index\.php)?\?Id=(\d+)~i',$href,$m)){$kind='pg';$id=(int)$m[1];break;}
-    } }
+    }
+    }
     if($master){ $kind='master'; }
     foreach($xp->query('//script|//style|//time|//img|//*[contains(@class,"chat-character-header")]|//*[contains(@class,"chat-thought")]|//*[contains(@class,"thought")]') as $node){ $node->parentNode?->removeChild($node); }
     $body=$kind==='master'?$masterNode:($xp->query('//*[contains(@class,"chat-character-text")]')->item(0)??$doc);
@@ -53,7 +54,9 @@ function alphano_session_read_context(array $s):array {
                 if($buffer!==''&&($entry=alphano_session_context_entry(['msg'=>$buffer,'ora'=>(int)$s['datain']]))){$archiveCount++;$add($entry);}
                 flock($handle,LOCK_UN);
             }
-        }finally{fclose($handle);} }
+        }
+        finally{fclose($handle);}
+        }
     }
     $boundary=(int)($db->query('SELECT MAX(id) id FROM chat WHERE chat=?',[$s['chat']])[0]['id']??0);
     // IDs delimit sessions even when closing and opening happen in the same second.
@@ -72,7 +75,8 @@ function alphano_session_read_context(array $s):array {
     foreach($entries as $e){ if(in_array($e['kind'],['pg','npc'],true)){
         $key=$e['kind'].':'.$e['id'];$context['actors'][$key]??=['name'=>$e['speaker'],'first'=>ai_text($e['text'],300),'last'=>[]];
         $context['actors'][$key]['last'][]=ai_text($e['text'],500);$context['actors'][$key]['last']=array_slice($context['actors'][$key]['last'],-3);
-    } }
+    }
+    }
     return ['boundary'=>$boundary,'count'=>count($entries),'hash'=>$hash,'context'=>$context];
 }
 /** Only backend-confirmed Master facts are outcomes; PG dialogue remains declarations. */
@@ -110,6 +114,8 @@ function alphano_session_narrative_proposal(array $room,array $technical,bool $o
         $out=json_decode($reply['choices'][0]['message']['content']??'',true,16,JSON_THROW_ON_ERROR);$candidate=trim((string)($out['narrative']??''));
         $names=[];foreach($technical['results'] as $r){ $names[]=$r['actor']; }
         if(ai_adjudication_atmosphere_safe($candidate,$names)&&ai_expression_italian($candidate)){ $text=$candidate; }
-    }catch(RuntimeException|JsonException $e){error_log('[Session narrative] '.$e->getMessage());} }
+    }
+    catch(RuntimeException|JsonException $e){error_log('[Session narrative] '.$e->getMessage());}
+    }
     return ['narrative'=>$text,'changes'=>[],'scene_finished'=>(bool)$technical['can_finish'],'finish_reason'=>'I partecipanti hanno concluso la scena.'];
 }

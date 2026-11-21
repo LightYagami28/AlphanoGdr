@@ -9,43 +9,43 @@ function checkQuality(pass) {
 	var hasLowercase = false;
 	var hasNumber = false;
 	var membership = [];
-	for (c in punctuations) {
-		if (pass.indexOf(punctuations[c]) != -1) {
+	for (const punctuation of punctuations) {
+		if (pass.includes(punctuation)) {
 			score++;
 			hasPunctuation = true;
-			membership[pass.indexOf(punctuations[c])] = 'P';
+			membership[pass.indexOf(punctuation)] = 'P';
 		}
 	}
-	for (c in uppercases) {
-		if (pass.indexOf(uppercases[c]) != -1) {
+	for (const uppercase of uppercases) {
+		if (pass.includes(uppercase)) {
 			score += .5;
 			hasUppercase = true;
-			membership[pass.indexOf(uppercases[c])] = 'U';
+			membership[pass.indexOf(uppercase)] = 'U';
 		}
 	}
-	for (c in lowercases) {
-		if (pass.indexOf(lowercases[c]) != -1) {
+	for (const lowercase of lowercases) {
+		if (pass.includes(lowercase)) {
 			score += .5;
 			hasLowercase = true;
-			membership[pass.indexOf(lowercases[c])] = 'L';
+			membership[pass.indexOf(lowercase)] = 'L';
 		}
 	}
-	for (c=0;c<=9;c++) {
-		if (pass.indexOf(c) != -1) {
+	for (const digit of '0123456789') {
+		if (pass.includes(digit)) {
 			score += .5;
 			hasNumber = true;
-			membership[pass.indexOf(c)] = 'N';
+			membership[pass.indexOf(digit)] = 'N';
 		}
 	}
 	// calculate the "noisyness" of the password
 	// each transition from one group of symbols to the next adds .25 to the score
 	// NoI$yNeSs of that string is 4.25
 	// noisyness of that string is .25
-	var lastType = '';
-	for (i in membership) {
-		if (lastType != membership[i]) {
+	var lastType = { value: '' };
+	for (var index in membership) {
+		if (lastType.value !== membership[index]) {
 			score += .25;
-			lastType = membership[i];
+			lastType.value = membership[index];
 		}
 	}
 	if (hasPunctuation) score++;

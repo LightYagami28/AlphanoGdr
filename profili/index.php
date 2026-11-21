@@ -38,12 +38,12 @@ $isAlt = alphano_profile_uses_alt_art($row);
 $avatarKey = $isAlt ? 'avatar2' : 'avatar';
 $avatar = (string)(($row[$avatarKey] ?? '') ?: ($row['avatar'] ?? ''));
 if ($avatar !== '' && !empty($row['upload']) && is_file(__DIR__ . '/pg/' . $cid . '/' . $avatar)) { $avatar = '/profili/pg/' . $cid . '/' . $avatar; }
-$doppiRaw = alphano_sql_ids(TrovaDoppi($cid) ?: []);
+$doppiRaw = alphanoSqlIds(TrovaDoppi($cid) ?: []);
 $visits = (int)$row['visite'];
 if (!in_array($visitorId, $doppiRaw, true)) { $visits += IncrementaVisite($visitorId, $cid); }
 $doppi = [];
 if ($doppiRaw) {
-    $placeholders = alphano_sql_placeholders(count($doppiRaw));
+    $placeholders = alphanoSqlPlaceholders(count($doppiRaw));
     foreach ($db->query("SELECT id,nome FROM utenti WHERE id IN ($placeholders) ORDER BY nome", $doppiRaw) as $other) { $doppi[] = '<a href="/profili/?Id=' . (int)$other['id'] . '">' . $escape($other['nome']) . '</a>'; }
 }
 $textRow = static fn(string $label, mixed $value, string $fallback = 'Non dichiarato'): array => ['label' => $label, 'html' => $escape($value !== null && $value !== '' ? $value : $fallback)];

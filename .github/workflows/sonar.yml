@@ -43,7 +43,7 @@ jobs:
 
       - name: Installa SonarScanner
         run: |
-          curl -fSLo /tmp/sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
+          curl --proto '=https' --proto-redir '=https' -fSLo /tmp/sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
           unzip -t /tmp/sonar-scanner.zip
           unzip -q /tmp/sonar-scanner.zip -d /tmp/sonar-scanner
           sed -i 's/^use_embedded_jre=true$/use_embedded_jre=false/' /tmp/sonar-scanner/sonar-scanner-5.0.1.3006-linux/bin/sonar-scanner

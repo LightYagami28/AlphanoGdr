@@ -228,7 +228,9 @@ function ai_prompt(array $room,array $npc,array $job,float $scale=1.0):array {
     $messages[0]['content'].=ai_language_prompt($npc,$job).ai_identity_context($npc,$job).ai_situation_context($room,$npc,$job).ai_relation_context_prompt($npc,$job);
     if($messages){ for($i=count($messages)-1;$i>0;$i--){ if($messages[$i]['role']==='user'){
         $messages[$i]['content'].=ai_identity_turn_focus($npc,$job).ai_reply_turn_focus($npc,$job);break;
-    } } }
+    }
+    }
+    }
     return ai_identity_messages($npc,$job,ai_recognition_messages($npc,$job,$messages));
 }
 function ai_prompt_content(array $room, array $npc, array $job, float $scale=1.0): array {

@@ -28,7 +28,9 @@ function alphano_race_view(?int $id,string $sex='Maschio'):array {
   if(($a['requirements']['sentient']??null)===true){ $a['requirements_text'][]='Senzienza'; }
   if(($a['requirements']['sentient']??null)===false){ $a['requirements_text'][]='Forma Pura'; }
   $groups[$a['category']==='purchasable'?'purchasable':'innate'][]=$a;
- } } }
+ }
+ }
+ }
  $groups['all']=array_merge($groups['innate'],$groups['purchasable']);
  $familyKind=$selected?(in_array($selected['id'],[2,5],true)?'vampire':(in_array($selected['id'],[3,6],true)?'lycan':null)):null;
  $families=[];

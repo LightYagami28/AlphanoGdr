@@ -130,7 +130,8 @@ function ai_quest_apply_verdict(int $vid,int $reviewer,string $reason,?array $re
     $detail=match($type){'wound'=>ai_field($e,'text',250),'death'=>'morte convalidata','prison'=>'condizione di detenzione aggiornata','money'=>'scambio convalidato tra i due interlocutori','item'=>'passaggio di un oggetto convalidato','hp'=>'condizione fisica aggiornata','ammunition'=>'tiro e consumo di una munizione','reload'=>'ricarica verificata',default=>'annotazione pubblica del personaggio aggiornata'};
     $summary='Quest #'.$sid.', giro '.$v['round_number'].': '.ai_quest_name($kind,$id).' — '.$detail.'. Le motivazioni riservate del Master non sono conoscenze del PNG.';
     $db->execute("INSERT INTO ai_personal_memories(npc_id,player_id,chat_key,category,summary,evidence,source,created_at,updated_at) VALUES(?,?,?,'quest',?,?,'system',?,?)",[(int)$n['actor_id'],(int)$pg['actor_id'],$s['chat'],$summary,'effect:'.$key,time(),time()]);
-   } }
+   }
+   }
   }
  }
  $db->execute("UPDATE ai_quest_verdicts SET status='applied',payload=?,reviewed_by=? WHERE id=?",[ai_quest_json($changes),$executor,$vid]);ai_quest_audit($sid,'verdict_applied',['verdict'=>$vid,'effects'=>count($changes),'reason'=>$reason],$executor);

@@ -138,7 +138,10 @@ function ai_scene_context(string $chat,int $npc=0,int $before=0):array {
     if($npc>0&&function_exists('ai_recognition_view')){ foreach($events as &$event){$actor=(int)$event['actor_id'];if($actor>0&&!ai_recognition_view($npc,$actor,['chat_key'=>$chat,'source_id'=>(int)$event['source_id']])['identified']){
         $name=ConnectDB()->query('SELECT nome FROM utenti WHERE id=?',[$actor])[0]['nome']??'';
         if($name!==''){ $event['content']=preg_replace('/(?<!\\p{L})'.preg_quote($name,'/').'(?!\\p{L})/iu','figura dal volto coperto',$event['content'])??$event['content']; }
-    }} }unset($event);return $events;
+    }
+    }
+    }
+    unset($event);return $events;
 }
 /** Current bodies and declared public violence stay salient beyond the brief panic.
  * This is a sensory projection, not the full technical sheets or a new outcome.
@@ -446,7 +449,8 @@ function ai_perception_validate_text(array $npc,array $job,string $text):string 
         if($r['scene_state']['attempts']&&empty($r['scene_state']['confirmed_hold'])){ foreach(preg_split('/[.!?;]+/u',$outside)?:[] as $clause){
             if(preg_match('/\b(?:presa\s+(?:ferrea|salda|stretta)|(?:avversario|uomo|donna|visitatore|visitatrice)\s+(?:è\s+|resta\s+|rimane\s+)?(?:trattenut[oa]|immobilizzat[oa]))\b/iu',$clause)
                 &&!preg_match('/\b(?:tent\p{L}*|cerca|prov\p{L}*|evitare|impedire|prima\s+che|eventuale|possibile)\b/iu',$clause)){ throw new RuntimeException('Il PNG tratta una presa dichiarata dal PG come già riuscita: nessuna presa è stata accertata dal backend; descrivi soltanto il tentativo e la tua reazione.'); }
-        } }
+        }
+        }
     }
     return $text;
 }

@@ -98,7 +98,8 @@ function ai_personality_context(array $npc,array $job,float $scale,array $relati
         'love'=>'legame affettivo maturato, sempre rispettando disponibilità e limiti',
         'jealousy'=>'insicurezza del legame, senza possesso o controllo',
         default=>$value>=40?'affetto consolidato':'affetto crescente'
-    }; }
+    }
+    ; }
     if($tone){ $out.=' Tono: '.implode(', ',$tone).($compact?'.':' ; mostralo in gesti e parole, senza nominare punteggi.'); }
     $out.=ai_relation_feelings_context($npc,$job,$relation);
     $memories=ai_personality_recall((int)$npc['id'],(int)$job['user_id'],$job,$compact?2:3);

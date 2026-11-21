@@ -287,7 +287,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($action==='admitpg') { $audiences[]=['scope'=>'personale','id'=>(int)$_POST['pg'],'section'=>'cittadinanza','role'=>'member']; }
         if ($action==='sfratta') { foreach ($activityBefore['homes'] as $home) {
             if ((int)$home['id']===$id) { $audiences[]=['scope'=>'personale','id'=>(int)$home['pg'],'section'=>'dimora','role'=>'member']; }
-        } }
+        }
+        }
         $summarize=static function(array $state): array {
             foreach (['roles','districts','requests','homes'] as $collection) {
                 $state[$collection]=['count'=>count($state[$collection]),'hash'=>hash('sha256',json_encode($state[$collection]))];

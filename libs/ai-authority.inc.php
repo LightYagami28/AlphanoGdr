@@ -40,7 +40,8 @@ function ai_authority_place(string $chat):array {
     if($map){ foreach(ai_db()->query('SELECT id,city FROM city ORDER BY id') as $city){
         $name=ai_authority_key($city['city']);$key=ai_authority_key($map['chat_key']);$position=ai_authority_key($map['position']);
         if($name!==''&&(str_starts_with($key,$name.' ')||$key===$name||str_contains(' '.$position.' ',' '.$name.' '))){ $matches[]=$city; }
-    } }
+    }
+    }
     return count($matches)===1?['city_id'=>(int)$matches[0]['id'],'city'=>$matches[0]['city']]:['city_id'=>0,'city'=>''];
 }
 

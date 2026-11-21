@@ -327,7 +327,8 @@ function alphano_notification_inbox(int $recipient,string $view,?string $group,?
             foreach($item['destinations']??[$item] as $target){ if((!$group||$target['group']===$group)&&(!$section||$target['section']===$section)){
                 if($group||$section){ foreach(['group','section','url'] as $field){ $item[$field]=$target[$field]; } }
                 $items[]=$item;break;
-            } }
+            }
+            }
         }
         $total=count($items);$pages=max(1,(int)ceil($total/$perPage));$page=min($page,$pages);
         $items=array_slice($items,($page-1)*$perPage,$perPage);

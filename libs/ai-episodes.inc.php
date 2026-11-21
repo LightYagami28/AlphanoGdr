@@ -30,7 +30,8 @@ function ai_episode_interpret(string $raw):array {
         if($category==='riconciliazione'&&preg_match('/non\s+(?:vi\s+|ti\s+)?(?:chiedo\s+scusa|chiedo\s+perdono)|non\s+mi\s+dispiace|colpa\s+(?:tua|vostra)/iu',$sentence)){ continue; }
         if($category==='critica'&&preg_match('/\b(?:non\s+mi\s+(?:avete|hai)\s+deluso|non\s+(?:trovo|ritengo))\b/iu',$sentence)){ continue; }
         if(preg_match($pattern,$sentence)){ return [...$episode,'category'=>$category==='critica'?'offesa':$category,'criticism'=>$category==='critica','coercive'=>$category==='minaccia'&&(bool)preg_match('/obbed|ordini|comando|servir/iu',$spoken),'evidence'=>ai_text($sentence,250),'known'=>true]; }
-    } }
+    }
+    }
     foreach($speech as $sentence){
         if(preg_match('/\b(?:non\s+(?:voglio|desidero|vorrei)|ha\s+detto|diceva|racconta\s+che)\b/iu',$sentence)){ continue; }
         $invitation=match(true){
@@ -59,7 +60,8 @@ function ai_episode_recent_refusal(array $npc,array $job):bool {
     foreach(ai_dialogue_history($job,6) as $line){ if((int)$line['npc_id']===(int)$npc['id']){
         if((int)$line['created_at']<=ai_relation_last_correction((int)$npc['id'],(int)$job['user_id'])){ return false; }
         return (bool)preg_match('/restiamo\s+amic|preferisco.{0,35}(?:amic|distan)|non.{0,20}(?:interessat|desidero.{0,12}corteggi|ricambio)/iu',ai_narrative_parse($line['content'])['speech']);
-    } }
+    }
+    }
     return false;
 }
 function ai_episode_verified_trauma(int $npc,int $player,string $chat,int $days):bool {
@@ -242,7 +244,8 @@ function ai_episode_fallback(array $npc,array $job):string {
             'defiant'=>!empty($a['attitude']['cautious'])?$role.', conosco il vostro incarico. Preferisco sentire che cosa volete dirmi, mantenendo questa distanza.':$role.', so quale incarico ricoprite. Non è il titolo a decidere se vi darò ragione: ditemi che cosa volete.',
             'skeptical'=>$role.', conosco il vostro incarico. Vi ascolto, ma voglio capire la richiesta prima di accettare.',
             default=>$role.', vi riconosco. Vi ascolto: ditemi come posso esservi utile.'
-        }; }
+        }
+        ; }
     }
     $affectiveQuestion=(bool)preg_match('/\b(?:mi\s+(?:ami|amate)|(?:provi|provate)\s+per\s+me|sentimenti|innamorat[oa])\b/iu',ai_narrative_parse((string)($job['prompt']??''))['speech']);
     if(!ai_recognition_anonymous($npc,$job)&&empty($job['episode']['observer'])&&empty($job['episode']['declined'])&&($category==='corteggiamento'||(in_array($category,['dialogo','cordialita'],true)&&$affectiveQuestion))&&ai_relation_feelings(ai_relation((int)$npc['id'],(int)$job['user_id']))['close']&&ai_romance_allowed($npc,ai_player_identity((int)$job['user_id']),ai_social_rules((int)$npc['id']))){

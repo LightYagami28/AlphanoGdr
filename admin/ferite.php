@@ -172,6 +172,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                      : 'Impossibile inserire la nota';
             } else { $msg = 'Parametri non esaurienti'; }
             break;
+        default: break;
     }
     } catch (Throwable $error) {
         $status=$error instanceof InvalidArgumentException ? 400 : (int)$error->getCode();

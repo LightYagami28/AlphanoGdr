@@ -182,6 +182,7 @@ switch ($act) {
       $msg = "Parametro avviso mancante.";
     }
     break;
+    default: break;
 }
 
 /*──────────────────────────────────────────────────────────*/

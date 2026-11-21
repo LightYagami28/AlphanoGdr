@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const query=new URLSearchParams(location.search),fixedLocation=config.initialLocation||query.get('location');
   let currentBoard=0,currentThread=0,threads=[],posts=[],boards=new Map(),cities=[],selectedCity=fixedLocation||'',generation=0;
   async function api(action,data={},method='GET') {
-    const opts={method,headers:{'X-CSRF-Token':config.csrfToken}};let url=config.apiBaseUrl+'/index.php';
+    const opts={method,headers:{'X-CSRF-Token':config.csrfToken}};let url='/api/bacheche/index.php';
     if(method==='GET'){url+='?'+new URLSearchParams({action,...data});}else {opts.body=new URLSearchParams({action,...data});}
     const response=await fetch(url,opts),result=await response.json();if(!response.ok||!result.success){throw new Error(result.error||'Richiesta non riuscita');}return result;
   }

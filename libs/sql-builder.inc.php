@@ -12,7 +12,7 @@ declare(strict_types=1);
  * @param array<string,mixed>      $values  Valori indicizzati per colonna
  * @return array{0:string,1:array<int,mixed>}
  */
-function alphano_sql_insert(string $table, array $columns, array $values): array
+function alphanoSqlInsert(string $table, array $columns, array $values): array
 {
     $tables = ['equip' => true, 'newequip' => true];
     if (!isset($tables[$table])) {
@@ -22,7 +22,7 @@ function alphano_sql_insert(string $table, array $columns, array $values): array
     $quoted = [];
     $params = [];
     foreach ($columns as $column) {
-        if (!is_string($column) || preg_match('/^[A-Za-z][A-Za-z0-9_]*$/D', $column) !== 1) {
+        if (!is_string($column) || preg_match('/^[A-Za-z]\w*$/D', $column) !== 1) {
             throw new InvalidArgumentException('Colonna non consentita');
         }
         if (!array_key_exists($column, $values)) {
@@ -47,7 +47,7 @@ function alphano_sql_insert(string $table, array $columns, array $values): array
  * @param bool              $withId    Aggiunge la colonna id (solo newequip)
  * @return array<int,string>
  */
-function alphano_equip_insert_columns(array $materials, bool $withId = false): array
+function alphanoEquipInsertColumns(array $materials, bool $withId = false): array
 {
     $columns = [
         'shortDesc', 'desc', 'peso', 'tipo', 'taglia', 'mani', 'sacro', 'restore',
@@ -58,7 +58,7 @@ function alphano_equip_insert_columns(array $materials, bool $withId = false): a
         array_unshift($columns, 'id');
     }
     foreach ($materials as $material) {
-        if (!is_string($material) || preg_match('/^[a-z][a-z0-9_]*$/D', $material) !== 1) {
+        if (!is_string($material) || preg_match('/^[a-z]\w*$/D', $material) !== 1) {
             throw new InvalidArgumentException('Materia prima non valida');
         }
         $columns[] = $material;

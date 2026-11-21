@@ -273,9 +273,9 @@ try {
                 $db->execute('DELETE FROM accademia WHERE obj = ?', [$id]);
 
                 // inserisco la nuova proposta: colonne da whitelist, valori solo nei bind
-                [$sql, $params] = alphano_sql_insert(
+                [$sql, $params] = alphanoSqlInsert(
                     'newequip',
-                    alphano_equip_insert_columns(\MATERIE_PRIME, true),
+                    alphanoEquipInsertColumns(\MATERIE_PRIME, true),
                     ['id' => $id] + $fields
                 );
                 $db->execute($sql, $params);
@@ -334,7 +334,7 @@ try {
                 foreach (\MATERIE_PRIME as $mp) {
                     $fields[$mp] = (int)($_POST[$mp] ?? 0);
                 }
-                [$sql, $params] = alphano_sql_insert('equip', alphano_equip_insert_columns(\MATERIE_PRIME), $fields);
+                [$sql, $params] = alphanoSqlInsert('equip', alphanoEquipInsertColumns(\MATERIE_PRIME), $fields);
                 $db->execute($sql, $params);
                 $newId = (int)$db->lastInsertID();
                 if (isset($tempImg) && $newId > 0) {

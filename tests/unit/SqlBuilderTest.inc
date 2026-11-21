@@ -29,7 +29,7 @@ final class SqlBuilderTest extends \PHPUnit\Framework\TestCase
      */
     public function testInsertParametrizzato(): void
     {
-        [$sql, $params] = alphano_sql_insert(
+        [$sql, $params] = alphanoSqlInsert(
             'equip',
             ['shortDesc', 'desc'],
             ['shortDesc' => 'Spada', 'desc' => 'Lama lunga']
@@ -43,7 +43,7 @@ final class SqlBuilderTest extends \PHPUnit\Framework\TestCase
      */
     public function testOrdineParametri(): void
     {
-        [$sql, $params] = alphano_sql_insert(
+        [$sql, $params] = alphanoSqlInsert(
             'newequip',
             ['id', 'shortDesc', 'corp'],
             ['corp' => 7, 'shortDesc' => 'Elmo', 'id' => 42]
@@ -58,7 +58,7 @@ final class SqlBuilderTest extends \PHPUnit\Framework\TestCase
     public function testInputUtenteSoloNeiBind(): void
     {
         $tainted = "0); DROP TABLE equip; --";
-        [$sql, $params] = alphano_sql_insert('equip', ['desc'], ['desc' => $tainted]);
+        [$sql, $params] = alphanoSqlInsert('equip', ['desc'], ['desc' => $tainted]);
         self::assertStringNotContainsString('DROP', $sql);
         self::assertStringNotContainsString($tainted, $sql);
         self::assertSame([$tainted], $params);
@@ -70,7 +70,7 @@ final class SqlBuilderTest extends \PHPUnit\Framework\TestCase
     public function testWhitelistTabellaEColonne(): void
     {
         try {
-            alphano_sql_insert('utenti', ['desc'], ['desc' => 'x']);
+            alphanoSqlInsert('utenti', ['desc'], ['desc' => 'x']);
             self::fail('La tabella non whitelistata doveva essere rifiutata');
         } catch (InvalidArgumentException $e) {
             self::assertSame('Tabella non consentita', $e->getMessage());
@@ -78,7 +78,7 @@ final class SqlBuilderTest extends \PHPUnit\Framework\TestCase
 
         foreach (['desc`; DROP TABLE equip; --', 'desc-name', '1desc', 'de sc', ''] as $column) {
             try {
-                alphano_sql_insert('equip', [$column], [$column => 'x']);
+                alphanoSqlInsert('equip', [$column], [$column => 'x']);
                 self::fail('La colonna '.$column.' doveva essere rifiutata');
             } catch (InvalidArgumentException $e) {
                 self::assertSame('Colonna non consentita', $e->getMessage());
@@ -92,14 +92,14 @@ final class SqlBuilderTest extends \PHPUnit\Framework\TestCase
     public function testValoriMancanti(): void
     {
         try {
-            alphano_sql_insert('equip', ['desc'], []);
+            alphanoSqlInsert('equip', ['desc'], []);
             self::fail('Il valore mancante doveva essere rifiutato');
         } catch (InvalidArgumentException $e) {
             self::assertSame('Valore mancante per desc', $e->getMessage());
         }
 
         try {
-            alphano_sql_insert('equip', [], []);
+            alphanoSqlInsert('equip', [], []);
             self::fail('La lista vuota doveva essere rifiutata');
         } catch (InvalidArgumentException $e) {
             self::assertSame('Nessuna colonna valida', $e->getMessage());
@@ -111,14 +111,14 @@ final class SqlBuilderTest extends \PHPUnit\Framework\TestCase
      */
     public function testColonneCatalogo(): void
     {
-        $columns = alphano_equip_insert_columns(['argento', 'oro']);
+        $columns = alphanoEquipInsertColumns(['argento', 'oro']);
         self::assertContains('shortDesc', $columns);
         self::assertContains('game_rules', $columns);
         self::assertContains('department', $columns);
         self::assertSame(['argento', 'oro'], array_slice($columns, -2));
         self::assertNotContains('id', $columns);
 
-        $withId = alphano_equip_insert_columns(['argento'], true);
+        $withId = alphanoEquipInsertColumns(['argento'], true);
         self::assertSame('id', $withId[0]);
         self::assertContains('argento', $withId);
         self::assertSame('shortDesc', $withId[1]);
@@ -131,7 +131,7 @@ final class SqlBuilderTest extends \PHPUnit\Framework\TestCase
     {
         foreach ([['oro` DROP', 'argento'], [12], [['nested']]] as $materials) {
             try {
-                alphano_equip_insert_columns($materials);
+                alphanoEquipInsertColumns($materials);
                 self::fail('La materia prima non valida doveva essere rifiutata');
             } catch (InvalidArgumentException $e) {
                 self::assertSame('Materia prima non valida', $e->getMessage());

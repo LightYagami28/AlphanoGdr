@@ -57,7 +57,7 @@ final class SessionLogPathTest extends \PHPUnit\Framework\TestCase
     {
         $file = $this->root.'/sessione/log/123.html';
         file_put_contents($file, '<div>cronaca</div>');
-        self::assertSame(realpath($file), alphano_session_log_path($this->root, '123'));
+        self::assertSame(realpath($file), alphanoSessionLogPath($this->root, '123'));
     }
 
     /**
@@ -67,7 +67,7 @@ final class SessionLogPathTest extends \PHPUnit\Framework\TestCase
     {
         $file = $this->root.'/sessione/log/456.htm';
         file_put_contents($file, '<div>cronaca</div>');
-        self::assertSame(realpath($file), alphano_session_log_path($this->root, '456'));
+        self::assertSame(realpath($file), alphanoSessionLogPath($this->root, '456'));
     }
 
     /**
@@ -76,7 +76,7 @@ final class SessionLogPathTest extends \PHPUnit\Framework\TestCase
     public function testFileVuoto(): void
     {
         file_put_contents($this->root.'/sessione/log/789.html', '');
-        self::assertNull(alphano_session_log_path($this->root, '789'));
+        self::assertNull(alphanoSessionLogPath($this->root, '789'));
     }
 
     /**
@@ -85,7 +85,7 @@ final class SessionLogPathTest extends \PHPUnit\Framework\TestCase
     public function testIdNonValido(): void
     {
         foreach (['', '../123', '12a', '1/2', '..', '1 2'] as $id) {
-            self::assertNull(alphano_session_log_path($this->root, $id));
+            self::assertNull(alphanoSessionLogPath($this->root, $id));
         }
     }
 
@@ -95,11 +95,11 @@ final class SessionLogPathTest extends \PHPUnit\Framework\TestCase
     public function testContenimento(): void
     {
         file_put_contents($this->root.'/sessione/999.html', '<div>fuori</div>');
-        self::assertNull(alphano_session_log_path($this->root, '../999'));
+        self::assertNull(alphanoSessionLogPath($this->root, '../999'));
 
         mkdir($this->root.'/sessione/log/sub');
         file_put_contents($this->root.'/sessione/log/sub/111.html', '<div>sotto</div>');
-        self::assertNull(alphano_session_log_path($this->root, 'sub/111'));
+        self::assertNull(alphanoSessionLogPath($this->root, 'sub/111'));
     }
 
     /**
@@ -107,6 +107,24 @@ final class SessionLogPathTest extends \PHPUnit\Framework\TestCase
      */
     public function testDirectoryMancante(): void
     {
-        self::assertNull(alphano_session_log_path($this->root.'/assente', '1'));
+        self::assertNull(alphanoSessionLogPath($this->root.'/assente', '1'));
+    }
+
+    /**
+     * Le estensioni storiche sono ordinate e complete.
+     */
+    public function testEstensioni(): void
+    {
+        self::assertSame(['.html', '.htm'], alphanoSessionLogExtensions());
+    }
+
+    /**
+     * Il controllo di contenimento distingue la directory attesa dal suo esterno.
+     */
+    public function testContenimentoEsplicito(): void
+    {
+        $directory = $this->root.DIRECTORY_SEPARATOR.'sessione'.DIRECTORY_SEPARATOR.'log';
+        self::assertTrue(alphanoSessionLogInside($directory, $directory.DIRECTORY_SEPARATOR.'1.html'));
+        self::assertFalse(alphanoSessionLogInside($directory, $this->root.DIRECTORY_SEPARATOR.'sessione'.DIRECTORY_SEPARATOR.'1.html'));
     }
 }

@@ -50,7 +50,7 @@ switch ($_POST['aztartarcontrol'] ?? '') {
                     $righe[] = [$field => $v];
                 }
             }
-            list($idpgs, $idobjs, $idcitys, $idorgs) = Smista($righe);
+            list($idpgs, $idobjs, $idcitys, $idorgs) = smista($righe);
         }
         break;
 
@@ -70,7 +70,7 @@ switch ($_POST['aztartarcontrol'] ?? '') {
                     $params[] = (string)$_POST[$field];
                 }
             }
-            list($idpgs, $idobjs, $idcitys, $idorgs) = Smista($righe);
+            list($idpgs, $idobjs, $idcitys, $idorgs) = smista($righe);
             $sql = 'SELECT * FROM `' . $tabella . '`'
                  . (count($conds) ? ' WHERE '. implode(' AND ', $conds) : '');
             $results = $db->query($sql . ' ORDER BY data DESC LIMIT 1000', $params);
@@ -140,12 +140,12 @@ switch ($_POST['aztartarcontrol'] ?? '') {
                       <?php foreach ($vals as $v): ?>
                         <option value="<?= htmlspecialchars((string)$v) ?>"
                           <?= (($_POST[$field]??'')===$v ? 'selected':'') ?>>
-                          <?= Converti($field, $v, $idpgs, $idobjs, $idcitys, $idorgs, false) ?>
+                          <?= converti($field, $v, $idpgs, $idobjs, $idcitys, $idorgs, false) ?>
                         </option>
                       <?php endforeach; ?>
                     </select><br>
                   <?php else: ?>
-                    <?= Converti($field, $vals[0], $idpgs, $idobjs, $idcitys, $idorgs, false) ?>
+                    <?= converti($field, $vals[0], $idpgs, $idobjs, $idcitys, $idorgs, false) ?>
                   <?php endif; ?>
                   <input type="text" name="<?= htmlspecialchars($field) ?>"
                          value="<?= htmlspecialchars($_POST[$field] ?? '') ?>">
@@ -166,7 +166,7 @@ switch ($_POST['aztartarcontrol'] ?? '') {
             <?php foreach ($results as $row): ?>
               <tr>
                 <?php foreach ($campi as $field => $_): ?>
-                  <td><?= Converti($field, $row[$field], $idpgs, $idobjs, $idcitys, $idorgs, true) ?></td>
+                  <td><?= converti($field, $row[$field], $idpgs, $idobjs, $idcitys, $idorgs, true) ?></td>
                 <?php endforeach; ?>
               </tr>
             <?php endforeach; ?>
@@ -182,7 +182,7 @@ switch ($_POST['aztartarcontrol'] ?? '') {
 // — Helpers —
 
 // trasforma codici in etichette, con link JS se $html=true
-function Converti(
+function converti(
     string $campo,
     $dato,
     array $idpgs,
@@ -213,7 +213,7 @@ function Converti(
 }
 
 // raccoglie tutti i valori distinti in $righe e costruisce le mappe id→label
-function Smista(array $righe): array {
+function smista(array $righe): array {
     $db = ConnectDB();
     $idpgs=[]; $idobjs=[]; $idcitys=[]; $idorgs=[];
     foreach ($righe as $r) {

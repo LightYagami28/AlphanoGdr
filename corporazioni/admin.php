@@ -64,23 +64,23 @@ if (empty($actor['admin']) && !(bool)$user['admincorporazione']) {
 if (!defined('maxpointvalue')) define('maxpointvalue', 20);
 
 $corpId         = (int)$user['corporazione'];
-$nomeCorp       = htmlspecialchars($user['nomecorp']    ?? '', ENT_QUOTES);
+$nomeCorp       = htmlspecialchars($user['nomecorp']    ?? '', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 $budget         = (int)$user['budgetcorp'];
 $ultimoStip     = (int)$user['ultimostipendio'];
 $hasStipendio   = (bool)$user['stipendio'];
 $hasProvvigione = (bool)$user['provvigione'];
-$sitoCorp       = htmlspecialchars($user['sito']        ?? '', ENT_QUOTES);
+$sitoCorp       = htmlspecialchars($user['sito']        ?? '', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 $cityCorp       = (int)$user['city'];
 $pvtRoom        = base64_decode((string)$user['pvt']);
-$sfondoTop      = htmlspecialchars($user['sfondotop']  ?? '', ENT_QUOTES);
-$sfondoBg       = htmlspecialchars($user['sfondo']      ?? '', ENT_QUOTES);
-$mappaRoom      = htmlspecialchars($user['mappa']       ?? '', ENT_QUOTES);
-$descrRoom      = htmlspecialchars($user['descrizione'] ?? '', ENT_QUOTES);
+$sfondoTop      = htmlspecialchars($user['sfondotop']  ?? '', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+$sfondoBg       = htmlspecialchars($user['sfondo']      ?? '', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+$mappaRoom      = htmlspecialchars($user['mappa']       ?? '', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+$descrRoom      = htmlspecialchars($user['descrizione'] ?? '', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
 // Lista città
 $listacity = [];
 foreach (GetListaCity() as $r) {
-    $listacity[(int)$r['id']] = htmlspecialchars($r['city'], ENT_QUOTES);
+    $listacity[(int)$r['id']] = htmlspecialchars($r['city'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
 // Totale stipendi
@@ -392,10 +392,10 @@ $currentCorp=$db->query('SELECT * FROM corporazioni WHERE id=?',[$corpId])[0];
 $budget=(int)$currentCorp['budget']; $ultimoStip=(int)$currentCorp['ultimostipendio'];
 $hasStipendio=(bool)$currentCorp['stipendio']; $hasProvvigione=(bool)$currentCorp['provvigione'];
 $stipendiTot=$hasStipendio ? GetStipendi($corpId) : 0;
-$sitoCorp=htmlspecialchars((string)$currentCorp['sito'],ENT_QUOTES); $cityCorp=(int)$currentCorp['city'];
+$sitoCorp=htmlspecialchars((string)$currentCorp['sito'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); $cityCorp=(int)$currentCorp['city'];
 $pvtRoom=base64_decode((string)$currentCorp['pvt']);
-$sfondoTop=htmlspecialchars($currentCorp['sfondotop'],ENT_QUOTES); $sfondoBg=htmlspecialchars($currentCorp['sfondo'],ENT_QUOTES);
-$mappaRoom=htmlspecialchars($currentCorp['mappa'],ENT_QUOTES); $descrRoom=htmlspecialchars($currentCorp['descrizione'],ENT_QUOTES);
+$sfondoTop=htmlspecialchars($currentCorp['sfondotop'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); $sfondoBg=htmlspecialchars($currentCorp['sfondo'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+$mappaRoom=htmlspecialchars($currentCorp['mappa'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); $descrRoom=htmlspecialchars($currentCorp['descrizione'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 // Carica produzioni correnti
 $produzioni = [];
 $pointValueLeft = maxpointvalue;
@@ -448,12 +448,12 @@ $lista2     = ListaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
       const maxpointvalue = <?= maxpointvalue ?>;
       const tipi = [];
       <?php foreach($subtipi as $sid => $sname): ?>
-        tipi[<?= $sid ?>] = <?= $produzioni[$sid] ?? 0 ?>;
+        tipi[<?= (int)$sid ?>] = <?= $produzioni[$sid] ?? 0 ?>;
       <?php endforeach; ?>
       const quality = [];
       <?php foreach($quality as $qk => $qv): ?>
-        quality[<?= $qk ?>] = {
-          nome: "<?= addslashes($qv['nome']) ?>",
+        quality[<?= (int)$qk ?>] = {
+          nome: <?= json_encode($qv['nome'], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE | JSON_UNESCAPED_UNICODE) ?>,
           durata: <?= $qv['durata'] ?>,
           costo: <?= $qv['costo'] ?>
         };
@@ -478,10 +478,8 @@ $lista2     = ListaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
         }
         const selected=quality[tipi[tipo]]||quality[0];
         document.getElementById("points").innerText = maxpointvalue-n;
-        document.getElementById("dettagli").innerHTML =
-          `Nome: ${selected.nome}<br>`+
-          `Durata max: ${selected.durata}<br>`+
-          `Costo PV: ${selected.costo}`;
+        document.getElementById("dettagli").textContent =
+          `Nome: ${selected.nome}\nDurata max: ${selected.durata}\nCosto PV: ${selected.costo}`;
         if(maxpointvalue-n===0) alert("Point Value esaurito");
       };
       window.SetProduction = ()=>{
@@ -507,7 +505,7 @@ $lista2     = ListaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
   <div class="container">
     <header class="ui-page-heading" data-page-heading data-header-image="/assets/placeholder.svg"><span data-icon="shield"></span><div><span class="ui-eyebrow">Alphano · Governo corporativo</span><h1><?= $nomeCorp ?></h1><p>Persone, cariche, finanze e attività della corporazione.</p></div><nav class="ui-module-toolbar"><a class="action-btn" href="/governo/?scope=corporazioni&amp;id=<?=$corpId?>" data-icon="coins">Bilancio e stipendi</a><a class="action-btn" href="/gruppi/identita.php?scope=corporazioni&amp;id=<?=$corpId?>" data-icon="shield">Stendardo e testata</a><a class="action-btn" href="/notifiche/?group=corporazioni" data-icon="scroll">Cronaca</a></nav>
     <?php if($msg!==''): ?>
-      <div class="u-96524d740"><?= htmlspecialchars($msg, ENT_QUOTES) ?></div>
+      <div class="u-96524d740"><?= htmlspecialchars($msg, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></div>
     <?php endif; ?>
 
     <ul class="tabs ui-module-toolbar">
@@ -528,13 +526,13 @@ $lista2     = ListaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
             <tbody>
               <?php foreach($richieste as $r): ?>
                 <tr>
-                  <td><a href="#" onclick="openProfileId('<?= $r['idpg'] ?>')"><?= htmlentities(GetPGFromID($r['idpg'])) ?></a></td>
-                  <td><?= FormatTimestamp($r['data']) ?></td>
+                  <td><a href="#" onclick="openProfileId('<?= (int)$r['idpg'] ?>')"><?= htmlentities(GetPGFromID($r['idpg']), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></a></td>
+                  <td><?= htmlspecialchars(FormatTimestamp($r['data']), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></td>
                   <td>
                     <form method="post" class="u-434fc32ec"><input type="hidden" name="corp" value="<?=$corpId?>">
       <input type="hidden" name="_request_key" value="<?=bin2hex(random_bytes(16))?>">
                       <input type="hidden" name="action" value="admitpg">
-                      <input type="hidden" name="pg" value="<?= $r['idpg'] ?>">
+                      <input type="hidden" name="pg" value="<?= (int)$r['idpg'] ?>">
                       <input type="hidden" name="admit" value="1">
                       <button class="btn">Accetta</button>
                     </form>
@@ -543,7 +541,7 @@ $lista2     = ListaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
                     <form method="post" class="u-434fc32ec"><input type="hidden" name="corp" value="<?=$corpId?>">
       <input type="hidden" name="_request_key" value="<?=bin2hex(random_bytes(16))?>">
                       <input type="hidden" name="action" value="admitpg">
-                      <input type="hidden" name="pg" value="<?= $r['idpg'] ?>">
+                      <input type="hidden" name="pg" value="<?= (int)$r['idpg'] ?>">
                       <input type="hidden" name="admit" value="0">
                       <button class="btn">Respingi</button>
                     </form>
@@ -571,8 +569,8 @@ $lista2     = ListaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
               <?php foreach($ramiLivello as $idRamo=>$gruppo): ?>
                 <td>
                   <strong>
-                    <a href="#" onclick="document.getElementById('frmGer').action.value='modifyramo';document.getElementById('frmGer').ramo.value='<?= $idRamo ?>';document.getElementById('frmGer').submit();">
-                      <?= htmlentities($gruppo['nomeramo']) ?>
+                    <a href="#" onclick="document.getElementById('frmGer').action.value='modifyramo';document.getElementById('frmGer').ramo.value='<?= (int)$idRamo ?>';document.getElementById('frmGer').submit();">
+                      <?= htmlentities($gruppo['nomeramo'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>
                     </a>
                   </strong>
                   <ul class="u-1ac13a3d3">
@@ -582,9 +580,9 @@ $lista2     = ListaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
                       if(($car['prima'] ?? 0))$flags[]='★';
                     ?>
                       <li>
-                        <a href="#" onclick="document.getElementById('frmGer').action.value='modifycarica';document.getElementById('frmGer').carica.value='<?= $idCar ?>';document.getElementById('frmGer').submit();">
+                        <a href="#" onclick="document.getElementById('frmGer').action.value='modifycarica';document.getElementById('frmGer').carica.value='<?= (int)$idCar ?>';document.getElementById('frmGer').submit();">
                           <?=GetCaricaCorp($corpId,(int)$idCar,false)?>
-                          <?= htmlentities($car['nomecarica']) ?>
+                          <?= htmlentities($car['nomecarica'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>
                         </a>
                         <?php if($flags): ?><small>(<?= implode(' | ',$flags) ?>)</small><?php endif; ?>
                       </li>
@@ -603,9 +601,9 @@ $lista2     = ListaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
       <input type="hidden" name="_request_key" value="<?=bin2hex(random_bytes(16))?>">
             <h5><?= isset($datiramo)?'Modifica Ramo':'Aggiungi Ramo' ?></h5>
             <input type="hidden" name="action" value="<?= isset($datiramo)?'modifyramo':'addramo' ?>">
-            <?php if(isset($datiramo)):?><input type="hidden" name="ramo" value="<?= $datiramo['id'] ?>"><?php endif; ?>
-            <label>Nome<input type="text" name="nome" value="<?= $datiramo['nome']??'' ?>"></label>
-            <label>Livello<input type="number" name="livello" min="0" value="<?= $datiramo['livello']??0 ?>"></label>
+            <?php if(isset($datiramo)):?><input type="hidden" name="ramo" value="<?= (int)$datiramo['id'] ?>"><?php endif; ?>
+            <label>Nome<input type="text" name="nome" value="<?= htmlspecialchars((string)($datiramo['nome']??''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>"></label>
+            <label>Livello<input type="number" name="livello" min="0" value="<?= (int)($datiramo['livello']??0) ?>"></label>
             <button class="btn"><?= isset($datiramo)?'Salva':'Aggiungi' ?></button>
             <?php if(isset($datiramo)):?><a href="#" onclick="location.reload()" class="btn">Annulla</a><?php endif; ?>
           </form>
@@ -617,7 +615,7 @@ $lista2     = ListaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
               Seleziona
               <select name="ramo">
                 <option value="">-- seleziona --</option>
-                <?php foreach($rami as $id=>$n):?><option value="<?= $id ?>"><?= htmlentities($n) ?></option><?php endforeach; ?>
+                <?php foreach($rami as $id=>$n):?><option value="<?= (int)$id ?>"><?= htmlentities($n, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></option><?php endforeach; ?>
               </select>
             </label>
             <button class="btn">Elimina</button>
@@ -630,22 +628,22 @@ $lista2     = ListaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
           <form method="post" enctype="multipart/form-data"><input type="hidden" name="corp" value="<?=$corpId?>">
             <input type="hidden" name="action" value="<?= isset($daticarica)?'modifycarica':'addcarica' ?>">
             <input type="hidden" name="_request_key" value="<?=bin2hex(random_bytes(16))?>">
-            <?php if(isset($daticarica)):?><input type="hidden" name="carica" value="<?= $daticarica['id'] ?>"><?php endif; ?>
+            <?php if(isset($daticarica)):?><input type="hidden" name="carica" value="<?= (int)$daticarica['id'] ?>"><?php endif; ?>
             <div class="u-f3e26fadb">
               <label class="u-e9a0cdfa2">Icona<input type="file" name="immagine"></label>
-              <label class="u-ee3d55bf9">Nome<input type="text" name="<?= isset($daticarica)?'nome':'carica'?>" value="<?= $daticarica['nome']??'' ?>"></label>
+              <label class="u-ee3d55bf9">Nome<input type="text" name="<?= isset($daticarica)?'nome':'carica'?>" value="<?= htmlspecialchars((string)($daticarica['nome']??''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>"></label>
               <label class="u-21716f5bd">Prima<input type="checkbox" name="prima" <?= !empty($daticarica['prima'])?'checked':''?>></label>
-              <label class="u-55475ae7d">Livello<input type="number" name="livello" min="0" value="<?= $daticarica['livello']??0 ?>"></label>
+              <label class="u-55475ae7d">Livello<input type="number" name="livello" min="0" value="<?= (int)($daticarica['livello']??0) ?>"></label>
               <label class="u-4ae7557d5">
                 Ramo<select name="ramo">
-                  <?php foreach($rami as $id=>$n):?><option value="<?= $id ?>" <?= isset($daticarica)&&$daticarica['ramo']==$id?'selected':''?>><?= htmlentities($n) ?></option><?php endforeach; ?>
+                  <?php foreach($rami as $id=>$n):?><option value="<?= (int)$id ?>" <?= isset($daticarica)&&$daticarica['ramo']==$id?'selected':''?>><?= htmlentities($n, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></option><?php endforeach; ?>
                 </select>
               </label>
-              <label class="u-ee3d55bf9">Descrizione<textarea rows="2" name="descrizione"><?= $daticarica['descrizione']??''?></textarea></label>
+              <label class="u-ee3d55bf9">Descrizione<textarea rows="2" name="descrizione"><?= htmlspecialchars((string)($daticarica['descrizione']??''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></textarea></label>
             </div>
             <div class="u-eca1aa8a9">
               <?php if($hasStipendio):?><label>Stipendio<input type="number" name="stipendio" min="0" max="2147483647" step="1" value="<?= $daticarica['stipendio']??'' ?>"></label><?php endif;?>
-              <?php if($hasProvvigione):?><label>Provvigione<input type="number" name="provvigione" min="0" max="100" step="0.01" value="<?= $daticarica['provvigione']??'' ?>"></label><?php endif;?>
+              <?php if($hasProvvigione):?><label>Provvigione<input type="number" name="provvigione" min="0" max="100" step="0.01" value="<?= (float)($daticarica['provvigione']??0) ?>"></label><?php endif;?>
             </div>
             <button class="btn"><?= isset($daticarica)?'Salva Carica':'Aggiungi Carica' ?></button>
             <?php if(isset($daticarica)): ?>
@@ -664,14 +662,14 @@ $lista2     = ListaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
               <select name="pg">
                 <option value="">-- Personaggio --</option>
                 <?php foreach($membri as $r):?>
-                  <option value="<?= $r['id'] ?>"><?= htmlentities($r['nome']) ?></option>
+                  <option value="<?= (int)$r['id'] ?>"><?= htmlentities($r['nome'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></option>
                 <?php endforeach;?>
               </select>
             </label>
             <label class="u-ee3d55bf9">Carica
               <select name="carica">
                 <?php foreach($lc as $c):?>
-                  <option value="<?= $c['id'] ?>"><?= htmlentities($c['nome']) ?></option>
+                  <option value="<?= (int)$c['id'] ?>"><?= htmlentities($c['nome'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></option>
                 <?php endforeach;?>
                 <option value="0">Espelli</option>
               </select>
@@ -685,7 +683,7 @@ $lista2     = ListaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
 
       <!-- FINANZE -->
       <div id="finanze">
-        <h4>Budget attuale: <?= $budget ?> <?=alphano_currency_html()?></h4>
+        <h4>Budget attuale: <?= (int)$budget ?> <?=alphano_currency_html()?></h4>
         <h5>Metodi di pagamento</h5>
         <form method="post"><input type="hidden" name="corp" value="<?=$corpId?>">
           <input type="hidden" name="action" value="setmetodo">
@@ -703,8 +701,8 @@ $lista2     = ListaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
             <table>
               <tr><th>Ultima consegna</th><th>Ammontare</th><th>Azione</th></tr>
               <tr>
-                <td><?= $ultimoStip===0?'Nessuno':FormatTimestamp($ultimoStip) ?></td>
-                <td><?= $stipendiTot ?> <?=alphano_currency_html()?></td>
+                <td><?= $ultimoStip===0?'Nessuno':htmlspecialchars(FormatTimestamp($ultimoStip), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></td>
+                <td><?= (int)$stipendiTot ?> <?=alphano_currency_html()?></td>
                 <td><?php if($budget>= $stipendiTot):?><button class="btn">Consegna</button><?php else:?><span class="u-3e06b323c">Fondi insufficienti</span><?php endif;?></td>
               </tr>
             </table>
@@ -719,12 +717,12 @@ $lista2     = ListaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
               $rim = (int)$d['stato']===5 ? CalcolaInteressi((int)$d['quantita'],(int)$d['interessi'],(int)$d['data'])-(int)$d['restituiti'] : ((int)$d['stato']<5 ? (int)$d['quantita'] : 0);
             ?>
               <tr>
-                <td><?= FormatTimestamp($d['data']) ?></td>
-                <td><?= htmlentities(GetPGFromID($d['pgcorp'])) ?></td>
-                <td><?= htmlentities(GetOrg($d['org'])) ?></td>
-                <td><?= $d['pgorg']?htmlentities(GetPGFromID($d['pgorg'])):'Nessuno' ?></td>
-                <td><?= $d['quantita'] ?></td>
-                <td><?= $d['interessi'] ?>%</td>
+                <td><?= htmlspecialchars(FormatTimestamp($d['data']), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></td>
+                <td><?= htmlentities(GetPGFromID($d['pgcorp']), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></td>
+                <td><?= htmlentities(GetOrg($d['org']), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></td>
+                <td><?= $d['pgorg']?htmlentities(GetPGFromID($d['pgorg']), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'):'Nessuno' ?></td>
+                <td><?= (int)$d['quantita'] ?></td>
+                <td><?= (float)$d['interessi'] ?>%</td>
                 <td><?= ProcessStato($d['stato']) ?></td>
                 <td><?= $rim ?></td>
               </tr>
@@ -736,7 +734,7 @@ $lista2     = ListaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
         <p>Le controproposte devono essere accettate dall’altra parte. Gli interessi maturano dal finanziamento, per mesi interi.</p>
         <?php foreach ($lista2 as $d): $state=(int)$d['stato']; if ($state>=6) continue; ?>
           <article class="ui-panel">
-            <h6>Prestito #<?=(int)$d['id']?> · <?=htmlspecialchars(GetOrg((int)$d['org']),ENT_QUOTES)?></h6>
+            <h6>Prestito #<?=(int)$d['id']?> · <?=htmlspecialchars(GetOrg((int)$d['org']), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')?></h6>
             <p><?=ProcessStato($state)?> · <?=(int)$d['quantita']?> <?=alphano_currency_html()?> · <?=(int)$d['interessi']?>% al mese</p>
             <?php if ($state<5): ?>
               <form method="post" class="ui-form"><input type="hidden" name="corp" value="<?=$corpId?>">
@@ -756,7 +754,7 @@ $lista2     = ListaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
                 <input type="hidden" name="action" value="adminprestito">
                 <input type="hidden" name="prestito" value="<?=(int)$d['id']?>">
                 <input type="hidden" name="_request_key" value="<?=bin2hex(random_bytes(16))?>">
-                <p>Già restituiti: <?=(int)$d['restituiti']?> <?=alphano_currency_html()?>. Debito residuo: <?=$residual?> <?=alphano_currency_html()?>.</p>
+                <p>Già restituiti: <?=(int)$d['restituiti']?> <?=alphano_currency_html()?>. Debito residuo: <?=(int)$residual?> <?=alphano_currency_html()?>.</p>
                 <label>Rimborso <input type="number" name="pagamento" min="1" max="<?=min($budget,$residual)?>" step="1" required value="<?=min($budget,$residual)?>"></label>
                 <button class="btn" type="submit" <?=$budget<1?'disabled':''?>>Rimborsa</button>
               </form>
@@ -772,7 +770,7 @@ $lista2     = ListaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
             <select name="org" required>
               <option value="">-- seleziona --</option>
               <?php foreach(ListaOrg() as $o): if($o['id']!=$user['organizzazione']): ?>
-                <option value="<?= $o['id'] ?>"><?= htmlentities($o['nome']) ?></option>
+                <option value="<?= (int)$o['id'] ?>"><?= htmlentities($o['nome'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></option>
               <?php endif; endforeach;?>
             </select>
           </label>
@@ -793,8 +791,8 @@ $lista2     = ListaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
             <select name="nome">
               <option value="">-- seleziona --</option>
               <?php foreach(GetPGInCorp($corpId) as $u): ?>
-                <option value="<?= $u['id'] ?>" <?= ($_POST['nome'] ?? '') == $u['id'] ? 'selected' : '' ?>>
-                  <?= htmlentities($u['nome']) ?>
+                <option value="<?= (int)$u['id'] ?>" <?= ($_POST['nome'] ?? '') == $u['id'] ? 'selected' : '' ?>>
+                  <?= htmlentities($u['nome'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>
                 </option>
               <?php endforeach; ?>
             </select>
@@ -828,11 +826,11 @@ $lista2     = ListaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
           <label>Città della Corporazione
             <select name="city">
               <?php foreach($listacity as $id=>$c): ?>
-                <option value="<?= $id ?>" <?= $cityCorp==$id?'selected':'' ?>><?= $c ?></option>
+                <option value="<?= (int)$id ?>" <?= $cityCorp==$id?'selected':'' ?>><?= $c ?></option>
               <?php endforeach; ?>
             </select>
           </label>
-          <label>Password Stanza<input type="text" name="pvt" value="<?= htmlspecialchars($pvtRoom,ENT_QUOTES) ?>"></label>
+          <label>Password Stanza<input type="text" name="pvt" value="<?= htmlspecialchars($pvtRoom, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>"></label>
           <label>Immagine Top<input type="text" name="sfondotop" value="<?= $sfondoTop ?>"></label>
           <label>Immagine Sfondo<input type="text" name="sfondo" value="<?= $sfondoBg ?>"></label>
           <label>Mappa<input type="text" name="mappa" value="<?= $mappaRoom ?>"></label>
@@ -858,12 +856,12 @@ $lista2     = ListaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
                   <thead><tr><th scope="col">Categorie</th><th scope="col">Qualità</th></tr></thead><tbody>
                   <?php foreach($subtipi as $sid=>$sname): ?>
                     <tr>
-                      <td><a href="javascript:ShowDetails(<?= $sid ?>)"><?= htmlentities($sname) ?></a></td>
+                      <td><a href="javascript:ShowDetails(<?= (int)$sid ?>)"><?= htmlentities($sname, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></a></td>
                       <td>
-                        <select name="produzione<?= $sid ?>" onchange="Controlla(this,<?= $sid ?>)">
+                        <select name="produzione<?= (int)$sid ?>" onchange="Controlla(this,<?= (int)$sid ?>)">
                           <?php foreach($quality as $qk=>$qv): ?>
-                            <option value="<?= $qk ?>" <?= ($produzioni[$sid]??0)==$qk?'selected':'' ?>>
-                              <?= htmlentities($qv['nome']) ?>
+                            <option value="<?= (int)$qk ?>" <?= ($produzioni[$sid]??0)==$qk?'selected':'' ?>>
+                              <?= htmlentities($qv['nome'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>
                             </option>
                           <?php endforeach; ?>
                         </select>
@@ -876,7 +874,7 @@ $lista2     = ListaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
           </form>
           <aside class="ui-production-summary" aria-label="Riepilogo delle produzioni">
             <h3>Point Value</h3>
-            <p>Punti rimanenti: <strong id="points" aria-live="polite"><?= $pointValueLeft ?></strong></p>
+            <p>Punti rimanenti: <strong id="points" aria-live="polite"><?= (int)$pointValueLeft ?></strong></p>
             <h3>Dettagli</h3>
             <p id="dettagli" aria-live="polite">Qui compariranno le descrizioni...</p>
           </aside>

@@ -487,7 +487,8 @@ function ai_quest_guard_npc_text(array $npc,array $job,string $text):array{
  foreach(ai_db()->query("SELECT n.id,n.name FROM ai_npcs n JOIN ai_quest_cast c ON c.kind='npc' AND c.actor_id=n.id WHERE c.session_id=?",[(int)$job['session_id']]) as $other){ if((int)$other['id']!==(int)$npc['id']){
   $first=preg_split('/\s+/u',$other['name'])[0];
   if(preg_match('/(?<!\p{L})'.preg_quote($first,'/').'\s+(?:si\s+\p{L}+|solleva|stringe|attacca|colpisce|arretra|cade|grida|dice|risponde)\b/iu',$outside)){ $bad=1; }
- } }
+ }
+ }
  if(preg_match('/stringe.{0,35}stoppino/iu',$outside)){ $bad=1; }
  $inventory=ai_game_inventory('npc',(int)$npc['id']);
  try{ai_ordinary_actor_guard($npc,$job,$text,$inventory);}catch(RuntimeException){$bad=1;}

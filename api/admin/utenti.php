@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+const ALPHANO_MSG_SELECT_FROM_UTENTI_WHERE_NOME_2BCE = 'SELECT * FROM utenti WHERE nome=?';
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 
@@ -80,7 +81,7 @@ try {
             require_once __DIR__.'/../../libs/admin-governance.inc.php';
             $name=$data['nome']??'';if(!is_string($name)||mb_strlen($name)>100){ throw new DomainException('Nome non valido.',422); }
             $result=['catalog'=>alphano_governance_catalog()];
-            if($name!==''){$target=$db->query('SELECT * FROM utenti WHERE nome=?',[$name])[0]??null;if(!$target){ throw new DomainException('Personaggio non trovato.',404); }$result['person']=['id'=>(int)$target['id'],'name'=>$target['nome'],'values'=>alphano_governance_state($target),'revision'=>alphano_governance_revision($target)];}
+            if($name!==''){$target=$db->query(ALPHANO_MSG_SELECT_FROM_UTENTI_WHERE_NOME_2BCE,[$name])[0]??null;if(!$target){ throw new DomainException('Personaggio non trovato.',404); }$result['person']=['id'=>(int)$target['id'],'name'=>$target['nome'],'values'=>alphano_governance_state($target),'revision'=>alphano_governance_revision($target)];}
             $result['history']=alphano_governance_history((int)($target['id']??0));
             $response=['success'=>true,'data'=>$result];
             break;
@@ -95,7 +96,7 @@ try {
         case 'stirpe':
             $name=$data['nome']??'';$race=filter_var($data['razza']??null,FILTER_VALIDATE_INT);
             if(!is_string($name)||!in_array($race,[2,3,5,6],true)){ throw new DomainException('Personaggio o razza non validi.',422); }
-            $target=$db->query('SELECT * FROM utenti WHERE nome=?',[$name])[0]??null;
+            $target=$db->query(ALPHANO_MSG_SELECT_FROM_UTENTI_WHERE_NOME_2BCE,[$name])[0]??null;
             if(!$target){ throw new DomainException('Personaggio non trovato.',404); }
             $response=['success'=>true,'plan'=>lineage_admin_plan($target,$race)];
             break;
@@ -488,7 +489,7 @@ try {
             if($creatorRaw!==null&&$creatorRaw!==''){$creator=filter_var($creatorRaw,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);if($creator===false){ throw new DomainException('Creatore non valido.',422); }}
             if(alphano_config('lineages_enabled')&&in_array((string)($data['razza']??''),['2','3'],true)){
                 lineage_policy_lock((string)$data['razza']==='2'?'vampire':'lycan');
-                $target=$db->query('SELECT * FROM utenti WHERE nome=?',[(string)($data['nome']??'')])[0];
+                $target=$db->query(ALPHANO_MSG_SELECT_FROM_UTENTI_WHERE_NOME_2BCE,[(string)($data['nome']??'')])[0];
                 if(lineage_admin_plan($target,(int)$data['razza'])['requires_creator']&&$creator===null){ throw new DomainException('Chi lo sta generando? Seleziona un creatore.',422); }
             }
             $msg = SetProfile(

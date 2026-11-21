@@ -6,7 +6,9 @@
  let settings={...defaults},environment=null,loading=null,context=null,ambient=null,scene=null,unlocked=false,lastSound=0,saveChain=Promise.resolve();
  const subscribers=new Set();
  // Confronto a tempo costante: nessun ritorno anticipato sul primo byte diverso.
- const safeEqual=(a,b)=>{const enc=new TextEncoder(),x=enc.encode(String(a??'')),y=enc.encode(String(b??''));let diff=x.length^y.length;const n=Math.max(x.length,y.length);for(let i=0;i<n;i++){diff|=(x[i]??0)^(y[i]??0);}return diff===0;};
+ const equalBytes=v=>new TextEncoder().encode(v==null?'':String(v));
+ const byteAt=(bytes,i)=>bytes[i]||0;
+ const safeEqual=(a,b)=>{const x=equalBytes(a),y=equalBytes(b);let diff=x.length^y.length;for(let i=0,n=Math.max(x.length,y.length);i<n;i++){diff|=byteAt(x,i)^byteAt(y,i);}return diff===0;};
  const emit=()=>{for(const fn of subscribers){try{fn({settings:{...settings},environment});}catch(_){}}document.dispatchEvent(new CustomEvent('alphano:experience',{detail:{settings,environment}}));};
  async function read(){const r=await fetch('/api/experience.php',{cache:'no-store'});if(!r.ok){throw Error('Preferenze non disponibili.');}const data=await r.json();settings={...defaults,...data.settings};environment=data.environment;emit();updateAmbient();return {settings,environment,confirmed:data.confirmed,form:data.form};}
  const ready=()=>loading||(loading=read().catch(error=>{loading=null;throw error;}));

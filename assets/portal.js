@@ -1,9 +1,8 @@
 /* Open signup when requested; the native details and form also work without JS. */
 (() => {
  'use strict';
- const registration=document.getElementById('registrazione');
- const targets=new Map([['#registrazione',registration],['#register',registration],['#login',document.getElementById('accesso')]]);
- function reveal(){const target=targets.get(location.hash);if(!target){return;}if(target===registration){target.open=true;}target.scrollIntoView({block:'start'});}
+ const registration=document.getElementById('registrazione'),targets=new Map([['#registrazione',registration],['#register',registration],['#login',document.getElementById('accesso')]]);
+ const reveal=()=>{const target=targets.get(window.location.hash);if(!target){return;}if(target===registration){target.open=true;}target.scrollIntoView({block:'start'});};
  document.querySelectorAll('a[href="#registrazione"]').forEach(link=>link.addEventListener('click',()=>{if(registration){registration.open=true;}}));
  window.addEventListener('hashchange',reveal);reveal();
 })();

@@ -6,6 +6,7 @@ header('Cache-Control: private, no-store');
 
 try {
     require_once __DIR__ . '/libs/http-chat.php';
+    require_once __DIR__ . '/../libs/ai-quest.inc.php';
     $method = $_SERVER['REQUEST_METHOD'];
     if (!in_array($method, ['GET', 'POST'], true)) {
         header('Allow: GET, POST');
@@ -96,7 +97,7 @@ try {
     $receiptKey = $chat . ':' . $requestId;
     $receipt = $_SESSION['chat_receipts'][$receiptKey] ?? null;
     if(isset($_SESSION['chat_receipt_hashes'][$receiptKey])&&!hash_equals($_SESSION['chat_receipt_hashes'][$receiptKey],$skillHash)){ throw new DomainException('Identificativo già usato per un altro messaggio.',409); }
-    if(!$hasDeclaration){$saved=$db->query('SELECT payload_hash,response_json FROM rpg_chat_receipts WHERE player_id=? AND chat_key=? AND request_key=?',[$idpg,$chat,$requestId])[0]??null;if($saved){if(!hash_equals($saved['payload_hash'],$skillHash)){ throw new DomainException('Identificativo già usato per un altro messaggio.',409); }session_write_close();echo $saved['response_json'];exit;}}
+    if(!$hasDeclaration){$saved=$db->query('SELECT payload_hash,response_json FROM rpg_chat_receipts WHERE player_id=? AND chat_key=? AND request_key=?',[$idpg,$chat,$requestId])[0]??null;if($saved){if(!hash_equals($saved['payload_hash'],$skillHash)){ throw new DomainException('Identificativo già usato per un altro messaggio.',409); }session_write_close();echo ai_quest_json(json_decode($saved['response_json'], true, 512, JSON_THROW_ON_ERROR));exit;}}
     if ($receipt !== null && !$hasDeclaration) {
         session_write_close();
         echo json_encode($receipt, JSON_THROW_ON_ERROR);
@@ -118,7 +119,7 @@ try {
         $db->query('SELECT chat_key FROM ai_rooms WHERE chat_key=? FOR UPDATE',[$chat]);
         $db->query('SELECT id FROM utenti WHERE id=? FOR UPDATE',[$idpg]);
         $saved=$db->query('SELECT payload_hash,response_json FROM rpg_chat_receipts WHERE player_id=? AND chat_key=? AND request_key=?',[$idpg,$chat,$requestId])[0]??null;
-        if($saved){if(!hash_equals($saved['payload_hash'],$skillHash)){ throw new DomainException('Identificativo già usato per un altro messaggio.',409); }$db->commit();session_write_close();echo $saved['response_json'];exit;}
+        if($saved){if(!hash_equals($saved['payload_hash'],$skillHash)){ throw new DomainException('Identificativo già usato per un altro messaggio.',409); }$db->commit();session_write_close();echo ai_quest_json(json_decode($saved['response_json'], true, 512, JSON_THROW_ON_ERROR));exit;}
         if($abilityId){$ability=rpg_get_ability('pg',$idpg,$abilityId);rpg_combat_assert_equipment('pg',$idpg,$ability);}if($itemId){require_once __DIR__.'/../libs/item-engine.inc.php';item_instance($itemId,$idpg,true);if(!ai_quest_row($chat)){ throw new DomainException('Per dichiarare un oggetto dalla chat serve una quest attiva. Fuori quest usa l’equipaggiamento.',409); }}
         if($hasDeclaration&&!str_starts_with(ltrim($text),'+')){ $text='+'.ltrim($text); }
     }

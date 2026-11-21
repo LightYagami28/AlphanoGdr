@@ -27,6 +27,8 @@ $jsEncode = static function (mixed $value): string {
     return $json === false ? 'null' : $json;
 };
 
+$paramGet = isset($_GET['param']) && is_string($_GET['param']) ? $_GET['param'] : null;
+
 
 /* -----------------------------------------------------------------
  *  1) Login & connessione
@@ -156,7 +158,7 @@ $sorgecala = LicanTime()
 
       /* 2. Verifico se devo rigenerare il menu */
       const paramPHP = <?= $jsEncode($param) ?>;
-      const paramGET = <?= $jsEncode(isset($_GET['param']) && is_string($_GET['param']) ? $_GET['param'] : null) ?>;
+      const paramGET = <?= $jsEncode($paramGet) ?>;
 
       // DEBUG – attiva se serve
       // console.log('[control] paramPHP:', paramPHP, '| paramGET:', paramGET);

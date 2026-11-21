@@ -12,7 +12,8 @@ player_api(static function():array{
  $parse=static function($raw):array{
   if(!is_string($raw)||strlen($raw)>1600||($raw!==''&&!preg_match('/^\d+(?:,\d+)*$/D',$raw))){ throw new DomainException('Elenco personaggi non valido.',422); }
   $ids=$raw===''?[]:array_values(array_unique(array_map('intval',explode(',',$raw))));
-  if(count($ids)>100||array_filter($ids,static fn($id)=>$id<1)){ throw new DomainException('Elenco personaggi non valido.',422); }
+  if(count($ids)>100){ throw new DomainException('Elenco personaggi non valido.',422); }
+  foreach($ids as $id){ if($id<1){ throw new DomainException('Elenco personaggi non valido.',422); } }
   return $ids;
  };
  $players=$parse($_GET['players']??'');$npcs=$parse($_GET['npcs']??'');$items=[];$db=ConnectDB();$races=array_column($db->query('SELECT id,nome FROM razze'),'nome','id');

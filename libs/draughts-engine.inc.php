@@ -10,7 +10,8 @@ function ad_captures(array $board,int $square,string $piece,array $path=[],array
   // Captured pieces remain blockers until the complete capture sequence ends.
   $next=$board;unset($next[$square]);$next[$to]=$piece;$newPath=[...$path,$to];$newTaken=[...$taken,$over];$newKings=[...$kings,ctype_upper($board[$over])?1:0];
   $children=ad_captures($next,$to,$piece,$newPath,$newTaken,$newKings);if($children){ $out=array_merge($out,$children); }else { $out[]=['path'=>$newPath,'taken'=>$newTaken,'kings'=>$newKings,'king'=>$king]; }
- } }
+ }
+ }
  return $out;
 }
 function ad_legal(array $board,bool $white):array{

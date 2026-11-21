@@ -8,7 +8,7 @@
 ?>
 <html>
 	<head>
-		<title>Anteprima <?=GetTitolo($statuto)?> <?=TitoloSito?></title>
+		<title>Anteprima <?=htmlspecialchars(GetTitolo($statuto),ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8')?> <?=TitoloSito?></title>
 
 	</head>
 	<body class="Valore"><?=ProcessText($statuto)?></body>

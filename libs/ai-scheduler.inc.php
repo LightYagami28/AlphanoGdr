@@ -44,11 +44,15 @@ function ai_worker_recover(bool $startup=false):void {
         if(ai_worker_take_lock($lock)){ try{
             $db->execute("UPDATE ai_social_jobs SET status=IF(attempts>=3,'failed','queued'),available_at=? WHERE status='running'",[$now]);
             $db->execute("UPDATE ai_worker SET social_token='',social_lease=0 WHERE id=1 AND social_token=?",[$social['social_token']]);
-        }finally{ai_worker_release_lock($lock);} }
+        }
+        finally{ai_worker_release_lock($lock);}
+        }
     }elseif(($social['social_token']??'')===''&&$startup){
         $lock=ai_worker_lock('social');if(ai_worker_take_lock($lock)){ try{
             $db->execute("UPDATE ai_social_jobs SET status=IF(attempts>=3,'failed','queued'),available_at=? WHERE status='running'",[$now]);
-        }finally{ai_worker_release_lock($lock);} }
+        }
+        finally{ai_worker_release_lock($lock);}
+        }
     }
     // Queueing behind other rooms is not a failed inference. A real turn gets an
     // hour to be served; optional observations and old shock details expire sooner.

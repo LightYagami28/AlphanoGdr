@@ -64,7 +64,7 @@ if (!$oggetto || (int)$oggetto['owner']!==$pgid) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Oggetto #<?=htmlspecialchars((string)$id)?> – <?=$pgName?></title>
+  <title>Oggetto #<?=htmlspecialchars((string)$id, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')?> – <?=htmlspecialchars($pgName, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')?></title>
 
   <script>
     function confirmAction(msg, form){
@@ -146,7 +146,7 @@ if (!$oggetto || (int)$oggetto['owner']!==$pgid) {
               <?php if ($canEquip>1): ?>
                 <input type="hidden" name="side" value="<?php echo $canEquip===2?'dx':'sx' ?>">
               <?php endif;?>
-              <input type="hidden" name="pgName" value="<?=$pgName?>">
+              <input type="hidden" name="pgName" value="<?=htmlspecialchars($pgName, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')?>">
               <button>Equipaggia</button>
             </form>
           <?php elseif ($canEquip && $oggetto['padre']): ?>
@@ -155,7 +155,7 @@ if (!$oggetto || (int)$oggetto['owner']!==$pgid) {
               <input type="hidden" name="id"      value="<?=$oggetto['id']?>">
               <input type="hidden" name="pgid"   value="<?=$pgid?>">
               <input type="hidden" name="slot"    value="<?=strtolower($oggetto['tipoG'])?>">
-              <input type="hidden" name="pgName" value="<?=$pgName?>">
+              <input type="hidden" name="pgName" value="<?=htmlspecialchars($pgName, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')?>">
               <label>
                 A quale genitore?
                 <select name="padre">
@@ -175,7 +175,7 @@ if (!$oggetto || (int)$oggetto['owner']!==$pgid) {
             <input type="hidden" name="action" value="disequipaggia">
             <input type="hidden" name="id"     value="<?=$oggetto['id']?>">
              <input type="hidden" name="pgid"   value="<?=$pgid?>">
-            <input type="hidden" name="pgName" value="<?=$pgName?>">
+            <input type="hidden" name="pgName" value="<?=htmlspecialchars($pgName, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')?>">
             <button>Disequipaggia</button>
           </form>
         <?php endif; ?>
@@ -186,7 +186,7 @@ if (!$oggetto || (int)$oggetto['owner']!==$pgid) {
                   'Vuoi veramente usare questo oggetto?', this)">
             <input type="hidden" name="action"  value="usa">
             <input type="hidden" name="id"      value="<?=$oggetto['id']?>">
-            <input type="hidden" name="pgName"  value="<?=$pgName?>">
+            <input type="hidden" name="pgName"  value="<?=htmlspecialchars($pgName, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')?>">
             <button>Usa</button>
           </form>
         <?php endif; ?>
@@ -195,14 +195,14 @@ if (!$oggetto || (int)$oggetto['owner']!==$pgid) {
           <form method="POST" action="./equip.php?pgid=<?=$pgid?>" onsubmit="event.preventDefault(); confirmAction('Vuoi dare questo oggetto a…?', this)">
             <input type="hidden" name="action" value="send">
             <input type="hidden" name="id"     value="<?=$oggetto['id']?>">
-            <input type="hidden" name="pgName" value="<?=$pgName?>">
+            <input type="hidden" name="pgName" value="<?=htmlspecialchars($pgName, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')?>">
             <input type="text" name="to" placeholder="Nome PG destinatario">
             <button>Dai a...</button>
           </form>
           <form method="POST" action="./equip.php?pgid=<?=$pgid?>" onsubmit="event.preventDefault(); confirmAction('Vuoi cancellare questo oggetto?', this)">
             <input type="hidden" name="action" value="delete">
             <input type="hidden" name="id"     value="<?=$oggetto['id']?>">
-            <input type="hidden" name="pgName" value="<?=$pgName?>">
+            <input type="hidden" name="pgName" value="<?=htmlspecialchars($pgName, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')?>">
             <button class="danger">Cancella</button>
           </form>
         <?php elseif ($lock): ?>
@@ -213,7 +213,7 @@ if (!$oggetto || (int)$oggetto['owner']!==$pgid) {
           <form method="POST" action="./equip.php?pgid=<?=$pgid?>" onsubmit="event.preventDefault(); confirmAction('Vuoi assegnare un nome?', this)">
             <input type="hidden" name="action" value="setnome">
             <input type="hidden" name="id"     value="<?=$oggetto['id']?>">
-            <input type="hidden" name="pgName" value="<?=$pgName?>">
+            <input type="hidden" name="pgName" value="<?=htmlspecialchars($pgName, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')?>">
             <input type="text" name="nome" placeholder="Nome animale">
             <button>Assegna nome</button>
           </form>
@@ -223,7 +223,7 @@ if (!$oggetto || (int)$oggetto['owner']!==$pgid) {
           <form method="POST" action="./equip.php?pgid=<?=$pgid?>" onsubmit="event.preventDefault(); confirmAction('Proponi acquisto?', this)">
             <input type="hidden" name="action" value="acquista">
             <input type="hidden" name="id"     value="<?=$oggetto['id']?>">
-            <input type="hidden" name="pgName" value="<?=$pgName?>">
+            <input type="hidden" name="pgName" value="<?=htmlspecialchars($pgName, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')?>">
             <button>Proponi acquisto</button>
           </form>
         <?php endif; ?>

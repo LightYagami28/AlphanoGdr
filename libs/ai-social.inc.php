@@ -125,7 +125,8 @@ function ai_social_pair_manifestations(array $npc,array $job,string $reply):arra
         $otherBody=false;$ownBody=false;
         if(($job['kind']??'')!=='reaction'&&function_exists('ai_perception_scene_state')){ foreach(ai_perception_scene_state($npc,$job)['visible'] as $body){
             if((int)$body['actor_id']===(int)$job['user_id']){ $ownBody=(int)$body['fear']>0; }else { $otherBody=true; }
-        } }
+        }
+        }
         // A shiver/broken breath alone can mean cold, fatigue or pain. It discloses
         // fear only beside an actual threat/body or the published server panic receipt.
         if((!$spoken&&!$threat&&!$ownBody&&!$publishedPanic)||($otherBody&&!$ownBody&&!isset(ai_social_observer_deltas(['fear'=>1],$reply)['fear']))){ $keys=array_values(array_diff($keys,['fear'])); }
@@ -241,7 +242,8 @@ function ai_social_quest_reply_is_primary(array $npc,array $job,string $reply,ar
                 $literal=preg_quote($form,'/');
                 if(($part['kind']??'')==='speech'&&preg_match('/^\\s*'.$literal.'\\s*[,!:]/iu',$text)){ return false; }
                 if(($part['kind']??'')==='action'&&preg_match('/\\b(?:si\\s+rivolge|parla|risponde|domanda|chiede)\\s+(?:ad?|al|alla)\\s+'.$literal.'\\b/iu',$text)){ return false; }
-            } }
+            }
+            }
         }
     }
     return true;

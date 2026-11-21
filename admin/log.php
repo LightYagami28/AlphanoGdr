@@ -192,24 +192,27 @@ function converti(
     array $idorgs,
     bool $html
 ): string {
+    $escape = static fn(mixed $value): string => htmlspecialchars((string)$value,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
+    $jsArg  = static fn(mixed $value): string => json_encode((string)$value,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_INVALID_UTF8_SUBSTITUTE) ?: '""';
     switch ($campo) {
         case 'esecutore':
         case 'destinatario':
         case 'origine':
         case 'pg':
-            $label = $idpgs[$dato] ?? (string)$dato;
+            $label = $escape($idpgs[$dato] ?? (string)$dato);
             return $html
-                 ? "<a href=\"javascript:openProfileId('".$dato."')\">$label</a>"
+                 ? "<a href=\"javascript:openProfileId(".$jsArg($dato).")\">$label</a>"
                  : $label;
         case 'nome':
+            $label = $escape($dato);
             return $html
-                 ? "<a href=\"javascript:openProfile('".$dato."')\">".htmlspecialchars($dato)."</a>"
-                 : htmlspecialchars((string)$dato);
-        case 'obj':  return $idobjs[$dato]  ?? (string)$dato;
+                 ? "<a href=\"javascript:openProfile(".$jsArg($dato).")\">$label</a>"
+                 : $label;
+        case 'obj':  return $escape($idobjs[$dato]  ?? (string)$dato);
         case 'data': return FormatTimestamp((int)$dato);
-        case 'city': return $idcitys[$dato] ?? (string)$dato;
-        case 'org':  return $idorgs[$dato]  ?? (string)$dato;
-        default:     return htmlspecialchars((string)$dato);
+        case 'city': return $escape($idcitys[$dato] ?? (string)$dato);
+        case 'org':  return $escape($idorgs[$dato]  ?? (string)$dato);
+        default:     return $escape($dato);
     }
 }
 

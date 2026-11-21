@@ -460,7 +460,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $activeTab = 'iscritti';
                 break;
-    } }
+    }
+    }
 
     // riallinea dati per template
     $requests    = GetRichiesteOrg($org);

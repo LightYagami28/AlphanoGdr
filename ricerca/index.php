@@ -12,6 +12,7 @@ require("../libs/libgrafica.inc.php");
 require("../libs/libpg.inc.php");
 require("../libs/libtext.inc.php");
 require_once __DIR__."/../libs/player-runtime.inc.php";
+require_once __DIR__."/../libs/search-filters.inc.php";
 
 
 
@@ -50,10 +51,7 @@ $admin = ($userRow['admin'] || $userRow['fatepower']);
 // ------------------------------------------------------------------
 // 3. Parametri GET
 // ------------------------------------------------------------------
-$params = ["nome","luogo","razza","online","araldica","caricacorporazione",
-           "caricaorganizzazione","categoria","corporazione","organizzazione",
-           "al","sesso","etnia","city"];
-foreach ($params as $p) { $$p = $_GET[$p] ?? ""; }
+$filters = alphanoSearchFiltersFromRequest(alphanoSearchFilterNames(), $_GET, []);
 
 // ------------------------------------------------------------------
 // 4. Query dinamica

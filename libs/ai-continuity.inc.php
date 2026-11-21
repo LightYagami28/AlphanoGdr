@@ -61,7 +61,8 @@ function ai_npc_continuity(int $sid,int $nid):array {
    $source=(int)($db->query('SELECT chat_id FROM ai_quest_outbox WHERE session_id=? AND event_key=?',[$sid,'verdict:'.$v['id'].':published'])[0]['chat_id']??0);
    if(!$source&&$v['status']==='human'){ foreach($db->query("SELECT payload FROM ai_quest_audit WHERE session_id=? AND event_type='human_verdict' ORDER BY id DESC",[$sid]) as $audit){
     $event=json_decode($audit['payload'],true)?:[];if((int)($event['round']??0)===(int)$v['round_number']){$source=(int)($event['source']??0);break;}
-   } }
+   }
+   }
    $where[]=$source?'c.id>?':'c.ora>?';$params[]=$source?:max((int)$q['datain'],(int)$v['created_at']);
   }
   // MasterKey in a player's prose is not an outcome. Classify the actual

@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+const ALPHANO_MSG_PARAMETRI_NON_ESAURIENTI_B98C = 'Parametri non esaurienti';
 
 foreach (array_merge($_GET,$_POST) as $value) {
     if (is_array($value) || is_object($value)) {
@@ -134,7 +135,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $msg .= 'Errore nella modifica della carica';
                 }
             } else {
-                $msg .= 'Parametri non esaurienti';
+                $msg .= ALPHANO_MSG_PARAMETRI_NON_ESAURIENTI_B98C;
             }
             break;
 
@@ -167,7 +168,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $msg .= 'Errore nella modifica del costo';
                 }
             } else {
-                $msg .= 'Parametri non esaurienti';
+                $msg .= ALPHANO_MSG_PARAMETRI_NON_ESAURIENTI_B98C;
             }
             break;
 
@@ -204,7 +205,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
             } elseif ($action!=='modifyquartiere' || isset($_POST['indirizzo'])) {
-                $msg .= 'Parametri non esaurienti';
+                $msg .= ALPHANO_MSG_PARAMETRI_NON_ESAURIENTI_B98C;
             }
             break;
 
@@ -287,7 +288,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($action==='admitpg') { $audiences[]=['scope'=>'personale','id'=>(int)$_POST['pg'],'section'=>'cittadinanza','role'=>'member']; }
         if ($action==='sfratta') { foreach ($activityBefore['homes'] as $home) {
             if ((int)$home['id']===$id) { $audiences[]=['scope'=>'personale','id'=>(int)$home['pg'],'section'=>'dimora','role'=>'member']; }
-        } }
+        }
+        }
         $summarize=static function(array $state): array {
             foreach (['roles','districts','requests','homes'] as $collection) {
                 $state[$collection]=['count'=>count($state[$collection]),'hash'=>hash('sha256',json_encode($state[$collection]))];

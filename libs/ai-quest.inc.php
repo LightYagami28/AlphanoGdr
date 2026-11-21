@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/notifications.inc.php';
-function ai_quest_json(mixed $v):string{return json_encode($v,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);}
+function ai_quest_json(mixed $v):string{return json_encode($v,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_INVALID_UTF8_SUBSTITUTE|JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);}
 function ai_quest_audit(int $session,string $type,array $data,int $actor=0):void{ai_db()->execute('INSERT INTO ai_quest_audit(session_id,actor_id,event_type,payload,created_at) VALUES(?,?,?,?,?)',[$session,$actor,$type,ai_quest_json($data),time()]);}
 /** Public output and its durable outbox share the transaction: replay never repeats announcements. */
 function ai_quest_publish(int $session,string $key,string $text,?string $html=null):int{
@@ -487,7 +487,8 @@ function ai_quest_guard_npc_text(array $npc,array $job,string $text):array{
  foreach(ai_db()->query("SELECT n.id,n.name FROM ai_npcs n JOIN ai_quest_cast c ON c.kind='npc' AND c.actor_id=n.id WHERE c.session_id=?",[(int)$job['session_id']]) as $other){ if((int)$other['id']!==(int)$npc['id']){
   $first=preg_split('/\s+/u',$other['name'])[0];
   if(preg_match('/(?<!\p{L})'.preg_quote($first,'/').'\s+(?:si\s+\p{L}+|solleva|stringe|attacca|colpisce|arretra|cade|grida|dice|risponde)\b/iu',$outside)){ $bad=1; }
- } }
+ }
+ }
  if(preg_match('/stringe.{0,35}stoppino/iu',$outside)){ $bad=1; }
  $inventory=ai_game_inventory('npc',(int)$npc['id']);
  try{ai_ordinary_actor_guard($npc,$job,$text,$inventory);}catch(RuntimeException){$bad=1;}

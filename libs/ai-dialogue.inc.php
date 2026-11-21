@@ -21,7 +21,8 @@ function ai_dialogue_participants(array $npcs, array $selected, string $text): a
             // Ambiguous titles never summon several unrelated characters.
             $matches=array_filter($npcs,static fn($n)=>(int)$n['active']&&mb_stripos(ai_npc_game((int)$n['id'])['rank'].' '.ai_npc_profile($n)['occupation'],$stem)!==false);
             if(count($matches)===1){ $titled=true; }
-        } }
+        }
+        }
         $bothNames=$named&&ai_mentions_npc($text,$selected['name'])&&(bool)preg_match('/\be\b/iu',$text);
         if(($joint&&($named||$titled))||$bothNames||($collective&&$faction!==''&&$g['faction']===$faction)){ $participants[]=$npc; }
         if(count($participants)>=AI_MAX_NPCS){ break; }

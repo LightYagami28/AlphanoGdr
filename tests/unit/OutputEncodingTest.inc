@@ -41,7 +41,8 @@ final class OutputEncodingTest extends \PHPUnit\Framework\TestCase
 	public function testJsonQuest(): void
 	{
 		$json = ai_quest_json(['nome' => 'Citta', 'testo' => 'a "b" <c>']);
-		self::assertSame('{"nome":"Citta","testo":"a \"b\" <c>"}', $json);
+		self::assertSame('{"nome":"Citta","testo":"a \u0022b\u0022 \u003Cc\u003E"}', $json);
+		self::assertSame(false, strpbrk($json, "<>&'"));
 		self::assertSame(
 			['nome' => 'Citta', 'testo' => 'a "b" <c>'],
 			json_decode($json, true, 512, JSON_THROW_ON_ERROR)

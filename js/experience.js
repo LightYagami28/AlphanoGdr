@@ -5,6 +5,10 @@
  const defaults={map_effects:true,map_lighting:true,ambient_sound:false,notification_sound:true,ambient_volume:80,notification_volume:80,sound_theme:'castle',relationship_effects:'private',chess_skin:'classic'};
  let settings={...defaults},environment=null,loading=null,context=null,ambient=null,scene=null,unlocked=false,lastSound=0,saveChain=Promise.resolve();
  const subscribers=new Set();
+ // Confronto a tempo costante: nessun ritorno anticipato sul primo byte diverso.
+ const equalBytes=v=>new TextEncoder().encode(v==null?'':String(v));
+ const byteAt=(bytes,i)=>bytes[i]||0;
+ const safeEqual=(a,b)=>{const x=equalBytes(a),y=equalBytes(b);let diff=x.length^y.length;for(let i=0,n=Math.max(x.length,y.length);i<n;i++){diff|=byteAt(x,i)^byteAt(y,i);}return diff===0;};
  const emit=()=>{for(const fn of subscribers){try{fn({settings:{...settings},environment});}catch(_){}}document.dispatchEvent(new CustomEvent('alphano:experience',{detail:{settings,environment}}));};
  async function read(){const r=await fetch('/api/experience.php',{cache:'no-store'});if(!r.ok){throw Error('Preferenze non disponibili.');}const data=await r.json();settings={...defaults,...data.settings};environment=data.environment;emit();updateAmbient();return {settings,environment,confirmed:data.confirmed,form:data.form};}
  const ready=()=>loading||(loading=read().catch(error=>{loading=null;throw error;}));
@@ -44,10 +48,13 @@
   if(window.navigator?.locks)try{return await window.navigator.locks.request('alphano:notification-audio',{ifAvailable:true},lock=>lock?play():false);}catch(_){}
   // Older engines: short verified lease lets one tab win before playing.
   const lease='alphano:notice-sound-lease',token=String(Math.random())+Date.now();
-  try{localStorage.setItem(lease,token);await new Promise(resolve=>setTimeout(resolve,40));if(localStorage.getItem(lease)!==token){return false;}}catch(_){}
+  try{localStorage.setItem(lease,token);await new Promise(resolve=>setTimeout(resolve,40));if(!safeEqual(localStorage.getItem(lease),token)){return false;}}catch(error){
+   // localStorage puo' essere disabilitato: senza lease verificabile si riproduce
+   // come dispositivo singolo, senza bloccare l'audio.
+  }
   return play();
  }
- window.alphanoExperience={notifyOnce,ready,save,unlock,refresh:read,subscribe(fn){subscribers.add(fn);if(environment){fn({settings,environment});}return()=>subscribers.delete(fn);},setScene(value){scene=value;updateAmbient();},clearScene(token){if(scene?.token===token){scene=null;stopAmbient();}},notification,async test(patch){await ready().catch(()=>{});await unlock();return notification(patch);},getState:()=>({settings:{...settings},environment,unlocked})};
+ window.alphanoExperience={notifyOnce,ready,save,unlock,refresh:read,subscribe(fn){subscribers.add(fn);if(environment){fn({settings,environment});}return()=>subscribers.delete(fn);},setScene(value){scene=value;updateAmbient();},clearScene(token){if(safeEqual(scene?.token,token)){scene=null;stopAmbient();}},notification,async test(patch){await ready().catch(()=>{});await unlock();return notification(patch);},getState:()=>({settings:{...settings},environment,unlocked})};
  document.dispatchEvent(new CustomEvent('alphano:experience-ready'));
  document.addEventListener('visibilitychange',()=>{if(document.hidden){stopAmbient();context?.suspend();}else if(unlocked){context?.resume().then(updateAmbient).catch(()=>{});}});
  window.addEventListener('pagehide',stopAmbient);

@@ -19,7 +19,7 @@ function alphano_sql_ids(mixed $values): array
     }
     $ids = [];
     foreach ($values as $value) {
-        if (!is_int($value) && !(is_string($value) && preg_match('/^[1-9][0-9]*$/D', $value) === 1)) {
+        if (!is_int($value) && !(is_string($value) && preg_match('/^[1-9]\d*$/D', $value) === 1)) {
             continue;
         }
         $id = (int)$value;

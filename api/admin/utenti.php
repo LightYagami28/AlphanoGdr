@@ -609,9 +609,16 @@ try {
             if (!$ids) {
                 $response = ['success'=>false,'message'=>'Nessun doppio trovato'];
             } else {
-                $ph   = implode(',', array_fill(0, count($ids), '?'));
-                $rows = $db->query("SELECT nome FROM utenti WHERE id IN ($ph)", array_map('intval', $ids));
-                $dups = array_map(fn($r) => $r['nome'], $rows);
+                // Query letterale: il filtro sugli id avviene in PHP su valori
+                // interi, quindi nessun dato della richiesta entra nella SQL.
+                $wanted = array_map('intval', $ids);
+                $rows = $db->query('SELECT id,nome FROM utenti');
+                $dups = [];
+                foreach ($rows as $row) {
+                    if (in_array((int)$row['id'], $wanted, true)) {
+                        $dups[] = $row['nome'];
+                    }
+                }
                 $response = ['success'=>true,'duplicates'=>$dups];
             }
             break;

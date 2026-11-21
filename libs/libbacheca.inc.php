@@ -7,13 +7,13 @@ require_once __DIR__ . '/player-runtime.inc.php';
 
 function bacheca_require_message(int $id, bool $write = false): array {
     $user=alphano_user();
-    if (!$user) alphano_fail('Devi effettuare il login.',403);
+    if (!$user) { alphano_fail('Devi effettuare il login.',403); }
     $message=getDB()->query('SELECT * FROM bacheche WHERE id=?',[$id])[0] ?? null;
-    if (!$message) alphano_fail('Messaggio non trovato.',404);
+    if (!$message) { alphano_fail('Messaggio non trovato.',404); }
     player_require_board(getDB(),(int)$message['bacheca'],$user);
     if ($write) {
         alphano_require_csrf();
-        if ((int)$message['idpg']!==(int)$user['id'] && empty($user['admin'])) alphano_fail('Permesso negato.',403);
+        if ((int)$message['idpg']!==(int)$user['id'] && empty($user['admin'])) { alphano_fail('Permesso negato.',403); }
     }
     return $message;
 }
@@ -234,7 +234,7 @@ function GetStorico(int $id): array
 function EliminaThread(int $id): bool
 {
     $original=bacheca_require_message($id,true);
-    if ((int)$original['replyid']!==0) alphano_fail('Thread non trovato.',404);
+    if ((int)$original['replyid']!==0) { alphano_fail('Thread non trovato.',404); }
     $db = getBachecaDb();
     $sql = 'DELETE FROM bacheche
             WHERE id = :id OR replyid = :id';
@@ -326,8 +326,8 @@ function InserisciPost(
     }
 
     $parent=$db->query('SELECT * FROM bacheche WHERE id=? AND bacheca=? AND replyid=0',[$replyId,$bc])[0] ?? null;
-    if (!$parent) alphano_fail('Thread non trovato.',404);
-    if (!empty($parent['chiusa'])) alphano_fail('Thread chiuso.',409);
+    if (!$parent) { alphano_fail('Thread non trovato.',404); }
+    if (!empty($parent['chiusa'])) { alphano_fail('Thread chiuso.',409); }
 
     // notifica al thread originario
     if ($notify && $replyId > 0) {

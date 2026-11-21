@@ -17,9 +17,9 @@ $defaults=[
  'privacy_text'=>'Inserire qui l’informativa del proprio gioco e i contatti del titolare.','terms_text'=>'Rispetta le altre persone e le regole della comunità. I contenuti di gioco appartengono alla finzione.',
 ];
 $values=array_replace($defaults,$local,$site??[]);
-foreach($defaults as $key=>$value){$env=getenv('ALPHANO_'.strtoupper($key==='db_db'?'db_name':$key));if($env!==false)$values[$key]=$env;}
-foreach(['debug','public_demo','smtp_tls','lineages_enabled','ai_enabled','abilities_enabled','registration_enabled','ethnicities_enabled','organizations_enabled','corporations_enabled'] as $key)$values[$key]=filter_var($values[$key],FILTER_VALIDATE_BOOL);
-foreach(['smtp_port','db_port','initial_race','initial_points','initial_innates','ai_timeout','ai_context'] as $key)$values[$key]=(int)$values[$key];
+foreach($defaults as $key=>$value){$env=getenv('ALPHANO_'.strtoupper($key==='db_db'?'db_name':$key));if($env!==false){ $values[$key]=$env; }}
+foreach(['debug','public_demo','smtp_tls','lineages_enabled','ai_enabled','abilities_enabled','registration_enabled','ethnicities_enabled','organizations_enabled','corporations_enabled'] as $key){ $values[$key]=filter_var($values[$key],FILTER_VALIDATE_BOOL); }
+foreach(['smtp_port','db_port','initial_race','initial_points','initial_innates','ai_timeout','ai_context'] as $key){ $values[$key]=(int)$values[$key]; }
 // Public demo palettes are request-local and never overwrite the game settings.
-if($values['public_demo']&&is_string($_GET['palette']??null)&&in_array($_GET['palette'],['blue','black','brown','red','purple'],true))$values['theme']=$_GET['palette'];
+if($values['public_demo']&&is_string($_GET['palette']??null)&&in_array($_GET['palette'],['blue','black','brown','red','purple'],true)){ $values['theme']=$_GET['palette']; }
 return $values;

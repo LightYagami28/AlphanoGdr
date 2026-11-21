@@ -12,10 +12,10 @@ function alphano_equipment_image(string $source, string $slot = 'attrezzi'): str
     $slots=['guanti','elmo','mantello','veste','armasx','armatura','armadx','bracciali','faretra','stivali','scudo','musica','anellosx','collana','anellodx','attrezzi'];
     $fallback = '/assets/equipment/'.(in_array($slot,$slots,true)?$slot:'attrezzi').'.jpg';
     $source = trim($source);
-    if (preg_match('#^https?://#i', $source)) return $source;
+    if (preg_match('#^https?://#i', $source)) { return $source; }
     $path = '/' . ltrim($source, './');
     if ($source !== '' && !str_contains($path, '..') && (preg_match('#^/uploads/(?:equipment|equipment-pending)/#', $path)||preg_match('#^/assets/(?:equipment/[a-z]+\.jpg|materials/[a-z]+\.webp)$#D',$path))
-        && (is_file(htmlroot . $path) || is_file(dirname(__DIR__) . $path))) return $path;
+        && (is_file(htmlroot . $path) || is_file(dirname(__DIR__) . $path))) { return $path; }
     return $fallback;
 }
 
@@ -86,13 +86,13 @@ function EquipAtomico(callable $operation): mixed
 {
     $pdo=db()->getConnection();
     $own=!$pdo->inTransaction();
-    if ($own) $pdo->beginTransaction();
+    if ($own) { $pdo->beginTransaction(); }
     try {
         $result=$operation();
-        if ($own) $pdo->commit();
+        if ($own) { $pdo->commit(); }
         return $result;
     } catch (Throwable $e) {
-        if ($own && $pdo->inTransaction()) $pdo->rollBack();
+        if ($own && $pdo->inTransaction()) { $pdo->rollBack(); }
         throw $e;
     }
 }
@@ -100,7 +100,7 @@ function EquipAtomico(callable $operation): mixed
 function getQuality(int $durata): string
 {
     foreach (QUALITY as $q) {
-        if ($durata <= $q['durata']) return $q['nome'];
+        if ($durata <= $q['durata']) { return $q['nome']; }
     }
     return QUALITY[array_key_last(QUALITY)]['nome'];
 }
@@ -115,15 +115,15 @@ function getSize(int $id): string
  *====================================================================*/
 function Consuma(int $pg, int $obj, int $quantita = 1): bool
 {
-    if ($quantita<=0) return false;
+    if ($quantita<=0) { return false; }
     return EquipAtomico(static function() use($pg,$obj,$quantita): bool {
         $db=db();
         $item=$db->query('SELECT p.consumo,e.durata FROM equippg p JOIN equip e ON e.id=p.uid WHERE p.id=? AND p.idpg=? FOR UPDATE',[$obj,$pg])[0] ?? null;
-        if (!$item) return false;
+        if (!$item) { return false; }
         if ((int)$item['consumo']+$quantita >= (int)$item['durata']) {
             $db->execute("UPDATE equippg SET idpadre=0,slot='' WHERE idpadre=? AND idpg=?",[$obj,$pg]);
             $db->execute('DELETE FROM equippg WHERE id=? AND idpg=?',[$obj,$pg]);
-        } else $db->execute('UPDATE equippg SET consumo=consumo+? WHERE id=? AND idpg=?',[$quantita,$obj,$pg]);
+        } else { $db->execute('UPDATE equippg SET consumo=consumo+? WHERE id=? AND idpg=?',[$quantita,$obj,$pg]); }
         return true;
     });
 }
@@ -230,25 +230,25 @@ function equipObject(int $equippgId, string $slot, string $side = ''): void
     EquipAtomico(static function() use($equippgId,$slot,$side): void {
         $db=db();
         $item=getInformation($equippgId);
-        if (!$item || empty($item['equipaggiabile']) || (int)$item['padre']>0 || $item['slot']!=='') return;
+        if (!$item || empty($item['equipaggiabile']) || (int)$item['padre']>0 || $item['slot']!=='') { return; }
         $owner=(int)$item['owner'];
         $db->query('SELECT id FROM utenti WHERE id=? FOR UPDATE',[$owner]);
         $item=getInformation($equippgId);
-        if(!$item||((int)$item['durata']>0&&(int)$item['consumo']>=(int)$item['durata']))return;
+        if(!$item||((int)$item['durata']>0&&(int)$item['consumo']>=(int)$item['durata'])){ return; }
         $kind=strtolower($item['tipoG']); $requested=strtolower($slot);
         $weapons=['arma','armasx','armadx']; $rings=['anello','anellosx','anellodx'];
         if (in_array($kind,$weapons,true)) {
-            if (!in_array($requested,$weapons,true)) return;
+            if (!in_array($requested,$weapons,true)) { return; }
             $free=checkSlotWeapon($owner,(int)$item['mani']);
-            if (!$free) return;
+            if (!$free) { return; }
             $target='arma'.($free===3 ? 'sx' : 'dx');
         } elseif (in_array($kind,$rings,true)) {
-            if (!in_array($requested,$rings,true)) return;
+            if (!in_array($requested,$rings,true)) { return; }
             $free=checkSlot('anello',$owner);
-            if (!$free) return;
+            if (!$free) { return; }
             $target='anello'.($free===3 ? 'sx' : 'dx');
         } else {
-            if ($requested!==$kind || !checkSlot($kind,$owner)) return;
+            if ($requested!==$kind || !checkSlot($kind,$owner)) { return; }
             $target=$kind;
         }
         $db->execute("UPDATE equippg SET slot=?,idpadre=0 WHERE id=? AND idpg=? AND slot=''",[$target,$equippgId,$owner]);
@@ -276,8 +276,8 @@ function checkSlot(string $slot, int $pgid): int
         $sxFree = true;
         $dxFree = true;
         foreach ($busy as $r) {
-            if ($r['slot'] === 'anellosx') $sxFree = false;
-            if ($r['slot'] === 'anellodx') $dxFree = false;
+            if ($r['slot'] === 'anellosx') { $sxFree = false; }
+            if ($r['slot'] === 'anellodx') { $dxFree = false; }
         }
         return match (true) {
             $sxFree && $dxFree => 2,
@@ -296,8 +296,8 @@ function checkSlot(string $slot, int $pgid): int
               WHERE idpg = ? AND slot IN ('armasx','armadx')",
             [$pgid]
         );
-        if (count($busyArms) > 1) return 0;
-        if ($busyArms && (int)$busyArms[0]['mani'] === 2) return 0;
+        if (count($busyArms) > 1) { return 0; }
+        if ($busyArms && (int)$busyArms[0]['mani'] === 2) { return 0; }
         $hasShield = db()->query(
             "SELECT 1 FROM equippg WHERE idpg = ? AND slot = 'scudo' LIMIT 1",
             [$pgid]
@@ -329,18 +329,18 @@ function checkSlotWeapon(int $pgid, int $mani): int
         );
         $sx = $dx = false;
         foreach ($busy as $r) {
-            if ($r['slot'] === 'armasx') $sx = true;
-            if ($r['slot'] === 'armadx') $dx = true;
-            if ((int)$r['mani'] === 2) return 0; // già un'arma 2-mani
+            if ($r['slot'] === 'armasx') { $sx = true; }
+            if ($r['slot'] === 'armadx') { $dx = true; }
+            if ((int)$r['mani'] === 2) { return 0; } // già un'arma 2-mani
         }
         $hasShield = db()->query(
             "SELECT 1 FROM equippg WHERE idpg = ? AND slot = 'scudo' LIMIT 1", [$pgid]
         );
-        if ($hasShield && ($sx || $dx)) return 0;
+        if ($hasShield && ($sx || $dx)) { return 0; }
 
-        if (!$sx && !$dx) return 2;   // entrambi liberi → default destro
-        if (!$dx)          return 2;  // destro libero
-        if (!$sx)          return 3;  // sinistro libero
+        if (!$sx && !$dx) { return 2; }   // entrambi liberi → default destro
+        if (!$dx)          { return 2; }  // destro libero
+        if (!$sx)          { return 3; }  // sinistro libero
         return 0;
     }
 
@@ -350,7 +350,7 @@ function checkSlotWeapon(int $pgid, int $mani): int
           WHERE idpg = ? AND slot IN ('armasx','armadx')",
         [$pgid]
     );
-    if ($busyArms) return 0;
+    if ($busyArms) { return 0; }
     $hasShield = db()->query(
         "SELECT 1 FROM equippg WHERE idpg = ? AND slot = 'scudo' LIMIT 1", [$pgid]
     );
@@ -428,9 +428,9 @@ function useObject(int $equippgId, int $pgId, int $mandante): int
         $db=db();
         $user=$db->query('SELECT puntif FROM utenti WHERE id=? FOR UPDATE',[$pgId])[0] ?? null;
         $info=$db->query('SELECT e.restore,e.id AS uid FROM equippg p JOIN equip e ON e.id=p.uid WHERE p.id=? AND p.idpg=? FOR UPDATE',[$equippgId,$pgId])[0] ?? null;
-        if (!$user || !$info || (int)$info['restore']<=0) return 0;
-        if ((int)$user['puntif']>=maxpuntif) return -1;
-        if (!Consuma($pgId,$equippgId,1)) return 0;
+        if (!$user || !$info || (int)$info['restore']<=0) { return 0; }
+        if ((int)$user['puntif']>=maxpuntif) { return -1; }
+        if (!Consuma($pgId,$equippgId,1)) { return 0; }
         $new=min(maxpuntif,(int)$user['puntif']+(int)$info['restore']);
         $db->execute('UPDATE utenti SET puntif=? WHERE id=?',[$new,$pgId]);
         $db->execute("INSERT INTO logs_equip(data,esecutore,origine,obj,azione) VALUES(?,?,?,?,'USATO')",[time(),$mandante,$pgId,$info['uid']]);
@@ -440,11 +440,11 @@ function useObject(int $equippgId, int $pgId, int $mandante): int
 
 function moveObject(int $equippgId, int $src, int $dest, int $mandante): bool
 {
-    if ($src===$dest) return false;
+    if ($src===$dest) { return false; }
     return EquipAtomico(static function() use($equippgId,$src,$dest,$mandante): bool {
         $db=db();
         $row=$db->query('SELECT uid FROM equippg WHERE id=? AND idpg=? FOR UPDATE',[$equippgId,$src])[0] ?? null;
-        if (!$row || !$db->query('SELECT 1 FROM utenti WHERE id=?',[$dest])) return false;
+        if (!$row || !$db->query('SELECT 1 FROM utenti WHERE id=?',[$dest])) { return false; }
         $db->execute("UPDATE equippg SET idpadre=0,slot='' WHERE idpadre=? AND idpg=?",[$equippgId,$src]);
         $db->execute("UPDATE equippg SET idpg=?,slot='',idpadre=0 WHERE id=? AND idpg=?",[$dest,$equippgId,$src]);
         $db->execute("INSERT INTO logs_equip(data,esecutore,origine,destinatario,obj,azione) VALUES(?,?,?,?,?,'SPOSTA')",[time(),$mandante,$src,$dest,$row['uid']]);
@@ -458,7 +458,7 @@ function deleteObject(int $equippgId, int $pgid, int $mandante): bool
     return EquipAtomico(static function() use($equippgId,$pgid,$mandante): bool {
         $db=db();
         $row=$db->query('SELECT uid FROM equippg WHERE id=? AND idpg=? FOR UPDATE',[$equippgId,$pgid])[0] ?? null;
-        if (!$row) return false;
+        if (!$row) { return false; }
         $db->execute("UPDATE equippg SET idpadre=0,slot='' WHERE idpadre=? AND idpg=?",[$equippgId,$pgid]);
         $db->execute('DELETE FROM equippg WHERE id=? AND idpg=?',[$equippgId,$pgid]);
         $db->execute("INSERT INTO logs_equip(data,esecutore,origine,obj,azione) VALUES(?,?,?,?,'CANCELLA')",[time(),$mandante,$pgid,$row['uid']]);
@@ -510,7 +510,7 @@ function getSlottedEquip(int $pgid): array
 
     foreach ($rows as $r) {
         $slot = $r['slot'];
-        if (!isset($equip[$slot])) continue;
+        if (!isset($equip[$slot])) { continue; }
         $equip[$slot]['img']  = alphano_equipment_image((string)$r['immagine'],$slot);
         $equip[$slot]['desc'] = stripslashes($r['shortDesc']);
         $equip[$slot]['id']   = $r['id'];
@@ -531,13 +531,13 @@ function equipObjectPadre(int $equippgId, string $slot, int $padreId): void
 {
     EquipAtomico(static function() use($equippgId,$slot,$padreId): void {
         $db=db(); $item=getInformation($equippgId);
-        if (!$item || empty($item['equipaggiabile']) || (int)$item['padre']<=0 || $equippgId===$padreId || strtolower($slot)!==strtolower($item['tipoG'])) return;
+        if (!$item || empty($item['equipaggiabile']) || (int)$item['padre']<=0 || $equippgId===$padreId || strtolower($slot)!==strtolower($item['tipoG'])) { return; }
         $owner=(int)$item['owner'];
         $db->query('SELECT id FROM utenti WHERE id=? FOR UPDATE',[$owner]);
         $item=getInformation($equippgId);
-        if(!$item||((int)$item['durata']>0&&(int)$item['consumo']>=(int)$item['durata']))return;
+        if(!$item||((int)$item['durata']>0&&(int)$item['consumo']>=(int)$item['durata'])){ return; }
         $parents=checkSlotPadre($slot,(int)$item['padre'],$owner) ?: [];
-        if (!in_array($padreId,array_map('intval',array_column($parents,'id')),true)) return;
+        if (!in_array($padreId,array_map('intval',array_column($parents,'id')),true)) { return; }
         $db->execute('UPDATE equippg SET slot=?,idpadre=? WHERE id=? AND idpg=?',[strtolower($slot),$padreId,$equippgId,$owner]);
     });
 }

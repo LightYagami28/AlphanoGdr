@@ -16,18 +16,18 @@ function ai_npc_profile(array $npc): array {
 }
 function ai_validate_profile(array $input, array $previous): array {
     $p=array_replace($previous,$input);
-    if (array_diff(array_keys($p),array_keys(ai_profile_defaults()))) throw new DomainException('Campo del profilo non consentito.',422);
-    if (!in_array($p['sex'],['Maschio','Femmina'],true)) throw new DomainException('Sesso non valido.',422);
-    if (!is_string($p['alignment']) || !preg_match('/^[LNC][BNM]$/D',$p['alignment'])) throw new DomainException('Allineamento non valido.',422);
-    foreach (['age'=>2000,'race_id'=>100,'ethnicity_id'=>10000,'hit_points'=>1000000,'money'=>1000000000000,'corporation_id'=>PHP_INT_MAX,'organization_id'=>PHP_INT_MAX,'heraldry_id'=>PHP_INT_MAX] as $field=>$max) $p[$field]=ai_integer($p,$field,0,$max);
+    if (array_diff(array_keys($p),array_keys(ai_profile_defaults()))) { throw new DomainException('Campo del profilo non consentito.',422); }
+    if (!in_array($p['sex'],['Maschio','Femmina'],true)) { throw new DomainException('Sesso non valido.',422); }
+    if (!is_string($p['alignment']) || !preg_match('/^[LNC][BNM]$/D',$p['alignment'])) { throw new DomainException('Allineamento non valido.',422); }
+    foreach (['age'=>2000,'race_id'=>100,'ethnicity_id'=>10000,'hit_points'=>1000000,'money'=>1000000000000,'corporation_id'=>PHP_INT_MAX,'organization_id'=>PHP_INT_MAX,'heraldry_id'=>PHP_INT_MAX] as $field=>$max) { $p[$field]=ai_integer($p,$field,0,$max); }
     foreach (['race_id'=>'razze','ethnicity_id'=>'etnie','corporation_id'=>'corporazioni','organization_id'=>'organizzazioni','heraldry_id'=>'araldiche'] as $key=>$table) {
-        if (($key==='race_id' || $p[$key]) && !ai_db()->query('SELECT id FROM '.$table.' WHERE id=?',[$p[$key]])) throw new DomainException('Valore del profilo non disponibile: '.$key,422);
+        if (($key==='race_id' || $p[$key]) && !ai_db()->query('SELECT id FROM '.$table.' WHERE id=?',[$p[$key]])) { throw new DomainException('Valore del profilo non disponibile: '.$key,422); }
     }
-    foreach (['portrait'=>512,'motto'=>500,'appearance'=>3000,'biography'=>4000,'psychology'=>3000,'occupation'=>160,'social_status'=>160,'relationships'=>2000,'affections'=>2000,'animals'=>2000,'notes'=>3000,'wounds'=>500,'scene_position'=>100,'scene_activity'=>240,'scene_purpose'=>240] as $key=>$max) $p[$key]=ai_field($p,$key,$max);
-    if ($p['portrait']!=='' && (!preg_match('~^(?:https?://[^/\s]+/|/(?!/))~i',$p['portrait']) || preg_match('/[\x00-\x20<>"\x27]/',$p['portrait']))) throw new DomainException('Indirizzo del ritratto non valido.',422);
-    if (!is_array($p['details']) || !array_is_list($p['details']) || count($p['details'])>12) throw new DomainException('Massimo 12 informazioni aggiuntive.',422);
+    foreach (['portrait'=>512,'motto'=>500,'appearance'=>3000,'biography'=>4000,'psychology'=>3000,'occupation'=>160,'social_status'=>160,'relationships'=>2000,'affections'=>2000,'animals'=>2000,'notes'=>3000,'wounds'=>500,'scene_position'=>100,'scene_activity'=>240,'scene_purpose'=>240] as $key=>$max) { $p[$key]=ai_field($p,$key,$max); }
+    if ($p['portrait']!=='' && (!preg_match('~^(?:https?://[^/\s]+/|/(?!/))~i',$p['portrait']) || preg_match('/[\x00-\x20<>"\x27]/',$p['portrait']))) { throw new DomainException('Indirizzo del ritratto non valido.',422); }
+    if (!is_array($p['details']) || !array_is_list($p['details']) || count($p['details'])>12) { throw new DomainException('Massimo 12 informazioni aggiuntive.',422); }
     $p['details']=array_map(static function($detail) {
-        if (!is_array($detail)) throw new DomainException('Informazione aggiuntiva non valida.',422);
+        if (!is_array($detail)) { throw new DomainException('Informazione aggiuntiva non valida.',422); }
         return ['label'=>ai_field($detail,'label',80,true),'value'=>ai_field($detail,'value',2000,true)];
     },$p['details']);
     return $p;
@@ -48,18 +48,18 @@ function ai_portrait_directory(): string {
     return (alphano_config('storage_root')?:dirname(__DIR__).'/config/storage').'/npc-portraits';
 }
 function ai_upload_portrait(array $file): string {
-    if (($file['error']??-1)!==UPLOAD_ERR_OK || !is_uploaded_file($file['tmp_name']??'') || ($file['size']??0)>3*1024*1024) throw new DomainException('Scegli un’immagine PNG, JPEG o WebP entro 3 MB.',422);
+    if (($file['error']??-1)!==UPLOAD_ERR_OK || !is_uploaded_file($file['tmp_name']??'') || ($file['size']??0)>3*1024*1024) { throw new DomainException('Scegli un’immagine PNG, JPEG o WebP entro 3 MB.',422); }
     $info=@getimagesize($file['tmp_name']);
-    if (!$info || $info[0]*$info[1]>4194304 || !in_array($info[2],[IMAGETYPE_PNG,IMAGETYPE_JPEG,IMAGETYPE_WEBP],true)) throw new DomainException('Formato o dimensioni non consentiti (massimo 4 megapixel).',422);
+    if (!$info || $info[0]*$info[1]>4194304 || !in_array($info[2],[IMAGETYPE_PNG,IMAGETYPE_JPEG,IMAGETYPE_WEBP],true)) { throw new DomainException('Formato o dimensioni non consentiti (massimo 4 megapixel).',422); }
     $image=@imagecreatefromstring(file_get_contents($file['tmp_name']));
-    if (!$image) throw new DomainException('Immagine non valida.',422);
+    if (!$image) { throw new DomainException('Immagine non valida.',422); }
     $ratio=min(1,800/max($info[0],$info[1]));$width=max(1,(int)($info[0]*$ratio));$height=max(1,(int)($info[1]*$ratio));
     $clean=imagecreatetruecolor($width,$height);imagealphablending($clean,false);imagesavealpha($clean,true);
     imagecopyresampled($clean,$image,0,0,0,0,$width,$height,$info[0],$info[1]);imagedestroy($image);
     $dir=ai_portrait_directory();
-    if (!is_dir($dir) && !mkdir($dir,0700,true) && !is_dir($dir)) throw new RuntimeException('Cartella dei ritratti non disponibile.');
+    if (!is_dir($dir) && !mkdir($dir,0700,true) && !is_dir($dir)) { throw new RuntimeException('Cartella dei ritratti non disponibile.'); }
     $name=bin2hex(random_bytes(16)).'.png';
-    try { if (!imagepng($clean,$dir.'/'.$name)) throw new RuntimeException('Salvataggio del ritratto non riuscito.');chmod($dir.'/'.$name,0600); }
+    try { if (!imagepng($clean,$dir.'/'.$name)) { throw new RuntimeException('Salvataggio del ritratto non riuscito.'); }chmod($dir.'/'.$name,0600); }
     finally { imagedestroy($clean); }
     return '/api/ai.php?action=portrait&file='.$name;
 }

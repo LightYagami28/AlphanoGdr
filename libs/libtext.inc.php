@@ -74,8 +74,8 @@ class GML
     private function processTag(string $tag, bool $borderSpaces = false, string $depend = ''): void
     {
         $expr = "\\[{$tag}(\\]|\\040.*?\\])(.*?)\\[\\/{$tag}\\]";
-        if ($borderSpaces)       $expr = "[\\040\\n\\r\\t]*?{$expr}[\\040\\n\\r\\t]*?";
-        if (strlen($depend))     $expr = "(\\[{$depend}.*?\\].*?){$expr}(.*?\\[\\/{$depend}\\])";
+        if ($borderSpaces)       { $expr = "[\\040\\n\\r\\t]*?{$expr}[\\040\\n\\r\\t]*?"; }
+        if (strlen($depend))     { $expr = "(\\[{$depend}.*?\\].*?){$expr}(.*?\\[\\/{$depend}\\])"; }
 
         while (preg_match("/{$expr}/ism", $this->testo, $m)) {
 
@@ -98,10 +98,10 @@ class GML
     {
         $cfg = $this->tags[$tag];
         if ($cfg['depend']) {
-            if ($cfg['stripspaces']) $m[3] = trim($m[3]);
+            if ($cfg['stripspaces']) { $m[3] = trim($m[3]); }
             $rep = $m[1] . $cfg['stag'][0] . $m[3] . $cfg['stag'][1] . $m[4];
         } else {
-            if ($cfg['stripspaces']) $m[2] = trim($m[2]);
+            if ($cfg['stripspaces']) { $m[2] = trim($m[2]); }
             $rep = $cfg['stag'][0] . $m[2] . $cfg['stag'][1];
         }
         $this->testo = str_replace($m[0], $rep, $this->testo);
@@ -142,7 +142,7 @@ class GML
 
     private function tag_lnk(array $m): void
     {
-        if (!trim($m[1])) $m[1] = $m[2];
+        if (!trim($m[1])) { $m[1] = $m[2]; }
         $this->testo = str_replace(
             $m[0],
             sprintf($this->tags['lnk']['stag'][0], trim($m[1])) . $m[2] . $this->tags['lnk']['stag'][1],
@@ -228,22 +228,22 @@ function alphano_sanitize_html(string $html): string
     $drop = ['script','style','iframe','object','embed','form','input','button','textarea','select','link','meta','base','svg','math'];
     $safeUrl = static function (string $value, bool $image = false): bool {
         $value = preg_replace('/[\x00-\x20\x7f]+/', '', html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
-        if ($value === '') return false;
-        if (preg_match('~^(?:https?://|/|\#|\?|\./|\.\./)~i', $value)) return true;
-        if (!$image && str_starts_with(strtolower($value), 'mailto:')) return true;
+        if ($value === '') { return false; }
+        if (preg_match('~^(?:https?://|/|\#|\?|\./|\.\./)~i', $value)) { return true; }
+        if (!$image && str_starts_with(strtolower($value), 'mailto:')) { return true; }
         return !preg_match('~^[a-z][a-z0-9+.-]*:~i', $value) && !str_contains($value, '\\');
     };
     $clean = function (DOMNode $node) use (&$clean, $document, $allowed, $drop, $safeUrl): void {
         foreach (iterator_to_array($node->childNodes) as $child) {
             if (!$child instanceof DOMElement) {
-                if ($child instanceof DOMComment || $child instanceof DOMProcessingInstruction) $node->removeChild($child);
+                if ($child instanceof DOMComment || $child instanceof DOMProcessingInstruction) { $node->removeChild($child); }
                 continue;
             }
             $tag = strtolower($child->tagName);
             if (in_array($tag, $drop, true)) { $node->removeChild($child); continue; }
             $clean($child);
             if (!in_array($tag, $allowed, true)) {
-                while ($child->firstChild) $node->insertBefore($child->firstChild, $child);
+                while ($child->firstChild) { $node->insertBefore($child->firstChild, $child); }
                 $node->removeChild($child);
                 continue;
             }
@@ -251,42 +251,42 @@ function alphano_sanitize_html(string $html): string
                 $name = strtolower($attribute->name);
                 $value = $attribute->value;
                 $keep = false;
-                if (in_array($name, ['title','alt'], true)) $keep = true;
-                elseif ($name === 'class') $keep = (bool)preg_match('/^[a-zA-Z0-9 _-]{0,150}$/D', $value);
-                elseif (in_array($name, ['width','height','colspan','rowspan','border','cellpadding','cellspacing'], true)) $keep = (bool)preg_match('/^\d{1,4}%?$/D', $value);
-                elseif ($name === 'align') $keep = in_array(strtolower($value), ['left','right','center','justify'], true);
-                elseif ($name === 'color' || $name === 'bgcolor') $keep = (bool)preg_match('/^(#[a-f0-9]{3,8}|[a-z]{1,25})$/iD', $value);
-                elseif ($name === 'href' && $tag === 'a') $keep = $safeUrl($value);
-                elseif ($name === 'src' && $tag === 'img') $keep = $safeUrl($value, true);
-                elseif ($name === 'name' || $name === 'id') $keep = (bool)preg_match('/^[a-zA-Z][a-zA-Z0-9_-]{0,100}$/D', $value);
+                if (in_array($name, ['title','alt'], true)) { $keep = true; }
+                elseif ($name === 'class') { $keep = (bool)preg_match('/^[a-zA-Z0-9 _-]{0,150}$/D', $value); }
+                elseif (in_array($name, ['width','height','colspan','rowspan','border','cellpadding','cellspacing'], true)) { $keep = (bool)preg_match('/^\d{1,4}%?$/D', $value); }
+                elseif ($name === 'align') { $keep = in_array(strtolower($value), ['left','right','center','justify'], true); }
+                elseif ($name === 'color' || $name === 'bgcolor') { $keep = (bool)preg_match('/^(#[a-f0-9]{3,8}|[a-z]{1,25})$/iD', $value); }
+                elseif ($name === 'href' && $tag === 'a') { $keep = $safeUrl($value); }
+                elseif ($name === 'src' && $tag === 'img') { $keep = $safeUrl($value, true); }
+                elseif ($name === 'name' || $name === 'id') { $keep = (bool)preg_match('/^[a-zA-Z][a-zA-Z0-9_-]{0,100}$/D', $value); }
                 elseif ($name === 'style') {
                     $styles = [];
                     foreach (explode(';', $value) as $rule) {
                         $parts = explode(':', $rule, 2);
-                        if (count($parts) !== 2) continue;
+                        if (count($parts) !== 2) { continue; }
                         [$property, $setting] = array_map('trim', $parts);
                         $property = strtolower($property);
                         if (in_array($property, ['color','background-color'], true)
-                            && preg_match('/^(#[a-f0-9]{3,8}|[a-z]{1,25}|rgba?\([\d\s.,%]+\)|hsla?\([\d\s.,%]+\))$/iD', $setting)) $styles[] = "$property:$setting";
-                        elseif ($property === 'text-align' && in_array($setting, ['left','right','center','justify'], true)) $styles[] = "$property:$setting";
+                            && preg_match('/^(#[a-f0-9]{3,8}|[a-z]{1,25}|rgba?\([\d\s.,%]+\)|hsla?\([\d\s.,%]+\))$/iD', $setting)) { $styles[] = "$property:$setting"; }
+                        elseif ($property === 'text-align' && in_array($setting, ['left','right','center','justify'], true)) { $styles[] = "$property:$setting"; }
                         elseif (in_array($property, ['font-weight','font-style','text-decoration','white-space'], true)
-                            && preg_match('/^[a-z0-9 -]{1,30}$/iD', $setting)) $styles[] = "$property:$setting";
+                            && preg_match('/^[a-z0-9 -]{1,30}$/iD', $setting)) { $styles[] = "$property:$setting"; }
                         elseif (in_array($property, ['font-size','width','height','max-width','line-height'], true)
-                            && preg_match('/^\d{1,4}(\.\d{1,2})?(px|em|rem|%|pt)?$/iD', $setting)) $styles[] = "$property:$setting";
-                        elseif ($property === 'background-image' && preg_match('~^url\(["\x27]?([^"\x27()]+)["\x27]?\)$~iD', $setting, $url) && $safeUrl($url[1], true)) $styles[] = "background-image:url('" . str_replace("'", '%27', $url[1]) . "')";
+                            && preg_match('/^\d{1,4}(\.\d{1,2})?(px|em|rem|%|pt)?$/iD', $setting)) { $styles[] = "$property:$setting"; }
+                        elseif ($property === 'background-image' && preg_match('~^url\(["\x27]?([^"\x27()]+)["\x27]?\)$~iD', $setting, $url) && $safeUrl($url[1], true)) { $styles[] = "background-image:url('" . str_replace("'", '%27', $url[1]) . "')"; }
                     }
                     if ($styles) { $child->setAttribute('style', implode(';', $styles)); $keep = true; }
                 }
-                if (!$keep) $child->removeAttribute($attribute->name);
+                if (!$keep) { $child->removeAttribute($attribute->name); }
             }
             if ($tag === 'a') { $child->setAttribute('target', '_blank'); $child->setAttribute('rel', 'noopener noreferrer'); }
         }
     };
     $body = $document->getElementsByTagName('body')->item(0);
-    if (!$body) return '';
+    if (!$body) { return ''; }
     $clean($body);
     $result = '';
-    foreach ($body->childNodes as $child) $result .= $document->saveHTML($child);
+    foreach ($body->childNodes as $child) { $result .= $document->saveHTML($child); }
     return $result;
 }
 

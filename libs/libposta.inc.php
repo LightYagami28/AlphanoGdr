@@ -18,7 +18,7 @@ function InviaMissiva(string $oggetto, string $messaggio, int $destinatario, int
     $db = $GLOBALS['db'] ?? ConnectDB();
     // A conversation must retain both directions. Hiding a sent copy is now an
     // explicit mailbox action, never an accidental side effect of sending it.
-    if ($mittente > 0) $salva = 0;
+    if ($mittente > 0) { $salva = 0; }
 
     $sql = <<<SQL
 INSERT INTO mail
@@ -66,7 +66,7 @@ SQL;
 
     // Retain the newest maxmissive read messages with one cutoff and one update.
     $cutoff=$db->query('SELECT id FROM mail WHERE iddestinatario=? AND deldest=0 AND letto=1 AND baule=0 ORDER BY id DESC LIMIT '.(int)maxmissive.',1',[$idpg])[0]['id'] ?? null;
-    if ($cutoff!==null) $db->execute('UPDATE mail SET deldest=1 WHERE iddestinatario=? AND deldest=0 AND letto=1 AND baule=0 AND id<=?',[$idpg,(int)$cutoff]);
+    if ($cutoff!==null) { $db->execute('UPDATE mail SET deldest=1 WHERE iddestinatario=? AND deldest=0 AND letto=1 AND baule=0 AND id<=?',[$idpg,(int)$cutoff]); }
 
 
 }

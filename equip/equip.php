@@ -13,7 +13,7 @@ use Alphano\Database\PDOMySQLDriver;
 
 
 require_once __DIR__ . '/../libs/kernel.inc.php';     // initSession(), ConnectDB()
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') alphano_require_csrf();
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') { alphano_require_csrf(); }
 require_once __DIR__ . '/../libs/libgrafica.inc.php';
 require_once __DIR__ . '/../libs/libeconomia.inc.php';
 require_once __DIR__ . '/../libs/libpg.inc.php';      // GetIDPG(), GetRazza(), ProcessRazza(), ProcessAl()
@@ -67,26 +67,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action==='equipaggiapadre' && ($padre===$id || !$db->query('SELECT 1 FROM equippg WHERE id=? AND idpg=?',[$padre,$pgid]))) { http_response_code(400); exit('Contenitore non valido'); }
     switch ($action) {
         case 'equipaggia':
-            if ($isSame || $admin || $fatepower) equipObject($id, $slot, $side);
+            if ($isSame || $admin || $fatepower) { equipObject($id, $slot, $side); }
             break;
         case 'disequipaggia':
-            if ($isSame || $admin || $fatepower) unequipObject($id);
+            if ($isSame || $admin || $fatepower) { unequipObject($id); }
             break;
         case 'equipaggiapadre':
-            if ($isSame || $admin || $fatepower) equipObjectPadre($id, $slot, $padre);
+            if ($isSame || $admin || $fatepower) { equipObjectPadre($id, $slot, $padre); }
             break;
         case 'usa':
-            if ($isSame) useObject($id, $pgid, $idpg);
+            if ($isSame) { useObject($id, $pgid, $idpg); }
             break;
         case 'delete':
-            if (($isSame || $admin || $fatepower) && !$lock) deleteObject($id, $pgid, $idpg);
+            if (($isSame || $admin || $fatepower) && !$lock) { deleteObject($id, $pgid, $idpg); }
             break;
         case 'send':
             $dest = GetPGID($to);
-            if (($isSame || $admin || $fatepower) && !$lock && $dest) moveObject($id, $pgid, $dest, $idpg);
+            if (($isSame || $admin || $fatepower) && !$lock && $dest) { moveObject($id, $pgid, $dest, $idpg); }
             break;
         case 'setnome':
-            if ($isSame) setNome($id, $nome, $idpg);
+            if ($isSame) { setNome($id, $nome, $idpg); }
             break;
         case 'acquista':
             if (!$corp || $isSame || (!($me['admintrasfcorp'] ?? false) && !($me['admincorporazione'] ?? false))) { http_response_code(403); exit('Solo un responsabile può acquistare per la propria corporazione'); }
@@ -177,7 +177,7 @@ if ($o) {
             ? checkSlotWeapon($pgid, (int)$o['mani'])
             : ($o['equipaggiabile'] ? checkSlot($o['tipoG'], $pgid) : 0);
     }
-    if ($o['idcreatore']) $equipmentCreatorName = GetPGFromID($o['idcreatore']);
+    if ($o['idcreatore']) { $equipmentCreatorName = GetPGFromID($o['idcreatore']); }
 }
 $equipmentUrl=static fn(int $item=0):string=>'/equip/equip.php?pgid='.$pgid.($embedded?'&embedded=1':'').($item?'&detail_id='.$item.'#equipment-detail':'');
 require __DIR__ . '/../templates/equipment/sheet.php';

@@ -5,7 +5,7 @@ if(!is_file($root.'/config/local.php')){header('Location: /install/',true,303);e
 require_once $root.'/libs/setup.inc.php';
 alphano_require_login();
 $user=alphano_user();
-if(empty($user['admin']))alphano_fail('Riepilogo riservato al gestore del gioco.',403);
+if(empty($user['admin'])){ alphano_fail('Riepilogo riservato al gestore del gioco.',403); }
 if(($_SERVER['REQUEST_METHOD']??'GET')!=='GET'){header('Allow: GET');alphano_fail('Apri il riepilogo senza inviare nuovamente il modulo.',405);}
 header('Cache-Control: no-store, private');
 header('Referrer-Policy: no-referrer');

@@ -19,7 +19,7 @@ require_once __DIR__ . '/../chat/libs/chat-core.php';     // db(), InsertIntoCha
 
 
 alphano_require_login();
-if ($_SERVER['REQUEST_METHOD'] === 'POST') alphano_require_csrf();
+if ($_SERVER['REQUEST_METHOD'] === 'POST') { alphano_require_csrf(); }
 /* sessione + login */
 initSession();
 $idpg = GetIDPG(false, true);
@@ -79,15 +79,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $replayed=false;
     try {
     $guard=alphano_session_guard($chatRoom);
-    if(!(int)($db->query('SELECT GET_LOCK(?,5) locked',[$guard])[0]['locked']??0))throw new DomainException('La regia sta aggiornando la scena. Riprova.',409);
+    if(!(int)($db->query('SELECT GET_LOCK(?,5) locked',[$guard])[0]['locked']??0)){ throw new DomainException('La regia sta aggiornando la scena. Riprova.',409); }
     register_shutdown_function(static function()use($db,$guard){$db->query('SELECT RELEASE_LOCK(?)',[$guard]);});
-    foreach ($_POST as $value) if (!is_scalar($value)) throw new InvalidArgumentException('Parametri non validi');
+    foreach ($_POST as $value) { if (!is_scalar($value)) { throw new InvalidArgumentException('Parametri non validi'); } }
     $action = (string)($_POST['azione'] ?? '');
-    if (!in_array($action,['uccidi','ferisci','resuscita','ricompensa','oggetto','consuma','addnote'],true)) throw new InvalidArgumentException('Azione non valida');
+    if (!in_array($action,['uccidi','ferisci','resuscita','ricompensa','oggetto','consuma','addnote'],true)) { throw new InvalidArgumentException('Azione non valida'); }
     $target = EconomiaIntero($_POST['pg'] ?? null,1);
-    if ($target===null) throw new InvalidArgumentException('Personaggio non valido');
+    if ($target===null) { throw new InvalidArgumentException('Personaggio non valido'); }
     $requestKey=isset($_POST['_request_key']) ? (string)$_POST['_request_key'] : null;
-    if(!$user['administrator']&&$canMaster&&(!in_array($action,['ferisci','uccidi'],true)||!$canHurt))alphano_session_require_manager($idpg,$chatRoom);
+    if(!$user['administrator']&&$canMaster&&(!in_array($action,['ferisci','uccidi'],true)||!$canHurt)){ alphano_session_require_manager($idpg,$chatRoom); }
     if ($chatRoom === '' || !$db->query('SELECT id FROM utenti WHERE id=? AND chat=?', [$target,$chatRoom])) {
         http_response_code(400); exit('Il personaggio deve essere presente nella stessa chat');
     }
@@ -98,22 +98,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         case 'uccidi':
             if ($target && ($canMaster || $canHurt)) {
                 $modo = EconomiaIntero($_POST['modo'] ?? '0',0,1);
-                if ($modo===null) throw new InvalidArgumentException('Modo non valido');
+                if ($modo===null) { throw new InvalidArgumentException('Modo non valido'); }
                 $msg  = Uccidi($target, $idpg, $modo, $chatRoom)
                       ? 'Personaggio ucciso con successo'
                       : 'Impossibile uccidere il personaggio';
-            } else $msg = 'Parametri non esaurienti';
+            } else { $msg = 'Parametri non esaurienti'; }
             break;
 
         case 'ferisci':
             $pf   = EconomiaIntero($_POST['pf'] ?? null,1,maxpuntif);
-            if ($pf===null) throw new InvalidArgumentException('I PF devono essere un numero intero valido');
+            if ($pf===null) { throw new InvalidArgumentException('I PF devono essere un numero intero valido'); }
             $tipo = trim($_POST['tipo']   ?? '');
             if ($target && $pf > 0 && ($canMaster || $canHurt)) {
                 $msg = SetFerite($target, $pf, $tipo, $idpg, $chatRoom)
                      ? 'Personaggio ferito con successo'
                      : 'Impossibile ferire il personaggio';
-            } else $msg = 'Parametri non esaurienti';
+            } else { $msg = 'Parametri non esaurienti'; }
             break;
 
         /* ― Resurrezione ― */
@@ -122,45 +122,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $msg = Resuscita($target, $idpg, $chatRoom)
                      ? 'Personaggio resuscitato con successo'
                      : 'Impossibile resuscitare il personaggio';
-            } else $msg = 'Parametri non esaurienti';
+            } else { $msg = 'Parametri non esaurienti'; }
             break;
 
         /* ― Ricompense Master (solo se sessione attiva) ― */
         case 'ricompensa':
             $soldi = EconomiaIntero($_POST['soldi'] ?? null,1,1000000000);
-            if ($soldi===null) throw new InvalidArgumentException(alphano_currency_text('Le Corone devono essere un numero intero da 1 a 1000000000'));
-            if (!$canMaster) throw new DomainException('Questa azione è riservata ai Master',403);
+            if ($soldi===null) { throw new InvalidArgumentException(alphano_currency_text('Le Corone devono essere un numero intero da 1 a 1000000000')); }
+            if (!$canMaster) { throw new DomainException('Questa azione è riservata ai Master',403); }
             if ($target && $target !== $idpg && $canMaster && $sessionRunning
                 && in_array((string)$target, $partecipanti, true) && $soldi > 0) {
                 $msg = Ricompensa($target, $soldi, $idpg, $chatRoom,$requestKey,$replayed)
                      ? alphano_currency_text("Ricompensa di $soldi Corone inviata")
                      : 'Impossibile ricompensare il personaggio';
-            } else throw new DomainException('Il premio richiede una sessione attiva e un partecipante diverso dal Master',400);
+            } else { throw new DomainException('Il premio richiede una sessione attiva e un partecipante diverso dal Master',400); }
             break;
 
         case 'oggetto':
             $objId = EconomiaIntero($_POST['oggetto'] ?? null,1);
-            if ($objId===null) throw new InvalidArgumentException('Oggetto non valido');
-            if (!$canMaster) throw new DomainException('Questa azione è riservata ai Master',403);
+            if ($objId===null) { throw new InvalidArgumentException('Oggetto non valido'); }
+            if (!$canMaster) { throw new DomainException('Questa azione è riservata ai Master',403); }
             if ($target && $target !== $idpg && $canMaster && $sessionRunning
                 && in_array((string)$target, $partecipanti, true) && $objId > 0) {
                 $msg = DaiOggetto($target, $objId, $idpg, $chatRoom,$requestKey,$replayed)
                      ? 'Oggetto consegnato con successo'
                      : 'Impossibile consegnare l’oggetto';
-            } else throw new DomainException('Il premio richiede una sessione attiva e un partecipante diverso dal Master',400);
+            } else { throw new DomainException('Il premio richiede una sessione attiva e un partecipante diverso dal Master',400); }
             break;
 
         /* ― Consuma item ― */
         case 'consuma':
             $objId = EconomiaIntero($_POST['oggetto'] ?? null,1);
             $qty   = EconomiaIntero($_POST['quantita'] ?? null,1,2147483647);
-            if ($objId===null || $qty===null) throw new InvalidArgumentException('Oggetto e quantità devono essere numeri interi validi');
-            if (!$canMaster) throw new DomainException('Questa azione è riservata ai Master',403);
+            if ($objId===null || $qty===null) { throw new InvalidArgumentException('Oggetto e quantità devono essere numeri interi validi'); }
+            if (!$canMaster) { throw new DomainException('Questa azione è riservata ai Master',403); }
             if ($target && $objId > 0 && $qty > 0 && $canMaster) {
                 $msg = ConsumaMaster($target,$objId,$qty,$idpg,$chatRoom,$requestKey,$replayed)
                      ? 'Oggetto consumato con successo'
                      : 'Impossibile consumare l’oggetto';
-            } else $msg = 'Parametri non esaurienti';
+            } else { $msg = 'Parametri non esaurienti'; }
             break;
 
         /* ― Note Master ― */
@@ -170,7 +170,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $msg = NotaMaster($target,$idpg,$chatRoom,$nota,$requestKey,$replayed,'Nota inserita dal pannello del Master')
                      ? 'Nota inserita con successo'
                      : 'Impossibile inserire la nota';
-            } else $msg = 'Parametri non esaurienti';
+            } else { $msg = 'Parametri non esaurienti'; }
             break;
     }
     } catch (Throwable $error) {

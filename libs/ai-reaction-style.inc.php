@@ -87,7 +87,7 @@ function ai_reaction_style_variants(string $mode):array {
 function ai_reaction_style_variant(array $event,int $npc,array $witnesses,int $count=16):int {
     $ids=array_values(array_unique(array_map('intval',$witnesses)));sort($ids,SORT_NUMERIC);
     $ordinal=array_search($npc,$ids,true);
-    if($ordinal===false)$ordinal=max(0,$npc);
+    if($ordinal===false){ $ordinal=max(0,$npc); }
     $seed=implode(':',[(string)($event['chat_key']??''),(int)($event['source_id']??0),(int)($event['id']??0)]);
     return ((int)hexdec(substr(hash('sha256','reaction-style-v1:'.$seed),0,7))+(int)$ordinal)%max(1,$count);
 }
@@ -98,7 +98,7 @@ function ai_reaction_style_compose(array $npc,array $profile,array $reaction,arr
     $index=ai_reaction_style_variant($event,(int)$npc['id'],$witnesses,count($variants));
     $female=($profile['sex']??'Maschio')==='Femmina';
     $words=['sopraffatto','inchiodato','sconvolto','pietrificato','bloccato','impietrito','scosso','pronto','attento'];$replace=[];
-    foreach($words as $word)$replace['{'.$word.'}']=$female?substr($word,0,-1).'a':$word;
+    foreach($words as $word){ $replace['{'.$word.'}']=$female?substr($word,0,-1).'a':$word; }
     $replace['{gli}']=$female?'le':'gli';
     $replace['{lo}']=$female?'la':'lo';
     $text=(string)$npc['name'].strtr($variants[$index],$replace);
@@ -108,22 +108,22 @@ function ai_reaction_style_compose(array $npc,array $profile,array $reaction,arr
     if((int)($stats['perception']??10)>=20){
         $detail=($event['form']??'native')==='human'?'il ritorno dei lineamenti umani':(in_array((int)($event['native_race_id']??0),[2,5],true)?'gli occhi alterati e i canini affilati':'gli artigli e i lineamenti lupini');
         $modifiers[]='Lo sguardo coglie subito '.$detail.($panic?', senza che riconoscerli attenui il terrore.':', e ne segue con precisione il cambiamento.');
-    }elseif((int)($stats['perception']??10)<=8)$modifiers[]='Sbattendo le palpebre, cerca di mettere a fuoco i particolari di ciò che vede.';
+    }elseif((int)($stats['perception']??10)<=8){ $modifiers[]='Sbattendo le palpebre, cerca di mettere a fuoco i particolari di ciò che vede.'; }
     $occupation=mb_strtolower((string)($profile['occupation']??''));
     $guard=preg_match('/\b(?:guardia|guardiano|guardiana|sentinella|soldato|soldatessa|capitano|capitana|militare)\b/u',$occupation)===1;
-    if($panic&&$guard)$modifiers[]='Prova a ricomporsi come richiederebbe il suo servizio, ma il tremore tradisce lo sforzo.';
-    elseif($panic&&(int)($traits['pride']??50)>=70)$modifiers[]='Serra le labbra nel tentativo di nascondere lo spavento, senza riuscire a fermare il tremore.';
-    elseif($panic&&(int)($traits['self_control']??50)<=30)$modifiers[]='Il respiro sfugge a ogni tentativo di regolarlo.';
-    elseif($panic&&(int)($traits['sociability']??50)>=70)$modifiers[]='Cerca una voce, ma la consueta prontezza nel parlare non arriva.';
+    if($panic&&$guard){ $modifiers[]='Prova a ricomporsi come richiederebbe il suo servizio, ma il tremore tradisce lo sforzo.'; }
+    elseif($panic&&(int)($traits['pride']??50)>=70){ $modifiers[]='Serra le labbra nel tentativo di nascondere lo spavento, senza riuscire a fermare il tremore.'; }
+    elseif($panic&&(int)($traits['self_control']??50)<=30){ $modifiers[]='Il respiro sfugge a ogni tentativo di regolarlo.'; }
+    elseif($panic&&(int)($traits['sociability']??50)>=70){ $modifiers[]='Cerca una voce, ma la consueta prontezza nel parlare non arriva.'; }
     // Hidden emotions remain private; existing affection is not automatic fear immunity.
     if(empty($context['hidden_emotions'])){
-        if((int)($relation['hostility']??0)>=40)$modifiers[]='Le labbra si stringono ancora: nel suo sguardo la diffidenza già maturata non si scioglie.';
+        if((int)($relation['hostility']??0)>=40){ $modifiers[]='Le labbra si stringono ancora: nel suo sguardo la diffidenza già maturata non si scioglie.'; }
         elseif((int)($relation['trust']??0)>=30||(int)($relation['affection']??0)>=30||((int)($relation['love']??0)>=30&&in_array($relation['state']??'',['innamoramento','relazione','riconciliazione'],true)))
-            $modifiers[]=$panic?'Cerca nello sguardo familiare un segno di rassicurazione; il legame già costruito non basta ancora a fermare la paura.':'Cerca nello sguardo familiare un segno di continuità, senza scambiarlo per una garanzia di sicurezza.';
+            { $modifiers[]=$panic?'Cerca nello sguardo familiare un segno di rassicurazione; il legame già costruito non basta ancora a fermare la paura.':'Cerca nello sguardo familiare un segno di continuità, senza scambiarlo per una garanzia di sicurezza.'; }
     }
-    if($mode==='observe'&&!empty($reaction['aftermath']['active']))$modifiers[]='Il respiro resta incerto e il tremore non si è ancora placato; conserva la distanza raggiunta nello spavento.';
+    if($mode==='observe'&&!empty($reaction['aftermath']['active'])){ $modifiers[]='Il respiro resta incerto e il tremore non si è ancora placato; conserva la distanza raggiunta nello spavento.'; }
     // Two meaningful facets keep the preface brief even on highly customized sheets.
-    if(count($modifiers)>2)$modifiers=[$modifiers[0],$modifiers[count($modifiers)-1]];
+    if(count($modifiers)>2){ $modifiers=[$modifiers[0],$modifiers[count($modifiers)-1]]; }
     return ['text'=>$text.($modifiers?' '.implode(' ',$modifiers):''),'variant'=>'reaction-style-v1:'.$mode.':'.$index];
 }
 
@@ -138,7 +138,7 @@ function ai_reaction_style_preface(array $npc,array $profile,array $reaction,arr
     }
     $game=ai_npc_game($nid);
     // Reuse RPG formulas without the full sheet's ability/equipment/history queries.
-    $race=(int)$profile['race_id'];if($race===ALPHANO_RACE_LEGACY_SPIRIT)$race=ALPHANO_RACE_SPIRIT;
+    $race=(int)$profile['race_id'];if($race===ALPHANO_RACE_LEGACY_SPIRIT){ $race=ALPHANO_RACE_SPIRIT; }
     $stats=rpg_stat_values(['race_id'=>$race],rpg_progress('npc',$nid));
     $relation=$actor>0?ai_relation($nid,$actor):[];$rules=ai_social_rules($nid);
     return ai_reaction_style_compose($npc,$profile,$reaction,$event,['traits'=>$game['traits'],'stats'=>$stats,'relation'=>$relation,'hidden_emotions'=>!empty($rules['hidden_emotions'])],$witnesses);

@@ -27,7 +27,7 @@ require_once "$root/libs/mail-presentation.inc.php";
 // 2) LOGIN & DB
 // ———————————————————————————
 $pgid      = alphano_require_login();
-if ($_SERVER['REQUEST_METHOD'] === 'POST') alphano_require_csrf();
+if ($_SERVER['REQUEST_METHOD'] === 'POST') { alphano_require_csrf(); }
 $db        = ConnectDB();
 
 
@@ -70,7 +70,7 @@ foreach ($db->query(
 }
 
 $names=[$pgid=>GetPGFromID($pgid)];
-$uniqueMail=[];foreach($mail as $box)foreach($box as $row)$uniqueMail[(int)$row['id']]=$row;
+$uniqueMail=[];foreach($mail as $box){ foreach($box as $row){ $uniqueMail[(int)$row['id']]=$row; } }
 $mailView=alphano_mail_boxes(array_values($uniqueMail),$pgid);
 require __DIR__.'/../templates/mail/workspace.php';
 ClosePage();

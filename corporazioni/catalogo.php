@@ -26,14 +26,14 @@ $user = $db->query(
        FROM utenti WHERE id = ?',
     [$idpg]
 )[0] ?? null;
-if (!$user) die("Utente non trovato");
+if (!$user) { die("Utente non trovato"); }
 
 
 $nome    = $user['nome'];
 $orgId   = (int)$user['organizzazione'];
 $orgName = GetOrg($orgId, false);
 $corpId  = isset($_GET['corp']) ? (int)$_GET['corp'] : 0;
-if (!$corpId) die("Nessuna corporazione selezionata");
+if (!$corpId) { die("Nessuna corporazione selezionata"); }
 
 // definisco i permessi evitando warning se i campi non esistono
 $admincatalogo = (bool)$user['admin'] || ((int)$user['corporazione']===$corpId && (bool)($user['admincatalogo'] ?? false));

@@ -4,7 +4,7 @@ $rpgKind=$sheet['rpg_kind']??(isset($sheet['npc_id'])?'npc':'player');
 $rpgId=(int)($sheet['rpg_id']??$sheet['npc_id']??0);
 ?>
 <div class="progression"<?php if(empty($sheet['header_progression'])): ?> data-rpg-profile data-kind="<?=$rpgKind==='npc'?'npc':'player'?>" data-id="<?=$rpgId?>"<?php endif; ?>>
- <?php if(empty($sheet['header_progression']))require __DIR__.'/progression-header.php'; ?>
+ <?php if(empty($sheet['header_progression'])){ require __DIR__.'/progression-header.php'; } ?>
  <section class="racial-malus" data-rpg-malus></section>
  <div class="progression-section-heading"><h3>Grimorio delle abilità</h3><span class="rpg-learning-balance" data-rpg-learning-balance role="status"></span></div>
  <p data-rpg-abilities-summary class="progression-ability-summary"></p>

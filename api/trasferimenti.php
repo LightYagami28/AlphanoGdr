@@ -43,7 +43,7 @@ function respond(array $data): void {
 try {
     // ─── autenticazione ──────────────────────────────────────────────────
     $idpg = alphano_require_login(true);
-    if (!$idpg) respond(['success'=>false,'error'=>true,'message'=>'Non autenticato']);
+    if (!$idpg) { respond(['success'=>false,'error'=>true,'message'=>'Non autenticato']); }
 
     $db   = getDB();
     $user = $db->query(
@@ -51,7 +51,7 @@ try {
            FROM utenti WHERE id = ?', [$idpg]
     )[0] ?? null;
 
-    if (!$user) respond(['success'=>false,'error'=>true,'message'=>'Utente non trovato']);
+    if (!$user) { respond(['success'=>false,'error'=>true,'message'=>'Utente non trovato']); }
     if (in_array((int)$user['razza'],[ALPHANO_RACE_SPIRIT,ALPHANO_RACE_DEAD_VAMPIRE,ALPHANO_RACE_LEGACY_SPIRIT],true)) { http_response_code(403); respond(['success'=>false,'error'=>true,'message'=>'Non puoi amministrare i tuoi soldi quando sei morto']); }
 
     $corp          = (int)$user['corporazione'];
@@ -65,7 +65,7 @@ try {
     if ($azione!=='list' && ($_SERVER['REQUEST_METHOD'] ?? 'GET')!=='POST') {
         http_response_code(405); header('Allow: GET, POST'); respond(['success'=>false,'error'=>true,'message'=>'Usare POST per modificare dati']);
     }
-    if (($_SERVER['REQUEST_METHOD'] ?? 'GET')==='POST') alphano_require_csrf(true);
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET')==='POST') { alphano_require_csrf(true); }
 
 
     if (in_array($azione,['adminorder','admintransf','consegna','prendiincarico'],true)) {
@@ -113,9 +113,9 @@ try {
      * ==================================================================*/
     case 'prendiincarico':
         if (!$isAdminTransf)
-            respond(['success'=>false,'error'=>true,'message'=>'Permessi insufficienti']);
+            { respond(['success'=>false,'error'=>true,'message'=>'Permessi insufficienti']); }
         $id = (int)($_POST['id'] ?? 0);
-        if (!$id) respond(['success'=>false,'error'=>true,'message'=>'Parametri non esaurienti']);
+        if (!$id) { respond(['success'=>false,'error'=>true,'message'=>'Parametri non esaurienti']); }
         $ok  = PrendiInCaricoOrdine($id,$idpg);
         respond(['success'=>$ok,
                  'message'=> $ok ? 'Ordine preso in carico correttamente'
@@ -257,9 +257,9 @@ try {
      * ==================================================================*/
     case 'consegna':
         if (!$isAdminTransf)
-            respond(['success'=>false,'error'=>true,'message'=>'Permessi insufficienti']);
+            { respond(['success'=>false,'error'=>true,'message'=>'Permessi insufficienti']); }
         $id = (int)($_POST['id'] ?? 0);
-        if (!$id) respond(['success'=>false,'error'=>true,'message'=>'Parametri non esaurienti']);
+        if (!$id) { respond(['success'=>false,'error'=>true,'message'=>'Parametri non esaurienti']); }
         $msg=Consegna($id,$idpg,$corp); respond(['success'=>$msg==='Consegna andata a buon fine','message'=>$msg]);
 
     /* ====================================================================
@@ -267,10 +267,10 @@ try {
      * ==================================================================*/
     case 'clearcrono':
         if (!$isAdminCorp)
-            respond(['success'=>false,'error'=>true,'message'=>'Permessi insufficienti']);
+            { respond(['success'=>false,'error'=>true,'message'=>'Permessi insufficienti']); }
         $ids = [];
         foreach ($db->query('SELECT id FROM trasferimenti WHERE corp = ?',[$corp]) as $r)
-            if (($_POST[(int)$r['id']] ?? '')==='s') $ids[] = (int)$r['id'];
+            { if (($_POST[(int)$r['id']] ?? '')==='s') { $ids[] = (int)$r['id']; } }
         if ($ids){
             $ph = implode(',',array_fill(0,count($ids),'?'));
             $db->execute("UPDATE trasferimenti SET nascostocorp = 1
@@ -333,7 +333,7 @@ try {
         /* 2) storico oggetti */
         $storicoAcq = [];
         foreach (GetCronologiaPG($idpg) as $r)
-            $storicoAcq[] = [
+            { $storicoAcq[] = [
               'id'=>(int)$r['id'],
               'data'=>FormatTimestamp($r['data']),
               'pgcorp'=>(int)$r['pgcorp'],
@@ -346,7 +346,7 @@ try {
               'prezzo'=>(float)$r['prezzo'],
               'stato'=>(int)$r['stato'],
               'statoText'=>StatoTransf((int)$r['stato'],(int)$r['verso']),
-            ];
+            ]; }
 
         /* 3) cronologia denaro */
         $cronDenaro = [];
@@ -372,7 +372,7 @@ try {
         /* 4) ordini verso = 2 */
         $ordini = [];
         foreach ($db->query('SELECT t.*,c.nome AS nomecorp,u.nome AS interlocutore FROM trasferimenti t JOIN corporazioni c ON c.id=t.corp LEFT JOIN utenti u ON u.id=t.pgcorp WHERE t.pg=? AND t.verso=2 AND t.stato BETWEEN 0 AND 5 ORDER BY t.data,t.id',[$idpg]) as $r)
-            $ordini[] = [
+            { $ordini[] = [
               'id'=>(int)$r['id'],
               'data'=>FormatTimestamp($r['data']),
               'corpName'=>$r['nomecorp'],
@@ -385,7 +385,7 @@ try {
               'stato'=>(int)$r['stato'],
               'verso'=>(int)$r['verso'],
               'statoText'=>StatoTransf((int)$r['stato'],(int)$r['verso']),
-            ];
+            ]; }
 
         respond([
           'success'=>true,

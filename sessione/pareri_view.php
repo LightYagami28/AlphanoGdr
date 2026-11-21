@@ -12,13 +12,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($azione,['aggiungiparere',
     if (!in_array($vote,[-1,0,1],true)) { http_response_code(400); exit('Voto non valido'); }
     $motivation = trim((string)($_POST['motivazione'] ?? ''));
     $old = $db->query('SELECT pg FROM parerisessioni WHERE sessione=? AND pg=?', [$id,$idpg]);
-    if ($old) $db->execute('UPDATE parerisessioni SET parere=?,motivazione=? WHERE sessione=? AND pg=?', [$vote,$motivation,$id,$idpg]);
-    else $db->execute('INSERT INTO parerisessioni(sessione,pg,parere,motivazione) VALUES (?,?,?,?)', [$id,$idpg,$vote,$motivation]);
+    if ($old) { $db->execute('UPDATE parerisessioni SET parere=?,motivazione=? WHERE sessione=? AND pg=?', [$vote,$motivation,$id,$idpg]); }
+    else { $db->execute('INSERT INTO parerisessioni(sessione,pg,parere,motivazione) VALUES (?,?,?,?)', [$id,$idpg,$vote,$motivation]); }
     header('Location: /sessione/viewlog.php?azione=pareri&id='.$id); exit;
 }
 $votes = $db->query('SELECT p.*,u.nome FROM parerisessioni p LEFT JOIN utenti u ON u.id=p.pg WHERE sessione=?', [$id]);
 $ownVote=null;
-foreach ($votes as $vote) if ((int)$vote['pg']===$idpg) $ownVote=$vote;
+foreach ($votes as $vote) { if ((int)$vote['pg']===$idpg) { $ownVote=$vote; } }
 ?>
 <!doctype html><html lang="it"><meta charset="utf-8"><title>Pareri sessione</title><body>
 <h1>Pareri: <?=htmlspecialchars($session['nome'],ENT_QUOTES)?></h1>

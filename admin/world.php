@@ -2,25 +2,25 @@
 declare(strict_types=1);
 require_once dirname(__DIR__).'/libs/world.inc.php';
 require_once dirname(__DIR__).'/libs/default-art.inc.php';
-$uid=alphano_require_login();if(!alphano_can('admin'))alphano_fail('Accesso riservato.',403);$db=ConnectDB();$error='';
+$uid=alphano_require_login();if(!alphano_can('admin')){ alphano_fail('Accesso riservato.',403); }$db=ConnectDB();$error='';
 if($_SERVER['REQUEST_METHOD']==='POST'){
  alphano_require_csrf();try{
   $type=$_POST['entity']??'';$id=filter_var($_POST['id']??0,FILTER_VALIDATE_INT,['options'=>['min_range'=>0]]);$title=trim((string)($_POST['title']??''));$desc=trim((string)($_POST['description']??''));$order=filter_var($_POST['position']??0,FILTER_VALIDATE_INT,['options'=>['min_range'=>0,'max_range'=>9999]]);$enabled=isset($_POST['enabled'])?1:0;
-  if(!in_array($type,['area','chat'],true)||$id===false||$order===false||$title===''||mb_strlen($title)>120||mb_strlen($desc)>10000)throw new DomainException('Campi non validi.');
-  $table=$type==='area'?'world_areas':'mappe';$old=$id?$db->query('SELECT * FROM '.$table.' WHERE id=?',[$id])[0]??null:null;if($id&&!$old)throw new DomainException('Scheda non trovata.');
-  $image=alphano_world_image((string)($_POST['image']??''));if(!$old&&$image==='/assets/placeholder.svg')$image=alphano_default_art($type==='area'?'city':'chat');if(($_FILES['image_file']['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_NO_FILE)$image=alphano_world_upload($_FILES['image_file']);
+  if(!in_array($type,['area','chat'],true)||$id===false||$order===false||$title===''||mb_strlen($title)>120||mb_strlen($desc)>10000){ throw new DomainException('Campi non validi.'); }
+  $table=$type==='area'?'world_areas':'mappe';$old=$id?$db->query('SELECT * FROM '.$table.' WHERE id=?',[$id])[0]??null:null;if($id&&!$old){ throw new DomainException('Scheda non trovata.'); }
+  $image=alphano_world_image((string)($_POST['image']??''));if(!$old&&$image==='/assets/placeholder.svg'){ $image=alphano_default_art($type==='area'?'city':'chat'); }if(($_FILES['image_file']['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_NO_FILE){ $image=alphano_world_upload($_FILES['image_file']); }
   $db->beginTransaction();
   if($type==='area'){
-   $city=filter_var($_POST['city_id']??0,FILTER_VALIDATE_INT,['options'=>['min_range'=>0]]);if($city===false||($city&&!$db->query('SELECT id FROM city WHERE id=?',[$city])))throw new DomainException('Città non valida.');
-   if($id)$db->execute('UPDATE world_areas SET title=?,description=?,image=?,enabled=?,position=?,city_id=? WHERE id=?',[$title,$desc,$image,$enabled,$order,$city,$id]);
+   $city=filter_var($_POST['city_id']??0,FILTER_VALIDATE_INT,['options'=>['min_range'=>0]]);if($city===false||($city&&!$db->query('SELECT id FROM city WHERE id=?',[$city]))){ throw new DomainException('Città non valida.'); }
+   if($id){ $db->execute('UPDATE world_areas SET title=?,description=?,image=?,enabled=?,position=?,city_id=? WHERE id=?',[$title,$desc,$image,$enabled,$order,$city,$id]); }
    else{$slug='area_'.bin2hex(random_bytes(6));$db->execute('INSERT INTO world_areas(slug,title,description,image,enabled,position,city_id) VALUES(?,?,?,?,?,?,?)',[$slug,$title,$desc,$image,$enabled,$order,$city]);$id=(int)$db->lastInsertId();}
   }else{
-   $area=filter_var($_POST['area_id']??0,FILTER_VALIDATE_INT);$parent=$area?$db->query('SELECT * FROM world_areas WHERE id=?',[$area])[0]??null:null;if(!$parent)throw new DomainException('Scegliere una destinazione.');
-   if($id)$db->execute('UPDATE mappe SET title=?,descrizione=?,scene_image=?,scene_thumbnail=?,public_enabled=?,sort_order=?,area_id=?,position=? WHERE id=?',[$title,$desc,$image,$image,$enabled,$order,$area,$parent['slug'],$id]);
+   $area=filter_var($_POST['area_id']??0,FILTER_VALIDATE_INT);$parent=$area?$db->query('SELECT * FROM world_areas WHERE id=?',[$area])[0]??null:null;if(!$parent){ throw new DomainException('Scegliere una destinazione.'); }
+   if($id){ $db->execute('UPDATE mappe SET title=?,descrizione=?,scene_image=?,scene_thumbnail=?,public_enabled=?,sort_order=?,area_id=?,position=? WHERE id=?',[$title,$desc,$image,$image,$enabled,$order,$area,$parent['slug'],$id]); }
    else{$key='room_'.bin2hex(random_bytes(8));$db->execute('INSERT INTO mappe(chat_key,chat,title,position,descrizione,scene_image,scene_thumbnail,public_enabled,sort_order,area_id) VALUES(?,1,?,?,?,?,?,?,?,?)',[$key,$title,$parent['slug'],$desc,$image,$image,$enabled,$order,$area]);$id=(int)$db->lastInsertId();}
   }
   $db->execute('INSERT INTO engine_admin_audit(actor,action,entity_id,created_at) VALUES(?,?,?,?)',[$uid,'world:'.$type,$id,time()]);$db->commit();header('Location: /admin/world.php?saved=1',true,303);exit;
- }catch(Throwable $e){if($db->inTransaction())$db->rollBack();$error=$e instanceof DomainException?$e->getMessage():'Salvataggio non riuscito.';http_response_code(422);}
+ }catch(Throwable $e){if($db->inTransaction()){ $db->rollBack(); }$error=$e instanceof DomainException?$e->getMessage():'Salvataggio non riuscito.';http_response_code(422);}
 }
 $areas=$db->query('SELECT * FROM world_areas ORDER BY position,title');$chats=$db->query('SELECT * FROM mappe WHERE chat=1 ORDER BY area_id,sort_order,title');$cities=$db->query('SELECT id,city FROM city ORDER BY city');$editType=($_GET['entity']??'area')==='chat'?'chat':'area';$editId=(int)($_GET['id']??0);$row=$editId?$db->query('SELECT * FROM '.($editType==='area'?'world_areas':'mappe').' WHERE id=?',[$editId])[0]??[]:[];
 ?>

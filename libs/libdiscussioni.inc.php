@@ -3,7 +3,7 @@
 	{
         $id=(int)$id;
 		global $db;
-		if(!isset($db)) $db=ConnectDB();
+		if(!isset($db)) { $db=ConnectDB(); }
 
 		$query="SELECT COUNT(*) AS num, MAX(id) AS maxid FROM discussioni WHERE replyid=$id";
 		$res=$db->query($query);
@@ -25,12 +25,12 @@
 	{
         $id=(int)$id; $time=(int)$time;
 		global $db;
-		if(!isset($db)) $db=ConnectDB();
+		if(!isset($db)) { $db=ConnectDB(); }
 
 		$query="SELECT MAX(data) AS maxdata FROM discussioni WHERE id='$id' OR replyid='$id'";
 		$res=$db->query($query);
 		$dati=LegacyFetchRow($res);
-		if($dati["maxdata"]>$time) return TRUE;
-		else return FALSE;
+		if($dati["maxdata"]>$time) { return TRUE; }
+		else { return FALSE; }
 	}
 ?>

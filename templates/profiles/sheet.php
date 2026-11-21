@@ -2,7 +2,7 @@
 /** Controller-prepared public and authorized profile data; no permission decisions in the view. */
 $h=static fn(mixed $v):string=>htmlspecialchars((string)($v??''),ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
 $sheet['header_progression']=true;
-if(isset($sheet['npc_id']))$sheet['sections']=array_values(array_filter($sheet['sections'],static fn($s)=>$s['template']!=='board-games'));
+if(isset($sheet['npc_id'])){ $sheet['sections']=array_values(array_filter($sheet['sections'],static fn($s)=>$s['template']!=='board-games')); }
 $d=$sheet['design'];$defaultPortrait=$sheet['portrait']===''||str_contains($sheet['portrait'],'/assets/placeholder.svg');
 $emblem=static function(array $a)use($h):void { ?><span class="rpg-emblem" title="<?=$h($a['label']??$a['name'])?>"><?php if($a['src']): ?><img src="<?=$h($a['src'])?>" alt="<?=$h($a['label']??$a['name'])?>"><?php elseif(!empty($a['glyph'])): ?><?=$h($a['glyph'])?><?php else: ?><span data-icon="<?=$h($a['icon'])?>" aria-hidden="true"></span><?php endif; ?></span><?php };
 $fields=static function(array $rows)use($h):void { ?><dl class="rpg-fields"><?php foreach($rows as $r): ?><div><dt><?=$h($r['label'])?></dt><dd><?=$r['html']?></dd></div><?php endforeach; ?></dl><?php };
@@ -17,7 +17,7 @@ $fields=static function(array $rows)use($h):void { ?><dl class="rpg-fields"><?ph
   </aside>
   <div class="rpg-identity">
    <span class="rpg-eyebrow">Alphano · Storie della comunità</span>
-   <div class="rpg-title-line"><h1><?=$h($sheet['title'])?></h1><div class="rpg-title-actions"><?php foreach($sheet['actions'] as $a):if($a['icon']!=='settings')continue; ?><a class="rpg-edit-action" href="<?=$h($a['url'])?>">Modifica</a><?php endforeach; ?><?php foreach($sheet['actions'] as $a):if(!in_array($a['icon'],['mail','compass'],true))continue; ?><a class="rpg-title-action" data-icon="<?=$h($a['icon'])?>" href="<?=$h($a['url'])?>" aria-label="<?=$h($a['title'])?>" title="<?=$h($a['title'])?>"></a><?php endforeach; ?></div></div>
+   <div class="rpg-title-line"><h1><?=$h($sheet['title'])?></h1><div class="rpg-title-actions"><?php foreach($sheet['actions'] as $a):if($a['icon']!=='settings'){ continue; } ?><a class="rpg-edit-action" href="<?=$h($a['url'])?>">Modifica</a><?php endforeach; ?><?php foreach($sheet['actions'] as $a):if(!in_array($a['icon'],['mail','compass'],true)){ continue; } ?><a class="rpg-title-action" data-icon="<?=$h($a['icon'])?>" href="<?=$h($a['url'])?>" aria-label="<?=$h($a['title'])?>" title="<?=$h($a['title'])?>"></a><?php endforeach; ?></div></div>
    <div class="rpg-identity-line"><?php if(!empty($sheet['origin_image'])): ?><img class="rpg-ethnicity-emblem" data-profile-ethnicity src="<?=$h($sheet['origin_image'])?>" alt="" width="36" height="36"><?php endif; ?><span><?=$h($sheet['origin_label']??'')?></span><span class="rpg-header-fact"><img src="<?=$h(alphano_profile_symbol('crowns'))?>" alt="" width="30" height="30"><span><small><?=alphano_currency_html()?></small><strong><?=$h($sheet['metrics']['Corone']??'0')?></strong></span></span><span class="rpg-header-fact"><img src="<?=$h(alphano_profile_symbol('status'))?>" alt="" width="30" height="30"><span><small>Stato</small><strong><?=$h($sheet['status_label']??'')?></strong></span></span></div><?php if($sheet['subtitle']): ?><p class="rpg-subtitle"><?=$h($sheet['subtitle'])?></p><?php endif; ?>
 
   </div>

@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 // variabile globale per calcolare il tempo di esecuzione degli script
-if (!defined('script_start_timestamp')) define('script_start_timestamp', microtime(true));
+if (!defined('script_start_timestamp')) { define('script_start_timestamp', microtime(true)); }
 
 // Configurazione e servizi comuni
 require_once __DIR__ . '/app.inc.php';
@@ -67,11 +67,11 @@ function return_bytes(string $val): int
  */
 function ClosePage(): void
 {
-    if (str_contains(strtolower((string)($GLOBALS['alphano_response_type'] ?? '')), 'json')) return;
+    if (str_contains(strtolower((string)($GLOBALS['alphano_response_type'] ?? '')), 'json')) { return; }
     foreach (headers_list() as $header) {
-        if (stripos($header, 'Content-Type: application/json') === 0) return;
+        if (stripos($header, 'Content-Type: application/json') === 0) { return; }
     }
-    if (alphano_config('debug')) echo '<!-- Script eseguito in ' . (microtime(true) - script_start_timestamp) . ' secondi -->';
+    if (alphano_config('debug')) { echo '<!-- Script eseguito in ' . (microtime(true) - script_start_timestamp) . ' secondi -->'; }
 }
 
 // fallback per mime_content_type
@@ -147,7 +147,7 @@ function Gnl2n(string $str): string
  */
 function Alphano_diff(string $text1, string $text2): array
 {
-    if($text1===$text2)return [];
+    if($text1===$text2){ return []; }
     $encode=static fn(string $text)=>array_map(static fn($line)=>implode(';',array_values(unpack('C*',$line)?:[])),explode("\n",$text));
     return [[['da'=>1,'a'=>count(explode("\n",$text1)),'text'=>$encode($text1)],['da'=>1,'a'=>count(explode("\n",$text2)),'text'=>$encode($text2)]]];
 }

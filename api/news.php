@@ -23,7 +23,7 @@ $db   = db();
 // RESET “ho letto tutto”
 // ------------------------------------------------------------------
 if (isset($_GET['action']) && $_GET['action'] === 'reset') {
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') error('Metodo non consentito',405);
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') { error('Metodo non consentito',405); }
     alphano_require_csrf(true);
     $now = time();
     $db->execute(

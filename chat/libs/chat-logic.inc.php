@@ -60,7 +60,7 @@ function buildChatMessage(
         [$chat]
     )[0] ?? [];
     $SessionIsRunning = (bool)($run['run'] ?? false);
-    if (!empty($run['lock']) && empty($pg['fatepower'])) return ['', 0, $location, '0'];
+    if (!empty($run['lock']) && empty($pg['fatepower'])) { return ['', 0, $location, '0']; }
     $sessionName      = (int)($run['id'] ?? 0);
     $NeedsDadi        = (bool)($run['dadi'] ?? false);
     $partecipanti     = (string)($run['partecipanti'] ?? '');
@@ -92,8 +92,8 @@ function buildChatMessage(
     require_once __DIR__.'/../../libs/transformations.inc.php';
     $losesLanguage=alphano_loses_human_language($pg);
     $render=function(string $text,bool $action=false)use($losesLanguage,$sesso,&$l):string{
-        if(!$losesLanguage)return alphano_chat_text($text,$sesso,$action);
-        $formatted=alphano_chat_lupine_text($text,$sesso,$action);if($formatted['speech'])$l='1';return $formatted['html'];
+        if(!$losesLanguage){ return alphano_chat_text($text,$sesso,$action); }
+        $formatted=alphano_chat_lupine_text($text,$sesso,$action);if($formatted['speech']){ $l='1'; }return $formatted['html'];
     };
     $razImg   = processRazza(alphano_visible_race($pg),$sesso,(int)$pg['etnia']);
     $razImg   = $link . $razImg . '</a>&nbsp;';
@@ -172,7 +172,7 @@ function buildChatMessage(
         case '@':
             if ($pg['fatepower'] || !empty($GLOBALS['private_chat'])) {
                 $url = substr($str,1);
-                if (!preg_match('~^(https?://|/(?!/))~i', $url)) return ['',0,$location,'0'];
+                if (!preg_match('~^(https?://|/(?!/))~i', $url)) { return ['',0,$location,'0']; }
                 $out = "<DIV class=\"align-center\"><img src=\"" . htmlspecialchars($url) . "\" /></DIV>";
                 $OnGame = false;
             }
@@ -271,8 +271,8 @@ function buildChatMessage(
     // 11) Log sessione in HTML
     if ($SessionIsRunning) {
         $logFile = htmlroot . "/sessione/log/{$sessionName}.html";
-        if(!empty($GLOBALS['alphano_defer_chat_log']))$GLOBALS['alphano_deferred_chat_session']=(int)$sessionName;
-        else file_put_contents($logFile, $out."<br>\n", FILE_APPEND|LOCK_EX);
+        if(!empty($GLOBALS['alphano_defer_chat_log'])){ $GLOBALS['alphano_deferred_chat_session']=(int)$sessionName; }
+        else { file_put_contents($logFile, $out."<br>\n", FILE_APPEND|LOCK_EX); }
         if ($scriviPart) {
             $db->execute(
                 'UPDATE sessioni SET partecipanti=? WHERE id=?',

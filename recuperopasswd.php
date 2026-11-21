@@ -7,12 +7,12 @@ $verified = false;
 $user = '';
 $mail = '';
 $resetToken = $_POST['reset_token'] ?? $_GET['token'] ?? '';
-if (!is_string($resetToken)) alphano_fail('Collegamento non valido.', 400);
+if (!is_string($resetToken)) { alphano_fail('Collegamento non valido.', 400); }
 $reset = null;
 $db = ConnectDB();
 if ($resetToken !== '') {
-    if (preg_match('/^[a-f0-9]{64}$/D', $resetToken)) $reset = $db->query('SELECT * FROM password_resets WHERE token_hash=? AND expires_at>?', [hash('sha256',$resetToken),time()])[0] ?? null;
-    if (!$reset) $error = 'Il collegamento è scaduto o è già stato utilizzato. Richiedine uno nuovo.';
+    if (preg_match('/^[a-f0-9]{64}$/D', $resetToken)) { $reset = $db->query('SELECT * FROM password_resets WHERE token_hash=? AND expires_at>?', [hash('sha256',$resetToken),time()])[0] ?? null; }
+    if (!$reset) { $error = 'Il collegamento è scaduto o è già stato utilizzato. Richiedine uno nuovo.'; }
 }
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     alphano_require_csrf();
@@ -25,23 +25,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 $db->beginTransaction();
                 $row = $db->query('SELECT * FROM password_resets WHERE token_hash=? AND expires_at>? FOR UPDATE', [hash('sha256',$resetToken),time()])[0] ?? null;
-                if (!$row) throw new DomainException('Il collegamento è già stato utilizzato.');
+                if (!$row) { throw new DomainException('Il collegamento è già stato utilizzato.'); }
                 $db->execute('UPDATE utenti SET password=? WHERE id=?', [password_hash($password,PASSWORD_DEFAULT),(int)$row['pg']]);
                 $db->execute('DELETE FROM password_resets WHERE pg=?', [(int)$row['pg']]);
                 $db->commit();
                 $verified = true;
                 $successMessage = 'Password aggiornata. Puoi accedere dalla pagina iniziale.';
             } catch (Throwable $exception) {
-                if ($db->inTransaction()) $db->rollBack();
+                if ($db->inTransaction()) { $db->rollBack(); }
                 $error = $exception instanceof DomainException ? $exception->getMessage() : 'Impossibile aggiornare la password. Riprova.';
-                if (!$exception instanceof DomainException) error_log('[recupero password] ' . $exception->getMessage());
+                if (!$exception instanceof DomainException) { error_log('[recupero password] ' . $exception->getMessage()); }
             }
         }
     } elseif ($resetToken === '') {
-        if (!is_string($_POST['user'] ?? '') || !is_string($_POST['mail'] ?? '')) alphano_fail('Dati non validi.',400);
+        if (!is_string($_POST['user'] ?? '') || !is_string($_POST['mail'] ?? '')) { alphano_fail('Dati non validi.',400); }
         $user = trim($_POST['user'] ?? '');
         $mail = trim($_POST['mail'] ?? '');
-        if ($user === '' || !filter_var($mail,FILTER_VALIDATE_EMAIL)) $error='Inserisci il nome del PG e una email validi.';
+        if ($user === '' || !filter_var($mail,FILTER_VALIDATE_EMAIL)) { $error='Inserisci il nome del PG e una email validi.'; }
         else {
             $row = $db->query('SELECT id,nome,email FROM utenti WHERE nome=? AND email=? LIMIT 1',[$user,$mail])[0] ?? null;
             if ($row) {
@@ -52,11 +52,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if (!$recent || (int)$recent['created_at'] < time()-300) {
                         $token = bin2hex(random_bytes(32));
                         $db->execute('REPLACE INTO password_resets(pg,token_hash,created_at,expires_at) VALUES (?,?,?,?)',[(int)$row['id'],hash('sha256',$token),time(),time()+3600]);
-                        if (!sendPasswordReset($row['email'],$row['nome'],$token)) throw new RuntimeException('Email non inviata');
+                        if (!sendPasswordReset($row['email'],$row['nome'],$token)) { throw new RuntimeException('Email non inviata'); }
                     }
                     $db->commit();
                 } catch (Throwable $exception) {
-                    if ($db->inTransaction()) $db->rollBack();
+                    if ($db->inTransaction()) { $db->rollBack(); }
                     error_log('[recupero password] ' . $exception->getMessage());
                     $error='Il servizio email non è disponibile. Riprova più tardi.';
                 }

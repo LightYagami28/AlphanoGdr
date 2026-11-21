@@ -18,6 +18,6 @@ function alphano_alignment_manual():string
     $catalog=alphano_alignment_catalog();
     $h=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
     $html='<section class="manual-alignment-guides"><h2>Allineamento: come orienta le tue scelte</h2><p>'.$h($catalog['overview']).'</p><p>'.$h($catalog['mechanics']).'</p><div class="manual-alignment-grid">';
-    foreach($catalog['alignments'] as $a)$html.='<article class="manual-alignment-guide"><img src="'.$h($a['image']).'" alt="" width="72" height="72" loading="lazy"><div><h3>'.$h($a['name']).'</h3><p>'.$h($a['description']).'</p><p class="manual-alignment-example"><strong>Esempio in gioco:</strong> '.$h($a['example']).'</p></div></article>';
+    foreach($catalog['alignments'] as $a){ $html.='<article class="manual-alignment-guide"><img src="'.$h($a['image']).'" alt="" width="72" height="72" loading="lazy"><div><h3>'.$h($a['name']).'</h3><p>'.$h($a['description']).'</p><p class="manual-alignment-example"><strong>Esempio in gioco:</strong> '.$h($a['example']).'</p></div></article>'; }
     return $html.'</div></section>';
 }

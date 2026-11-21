@@ -36,7 +36,7 @@ function ElectionTime(int $city): bool
     if(alphano_elections_ready()){ $round=alphano_elections_round($city);return !$round||$round['civic_state']==='candidacy'; }
     $db = ConnectDB();
     $round = $db->query('SELECT start_candidature, start_elezioni FROM storicoelezioni WHERE city_id=? AND winner_id IS NULL ORDER BY id DESC LIMIT 1', [$city])[0] ?? null;
-    if ($round) return time() >= strtotime($round['start_candidature']) && time() < strtotime($round['start_elezioni']);
+    if ($round) { return time() >= strtotime($round['start_candidature']) && time() < strtotime($round['start_elezioni']); }
     $row = $db->query('SELECT elezioni,electiontime FROM city WHERE id=?', [$city])[0] ?? [];
     return !empty($row['elezioni']) && ((!HasMayor($city)) || ((int)date('n') % 4 === (int)($row['electiontime'] ?? -1) && (int)date('j') <= 15));
 }
@@ -50,7 +50,7 @@ function VoteTime(int $city): bool
     if(alphano_elections_ready()){ $round=alphano_elections_round($city);return $round&&in_array($round['civic_state'],['voting','runoff'],true)&&time()<strtotime($round['end_elezioni'].' UTC'); }
     $db = ConnectDB();
     $round = $db->query('SELECT start_elezioni,end_elezioni FROM storicoelezioni WHERE city_id=? AND winner_id IS NULL ORDER BY id DESC LIMIT 1', [$city])[0] ?? null;
-    if ($round) return time() >= strtotime($round['start_elezioni']) && time() < strtotime($round['end_elezioni']);
+    if ($round) { return time() >= strtotime($round['start_elezioni']) && time() < strtotime($round['end_elezioni']); }
     $row = $db->query('SELECT elezioni,electiontime,ballottaggio FROM city WHERE id=?', [$city])[0] ?? [];
     return !empty($row['elezioni']) && (!empty($row['ballottaggio']) || ((int)date('n') % 4 === (int)($row['electiontime'] ?? -1) && (int)date('j') > 15));
 }
@@ -61,8 +61,8 @@ function VoteTime(int $city): bool
  */
 function InserisciCandidato(int $budget, int $costo, int $pg, int $city, string $programma, int $org): true|string
 {
-    if(alphano_elections_ready()){if((int)(alphano_user()['id']??0)!==$pg)return 'La candidatura deve essere confermata personalmente dal cittadino.';try{alphano_elections_candidate($city,$pg,$programma);return true;}catch(DomainException $e){return $e->getMessage();}}
-    if ($costo < 0 || trim($programma) === '' || !ElectionTime($city)) return 'Candidature non aperte o parametri non validi';
+    if(alphano_elections_ready()){if((int)(alphano_user()['id']??0)!==$pg){ return 'La candidatura deve essere confermata personalmente dal cittadino.'; }try{alphano_elections_candidate($city,$pg,$programma);return true;}catch(DomainException $e){return $e->getMessage();}}
+    if ($costo < 0 || trim($programma) === '' || !ElectionTime($city)) { return 'Candidature non aperte o parametri non validi'; }
     $db = ConnectDB();
     $pdo = $db->getConnection();
     try {
@@ -79,7 +79,7 @@ function InserisciCandidato(int $budget, int $costo, int $pg, int $city, string 
         $pdo->commit();
         return true;
     } catch (Throwable $e) {
-        if ($pdo->inTransaction()) $pdo->rollBack();
+        if ($pdo->inTransaction()) { $pdo->rollBack(); }
         error_log('[elezioni] '.$e->getMessage());
         return 'Errore nell’inserimento del candidato';
     }
@@ -100,7 +100,7 @@ function CanVote(int $idpg): bool
  */
 function GetVotazioni(int $city): array
 {
-    if(alphano_elections_ready()){ $round=alphano_elections_round($city);$out=[];foreach($round?alphano_elections_candidates($round):[] as $r)$out[$r['id']]=['id'=>$r['id'],'nome'=>$r['name'],'voti'=>$r['votes'],'idorg'=>$r['idorg'],'nomeorg'=>$r['organization']];return $out; }
+    if(alphano_elections_ready()){ $round=alphano_elections_round($city);$out=[];foreach($round?alphano_elections_candidates($round):[] as $r){ $out[$r['id']]=['id'=>$r['id'],'nome'=>$r['name'],'voti'=>$r['votes'],'idorg'=>$r['idorg'],'nomeorg'=>$r['organization']]; }return $out; }
     $rows = ConnectDB()->query('SELECT c.idpg AS id,u.nome,c.organizzazione AS idorg,org.nome AS nomeorg,COUNT(DISTINCT e.idvotante) AS voti FROM candidati c JOIN utenti u ON u.id=c.idpg LEFT JOIN organizzazioni org ON org.id=c.organizzazione LEFT JOIN elezioni e ON e.idcandidato=c.idpg WHERE c.city=? GROUP BY c.idpg,u.nome,c.organizzazione,org.nome ORDER BY u.nome', [$city]);
     $out=[];
     foreach ($rows as $row) {
@@ -117,7 +117,7 @@ function GetVotazioni(int $city): array
  */
 function GetCandidati(int $city): array
 {
-    if(alphano_elections_ready()){ $out=[];foreach(GetVotazioni($city) as $r)$out[$r['id']]=['id'=>$r['id'],'nome'=>$r['nome'],'nomeorg'=>$r['nomeorg']];return $out; }
+    if(alphano_elections_ready()){ $out=[];foreach(GetVotazioni($city) as $r){ $out[$r['id']]=['id'=>$r['id'],'nome'=>$r['nome'],'nomeorg'=>$r['nomeorg']]; }return $out; }
     $db = ConnectDB();
     $rows = $db->query(
         'SELECT u.id, u.nome, org.nome AS nomeorg
@@ -147,7 +147,7 @@ function GetCandidati(int $city): array
  */
 function GetProgrammi(int $city): array
 {
-    if(alphano_elections_ready()){ $round=alphano_elections_round($city);$out=[];foreach($round?alphano_elections_candidates($round):[] as $r)$out[$r['id']]=$r['program'];return $out; }
+    if(alphano_elections_ready()){ $round=alphano_elections_round($city);$out=[];foreach($round?alphano_elections_candidates($round):[] as $r){ $out[$r['id']]=$r['program']; }return $out; }
     $db = ConnectDB();
     $rows = $db->query(
         'SELECT idpg, programma FROM candidati WHERE city = ?',
@@ -207,7 +207,7 @@ function Eleggi(int $city, int $sindaco, int $org, array $cariche): void
     require_once __DIR__.'/admin-governance.inc.php';
     alphano_governance_retire_mayors(0,$sindaco,$city,'Esito elezioni');
     $winner=$db->query('SELECT * FROM utenti WHERE id=? FOR UPDATE',[$sindaco])[0]??null;
-    if(!$winner)throw new DomainException('Vincitore non disponibile.',409);
+    if(!$winner){ throw new DomainException('Vincitore non disponibile.',409); }
     $before=alphano_governance_state($winner);$after=$before;$after['sindaco']=1;$after['araldica']=(int)alphano_governance_city_role($city,true)['id'];
     $db->execute('UPDATE utenti SET sindaco=1,araldica=? WHERE id=?',[$after['araldica'],$sindaco]);
     alphano_governance_audit(0,$sindaco,$before,$after,'Nomina alla carica apicale dopo le elezioni');

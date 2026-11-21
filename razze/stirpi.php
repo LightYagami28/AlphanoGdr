@@ -2,8 +2,8 @@
 declare(strict_types=1);
 require_once __DIR__.'/../libs/player-runtime.inc.php';
 require_once __DIR__.'/../libs/lineages.inc.php';
-alphano_require_login();$kind=$_GET['kind']??'vampire';if(!is_string($kind)||!in_array($kind,['vampire','lycan'],true))alphano_fail('Stirpe non valida.',400);
-$raw=$_GET['root']??null;$root=$raw===null?null:filter_var($raw,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);if($root===false)alphano_fail('Capostipite non valido.',400);
+alphano_require_login();$kind=$_GET['kind']??'vampire';if(!is_string($kind)||!in_array($kind,['vampire','lycan'],true)){ alphano_fail('Stirpe non valida.',400); }
+$raw=$_GET['root']??null;$root=$raw===null?null:filter_var($raw,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);if($root===false){ alphano_fail('Capostipite non valido.',400); }
 $lineage=null;if($root!==null){try{$lineage=lineage_tree((int)$root,$kind);}catch(DomainException $e){alphano_fail($e->getMessage(),404);}}
 $families=ConnectDB()->query('SELECT l.player_id,l.origin,u.nome FROM lineage_members l JOIN utenti u ON u.id=l.player_id WHERE l.kind=? AND l.creator_id IS NULL ORDER BY u.nome',[$kind]);
 $h=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');

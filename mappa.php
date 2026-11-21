@@ -2,8 +2,8 @@
 declare(strict_types=1);
 require_once __DIR__.'/libs/world-map.inc.php';
 $uid=alphano_require_login();$db=ConnectDB();
-$area=filter_var($_GET['area']??0,FILTER_VALIDATE_INT,['options'=>['min_range'=>0]]);if($area===false)alphano_fail('Luogo non valido.',422);
-$selected=$area?$db->query('SELECT * FROM world_areas WHERE id=? AND enabled=1',[$area])[0]??null:null;if($area&&!$selected)alphano_fail('Luogo non trovato.',404);
+$area=filter_var($_GET['area']??0,FILTER_VALIDATE_INT,['options'=>['min_range'=>0]]);if($area===false){ alphano_fail('Luogo non valido.',422); }
+$selected=$area?$db->query('SELECT * FROM world_areas WHERE id=? AND enabled=1',[$area])[0]??null:null;if($area&&!$selected){ alphano_fail('Luogo non trovato.',404); }
 $db->execute("UPDATE utenti SET posizione='online',chat='',lastmove=? WHERE id=?",[time(),$uid]);
 $rows=alphano_world_map_rows((int)$area);$mapConfig=alphano_world_map();$view=in_array($_GET['view']??'', ['cards','visual'],true)?$_GET['view']:$mapConfig['mode'];$mapPayload=alphano_world_map_payload((int)$area,$rows);$visual=$view==='visual'&&$mapPayload['image']!=='';
 

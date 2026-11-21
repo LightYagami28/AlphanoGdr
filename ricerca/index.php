@@ -53,7 +53,7 @@ $admin = ($userRow['admin'] || $userRow['fatepower']);
 $params = ["nome","luogo","razza","online","araldica","caricacorporazione",
            "caricaorganizzazione","categoria","corporazione","organizzazione",
            "al","sesso","etnia","city"];
-foreach ($params as $p) $$p = $_GET[$p] ?? "";
+foreach ($params as $p) { $$p = $_GET[$p] ?? ""; }
 
 // ------------------------------------------------------------------
 // 4. Query dinamica
@@ -71,7 +71,7 @@ $listaCorp = ListaCorporazioni();  // [{id,nome,descrizione}]
 $mapCity   = array_column(GetListaCity(), 'city','id');
 
 $listaaraldiche = [];
-foreach (ListaAraldiche() as $r) $listaaraldiche[$r['city']][] = $r;
+foreach (ListaAraldiche() as $r) { $listaaraldiche[$r['city']][] = $r; }
 
 // ------------------------------------------------------------------
 // 6. Esegui query e raccogli ID per descrizioni
@@ -80,8 +80,8 @@ $rows   = $db->query($q,$searchParameters);
 $orgIDs = $corpIDs = $araldIDs = [];
 
 foreach ($rows as $d) {
-    if ($d['caricaorganizzazione']) $orgIDs[$d['caricaorganizzazione']] = true;
-    if ($d['caricacorporazione'])   $corpIDs[$d['caricacorporazione']] = true;
+    if ($d['caricaorganizzazione']) { $orgIDs[$d['caricaorganizzazione']] = true; }
+    if ($d['caricacorporazione'])   { $corpIDs[$d['caricacorporazione']] = true; }
     $araldIDs[$d['araldica']] = true;
 }
 
@@ -90,21 +90,21 @@ $org = [];
 if ($orgIDs) {
     $ids = "'".implode("','", array_keys($orgIDs))."'";
     foreach ($db->query("SELECT id,nome,descrizione FROM caricheorganizzazioni WHERE id IN ($ids)") as $r)
-        $org[$r['id']] = $r;
+        { $org[$r['id']] = $r; }
 }
 // cariche corp
 $corp = [];
 if ($corpIDs) {
     $ids = "'".implode("','", array_keys($corpIDs))."'";
     foreach ($db->query("SELECT id,nome,descrizione FROM carichecorporazioni WHERE id IN ($ids)") as $r)
-        $corp[$r['id']] = $r;
+        { $corp[$r['id']] = $r; }
 }
 // araldiche
 $arald = [];
 if ($araldIDs) {
     $ids = "'".implode("','", array_keys($araldIDs))."'";
     foreach ($db->query("SELECT id,nome,descrizione FROM araldiche WHERE id IN ($ids)") as $r)
-        $arald[$r['id']] = $r;
+        { $arald[$r['id']] = $r; }
 }
 
 // ------------------------------------------------------------------

@@ -5,14 +5,14 @@ header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: private, no-store');
 require_once __DIR__.'/../libs/ai.inc.php';
 try {
-    if ($_SERVER['REQUEST_METHOD']!=='POST') throw new DomainException('Metodo non consentito',405);
+    if ($_SERVER['REQUEST_METHOD']!=='POST') { throw new DomainException('Metodo non consentito',405); }
     alphano_require_login(true);
     $in=alphano_request_json();
     alphano_require_csrf(true);
     $chat=ai_field($in,'chat_key',100,true);
     $prompt=ai_field($in,'prompt',1200,true);
     $room=ai_room($chat);
-    if (!$room || !(int)$room['enabled']) throw new DomainException('Nessun PNG attivo in questo luogo.',404);
+    if (!$room || !(int)$room['enabled']) { throw new DomainException('Nessun PNG attivo in questo luogo.',404); }
     $_GET['chat']=$chat;
     $GLOBALS['alphano_legacy_ai_request']=[...$in,'msg'=>$prompt,'ai_request'=>true];
 } catch (Throwable $e) {

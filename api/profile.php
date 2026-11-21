@@ -26,7 +26,7 @@ $profileId = $uidParam !== null ? (int)$uidParam : $visitorId;
 $db        = ConnectDB();
 require_once __DIR__.'/../libs/lineages.inc.php';
 lineage_tick();
-if ($profileId === $visitorId) alphano_transformation_sync($visitorId);
+if ($profileId === $visitorId) { alphano_transformation_sync($visitorId); }
 
 // ────────────────────────────────────────────────────────────────────
 // 4) Query principale

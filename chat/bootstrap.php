@@ -24,7 +24,7 @@ $master  = (bool)($utente['fatepower']||$utente['admin']);
 if (empty($_GET['chat'])) {
     alphano_fail('Seleziona un luogo dalla mappa.', 400);
 }
-if (!is_string($_GET['chat'])) alphano_fail('Luogo non valido.',400);
+if (!is_string($_GET['chat'])) { alphano_fail('Luogo non valido.',400); }
 $chat = $_GET['chat'];
 
 // 4) Carica da mappe
@@ -33,9 +33,9 @@ $row = $db->query(
        FROM mappe WHERE chat_key = ? AND public_enabled=1 AND (area_id IS NULL OR area_id IN(SELECT id FROM world_areas WHERE enabled=1))",
     [$chat]
 );
-try{if (!$row && ($private = alphano_private_room($chat, $idpg))) $row = [$private];}
+try{if (!$row && ($private = alphano_private_room($chat, $idpg))) { $row = [$private]; }}
 catch(AlphanoRentalExpired $e){header('Location: /chat/index.php?chat='.rawurlencode($e->rental['host_key']).'&rental_expired=1',true,303);exit;}
-if (!$row) alphano_fail('Questo luogo non è disponibile.', 404);
+if (!$row) { alphano_fail('Questo luogo non è disponibile.', 404); }
 $config        = $row[0];
 $isChat        = (bool)$config['isChatFlag'];
 $privateChat   = isset($config['private_kind']);
@@ -66,9 +66,9 @@ if ($isChat
     && $_SERVER['REQUEST_METHOD'] === 'POST'
     && isset($_POST['txtdescrizione'])
 ) {
-    if (!$utente['admin'] && !$master) alphano_fail('Privilegi insufficienti.', 403);
+    if (!$utente['admin'] && !$master) { alphano_fail('Privilegi insufficienti.', 403); }
     alphano_require_csrf();
-    if (!is_string($_POST['txtdescrizione'])) alphano_fail('Descrizione non valida.',400);
+    if (!is_string($_POST['txtdescrizione'])) { alphano_fail('Descrizione non valida.',400); }
     $txt = trim($_POST['txtdescrizione']);
     $db->execute(
         "UPDATE mappe SET descrizione = ? WHERE chat_key = ?",

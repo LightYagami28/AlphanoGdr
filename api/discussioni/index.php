@@ -6,7 +6,7 @@ player_api(function (): array {
     $idpg=alphano_require_login(true); $user=alphano_user(); $db=getDB(); $in=player_input();
     $type=player_text($in,'tipo',50,true); $moderator=player_discussion_access($type,$user);
     $action=player_text($in,'action',30) ?: 'list_open';
-    if (!in_array($action,['list_open','list_closed','show'],true)) player_mutation();
+    if (!in_array($action,['list_open','list_closed','show'],true)) { player_mutation(); }
     $format = function (array $post) use ($idpg,$moderator): array {
         return ['id'=>(int)$post['id'],'oggetto'=>$post['oggetto'],'messaggio'=>ProcessText($post['messaggio']),
             'message_raw'=>$post['messaggio'],'data'=>(int)$post['data'],'author_id'=>(int)$post['idpg'],'author'=>$post['author'] ?? 'Sistema',
@@ -24,36 +24,36 @@ player_api(function (): array {
     }
     $id=(int)($action==='reply' ? ($in['replyID'] ?? 0) : ($in['id'] ?? 0));
     $row=$db->query('SELECT d.*,u.nome AS author FROM discussioni d LEFT JOIN utenti u ON u.id=d.idpg WHERE d.id=? AND d.tipo=?',[$id,$type])[0] ?? null;
-    if (!$row) throw new RuntimeException('Messaggio non trovato',404);
+    if (!$row) { throw new RuntimeException('Messaggio non trovato',404); }
     if ($action==='show') {
-        if ((int)$row['replyid']!==0) throw new RuntimeException('Thread non trovato',404);
+        if ((int)$row['replyid']!==0) { throw new RuntimeException('Thread non trovato',404); }
         $posts=$db->query('SELECT d.*,u.nome AS author FROM discussioni d LEFT JOIN utenti u ON u.id=d.idpg WHERE d.replyid=? AND d.tipo=? ORDER BY d.id',[$id,$type]);
         return ['thread'=>$format($row),'posts'=>array_map($format,$posts)];
     }
     if ($action==='reply') {
-        if ((int)$row['replyid']!==0) throw new RuntimeException('Thread non trovato',404);
-        if (!empty($row['chiusa'])) throw new RuntimeException('Thread chiuso',409);
+        if ((int)$row['replyid']!==0) { throw new RuntimeException('Thread non trovato',404); }
+        if (!empty($row['chiusa'])) { throw new RuntimeException('Thread chiuso',409); }
         $subject=player_text($in,'oggetto',255) ?: 'Nessun Oggetto'; $message=player_text($in,'messaggio',100000,true);
         $db->beginTransaction();
         try {
             // Recheck under the same row lock used by close/delete.
             $locked=$db->query('SELECT chiusa FROM discussioni WHERE id=? AND tipo=? FOR UPDATE',[$id,$type])[0] ?? null;
-            if (!$locked) throw new RuntimeException('Thread non trovato',404);
-            if (!empty($locked['chiusa'])) throw new RuntimeException('Thread chiuso',409);
+            if (!$locked) { throw new RuntimeException('Thread non trovato',404); }
+            if (!empty($locked['chiusa'])) { throw new RuntimeException('Thread chiuso',409); }
             $db->execute('INSERT INTO discussioni(replyid,data,oggetto,messaggio,tipo,idpg) VALUES(?,?,?,?,?,?)',[$id,time(),$subject,$message,$type,$idpg]);
             $newId=(int)$db->lastInsertId();
-            if ($moderator && !empty($in['chiudi'])) $db->execute('UPDATE discussioni SET chiusa=1 WHERE id=? AND tipo=?',[$id,$type]);
+            if ($moderator && !empty($in['chiudi'])) { $db->execute('UPDATE discussioni SET chiusa=1 WHERE id=? AND tipo=?',[$id,$type]); }
             $db->commit();
         } catch (Throwable $e) { $db->rollBack(); throw $e; }
         return ['post_id'=>$newId];
     }
     if ($action==='close' || $action==='open') {
-        if (!$moderator) throw new RuntimeException('Permesso negato',403);
-        if ((int)$row['replyid']!==0) throw new RuntimeException('Non è un thread',400);
+        if (!$moderator) { throw new RuntimeException('Permesso negato',403); }
+        if ((int)$row['replyid']!==0) { throw new RuntimeException('Non è un thread',400); }
         $db->execute('UPDATE discussioni SET chiusa=? WHERE id=? AND tipo=?',[$action==='close'?'1':'0',$id,$type]);
         return [$action==='close'?'closed':'opened'=>true];
     }
-    if (!$moderator && (int)$row['idpg']!==$idpg) throw new RuntimeException('Permesso negato',403);
+    if (!$moderator && (int)$row['idpg']!==$idpg) { throw new RuntimeException('Permesso negato',403); }
     if ($action==='modify') {
         $subject=player_text($in,'oggetto',255) ?: 'Nessun Oggetto'; $message=player_text($in,'messaggio',100000,true);
         $db->execute('UPDATE discussioni SET oggetto=?,messaggio=? WHERE id=? AND tipo=?',[$subject,$message,$id,$type]);

@@ -18,7 +18,7 @@ require_once __DIR__.'/../libs/transformations.inc.php';
 
 
 alphano_require_login();
-if ($_SERVER['REQUEST_METHOD'] === 'POST') alphano_require_csrf();
+if ($_SERVER['REQUEST_METHOD'] === 'POST') { alphano_require_csrf(); }
 initSession();
 $idpg = GetIDPG(false);
 if (!$idpg) {
@@ -53,33 +53,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $current=alphano_transformation_state($user);
         $who = htmlspecialchars($playerName, ENT_QUOTES|ENT_SUBSTITUTE, 'UTF-8');
         if ($action === 'trasforma') {
-            if(empty($current['canChoose']))throw new DomainException('La trasformazione non può essere scelta da questo personaggio.',403);
+            if(empty($current['canChoose'])){ throw new DomainException('La trasformazione non può essere scelta da questo personaggio.',403); }
             $form=$_POST['form']??$current['nextForm'];
-            if(!is_string($form))throw new DomainException('Forma non valida.',422);
+            if(!is_string($form)){ throw new DomainException('Forma non valida.',422); }
             alphano_transformation_sync($idpg,$form);
             $html=null; // The shared transition already wrote the announcement.
         } elseif (isset($fields[$action])) {
-            if(!alphano_lycan_can_grant($user))throw new DomainException('Questi doni appartengono soltanto alla stirpe ancestrale.',403);
-            if($chatRoom===''||$user['chat']!==$chatRoom)throw new InvalidArgumentException('Entra nella stessa chat del personaggio prima di usare i doni ancestrali.');
+            if(!alphano_lycan_can_grant($user)){ throw new DomainException('Questi doni appartengono soltanto alla stirpe ancestrale.',403); }
+            if($chatRoom===''||$user['chat']!==$chatRoom){ throw new InvalidArgumentException('Entra nella stessa chat del personaggio prima di usare i doni ancestrali.'); }
             $target = (int)($_POST[$fields[$action]] ?? 0);
             $t = $db->query('SELECT * FROM utenti WHERE id=? AND chat=? FOR UPDATE', [$target,$chatRoom])[0] ?? null;
-            if (!$t || $target === $idpg) throw new InvalidArgumentException('Scegli un personaggio presente nella stessa chat');
+            if (!$t || $target === $idpg) { throw new InvalidArgumentException('Scegli un personaggio presente nella stessa chat'); }
             $name = htmlspecialchars($t['nome'], ENT_QUOTES|ENT_SUBSTITUTE, 'UTF-8');
             if ($action === 'infetta') {
-                if($db->query('SELECT id FROM sessioni WHERE chat=? AND run=1 LIMIT 1',[$chatRoom]))throw new InvalidArgumentException('La scena è gestita dal Master: dichiara in chat il tentativo di mordere e trasmettere l’infezione. Il contagio segue il morso riuscito, senza saltare i turni.');
+                if($db->query('SELECT id FROM sessioni WHERE chat=? AND run=1 LIMIT 1',[$chatRoom])){ throw new InvalidArgumentException('La scena è gestita dal Master: dichiara in chat il tentativo di mordere e trasmettere l’infezione. Il contagio segue il morso riuscito, senza saltare i turni.'); }
                 alphano_lycan_infect($user,$target,$chatRoom,$playerName.' trasmette il contagio con un morso ancestrale.',$idpg);
                 $html = "$who affonda i denti nella carne di <strong>$name</strong> e vi trasmette la maledizione. Il corpo resta umano, ma la prima Luna Piena imporrà la metamorfosi in Licantropo, contro la sua volontà. Se la Luna è già piena, il richiamo agisce subito.";
             } elseif ($action === 'senzienza') {
-                if (!$t['infetto'] || $t['senziente']) throw new InvalidArgumentException('Il personaggio non può ricevere la senzienza');
+                if (!$t['infetto'] || $t['senziente']) { throw new InvalidArgumentException('Il personaggio non può ricevere la senzienza'); }
                 $db->execute('UPDATE utenti SET senziente=1 WHERE id=?', [$target]);
                 $html = "$who ha concesso la <strong>senzienza</strong> a <strong>$name</strong>.";
             } else {
-                if ($t['ancestrale']) throw new InvalidArgumentException('Il personaggio è già ancestrale');
+                if ($t['ancestrale']) { throw new InvalidArgumentException('Il personaggio è già ancestrale'); }
                 $db->execute('UPDATE utenti SET ancestrale=1 WHERE id=?', [$target]);
                 $html = "$who ha donato l'<strong>ancestralità</strong> a <strong>$name</strong>.";
             }
-        } else throw new InvalidArgumentException('Azione non valida');
-        if ($html!==null) InsertIntoChat($chatRoom, '<DIV class="MasterKey">'.$html.'</DIV>');
+        } else { throw new InvalidArgumentException('Azione non valida'); }
+        if ($html!==null) { InsertIntoChat($chatRoom, '<DIV class="MasterKey">'.$html.'</DIV>'); }
         $db->commit();
     } catch (Throwable $e) {
         $db->rollBack();

@@ -5,8 +5,8 @@ declare(strict_types=1);
 function alphano_runtime_install_url(?string $script = null): string
 {
     $base = rtrim(str_replace('\\', '/', dirname($script ?? ($_SERVER['SCRIPT_NAME'] ?? '/index.php'))), '/');
-    if (basename($base) === 'install') $base = rtrim(dirname($base), '/');
-    if (!preg_match('~^(?:/[A-Za-z0-9_-]+)*$~D', $base)) $base = '';
+    if (basename($base) === 'install') { $base = rtrim(dirname($base), '/'); }
+    if (!preg_match('~^(?:/[A-Za-z0-9_-]+)*$~D', $base)) { $base = ''; }
     return $base.'/install/';
 }
 function alphano_altervista_php84_config(string $original): string
@@ -16,34 +16,34 @@ function alphano_altervista_php84_config(string $original): string
 }
 function alphano_runtime_select_php84(string $root): void
 {
-    if (is_file($root.'/config/local.php') || is_file($root.'/private/installed.lock')) throw new DomainException('Il sito è già configurato: seleziona PHP dal pannello del provider.');
-    if (!is_dir($root.'/private') || !is_writable($root.'/private')) throw new DomainException('La cartella private/ deve essere scrivibile. In alternativa seleziona PHP 8.4 nel pannello AlterVista.');
+    if (is_file($root.'/config/local.php') || is_file($root.'/private/installed.lock')) { throw new DomainException('Il sito è già configurato: seleziona PHP dal pannello del provider.'); }
+    if (!is_dir($root.'/private') || !is_writable($root.'/private')) { throw new DomainException('La cartella private/ deve essere scrivibile. In alternativa seleziona PHP 8.4 nel pannello AlterVista.'); }
     $guard = fopen($root.'/private/php-runtime.lock', 'c');
-    if (!$guard || !flock($guard, LOCK_EX | LOCK_NB)) throw new DomainException('Selezione PHP già in corso. Riprova fra poco.');
+    if (!$guard || !flock($guard, LOCK_EX | LOCK_NB)) { throw new DomainException('Selezione PHP già in corso. Riprova fra poco.'); }
     $temp = null;
     try {
         $path = $root.'/.htaccess';
-        if (is_link($path) || (is_file($path) && (!is_readable($path) || filesize($path) > 1048576))) throw new DomainException('Non posso aggiornare il file .htaccess. Seleziona PHP 8.4 dal pannello AlterVista.');
+        if (is_link($path) || (is_file($path) && (!is_readable($path) || filesize($path) > 1048576))) { throw new DomainException('Non posso aggiornare il file .htaccess. Seleziona PHP 8.4 dal pannello AlterVista.'); }
         $original = is_file($path) ? file_get_contents($path) : '';
-        if ($original === false) throw new DomainException('Lettura del file .htaccess non riuscita.');
+        if ($original === false) { throw new DomainException('Lettura del file .htaccess non riuscita.'); }
         $backup = $root.'/private/php-runtime-original.htaccess';
         if (!is_file($backup)) {
             $saved = fopen($backup, 'x');
-            if (!$saved) throw new DomainException('Impossibile salvare la copia di sicurezza del file .htaccess.');
+            if (!$saved) { throw new DomainException('Impossibile salvare la copia di sicurezza del file .htaccess.'); }
             chmod($backup, 0600);
             $ok = fwrite($saved, $original) === strlen($original);fclose($saved);
             if (!$ok) {unlink($backup);throw new DomainException('Copia di sicurezza non completata. Nessuna impostazione è stata modificata.');}
         }
         $temp = tempnam($root, '.alphano-php-');
-        if ($temp === false) throw new DomainException('La radice del sito non è scrivibile. Seleziona PHP 8.4 dal pannello AlterVista.');
+        if ($temp === false) { throw new DomainException('La radice del sito non è scrivibile. Seleziona PHP 8.4 dal pannello AlterVista.'); }
         $updated = alphano_altervista_php84_config($original);
-        if (file_put_contents($temp, $updated, LOCK_EX) !== strlen($updated)) throw new DomainException('Scrittura della selezione PHP non riuscita.');
+        if (file_put_contents($temp, $updated, LOCK_EX) !== strlen($updated)) { throw new DomainException('Scrittura della selezione PHP non riuscita.'); }
         chmod($temp, is_file($path) ? fileperms($path) & 0777 : 0644);
-        if ((is_file($path) ? file_get_contents($path) : '') !== $original) throw new DomainException('Il file .htaccess è cambiato nel frattempo. Riprova.');
-        if (!rename($temp, $path)) throw new DomainException('Impossibile attivare PHP 8.4. Selezionalo dal pannello AlterVista.');
+        if ((is_file($path) ? file_get_contents($path) : '') !== $original) { throw new DomainException('Il file .htaccess è cambiato nel frattempo. Riprova.'); }
+        if (!rename($temp, $path)) { throw new DomainException('Impossibile attivare PHP 8.4. Selezionalo dal pannello AlterVista.'); }
         $temp = null;
     } finally {
-        if (is_string($temp) && is_file($temp)) unlink($temp);
+        if (is_string($temp) && is_file($temp)) { unlink($temp); }
         flock($guard, LOCK_UN);fclose($guard);
     }
 }
@@ -76,10 +76,10 @@ function alphano_runtime_setup(string $root): void
             }
         }
         $attempted = isset($_GET['runtime']) && $_GET['runtime'] === 'updated';
-        if ($attempted) $message = 'La selezione PHP 8.4 è stata salvata, ma il server sta ancora usando PHP '.PHP_VERSION.'. Apri il pannello AlterVista → Impostazioni PHP, seleziona PHP 8.4 e poi riprova. Non è stato creato né modificato alcun database.';
+        if ($attempted) { $message = 'La selezione PHP 8.4 è stata salvata, ma il server sta ancora usando PHP '.PHP_VERSION.'. Apri il pannello AlterVista → Impostazioni PHP, seleziona PHP 8.4 e poi riprova. Non è stato creato né modificato alcun database.'; }
         else {
             $message = 'Il server sta usando PHP '.PHP_VERSION.'. Possiamo chiedere ad AlterVista di usare PHP 8.4 per questo sito, conservando le altre regole del file .htaccess e salvandone una copia. Poi si aprirà l’installazione. Se la versione selezionata richiede patch di sicurezza, potrai accettarne esplicitamente il rischio e continuare.';
-            if ($error !== '') $message .= ' '.$error;
+            if ($error !== '') { $message .= ' '.$error; }
             $form = ['action'=>$install,'csrf'=>$_SESSION['runtime_csrf'],'checkbox'=>'accept_runtime_change','consent'=>'Ho compreso: selezionare PHP 8.4 può cambiare il comportamento di eventuali altri script in questo spazio. Voglio continuare.','button'=>'Attiva PHP 8.4 e continua'];
         }
     }

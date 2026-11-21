@@ -34,7 +34,7 @@ $userActions = [
     'mostraemailreg'=>'Mostra Email Reg.', 'ottimizza'=>'Ottimizza Tabelle',
     'manutenzione'=>'Manutenzione utenti e archivi', 'dump'=>'Dump Database',
 ];
-if (!$canManageUsers) $userActions = array_intersect_key($userActions, array_flip(['statosociale','mostrastatosociale']));
+if (!$canManageUsers) { $userActions = array_intersect_key($userActions, array_flip(['statosociale','mostrastatosociale'])); }
 ?>
 <!DOCTYPE html>
 <html lang="it">

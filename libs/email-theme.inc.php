@@ -6,8 +6,8 @@ function alphano_email_categories():array {
 }
 function alphano_email_url(string $path='/main.php'):string {
  $base=rtrim((string)alphano_config('base_url'),'/');
- if(!preg_match('#^https?://[^/]+#',$base))$base='https://example.invalid';
- if(!str_starts_with($path,'/')||str_starts_with($path,'//')||str_contains($path,"\r")||str_contains($path,"\n"))$path='/main.php';
+ if(!preg_match('#^https?://[^/]+#',$base)){ $base='https://example.invalid'; }
+ if(!str_starts_with($path,'/')||str_starts_with($path,'//')||str_contains($path,"\r")||str_contains($path,"\n")){ $path='/main.php'; }
  return $base.$path;
 }
 function alphano_email_render(string $subject,string $body,string $category='alerts',string $path='/main.php',bool $optional=false):string {

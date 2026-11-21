@@ -18,7 +18,7 @@ function alphano_city_directory(array $viewer, int $selected = 0): array
         FROM city c ORDER BY c.city,c.id');
     $mayors = $db->query('SELECT u.id,u.nome,u.avatar,u.avatar2,u.razza,u.alternate_form,u.sesso,a.city FROM utenti u JOIN araldiche a ON a.id=u.araldica
         WHERE u.sindaco=1 ORDER BY u.nome,u.id');
-    foreach($mayors as &$mayor) $mayor['portrait']=alphano_profile_portrait($mayor);
+    foreach($mayors as &$mayor) { $mayor['portrait']=alphano_profile_portrait($mayor); }
     unset($mayor);
     $pending=(int)($db->query('SELECT city FROM richieste WHERE idpg=? AND city>0 ORDER BY data,city LIMIT 1',[(int)$viewer['id']])[0]['city']??0);
     $viewerCity = (int)($db->query('SELECT city FROM araldiche WHERE id=?', [(int)($viewer['araldica'] ?? 0)])[0]['city'] ?? 0);
@@ -34,7 +34,7 @@ function alphano_city_directory(array $viewer, int $selected = 0): array
         $city['artwork']=alphano_city_artwork((string)$city['city']);
         $city['pending_application']=$pending===$id;
         $city['can_apply']=!$city['is_citizen']&&$pending===0;
-        if ($id === $selected) $chosen = $city;
+        if ($id === $selected) { $chosen = $city; }
     }
     unset($city);
     $offices = [];
@@ -44,7 +44,7 @@ function alphano_city_directory(array $viewer, int $selected = 0): array
         $offices = $db->query('SELECT a.id,a.nome,a.stipendio,a.descrizione,a.prima,a.livello,
             a.ramo AS branch_id,COALESCE(r.livello,2147483647) AS branch_level,r.nome AS branch_name FROM araldiche a LEFT JOIN ramiaraldiche r ON r.id=a.ramo AND r.city=a.city
             WHERE a.city=? ORDER BY COALESCE(r.livello,0),COALESCE(r.nome,\'\'),a.livello DESC,a.nome,a.id', [$selected]);
-        foreach ($offices as &$office) $office['badge'] = alphano_badge_url('cariche', (int)$office['id']);
+        foreach ($offices as &$office) { $office['badge'] = alphano_badge_url('cariche', (int)$office['id']); }
         unset($office);
         $citizens = $db->query('SELECT u.id,u.nome,u.sindaco,u.razza,u.alternate_form,u.sesso,u.avatar,u.avatar2,a.nome AS office_name,
             a.id AS office_id,r.nome AS branch_name,z.nome AS race_name
@@ -58,7 +58,7 @@ function alphano_city_directory(array $viewer, int $selected = 0): array
             $citizen['race_icon'] = alphano_race_icon($race,$citizen['sesso']);
         }
         unset($citizen);
-        $byOffice=[];foreach($citizens as $citizen)$byOffice[(int)$citizen['office_id']][]=$citizen['portrait_data'];
+        $byOffice=[];foreach($citizens as $citizen){ $byOffice[(int)$citizen['office_id']][]=$citizen['portrait_data']; }
         foreach($offices as &$office){$office['badge_small']=alphano_hierarchy_small_badge($office['badge']);$office['members']=$byOffice[(int)$office['id']]??[];$office['description_html']=ProcessText((string)$office['descrizione']);}unset($office);
         $chosen['statute_html'] = ProcessText((string)$chosen['statuto']);
     }

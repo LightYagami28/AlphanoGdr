@@ -71,9 +71,9 @@ function GetFaseLunare(): int
 function FaseLunare(): string
 {
     $f = GetFaseLunare();
-    if ($f < 7)   return 'Luna Nuova';
-    if ($f < 14)  return 'Luna Crescente';
-    if ($f < 22)  return 'Luna Piena';
+    if ($f < 7)   { return 'Luna Nuova'; }
+    if ($f < 14)  { return 'Luna Crescente'; }
+    if ($f < 22)  { return 'Luna Piena'; }
     return 'Luna Calante';
 }
 

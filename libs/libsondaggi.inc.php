@@ -9,7 +9,7 @@ require_once __DIR__ . '/kernel.inc.php';  // per ConnectDB()
 function CanVote(int $pgid, int $sondaggio): bool
 {
     $db = ConnectDB();
-    if ($pgid <= 0) return false;
+    if ($pgid <= 0) { return false; }
     return !empty($db->query('SELECT s.id FROM sondaggi s WHERE s.id=? AND s.attivo=1 AND NOT EXISTS (SELECT 1 FROM risondaggi r WHERE r.idpg=? AND r.idsondaggio=s.id)', [$sondaggio,$pgid]));
 }
 
@@ -19,13 +19,13 @@ function CanVote(int $pgid, int $sondaggio): bool
 function Vote(int $idrisp, int $sondaggio, int $pgid): void
 {
     $db = ConnectDB();
-    if ($pgid <= 0) throw new RuntimeException('Utente non valido', 400);
+    if ($pgid <= 0) { throw new RuntimeException('Utente non valido', 400); }
     $db->beginTransaction();
     try {
         // Lock the poll itself: the existing schema has no unique vote key.
         $poll = $db->query('SELECT attivo,risposte FROM sondaggi WHERE id=? FOR UPDATE', [$sondaggio])[0] ?? null;
-        if (!$poll || empty($poll['attivo'])) throw new RuntimeException('Sondaggio non disponibile', 400);
-        if ($idrisp < 1 || $idrisp > count(explode(';', $poll['risposte']))) throw new RuntimeException('Risposta non valida', 400);
+        if (!$poll || empty($poll['attivo'])) { throw new RuntimeException('Sondaggio non disponibile', 400); }
+        if ($idrisp < 1 || $idrisp > count(explode(';', $poll['risposte']))) { throw new RuntimeException('Risposta non valida', 400); }
         if ($db->query('SELECT 1 FROM risondaggi WHERE idsondaggio=? AND idpg=?', [$sondaggio,$pgid])) {
             $db->rollBack();
             return;

@@ -10,7 +10,7 @@ foreach (array_merge($_GET,$_POST) as $value) {
 }
 
 require_once __DIR__ . '/../libs/kernel.inc.php';
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') alphano_require_csrf();
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') { alphano_require_csrf(); }
 require_once __DIR__ . '/../libs/libaccademia.inc.php';
 require_once __DIR__ . '/../libs/libgrafica.inc.php';
 require_once __DIR__ . '/../libs/libpg.inc.php';
@@ -69,10 +69,10 @@ $academyKind=$academyTargets ? array_key_first($academyTargets) : '';
 $academyTarget=$academyTargets ? (int)reset($academyTargets) : 0;
 $academyTable=['org'=>'organizzazioni','corp'=>'corporazioni','obj'=>'equip','giocata'=>'giocate'][$academyKind] ?? '';
 $academyState=static function() use($academyTable,$academyTarget,$academyKind): array {
-    if ($academyTable==='') return [];
+    if ($academyTable==='') { return []; }
     $row=getDB()->query("SELECT * FROM {$academyTable} WHERE id=?",[$academyTarget])[0] ?? null;
     $state=['exists'=>$row!==null,'content_hash'=>$row ? hash('sha256',json_encode($row)) : null];
-    if ($academyKind==='obj') $state['draft_exists']=(bool)getDB()->query('SELECT id FROM newequip WHERE id=?',[$academyTarget]);
+    if ($academyKind==='obj') { $state['draft_exists']=(bool)getDB()->query('SELECT id FROM newequip WHERE id=?',[$academyTarget]); }
     $votes=getDB()->query("SELECT idpg,voto,motivo FROM accademia WHERE {$academyKind}=? ORDER BY idpg",[$academyTarget]);
     $state['votes_count']=count($votes);
     $state['votes_hash']=hash('sha256',json_encode($votes));
@@ -134,42 +134,42 @@ switch ($azione) {
         if ($target>0 && in_array($voto,['0','1'],true) && ($voto==='1' || $motivo!=='')) {
             getDB()->execute("UPDATE accademia SET voto=?,motivo=? WHERE idpg=? AND {$column}=?",[$voto==='1' ? 'vpos' : 'vneg',$motivo,$pgId,$target]);
             $msg='Voto aggiornato';
-        } else $msg='Voto non valido';
+        } else { $msg='Voto non valido'; }
         break;
     case 'vota':
-        if ($org)     $msg = VotaOrg((int)$org,    $pgId, $voto==='1', $motivo) ? 'OK' : 'KO';
-        if ($corp)    $msg = VotaCorp((int)$corp,  $pgId, $voto==='1', $motivo) ? 'OK' : 'KO';
-        if ($obj)     $msg = VotaObj((int)$obj,    $pgId, $voto==='1', $motivo) ? 'OK' : 'KO';
-        if ($giocata) $msg = VotaGiocata((int)$giocata,$pgId, $voto==='1', $motivo) ? 'OK' : 'KO';
+        if ($org)     { $msg = VotaOrg((int)$org,    $pgId, $voto==='1', $motivo) ? 'OK' : 'KO'; }
+        if ($corp)    { $msg = VotaCorp((int)$corp,  $pgId, $voto==='1', $motivo) ? 'OK' : 'KO'; }
+        if ($obj)     { $msg = VotaObj((int)$obj,    $pgId, $voto==='1', $motivo) ? 'OK' : 'KO'; }
+        if ($giocata) { $msg = VotaGiocata((int)$giocata,$pgId, $voto==='1', $motivo) ? 'OK' : 'KO'; }
         break;
     case 'approva':
         if ($admin) {
-            if ($org)     $msg = ApprovaOrg((int)$org)      ? 'OK' : 'KO';
-            if ($corp)    $msg = ApprovaCorp((int)$corp)    ? 'OK' : 'KO';
-            if ($obj)     $msg = ApprovaObj((int)$obj)      ? 'OK' : 'KO';
-            if ($giocata) $msg = ApprovaGiocata((int)$giocata)? 'OK' : 'KO';
+            if ($org)     { $msg = ApprovaOrg((int)$org)      ? 'OK' : 'KO'; }
+            if ($corp)    { $msg = ApprovaCorp((int)$corp)    ? 'OK' : 'KO'; }
+            if ($obj)     { $msg = ApprovaObj((int)$obj)      ? 'OK' : 'KO'; }
+            if ($giocata) { $msg = ApprovaGiocata((int)$giocata)? 'OK' : 'KO'; }
         }
         break;
     case 'cancella':
         if ($admin) {
-            if ($org)     $msg = CancellaOrg((int)$org)      ? 'OK' : 'KO';
-            if ($corp)    $msg = CancellaCorp((int)$corp)    ? 'OK' : 'KO';
-            if ($obj)     $msg = CancellaObj((int)$obj)      ? 'OK' : 'KO';
-            if ($giocata) $msg = CancellaGiocata((int)$giocata)? 'OK' : 'KO';
+            if ($org)     { $msg = CancellaOrg((int)$org)      ? 'OK' : 'KO'; }
+            if ($corp)    { $msg = CancellaCorp((int)$corp)    ? 'OK' : 'KO'; }
+            if ($obj)     { $msg = CancellaObj((int)$obj)      ? 'OK' : 'KO'; }
+            if ($giocata) { $msg = CancellaGiocata((int)$giocata)? 'OK' : 'KO'; }
         }
         break;
     case 'approvamodif':
         if ($admin) {
-            if ($org)  $msg = ApprovaModifOrg((int)$org)  ? 'OK' : 'KO';
-            if ($corp) $msg = ApprovaModifCorp((int)$corp)? 'OK' : 'KO';
-            if ($obj)  $msg = ApprovaModifObj((int)$obj)  ? 'OK' : 'KO';
+            if ($org)  { $msg = ApprovaModifOrg((int)$org)  ? 'OK' : 'KO'; }
+            if ($corp) { $msg = ApprovaModifCorp((int)$corp)? 'OK' : 'KO'; }
+            if ($obj)  { $msg = ApprovaModifObj((int)$obj)  ? 'OK' : 'KO'; }
         }
         break;
     case 'cancellamodif':
         if ($admin) {
-            if ($org)  $msg = CancellaModifOrg((int)$org)  ? 'OK' : 'KO';
-            if ($corp) $msg = CancellaModifCorp((int)$corp)? 'OK' : 'KO';
-            if ($obj)  $msg = CancellaModifObj((int)$obj)  ? 'OK' : 'KO';
+            if ($org)  { $msg = CancellaModifOrg((int)$org)  ? 'OK' : 'KO'; }
+            if ($corp) { $msg = CancellaModifCorp((int)$corp)? 'OK' : 'KO'; }
+            if ($obj)  { $msg = CancellaModifObj((int)$obj)  ? 'OK' : 'KO'; }
         }
         break;
     case 'setflagorg':
@@ -185,10 +185,10 @@ if ($academyBefore!==$academyAfter && in_array($azione,['vota','modifyvoto','app
     $section=$azione==='setflagorg' ? 'funzioni-organizzazioni' : (in_array($azione,['approvamodif','cancellamodif'],true)?'modifiche':'proposte');
     $audiences=[['scope'=>'accademia','id'=>0,'section'=>$section,'role'=>'admin']];
     $owner=(int)($academyProposal['idmaster'] ?? $academyProposal['idcreatore'] ?? $academyProposal['idpg'] ?? 0);
-    if ($owner>0 && !in_array($azione,['vota','modifyvoto'],true)) $audiences[]=['scope'=>'personale','id'=>$owner,'section'=>'accademia','role'=>'member'];
+    if ($owner>0 && !in_array($azione,['vota','modifyvoto'],true)) { $audiences[]=['scope'=>'personale','id'=>$owner,'section'=>'accademia','role'=>'member']; }
     if(!in_array($azione,['vota','modifyvoto'],true)){
-        if(in_array($academyKind,['org','corp'],true))$audiences[]=['scope'=>$academyKind==='org'?'organizzazioni':'corporazioni','id'=>(int)$academyTarget,'section'=>$azione==='setflagorg'?'flag':'statuto','role'=>'admin'];
-        elseif($academyKind==='obj'&&(int)($academyProposal['corp']??0)>0)$audiences[]=['scope'=>'corporazioni','id'=>(int)$academyProposal['corp'],'section'=>'catalogo','role'=>'catalogue'];
+        if(in_array($academyKind,['org','corp'],true)){ $audiences[]=['scope'=>$academyKind==='org'?'organizzazioni':'corporazioni','id'=>(int)$academyTarget,'section'=>$azione==='setflagorg'?'flag':'statuto','role'=>'admin']; }
+        elseif($academyKind==='obj'&&(int)($academyProposal['corp']??0)>0){ $audiences[]=['scope'=>'corporazioni','id'=>(int)$academyProposal['corp'],'section'=>'catalogo','role'=>'catalogue']; }
     }
     $titles=['vota'=>'Voto dell’Accademia registrato','modifyvoto'=>'Voto dell’Accademia aggiornato','approva'=>'Proposta approvata','cancella'=>'Proposta respinta','approvamodif'=>'Modifica approvata','cancellamodif'=>'Modifica respinta','setflagorg'=>'Funzioni dell’organizzazione aggiornate'];
     $name=(string)($academyProposal['nome'] ?? $academyProposal['shortDesc'] ?? 'Proposta');

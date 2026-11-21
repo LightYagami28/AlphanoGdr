@@ -10,7 +10,7 @@ foreach (array_merge($_GET,$_POST) as $value) {
 }
 
 require_once __DIR__ . '/../libs/kernel.inc.php';
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') alphano_require_csrf();
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') { alphano_require_csrf(); }
 require_once __DIR__ . '/../libs/libaccademia.inc.php';
 require_once __DIR__ . '/../libs/libposta.inc.php';
 require_once __DIR__ . '/../libs/libgrafica.inc.php';

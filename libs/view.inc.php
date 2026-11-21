@@ -9,12 +9,12 @@ require_once __DIR__.'/management.inc.php';
 function alphano_view_id(?string $path = null): string
 {
     $path = $path ?? parse_url($_SERVER['SCRIPT_NAME'] ?? '/', PHP_URL_PATH);
-    if ($path === '/profili/modifyprofile.php') $path = '/profili/modifyuser.php';
-    if ($path === '/' || $path === '/index.html' || $path === '/index.php') return 'homepage';
-    if(preg_match('#^/chat/([a-z0-9_-]+)/bacheche/(index|showbacheca|showthread|modify|write|showstorico)\.php$#',$path))return 'bacheche-index';
-    if ($path==='/citta/assemblea.php'||preg_match('#^/chat/([a-z0-9_-]+)/assemblea\.php$#', $path)) return 'city-assembly';
-    if (preg_match('#^/chat/([a-z0-9_-]+)/(pvt|stanze|dimore)/#', $path)) return 'private-room';
-    if (preg_match('#^/chat/([a-z0-9_-]+)/index\.php$#', $path) || $path === '/mappa.php' || $path === '/api/mappa.php') return 'map';
+    if ($path === '/profili/modifyprofile.php') { $path = '/profili/modifyuser.php'; }
+    if ($path === '/' || $path === '/index.html' || $path === '/index.php') { return 'homepage'; }
+    if(preg_match('#^/chat/([a-z0-9_-]+)/bacheche/(index|showbacheca|showthread|modify|write|showstorico)\.php$#',$path)){ return 'bacheche-index'; }
+    if ($path==='/citta/assemblea.php'||preg_match('#^/chat/([a-z0-9_-]+)/assemblea\.php$#', $path)) { return 'city-assembly'; }
+    if (preg_match('#^/chat/([a-z0-9_-]+)/(pvt|stanze|dimore)/#', $path)) { return 'private-room'; }
+    if (preg_match('#^/chat/([a-z0-9_-]+)/index\.php$#', $path) || $path === '/mappa.php' || $path === '/api/mappa.php') { return 'map'; }
     return trim(preg_replace('/[^a-z0-9]+/i', '-', preg_replace('/\.(php|html)$/', '', $path)), '-');
 }
 
@@ -43,7 +43,7 @@ function alphano_theme_document(string $html): string
         $parts = parse_url($url);
         $path = $parts['path'] ?? '';
         $file = realpath(dirname(__DIR__) . $path);
-        if (!$file || !str_starts_with($file, dirname(__DIR__) . '/') || !is_file($file)) return $match[0];
+        if (!$file || !str_starts_with($file, dirname(__DIR__) . '/') || !is_file($file)) { return $match[0]; }
         parse_str($parts['query'] ?? '', $query);
         $query['v'] = filemtime($file);
         $versioned = $path . '?' . http_build_query($query);
@@ -54,11 +54,11 @@ function alphano_theme_document(string $html): string
         $manifest = require dirname(__DIR__) . '/config/views.php';
         $styles = $manifest[$view] ?? '';
         $page=alphano_appearance_page();$style='';
-        foreach(['background','header'] as $kind)if($page[$kind]!=='')$style.='--custom-'.$kind.':url("'.alphano_escape($page[$kind]).'");';
+        foreach(['background','header'] as $kind){ if($page[$kind]!==''){ $style.='--custom-'.$kind.':url("'.alphano_escape($page[$kind]).'");'; } }
         $attributes=' data-palette="'.alphano_escape(alphano_config('theme')).'" data-sidebar="'.alphano_escape(alphano_config('sidebar_position')).'" data-header="'.alphano_escape(alphano_config('header_position')).'"';
-        foreach(['background','header'] as $kind)if($page[$kind]!=='')$attributes.=' data-custom-'.$kind.'="1"';
+        foreach(['background','header'] as $kind){ if($page[$kind]!==''){ $attributes.=' data-custom-'.$kind.'="1"'; } }
         // A dedicated style element avoids duplicate style attributes on authored bodies.
-        if($style!=='')$html=preg_replace('~</head>~i','<style id="alphano-page-appearance">body[data-palette]{'.$style.'}</style></head>',$html,1);
+        if($style!==''){ $html=preg_replace('~</head>~i','<style id="alphano-page-appearance">body[data-palette]{'.$style.'}</style></head>',$html,1); }
         $html=preg_replace('/<body\b/i','<body'.$attributes,$html,1);
         $html = preg_replace_callback('/<body\b([^>]*)>/i', static function ($match) use ($view, $styles) {
             return str_contains($match[1], 'data-view=') ? $match[0] : '<body data-view="' . $view . '" data-styles="' . $styles . '"' . $match[1] . '>';
@@ -67,8 +67,8 @@ function alphano_theme_document(string $html): string
     if (!str_contains($html, 'data-alphano-theme')) {
         $html = preg_replace('/<meta\b(?=[^>]*name=["\x27]viewport["\x27])[^>]*>/i', '', $html);
         $assets = alphano_theme_assets();
-        if (stripos($html, '</head>') !== false) $html = preg_replace('/<\/head>/i', $assets . '</head>', $html, 1);
-        else $html = $assets . $html;
+        if (stripos($html, '</head>') !== false) { $html = preg_replace('/<\/head>/i', $assets . '</head>', $html, 1); }
+        else { $html = $assets . $html; }
     }
     return alphano_management_document(alphano_management_brand($html));
 }
@@ -85,10 +85,10 @@ function alphano_archive_content(string $html): string
 /** Instrada i documenti prima del controller: niente doppie visite o altri effetti GET. */
 function alphano_route_document(): void
 {
-    if (PHP_SAPI === 'cli' || ($_SERVER['HTTP_SEC_FETCH_DEST'] ?? '') !== 'document' || ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') return;
+    if (PHP_SAPI === 'cli' || ($_SERVER['HTTP_SEC_FETCH_DEST'] ?? '') !== 'document' || ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') { return; }
     $path = parse_url($_SERVER['SCRIPT_NAME'] ?? '/', PHP_URL_PATH);
     $public = ['/credits/restore.php','/install/index.php', '/install/complete.php', '/', '/index.html', '/index.php', '/main.php', '/checkuser.php', '/adduser.php', '/logout.php', '/slogin.php', '/control.php', '/recuperopasswd.php', '/recuperopg.php', '/regole/pdf.php', '/chat/messages.php', '/chat/recordings.php', '/chat/llama3.php'];
-    if (in_array($path, $public, true) || str_starts_with($path, '/manuali/') || str_starts_with($path, '/demo/') || str_starts_with($path, '/api/') || !alphano_user()) return;
+    if (in_array($path, $public, true) || str_starts_with($path, '/manuali/') || str_starts_with($path, '/demo/') || str_starts_with($path, '/api/') || !alphano_user()) { return; }
     header('Location: /main.php?view=' . rawurlencode($_SERVER['REQUEST_URI'] ?? '/mappa.php'), true, 303);
     exit;
 }

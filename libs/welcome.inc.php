@@ -24,7 +24,7 @@ function alphano_welcome_read(int $user, int $revision): array
     $db=ConnectDB(); $db->beginTransaction();
     try {
         $row=$db->query('SELECT revision,enabled FROM game_welcome WHERE id=1 FOR UPDATE')[0];
-        if (!(bool)$row['enabled'] || $revision!==(int)$row['revision']) throw new DomainException('Il messaggio di benvenuto è cambiato. Riceverai la versione aggiornata.',409);
+        if (!(bool)$row['enabled'] || $revision!==(int)$row['revision']) { throw new DomainException('Il messaggio di benvenuto è cambiato. Riceverai la versione aggiornata.',409); }
         $db->execute('INSERT INTO game_welcome_receipts(user_id,revision,read_at) VALUES(?,?,?) ON DUPLICATE KEY UPDATE revision=GREATEST(revision,VALUES(revision)),read_at=VALUES(read_at)',[$user,$revision,time()]);
         $message=alphano_welcome_message($user); $db->commit(); return $message;
     } catch (Throwable $error) { $db->rollBack(); throw $error; }
@@ -32,16 +32,16 @@ function alphano_welcome_read(int $user, int $revision): array
 
 function alphano_welcome_save(array $input, int $actor): array
 {
-    if (!alphano_can('admin')) throw new DomainException('Accesso riservato agli amministratori.',403);
-    foreach (['title','body','revision','enabled'] as $key) if (isset($input[$key]) && !is_string($input[$key])) throw new DomainException('Parametri non validi.',422);
+    if (!alphano_can('admin')) { throw new DomainException('Accesso riservato agli amministratori.',403); }
+    foreach (['title','body','revision','enabled'] as $key) { if (isset($input[$key]) && !is_string($input[$key])) { throw new DomainException('Parametri non validi.',422); } }
     $title=trim($input['title']??''); $body=trim(str_replace(["\r\n","\r"],"\n",$input['body']??''));
     $revision=filter_var($input['revision']??'',FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
     $enabled=$input['enabled']??'0';
-    if ($title==='' || mb_strlen($title)>120 || $body==='' || mb_strlen($body)>3000 || $revision===false || !in_array($enabled,['0','1'],true)) throw new DomainException('Inserisci un titolo entro 120 caratteri e un messaggio entro 3000 caratteri.',422);
+    if ($title==='' || mb_strlen($title)>120 || $body==='' || mb_strlen($body)>3000 || $revision===false || !in_array($enabled,['0','1'],true)) { throw new DomainException('Inserisci un titolo entro 120 caratteri e un messaggio entro 3000 caratteri.',422); }
     $db=ConnectDB(); $db->beginTransaction();
     try {
         $before=$db->query('SELECT * FROM game_welcome WHERE id=1 FOR UPDATE')[0];
-        if ((int)$before['revision']!==$revision) throw new DomainException('Un altro amministratore ha aggiornato il benvenuto. Ricarica la pagina prima di salvare.',409);
+        if ((int)$before['revision']!==$revision) { throw new DomainException('Un altro amministratore ha aggiornato il benvenuto. Ricarica la pagina prima di salvare.',409); }
         if ($before['title']!==$title || $before['body']!==$body || (int)$before['enabled']!==(int)$enabled) {
             $next=$revision+1; $now=time();
             $db->execute('UPDATE game_welcome SET title=?,body=?,enabled=?,revision=?,updated_by=?,updated_at=? WHERE id=1',[$title,$body,(int)$enabled,$next,$actor,$now]);

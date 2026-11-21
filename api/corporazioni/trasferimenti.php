@@ -61,7 +61,7 @@ try {
     if ($azione!=='list' && ($_SERVER['REQUEST_METHOD'] ?? 'GET')!=='POST') {
         http_response_code(405); header('Allow: GET, POST'); respond(['success'=>false,'error'=>true,'message'=>'Usare POST per modificare dati']);
     }
-    if (($_SERVER['REQUEST_METHOD'] ?? 'GET')==='POST') alphano_require_csrf(true);
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET')==='POST') { alphano_require_csrf(true); }
 
 
     if (in_array($azione,['adminorder','admintransf','consegna','prendiincarico'],true)) {
@@ -319,7 +319,7 @@ case 'admintransf':
         $rawMag   = GetMagazzino($corp);
         $magazzino = [];
         $materialArt=[];
-        foreach($db->query("SELECT e.materiaprima,e.shortDesc,e.immagine FROM equip e JOIN tipo t ON t.id=e.tipo WHERE e.corp=0 AND e.approvato='1' AND t.tipoG='risorsa' ORDER BY e.id") as $art)$materialArt[$art['materiaprima']]??=$art;
+        foreach($db->query("SELECT e.materiaprima,e.shortDesc,e.immagine FROM equip e JOIN tipo t ON t.id=e.tipo WHERE e.corp=0 AND e.approvato='1' AND t.tipoG='risorsa' ORDER BY e.id") as $art){ $materialArt[$art['materiaprima']]??=$art; }
         foreach ($rawMag as $materia => $qta) {
             $magazzino[] = [
                 'materia' => $materia,

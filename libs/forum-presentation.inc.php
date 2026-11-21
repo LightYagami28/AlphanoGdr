@@ -7,15 +7,15 @@ function alphano_board_image(array $board):string {
     return alphano_default_art('board');
 }
 function alphano_board_validate_image(string $path):string {
-    if(trim($path)==='')return alphano_default_art('board');
-    if(alphano_is_default_art($path))return $path;
-    if($path==='/assets/placeholder.svg')return $path;
-    if(!preg_match('~^/uploads/forum/boards/[a-z0-9-]+\.webp$~D',$path)||!is_file(dirname(__DIR__).$path))throw new DomainException('Scegli un’immagine delle bacheche disponibili.',422);
+    if(trim($path)===''){ return alphano_default_art('board'); }
+    if(alphano_is_default_art($path)){ return $path; }
+    if($path==='/assets/placeholder.svg'){ return $path; }
+    if(!preg_match('~^/uploads/forum/boards/[a-z0-9-]+\.webp$~D',$path)||!is_file(dirname(__DIR__).$path)){ throw new DomainException('Scegli un’immagine delle bacheche disponibili.',422); }
     return $path;
 }
 function alphano_board_images():array {
-    $out=[];foreach(alphano_default_art_catalog() as $asset)if($asset['kind']==='cover')$out[]=['path'=>$asset['path'],'name'=>$asset['title']];
-    foreach(glob(dirname(__DIR__).'/uploads/forum/boards/*.webp')?:[] as $file)$out[]=['path'=>'/uploads/forum/boards/'.basename($file),'name'=>ucwords(str_replace('-',' ',pathinfo($file,PATHINFO_FILENAME)))];
+    $out=[];foreach(alphano_default_art_catalog() as $asset){ if($asset['kind']==='cover'){ $out[]=['path'=>$asset['path'],'name'=>$asset['title']]; } }
+    foreach(glob(dirname(__DIR__).'/uploads/forum/boards/*.webp')?:[] as $file){ $out[]=['path'=>'/uploads/forum/boards/'.basename($file),'name'=>ucwords(str_replace('-',' ',pathinfo($file,PATHINFO_FILENAME)))]; }
     return $out;
 }
 function alphano_board_sections(array $boards):array {

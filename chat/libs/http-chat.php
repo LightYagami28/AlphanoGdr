@@ -13,7 +13,7 @@ function httpChatRoom(string $chat, ?int $idpg = null): array
         'SELECT chat_key, position, vampiredamage FROM mappe WHERE chat_key = ? AND chat = 1 AND public_enabled=1 AND (area_id IS NULL OR area_id IN(SELECT id FROM world_areas WHERE enabled=1)) LIMIT 1',
         [$chat]
     )[0] ?? null;
-    if (!$room && ($private = alphano_private_room($chat, $idpg ?? (int)($_SESSION['user_id'] ?? 0)))) return $private;
+    if (!$room && ($private = alphano_private_room($chat, $idpg ?? (int)($_SESSION['user_id'] ?? 0)))) { return $private; }
     if (!$room) {
         throw new DomainException('Chat inesistente', 404);
     }
@@ -47,13 +47,13 @@ function httpChatHistory(string $chat, int $since, int $viewer, bool $initial, i
     // senza riscrivere i messaggi conservati né i diari già salvati.
     require_once __DIR__.'/../../libs/ai.inc.php';
     $legacyIds=[];
-    foreach ($rows as $row) if (!(int)$row['pg'] && !str_contains($row['msg'],'chat-character-header') && str_contains($row['msg'],'data-ai-job=')) $legacyIds[]=(int)$row['id'];
+    foreach ($rows as $row) { if (!(int)$row['pg'] && !str_contains($row['msg'],'chat-character-header') && str_contains($row['msg'],'data-ai-job=')) { $legacyIds[]=(int)$row['id']; } }
     $legacy=[];
-    if ($legacyIds) foreach ($db->query("SELECT id,npc_id,result,message_id,finished_at FROM ai_jobs WHERE chat_key=? AND status='done' AND kind='play' AND message_id IN (".implode(',',array_fill(0,count($legacyIds),'?')).')',[$chat,...$legacyIds]) as $job) $legacy[(int)$job['message_id']]=$job;
+    if ($legacyIds) { foreach ($db->query("SELECT id,npc_id,result,message_id,finished_at FROM ai_jobs WHERE chat_key=? AND status='done' AND kind='play' AND message_id IN (".implode(',',array_fill(0,count($legacyIds),'?')).')',[$chat,...$legacyIds]) as $job) { $legacy[(int)$job['message_id']]=$job; } }
     require_once __DIR__.'/../../libs/chat-presentation.inc.php';
     $messages = [];
     foreach ($rows as $row) {
-        if(!empty($row['history_only']))continue;
+        if(!empty($row['history_only'])){ continue; }
         if (isset($legacy[(int)$row['id']])) {
             try { $row['msg']=ai_message_html($legacy[(int)$row['id']]); }
             catch (Throwable $e) { error_log('[Master IA storico] '.$e->getMessage()); }
@@ -64,7 +64,7 @@ function httpChatHistory(string $chat, int $since, int $viewer, bool $initial, i
         }
         if ((int)$row['lican'] === 1 && !in_array($viewerRace,[ALPHANO_RACE_LYCAN,ALPHANO_RACE_ANCESTRAL],true)) {
             require_once __DIR__.'/../../libs/chat-format.inc.php';
-            if(str_contains($row['msg'],'data-language="lupine"'))$row['msg']=alphano_chat_mask_lupine($row['msg']);
+            if(str_contains($row['msg'],'data-language="lupine"')){ $row['msg']=alphano_chat_mask_lupine($row['msg']); }
             else{
                 // Historical rows have no segmented markup: keep their original privacy rule.
                 $name = htmlspecialchars(GetPGFromID((int)$row['pg']) ?? 'Qualcuno', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');

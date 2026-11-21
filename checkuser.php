@@ -22,7 +22,7 @@ if (($origin !== '' && strcasecmp($origin, $expectedOrigin) !== 0) || ($_SERVER[
 }
 
 // 3) Preleva input dal form header
-if (!is_string($_POST['username'] ?? '') || !is_string($_POST['password'] ?? '')) alphano_fail('Credenziali non valide.', 400);
+if (!is_string($_POST['username'] ?? '') || !is_string($_POST['password'] ?? '')) { alphano_fail('Credenziali non valide.', 400); }
 $username = trim($_POST['username'] ?? '');
 $password = (string)($_POST['password'] ?? '');
 

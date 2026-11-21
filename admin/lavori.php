@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/../libs/player-runtime.inc.php';require_once __DIR__.'/../libs/chat-work.inc.php';
-alphano_require_login();if(!alphano_work_staff((int)alphano_user()['id']))alphano_fail('Gestione riservata ad amministratori e responsabili dell’Accademia.',403);
+alphano_require_login();if(!alphano_work_staff((int)alphano_user()['id'])){ alphano_fail('Gestione riservata ad amministratori e responsabili dell’Accademia.',403); }
 ?><!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Lavori e materie prime</title><script src="/js/work-admin.js?v=<?=filemtime(__DIR__.'/../js/work-admin.js')?>" defer></script></head><body class="ui-page"><main class="work-admin" data-work-admin>
 <header class="ui-page-heading" data-page-heading><img src="/assets/placeholder.svg" alt="" width="72" height="72"><div><div class="ui-eyebrow">Alphano · Gestione dell’economia</div><h1>Lavori e materie prime</h1><p>Attività dei luoghi, raccolta personale e materiali dell’inventario nello stesso pannello.</p></div></header>
 <script type="application/json" id="work-admin-token"><?=json_encode(alphano_csrf_token(),JSON_HEX_TAG|JSON_HEX_AMP)?></script>

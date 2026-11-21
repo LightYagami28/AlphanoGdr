@@ -26,7 +26,7 @@ if (IsAdmin($idpg)) {
 }
 
 $isSessionAdmin=IsAdmin($idpg);
-foreach(array_merge($_GET,$_POST) as $value)if(!is_string($value))alphano_fail('Parametri non validi.',400);
+foreach(array_merge($_GET,$_POST) as $value){ if(!is_string($value)){ alphano_fail('Parametri non validi.',400); } }
 // accetta GET e POST
 $azione = $_REQUEST['azione'] ?? '';
 $id     = (string)($_REQUEST['id'] ?? '');
@@ -34,25 +34,25 @@ if ($id !== '' && !ctype_digit($id)) { http_response_code(400); exit('Sessione n
 
 if($azione==='storico'){require_once __DIR__.'/../libs/historical-sessions.inc.php';gh_page();}
 
-if($id!==''&&$db->query('SELECT session_id FROM session_archive_deletions WHERE session_id=?',[$id])&&$azione!=='cancella')alphano_fail('Questa sessione è stata rimossa dall’archivio.',410);
+if($id!==''&&$db->query('SELECT session_id FROM session_archive_deletions WHERE session_id=?',[$id])&&$azione!=='cancella'){ alphano_fail('Questa sessione è stata rimossa dall’archivio.',410); }
 switch ($azione) {
     case 'cancella':
-        if(!$isSessionAdmin)alphano_fail('Solo gli amministratori possono cancellare le sessioni.',403);
-        if($_SERVER['REQUEST_METHOD']!=='POST')alphano_fail('Usa il comando di cancellazione nell’archivio.',405);
+        if(!$isSessionAdmin){ alphano_fail('Solo gli amministratori possono cancellare le sessioni.',403); }
+        if($_SERVER['REQUEST_METHOD']!=='POST'){ alphano_fail('Usa il comando di cancellazione nell’archivio.',405); }
         alphano_require_csrf();
-        if($id===''||(int)$id<1)alphano_fail('Sessione non valida.',400);
+        if($id===''||(int)$id<1){ alphano_fail('Sessione non valida.',400); }
         try{alphano_delete_session((int)$id);}catch(DomainException $e){alphano_fail($e->getMessage(),$e->getCode());}
         $_SESSION['session_archive_notice']=['title'=>'Sessione cancellata','message'=>'Sessione rimossa dall’archivio. La cancellazione è stata registrata.'];
         header('Location: /sessione/viewlog.php',true,303);exit;
     case 'chiudi_in_corso':
-        if(!$isSessionAdmin)alphano_fail('Solo gli amministratori possono chiudere tutte le sessioni.',403);
-        if($_SERVER['REQUEST_METHOD']!=='POST')alphano_fail('Usa il pulsante nell’archivio.',405);
+        if(!$isSessionAdmin){ alphano_fail('Solo gli amministratori possono chiudere tutte le sessioni.',403); }
+        if($_SERVER['REQUEST_METHOD']!=='POST'){ alphano_fail('Usa il pulsante nell’archivio.',405); }
         alphano_require_csrf();
         try{$closed=alphano_close_open_sessions();}catch(DomainException $e){alphano_fail($e->getMessage(),$e->getCode());}
         $_SESSION['session_archive_notice']=['title'=>'Sessioni chiuse','message'=>$closed?'Sessioni chiuse: '.$closed.'. La chiusura è stata annunciata nelle rispettive chat.':'Non ci sono sessioni in corso da chiudere.'];
         header('Location: /sessione/viewlog.php',true,303);exit;
     case 'cancellazioni':
-        if(!$isSessionAdmin)alphano_fail('Registro riservato agli amministratori.',403);
+        if(!$isSessionAdmin){ alphano_fail('Registro riservato agli amministratori.',403); }
         $deletions=$db->query('SELECT * FROM session_archive_deletions ORDER BY deleted_at DESC,session_id DESC');
         require __DIR__.'/../templates/sessions/deletions.php';exit;
     case 'aprilog':
@@ -60,9 +60,9 @@ switch ($azione) {
             exit('Sessione non specificata');
         }
         $session=$db->query('SELECT s.*,COALESCE(m.title,s.chat) AS location_label FROM sessioni s LEFT JOIN mappe m ON m.chat_key=s.chat WHERE s.id=?',[$id])[0]??null;
-        if(!$session)alphano_fail('Sessione non trovata.',404);
+        if(!$session){ alphano_fail('Sessione non trovata.',404); }
         $file = rtrim(htmlroot, '/') . "/sessione/log/{$id}.html";
-        if (!is_file($file)) $file = rtrim(htmlroot, '/') . "/sessione/log/{$id}.htm";
+        if (!is_file($file)) { $file = rtrim(htmlroot, '/') . "/sessione/log/{$id}.htm"; }
         if (!is_file($file) || !filesize($file)) {
             exit('Log non trovato o vuoto');
         }

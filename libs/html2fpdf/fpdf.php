@@ -5,7 +5,7 @@ declare(strict_types=1);
  * Dependency: dompdf/dompdf, installed by Composer with its upstream license.
  */
 require_once dirname(__DIR__,2).'/vendor/autoload.php';
-if (!defined('FPDF_VERSION')) define('FPDF_VERSION','dompdf-compat');
+if (!defined('FPDF_VERSION')) {define('FPDF_VERSION','dompdf-compat');}
 
 class FPDF
 {
@@ -19,14 +19,14 @@ class FPDF
     protected array $metadata=[];
     public function __construct($orientation='P',$unit='mm',$format='A4') { $this->orientation=strtoupper((string)$orientation)==='L'?'landscape':'portrait'; $this->paper=$format; }
     public function FPDF($orientation='P',$unit='mm',$format='A4'): void { $this->__construct($orientation,$unit,$format); }
-    public function AddPage($orientation=''): void { if ($this->pages++) $this->html.='<div style="page-break-before:always"></div>'; }
+    public function AddPage($orientation=''): void { if ($this->pages++) {$this->html.='<div style="page-break-before:always"></div>';} }
     public function PageNo(): int { return $this->pages; }
     public function SetTitle($value): void { $this->metadata['Title']=(string)$value; }
     public function SetAuthor($value): void { $this->metadata['Author']=(string)$value; }
     public function SetSubject($value): void { $this->metadata['Subject']=(string)$value; }
     public function SetKeywords($value): void { $this->metadata['Keywords']=(string)$value; }
     public function SetCreator($value): void { $this->metadata['Creator']=(string)$value; }
-    public function SetFont($family,$style='',$size=0): void { $this->font='DejaVu Sans'; if ($size>0) $this->fontSize=(float)$size; }
+    public function SetFont($family,$style='',$size=0): void { $this->font='DejaVu Sans'; if ($size>0) {$this->fontSize=(float)$size;} }
     public function SetFontSize($size): void { $this->fontSize=max(1,(float)$size); }
     public function SetTextColor($red,$green=null,$blue=null): void { $this->color=sprintf('#%02x%02x%02x',(int)$red,(int)($green??$red),(int)($blue??$red)); }
     public function Cell($width,$height=0,$text='',$border=0,$line=0,$align='',$fill=0,$link='',$currentx=0): void {
@@ -44,9 +44,9 @@ class FPDF
         $pdf->render();
         foreach ($this->metadata as $key=>$value) $pdf->getCanvas()->get_cpdf()->addInfo($key,$value);
         $bytes=$pdf->output();
-        if ($destination==='S') return $bytes;
-        if ($destination==='F') { if (file_put_contents((string)$name,$bytes)===false) throw new RuntimeException('Salvataggio PDF non riuscito'); return ''; }
-        if (!in_array($destination,['I','D'],true)) throw new InvalidArgumentException('Destinazione PDF non valida');
+        if ($destination==='S') {return $bytes;}
+        if ($destination==='F') { if (file_put_contents((string)$name,$bytes)===false) {throw new RuntimeException('Salvataggio PDF non riuscito');} return ''; }
+        if (!in_array($destination,['I','D'],true)) {throw new InvalidArgumentException('Destinazione PDF non valida');}
         header('Content-Type: application/pdf');
         $filename=preg_replace('/[^a-zA-Z0-9_.-]/','_',basename((string)$name)) ?: 'documento.pdf';
         header('Content-Disposition: '.($destination==='D'?'attachment':'inline').'; filename="'.$filename.'"');

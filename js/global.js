@@ -33,7 +33,7 @@
     const key = window.orderby;
     const v1  = a[key], v2 = b[key];
     const n1  = Number(v1), n2 = Number(v2);
-    if (!Number.isNaN(n1) && !Number.isNaN(n2)) return n1 - n2;
+    if (!Number.isNaN(n1) && !Number.isNaN(n2)) {return n1 - n2;}
     const t1 = String(v1).toUpperCase(), t2 = String(v2).toUpperCase();
     return t1 < t2 ? -1 : (t1 > t2 ? 1 : 0);
   };
@@ -62,8 +62,8 @@
     const cw = document.documentElement.clientWidth,
           ch = document.documentElement.clientHeight;
 
-    if (x + bw > cw) x = Math.max(1, x - bw);
-    if (y + bh > ch) y = Math.max(1, y - bh);
+    if (x + bw > cw) {x = Math.max(1, x - bw);}
+    if (y + bh > ch) {y = Math.max(1, y - bh);}
 
     div.style.left = `${x}px`;
     div.style.top  = `${y}px`;
@@ -85,10 +85,10 @@
 
 // Reading a missiva updates the shared counters and any open mailbox immediately.
 document.addEventListener('DOMContentLoaded',()=>{
- if(!Number(document.body?.dataset.mailRead))return;
- try{const host=parent;host.alphanoNotifications?.refresh();for(const frame of host.document.querySelectorAll('iframe'))frame.contentDocument?.dispatchEvent(new CustomEvent('alphano:mail-read'));}catch{}
+ if(!Number(document.body?.dataset.mailRead)){return;}
+ try{const host=parent;host.alphanoNotifications?.refresh();for(const frame of host.document.querySelectorAll('iframe')){frame.contentDocument?.dispatchEvent(new CustomEvent('alphano:mail-read'));}}catch{}
 });
 
 // Portraits in mail reuse the public profile fallback and stay inside the workspace.
-document.addEventListener('error',event=>{const img=event.target;if(img instanceof HTMLImageElement&&img.matches('img[data-mail-fallback]')){const fallback=img.dataset.mailFallback;delete img.dataset.mailFallback;if(fallback)img.src=fallback;}},true);
-document.addEventListener('click',event=>{const link=event.target.closest('[data-mail-profile]');if(!link)return;try{if(top.alphanoOpenView){event.preventDefault();top.alphanoOpenView(link.href,'Profilo');}}catch{}});
+document.addEventListener('error',event=>{const img=event.target;if(img instanceof HTMLImageElement&&img.matches('img[data-mail-fallback]')){const fallback=img.dataset.mailFallback;delete img.dataset.mailFallback;if(fallback){img.src=fallback;}}},true);
+document.addEventListener('click',event=>{const link=event.target.closest('[data-mail-profile]');if(!link){return;}try{if(top.alphanoOpenView){event.preventDefault();top.alphanoOpenView(link.href,'Profilo');}}catch{}});

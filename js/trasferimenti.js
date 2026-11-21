@@ -11,17 +11,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const tabs = ['monete','donazione','trasf','cronobj','cronmoney'];
   tabs.forEach(id=>{
     const btn=document.getElementById('m'+id);
-    if(btn) btn.addEventListener('click',()=>openTab(id));
+    if(btn) {btn.addEventListener('click',()=>openTab(id));}
   });
   openTab(location.hash==='#donazione' || new URLSearchParams(location.search).has('organizzazione') ? 'donazione' : 'trasf');
-  loadAll().then(()=>{const id=Number(new URLSearchParams(location.search).get('trade'));if(id>0)manageTrade(id);});
+  loadAll().then(()=>{const id=Number(new URLSearchParams(location.search).get('trade'));if(id>0){manageTrade(id);}});
 });
 
 function openTab(active){
   ['monete','donazione','trasf','cronobj','cronmoney'].forEach(id=>{
     const panel=document.getElementById(id);if(panel){panel.classList.toggle('active',id===active);panel.hidden=id!==active;}
     const b=document.getElementById('m'+id);
-    if(b) b.classList.toggle('active', id===active);
+    if(b) {b.classList.toggle('active', id===active);}
   });
 }
 
@@ -32,7 +32,7 @@ async function loadAll(){
   try{
     const r=await fetch('/api/trasferimenti.php?azione=list');
     j=await r.json();
-    if(!j.success) throw new Error(j.message||'Errore server');
+    if(!j.success) {throw new Error(j.message||'Errore server');}
   }catch(e){showTransferStatus('Impossibile caricare i dati. Ricarica la pagina e riprova.',true);return false;}
 
   ['transazioni','storicoAcq','ordini','ordiniPresi','consegne',
@@ -46,7 +46,7 @@ async function loadAll(){
   transferDestinatari=j.destinatari || [];transferOrganizations=j.organizzazioni || [];
   renderFormMonete();renderFormDonazione();
   const balance=document.getElementById('transfer-balance');
-  if (balance && Number.isFinite(Number(j.saldo))) balance.textContent=String(j.saldo);
+  if (balance && Number.isFinite(Number(j.saldo))) {balance.textContent=String(j.saldo);}
   renderTransazioni     (j.transazioni);
   renderStoricoAcq      (j.storicoAcq);
   renderOrdiniUtente    (j.ordini);
@@ -76,7 +76,7 @@ async function doMonete(f){
   const b=f.querySelector('button'); b.disabled=true;
   try {
   const r=await postAction({azione:'monete',...Object.fromEntries(new FormData(f))});
-  if(r.success) await loadAll();
+  if(r.success) {await loadAll();}
   showTransferStatus(r.message || 'Operazione non riuscita.',!r.success);
   } catch(error) { showTransferStatus('Connessione interrotta. Puoi riprovare l’invio.',true); }
   finally { b.disabled=false; }
@@ -106,7 +106,7 @@ async function doDonazione(f){
   const b=f.querySelector('button'); b.disabled=true;
   try {
   const r=await postAction({azione:'donazione',...Object.fromEntries(new FormData(f))});
-  if(r.success) await loadAll();
+  if(r.success) {await loadAll();}
   showTransferStatus(r.message || 'Operazione non riuscita.',!r.success);
   } catch(error) { showTransferStatus('Connessione interrotta. Puoi riprovare l’invio.',true); }
   finally { b.disabled=false; }
@@ -138,13 +138,13 @@ function commerceValue(id,label,max=2147483647){
 
 async function postAction(data){
   const identity=JSON.stringify(data);
-  if(!transferKeys.has(identity))transferKeys.set(identity,crypto.randomUUID());
+  if(!transferKeys.has(identity)){transferKeys.set(identity,crypto.randomUUID());}
   const response=await fetch('/api/trasferimenti.php',{
     method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
     body:new URLSearchParams({...data,_request_key:transferKeys.get(identity)})});
   const result=await response.json();if(result.success){document.body.dataset.commerceDirty='';window.alphanoCommerce?.changed();}
   // Keep the key on an uncertain transport failure, so retrying cannot debit twice.
-  if(response.status<500)transferKeys.delete(identity);
+  if(response.status<500){transferKeys.delete(identity);}
   return result;
 }
 
@@ -193,7 +193,7 @@ function renderOrdiniUtente(rows) {
  * ===================================================================== */
 function renderOrdiniPresi(rows){
   const c=document.getElementById('cronobj');
-  if(!rows.length) return;
+  if(!rows.length) {return;}
 
   const b=rows.map(d=>{
     const edit = d.stato <= 2;
@@ -227,7 +227,7 @@ function renderOrdiniPresi(rows){
  * 6.  MAGAZZINO, CONSEGNE, DENARO
  * ===================================================================== */
 function renderMagazzino(m){
-  if(!m||!Object.keys(m).length)return;
+  if(!m||!Object.keys(m).length){return;}
   const c=document.getElementById('cronobj');
   const h=Object.keys(m).map(k=>`<th>${k}</th>`).join('');
   const r=Object.keys(m).map(k=>`<td>${m[k]}</td>`).join('');
@@ -236,7 +236,7 @@ function renderMagazzino(m){
 
 function renderConsegne(rows){
   const c=document.getElementById('cronobj');
-  if(!rows.length)return;
+  if(!rows.length){return;}
   const b=rows.map(d=>`<tr>
     <td>${d.data}</td>
     <td>${d.interlocutore}</td>
@@ -271,26 +271,26 @@ function renderCronologiaDenaro(rows){
  * ===================================================================== */
 let commerceBusy=false;
 async function commerceRun(payload) {
-  if(commerceBusy)return;
+  if(commerceBusy){return;}
   commerceBusy=true;
   document.querySelectorAll('#trasf button').forEach(button=>button.disabled=true);
   try {
     const result=await postAction(payload);
-    if(result.success)await loadAll();
+    if(result.success){await loadAll();}
     showTransferStatus(result.message || 'Operazione non riuscita.',!result.success);
   } catch(error) {showTransferStatus('Connessione interrotta. Ricarica i dati prima di riprovare.',true);}
   finally {commerceBusy=false;document.querySelectorAll('#trasf button').forEach(button=>button.disabled=false);}
 }
 function acceptTransf(id){return commerceRun({azione:'admintransf',id,accetta:1});}
-function updateTransf(id){const prezzo=commerceValue('prz_t'+id,'il prezzo totale');if(prezzo===null)return;const qta=commerceValue('qta_t'+id,'la quantità',10000);if(qta===null)return;return commerceRun({azione:'admintransf',id,prezzo,qta});}
+function updateTransf(id){const prezzo=commerceValue('prz_t'+id,'il prezzo totale');if(prezzo===null){return;}const qta=commerceValue('qta_t'+id,'la quantità',10000);if(qta===null){return;}return commerceRun({azione:'admintransf',id,prezzo,qta});}
 function deleteTransf(id){return commerceRun({azione:'admintransf',id,elimina:1});}
 function acceptOrder(id){return commerceRun({azione:'adminorder',id,accetta:1});}
-function updateOrder(id){const prezzo=commerceValue('prezzo_o'+id,'il prezzo unitario');if(prezzo===null)return;const qta=commerceValue('qta_o'+id,'la quantità',10000);if(qta===null)return;return commerceRun({azione:'adminorder',id,prezzo,qta});}
+function updateOrder(id){const prezzo=commerceValue('prezzo_o'+id,'il prezzo unitario');if(prezzo===null){return;}const qta=commerceValue('qta_o'+id,'la quantità',10000);if(qta===null){return;}return commerceRun({azione:'adminorder',id,prezzo,qta});}
 function deleteOrder(id){return commerceRun({azione:'adminorder',id,elimina:1});}
 function deliver(id){return commerceRun({azione:'consegna',id});}
 function takeOrder(id){return commerceRun({azione:'prendiincarico',id});}
 
 function manageTrade(id){return window.alphanoCommerce.open(id);}
-let personalRefreshBusy=false;document.addEventListener('alphano:commerce-refresh',async()=>{if(personalRefreshBusy||document.body.dataset.commerceDirty==='true'||document.querySelector('input:focus,select:focus,textarea:focus'))return;personalRefreshBusy=true;try{await loadAll();}finally{personalRefreshBusy=false;}});setInterval(()=>{if(!document.hidden)document.dispatchEvent(new CustomEvent('alphano:commerce-refresh'));},30000);
+let personalRefreshBusy=false;document.addEventListener('alphano:commerce-refresh',async()=>{if(personalRefreshBusy||document.body.dataset.commerceDirty==='true'||document.querySelector('input:focus,select:focus,textarea:focus')){return;}personalRefreshBusy=true;try{await loadAll();}finally{personalRefreshBusy=false;}});setInterval(()=>{if(!document.hidden){document.dispatchEvent(new CustomEvent('alphano:commerce-refresh'));}},30000);
 
-document.addEventListener('input',event=>{if(event.target.matches('input,select,textarea'))document.body.dataset.commerceDirty='true';});
+document.addEventListener('input',event=>{if(event.target.matches('input,select,textarea')){document.body.dataset.commerceDirty='true';}});

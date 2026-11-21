@@ -44,13 +44,13 @@ const Catalogo = (function(){
     tipi            = data.tipi           || [];
     isAdminCatalogo = !!data.admincatalogo;
     isAdminCorp     = !!data.admincorp;
-    const repairTab=document.getElementById('Riparazioni');if(repairTab)repairTab.hidden=!data.canRepair;
+    const repairTab=document.getElementById('Riparazioni');if(repairTab){repairTab.hidden=!data.canRepair;}
     const departments=new Map([...catalogo,...catalogoPers,...catalogoPersOrg].map(o=>[o.department||String(o.production),o.department||({15:'Armi bianche e da taglio',2:'Armi da fuoco',5:'Armature e scudi',1:'Animali',7:'Attrezzi'})[o.production]||'Altri manufatti']));document.getElementById('catalogue-department')?.replaceChildren(new Option('Tutti i reparti',''),...[...departments].map(([k,v])=>new Option(v,k)));
     setupTabs();
-    for(const id of ['catalogue-search','catalogue-department'])document.getElementById(id)?.addEventListener('input',()=>Cambia(oldtree));
+    for(const id of ['catalogue-search','catalogue-department']){document.getElementById(id)?.addEventListener('input',()=>Cambia(oldtree));}
     Cambia(oldtree);
     })
-      .catch(err => {const panel=document.getElementById('corpo');if(panel)panel.textContent='Catalogo non disponibile: '+err.message;});
+      .catch(err => {const panel=document.getElementById('corpo');if(panel){panel.textContent='Catalogo non disponibile: '+err.message;}});
   }
 
   function fetchData(corp) {
@@ -58,16 +58,16 @@ const Catalogo = (function(){
       headers: { 'Accept':'application/json' }
     })
     .then(res => {
-      if (!res.ok) throw new Error(res.statusText);
+      if (!res.ok) {throw new Error(res.statusText);}
       return res.json();
-    }).then(data=>{if(data.error)throw Error(data.message || 'Catalogo non disponibile');return data;});
+    }).then(data=>{if(data.error){throw Error(data.message || 'Catalogo non disponibile');}return data;});
   }
 
   // ─── SETUP UI ────────────────────────────────────────────────────────────────
   function setupTabs() {
     ['Catalogo','CatalogoPers','CatalogoPersOrg','Riparazioni'].forEach(view=>{
       const td = document.getElementById(view);
-      if (!td) return;
+      if (!td) {return;}
       td.onclick = () => Cambia(view);
     });
     const chk = document.getElementById('chkShowAll');
@@ -75,7 +75,7 @@ const Catalogo = (function(){
     const btnAdd = document.getElementById('btnAdd');
     if (btnAdd) {btnAdd.onclick=AggiungiNuovo;btnAdd.hidden=!isAdminCatalogo;}
     const btnBack = document.getElementById('btnBack');
-    if (btnBack) btnBack.onclick = ()=>{location.href='/corporazioni/';};
+    if (btnBack) {btnBack.onclick = ()=>{location.href='/corporazioni/';};}
   }
 
   // ─── NAVIGAZIONE ─────────────────────────────────────────────────────────────
@@ -84,8 +84,8 @@ const Catalogo = (function(){
     oldtree = view;
     ['Catalogo','CatalogoPers','CatalogoPersOrg','Riparazioni'].forEach(id=>{const button=document.getElementById(id);if(button){button.classList.toggle('active',id===view);button.setAttribute('aria-selected',String(id===view));}});
     const fn = Catalogo['Carica'+view];
-    if (typeof fn === 'function') fn();
-    else console.error(`Catalogo.Carica${view} non è una funzione`);
+    if (typeof fn === 'function') {fn();}
+    else {console.error(`Catalogo.Carica${view} non è una funzione`);}
   }
 
   // ─── RENDERING LISTE ──────────────────────────────────────────────────────────
@@ -100,13 +100,13 @@ const Catalogo = (function(){
     lista.innerHTML = '';
     corpo.innerHTML = '';
     if (!arr.length) {
-      const count=document.getElementById('catalogue-count');if(count)count.textContent='0 articoli';
+      const count=document.getElementById('catalogue-count');if(count){count.textContent='0 articoli';}
       lista.innerHTML = `<p class="ui-empty">Nessun oggetto in questa sezione.</p>`;
       return;
     }
     const source=arr,search=(document.getElementById('catalogue-search')?.value||'').toLocaleLowerCase(),department=document.getElementById('catalogue-department')?.value||'';
     arr=arr.filter(o=>(!department||(o.department||String(o.production))===department)&&(!search||(o.shortDesc+' '+o.tipo+' '+o.desc).toLocaleLowerCase().includes(search)));
-    const count=document.getElementById('catalogue-count');if(count)count.textContent=arr.length+' articoli';
+    const count=document.getElementById('catalogue-count');if(count){count.textContent=arr.length+' articoli';}
     if(!arr.length){lista.innerHTML='<p class="ui-empty">Nessun articolo corrisponde ai filtri.</p>';return;}
     const departments={15:'Armi bianche e da taglio',2:'Armi da fuoco',5:'Armature e scudi'};
     const map = {};
@@ -127,12 +127,12 @@ const Catalogo = (function(){
     }
     html += '</div>';
     lista.innerHTML = html;
-    lista.onclick=event=>{const button=event.target.closest('[data-catalogue-item]');if(!button)return;lista.querySelectorAll('[aria-current]').forEach(el=>el.removeAttribute('aria-current'));button.setAttribute('aria-current','true');Mostra(Number(button.dataset.catalogueItem));};
+    lista.onclick=event=>{const button=event.target.closest('[data-catalogue-item]');if(!button){return;}lista.querySelectorAll('[aria-current]').forEach(el=>el.removeAttribute('aria-current'));button.setAttribute('aria-current','true');Mostra(Number(button.dataset.catalogueItem));};
     corpo.innerHTML='<p class="ui-empty">Seleziona un oggetto per consultarne dettagli e ordinazione.</p>';
   }
 
   // ─── MOSTRA DETTAGLI ─────────────────────────────────────────────────────────
-  function Mostra(idx) { if(oldtree==='Riparazioni'){if(riparazioni[idx])renderRepair(riparazioni[idx]);return;} const rows=oldtree==='CatalogoPers' ? catalogoPers : oldtree==='CatalogoPersOrg' ? catalogoPersOrg : catalogo; if(rows[idx])renderDetails(rows[idx]); }
+  function Mostra(idx) { if(oldtree==='Riparazioni'){if(riparazioni[idx]){renderRepair(riparazioni[idx]);}return;} const rows=oldtree==='CatalogoPers' ? catalogoPers : oldtree==='CatalogoPersOrg' ? catalogoPersOrg : catalogo; if(rows[idx]){renderDetails(rows[idx]);} }
   function MostraRip(idx) { renderRepair(riparazioni[idx]); }
 
   function materialsTable(values) {
@@ -150,16 +150,16 @@ const Catalogo = (function(){
       <p id="catalogo-order-feedback-${o.id}" class="notice" role="status" aria-live="polite" hidden></p>
     </form>` : '<p>Oggetto non ancora approvato.</p>';
     let actions='';
-    if(isAdminCatalogo || isAdminCorp)actions+=`<button type="button" onclick="Catalogo.ModificaObj(${o.id})">Modifica</button>`;
-    if(isAdminCorp)actions+=`<button type="button" onclick="Catalogo.CancellaObj(${o.id})">Ritira dal catalogo</button>`;
+    if(isAdminCatalogo || isAdminCorp){actions+=`<button type="button" onclick="Catalogo.ModificaObj(${o.id})">Modifica</button>`;}
+    if(isAdminCorp){actions+=`<button type="button" onclick="Catalogo.CancellaObj(${o.id})">Ritira dal catalogo</button>`;}
     panel.innerHTML=`<article class="ui-form catalogue-detail"><button type="button" class="catalogue-back" data-ui-no-icon onclick="document.getElementById('lista').scrollIntoView({block:'start'})">← Torna alla vetrina</button><h2>${escapeHtml(o.shortDesc)}</h2><div class="equipment-detail ui-reading"><img src="${escapeHtml(o.immagine || '/assets/placeholder.svg')}" alt="${escapeHtml(o.shortDesc)}" onload="Catalogo.Resize(this)"><p>${escapeHtml(o.desc).replace(/\n/g,'<br>')}</p></div><dl class="catalogue-facts">${ruleFacts}<dt>Tipo</dt><dd>${escapeHtml(o.tipo)}</dd><dt>Taglia</dt><dd>${escapeHtml(o.taglia)}</dd><dt>Peso</dt><dd>${Number(o.peso)} kg</dd><dt>Qualità e durata</dt><dd>${escapeHtml(o.quality)} · ${Number(o.durata)}</dd>${o.destinatario ? `<dt>Destinatario</dt><dd>${escapeHtml(o.destinatario)}</dd>` : ''}${o.destorg ? `<dt>Organizzazione</dt><dd>${escapeHtml(o.destorg)}</dd>` : ''}${o.lavorazione ? `<dt>Lavorazione</dt><dd>${escapeHtml(o.lavorazione)}</dd>` : ''}</dl><h3>Materie per pezzo</h3>${materialsTable(o.materie)}<p>La corporazione proporrà prezzo e quantità. Il pagamento avviene alla consegna.</p>${orderForm}<div class="ui-actions">${actions}</div></article>`;
-    if(matchMedia('(max-width:760px)').matches)panel.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth',block:'start'});
+    if(matchMedia('(max-width:760px)').matches){panel.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth',block:'start'});}
   }
   function renderRepair(o) {
     document.getElementById('corpo').innerHTML=`<article class="ui-form"><h2>Ripara ${escapeHtml(o.shortDesc)}</h2><p>Danneggiamento: ${Number(o.damage)}%. La riparazione consuma queste materie dal magazzino della tua corporazione.</p>${materialsTable(o.materie)}<button type="button" onclick="Catalogo.RiparaObj(${o.id})">Ripara oggetto</button></article>`;
   }
   function OrdinaObj(id,form=document.getElementById('catalogo-order-'+id)) {
-    if(!form || form.dataset.completed==='true')return;
+    if(!form || form.dataset.completed==='true'){return;}
     const input=form.elements.namedItem('qta');
     const raw=input.value;
     if(!/^[0-9]+$/.test(raw) || Number(raw)<1 || Number(raw)>10000){
@@ -184,10 +184,10 @@ const Catalogo = (function(){
     let o = catalogo.find(x=>x.id===id)
          || catalogoPers.find(x=>x.id===id)
          || catalogoPersOrg.find(x=>x.id===id);
-    if (o) buildForm(o);
+    if (o) {buildForm(o);}
   }
   async function CancellaObj(id) {
-    if (await window.alphanoDialog.notice({title:'Ritira dal catalogo',message:'Vuoi ritirare questo oggetto dalla vetrina?',buttonLabel:'Ritira',cancelLabel:'Indietro'})!=='ack') return;
+    if (await window.alphanoDialog.notice({title:'Ritira dal catalogo',message:'Vuoi ritirare questo oggetto dalla vetrina?',buttonLabel:'Ritira',cancelLabel:'Indietro'})!=='ack') {return;}
     postAction({ azione:'cancellaobj', id });
   }
   function MostraTutti(v) {
@@ -203,8 +203,8 @@ const Catalogo = (function(){
       o.tipo = found ? found.id : (tipi[0] && tipi[0].id) || 0;
     }
     // Garantisco che tipo e taglia siano interi
-    if (!Number.isInteger(o.tipo)) o.tipo = tipi.length>0 ? tipi[0].id : 0;
-    if (!Number.isInteger(o.taglia)) o.taglia = 0;
+    if (!Number.isInteger(o.tipo)) {o.tipo = tipi.length>0 ? tipi[0].id : 0;}
+    if (!Number.isInteger(o.taglia)) {o.taglia = 0;}
 
     const corpo = document.getElementById('corpo');
     const options=(list,current)=>list.map((item,index)=>{const id=typeof item==='object'?item.id:index;const label=typeof item==='object'?item.nome:item;return `<option value="${Number(id)}"${Number(id)===Number(current)?' selected':''}>${escapeHtml(label)}</option>`;}).join('');
@@ -242,7 +242,7 @@ const Catalogo = (function(){
     })
     .then(r=>r.json())
     .then(result=> {
-      if (result.success === false || result.error) throw new Error(result.msg || result.message || 'Operazione non riuscita');
+      if (result.success === false || result.error) {throw new Error(result.msg || result.message || 'Operazione non riuscita');}
       return fetchData(corpId);
     })
     .then(data=>{
@@ -258,18 +258,18 @@ const Catalogo = (function(){
   // ─── HELPERS ─────────────────────────────────────────────────────────────────
   function showFeedback(message,error=false,form=null,orderLink=false) {
     const feedback=(form && form.querySelector('[role="status"]')) || document.getElementById('catalogo-feedback');
-    if(!feedback)return;
+    if(!feedback){return;}
     feedback.hidden=false;
     feedback.classList.toggle('error',error);
     feedback.textContent=message;
     if(orderLink){const link=document.createElement('a');link.href='/trasferimenti/';link.textContent=' Vai ai miei ordini';feedback.appendChild(link);}
   }
   async function postAction(payload,form=null) {
-    if(busy)return;
+    if(busy){return;}
     busy=true;
     payload.corp=corpId;
     const identity=JSON.stringify(payload);
-    if(!pendingKeys.has(identity))pendingKeys.set(identity,crypto.randomUUID());
+    if(!pendingKeys.has(identity)){pendingKeys.set(identity,crypto.randomUUID());}
     payload._request_key=pendingKeys.get(identity);
     document.querySelectorAll('#corpo button').forEach(button=>button.disabled=true);
     showFeedback(payload.azione==='ordina' ? 'Invio dell’ordine…' : 'Operazione in corso…',false,form);
@@ -277,7 +277,7 @@ const Catalogo = (function(){
       const response=await fetch('/api/corporazioni/catalogo.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
       const result=await response.json();
       if(!response.ok || result.success===false || result.error) {
-        if(response.status<500)pendingKeys.delete(identity);
+        if(response.status<500){pendingKeys.delete(identity);}
         throw Error(result.msg || result.message || 'Operazione non riuscita. Riprova.');
       }
       pendingKeys.delete(identity);

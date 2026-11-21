@@ -9,14 +9,14 @@
       method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content}, body: JSON.stringify(data)
     } : {cache: 'no-store'});
     const out = await response.json();
-    if (!response.ok) throw new Error(out.error || 'La prova è temporaneamente occupata.');
+    if (!response.ok) {throw new Error(out.error || 'La prova è temporaneamente occupata.');}
     return out;
   }
   function notice(text = '') { $('demo-alert').textContent = text; }
-  function element(tag, text, cls) { const node = document.createElement(tag); if (text) node.textContent = text; if (cls) node.className = cls; return node; }
+  function element(tag, text, cls) { const node = document.createElement(tag); if (text) {node.textContent = text;} if (cls) {node.className = cls;} return node; }
   function options(select, rows, value) {
     select.replaceChildren(...rows.map(([id, text]) => { const o = element('option', text); o.value = id; return o; }));
-    if (value && rows.some(r => String(r[0]) === value)) select.value = value;
+    if (value && rows.some(r => String(r[0]) === value)) {select.value = value;}
   }
   function narrative(text, sex) {
     const box = element('div', '', 'demo-narrative ' + (sex === 'Femmina' ? 'demo-female' : 'demo-male'));
@@ -27,7 +27,7 @@
   }
   function roomDescription() {
     const room = rooms.find(r => r.chat_key === current);
-    if (!room) return;
+    if (!room) {return;}
     $('demo-room-title').textContent = room.title;
     $('demo-description').textContent = room.public_setting || 'Un luogo del mondo di Alphano.';
     $('demo-cast').replaceChildren(...room.npcs.map(n => {
@@ -44,11 +44,11 @@
     const pending = turns.find(t => ['queued', 'running'].includes(t.status));
     $('demo-typing').textContent = pending ? pending.npc_name + ' sta scrivendo…' + (pending.status === 'queued' ? ' (in attesa del Master)' : '') : '';
     $('demo-compose').querySelector('button').disabled = busy || sending;
-    if (mark === signature) return;
+    if (mark === signature) {return;}
     signature = mark;
     const log = $('demo-messages'), nearBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 100;
     const nodes = [];
-    if (!turns.length) nodes.push(element('p', 'Il luogo attende la tua prima azione. Scegli un PNG nel menu “Rivolgiti a” per iniziare a parlare.', 'demo-empty'));
+    if (!turns.length) {nodes.push(element('p', 'Il luogo attende la tua prima azione. Scegli un PNG nel menu “Rivolgiti a” per iniziare a parlare.', 'demo-empty'));}
     for (const t of turns) {
       const time = new Date(t.time * 1000).toLocaleTimeString('it-IT', {hour: '2-digit', minute: '2-digit'});
       const row = element('article', '', 'demo-turn');
@@ -59,18 +59,18 @@
         const reply = element('article', '', 'demo-turn');
         reply.append(element('div', time + ' · ' + (npc?.sex === 'Femmina' ? '♀' : '♂') + ' ' + t.npc_name + ' · PNG', 'demo-speaker ' + (npc?.sex === 'Femmina' ? 'demo-female' : 'demo-male')));
         reply.append(narrative(t.reply, npc?.sex)); nodes.push(reply);
-      } else if (['failed', 'cancelled'].includes(t.status)) nodes.push(element('p', 'La risposta non è arrivata. Puoi riprovare con un nuovo messaggio.', 'demo-error'));
+      } else if (['failed', 'cancelled'].includes(t.status)) {nodes.push(element('p', 'La risposta non è arrivata. Puoi riprovare con un nuovo messaggio.', 'demo-error'));}
     }
     log.replaceChildren(...nodes);
-    if (nearBottom || turns.length < 2) log.scrollTop = log.scrollHeight;
+    if (nearBottom || turns.length < 2) {log.scrollTop = log.scrollHeight;}
   }
   async function refresh(initial = false) {
     const requested = current;
     try {
       const out = await api(null, requested);
-      if (requested !== current) return;
+      if (requested !== current) {return;}
       visitor = out.visitor; rooms = out.rooms || rooms;
-      if (choosing) return;
+      if (choosing) {return;}
       $('demo-entry').hidden = !!visitor; $('demo-play').hidden = !visitor;
       if (!visitor) { busy = false; return; }
       $('demo-visitor').textContent = visitor.name + ' · ' + visitor.sex;
@@ -83,7 +83,7 @@
       }
       render(out.turns);
     } catch (e) { notice(e.message); }
-    finally { clearTimeout(timer); if (!choosing) timer = setTimeout(() => refresh(), busy ? 2000 : 10000); }
+    finally { clearTimeout(timer); if (!choosing) {timer = setTimeout(() => refresh(), busy ? 2000 : 10000);} }
   }
   $('demo-enter').addEventListener('submit', async e => {
     e.preventDefault(); const button = e.currentTarget.querySelector('button'); button.disabled = true; notice();
@@ -93,15 +93,15 @@
   $('demo-change').addEventListener('click', () => { choosing = true; $('demo-play').hidden = true; $('demo-entry').hidden = false; clearTimeout(timer); $('demo-name').focus(); });
   $('demo-room').addEventListener('change', () => { current = $('demo-room').value; roomDescription(); notice(); refresh(); });
   $('demo-compose').addEventListener('submit', async e => {
-    e.preventDefault(); if (busy || sending) return;
-    const text = $('demo-text').value.trim(); if (!text) return;
+    e.preventDefault(); if (busy || sending) {return;}
+    const text = $('demo-text').value.trim(); if (!text) {return;}
     const room = current, npc = Number($('demo-npc').value), draft = JSON.stringify([room, npc, text]);
-    if (!drafts.has(draft)) drafts.set(draft, crypto.randomUUID());
+    if (!drafts.has(draft)) {drafts.set(draft, crypto.randomUUID());}
     sending = true; e.currentTarget.querySelector('button').disabled = true; notice();
-    try { await api({action: 'send', chat: room, npc, text, key: drafts.get(draft)}); drafts.delete(draft); if (current === room) $('demo-text').value = ''; await refresh(); }
+    try { await api({action: 'send', chat: room, npc, text, key: drafts.get(draft)}); drafts.delete(draft); if (current === room) {$('demo-text').value = '';} await refresh(); }
     catch (error) { notice(error.message); }
     finally { sending = false; $('demo-compose').querySelector('button').disabled = busy; }
   });
-  document.addEventListener('visibilitychange', () => { if (!document.hidden && !choosing) refresh(); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && !choosing) {refresh();} });
   refresh(true);
 })();

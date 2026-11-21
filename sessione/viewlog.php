@@ -61,9 +61,10 @@ switch ($azione) {
         }
         $session=$db->query('SELECT s.*,COALESCE(m.title,s.chat) AS location_label FROM sessioni s LEFT JOIN mappe m ON m.chat_key=s.chat WHERE s.id=?',[$id])[0]??null;
         if(!$session){ alphano_fail('Sessione non trovata.',404); }
-        $file = rtrim(htmlroot, '/') . "/sessione/log/{$id}.html";
-        if (!is_file($file)) { $file = rtrim(htmlroot, '/') . "/sessione/log/{$id}.htm"; }
-        if (!is_file($file) || !filesize($file)) {
+        $logDir = rtrim(htmlroot, '/') . '/sessione/log';
+        $file = alphano_canonical_inside($logDir, $logDir . '/' . $id . '.html');
+        if ($file === null || !is_file($file)) { $file = alphano_canonical_inside($logDir, $logDir . '/' . $id . '.htm'); }
+        if ($file === null || !is_file($file) || !filesize($file)) {
             exit('Log non trovato o vuoto');
         }
 

@@ -15,9 +15,11 @@ try {
     $action=ai_field($in,'action',30,true);$db=ai_db();
     if ($action==='portrait' && $method==='GET') {
         $name=ai_field($in,'file',40,true);
-        if (!preg_match('/^[a-f0-9]{32}\.png$/D',$name) || !is_file(ai_portrait_directory().'/'.$name)) { throw new DomainException('Ritratto non disponibile.',404); }
+        $portraitDir=ai_portrait_directory();
+        $file=alphano_canonical_inside($portraitDir, $portraitDir.'/'.$name);
+        if (!preg_match('/^[a-f0-9]{32}\.png$/D',$name) || $file===null || !is_file($file)) { throw new DomainException('Ritratto non disponibile.',404); }
         header('Content-Type: image/png');header('X-Content-Type-Options: nosniff');
-        session_write_close();readfile(ai_portrait_directory().'/'.$name);exit;
+        session_write_close();readfile($file);exit;
     }
     if ($action==='job' && $method==='GET') {
         $job=$db->query('SELECT id,chat_key,user_id,kind,status,result,error FROM ai_jobs WHERE id=?',[ai_integer($in,'id',1,PHP_INT_MAX)])[0]??null;

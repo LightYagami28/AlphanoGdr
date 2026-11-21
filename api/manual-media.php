@@ -8,7 +8,9 @@ try{
     $rule=alphano_manual_find($key,0,$u);$definition=alphano_manual_definition((string)$rule['manual_key']);$file=null;
     foreach($definition['screens']??[] as $entry){ if($entry['key']===$screen){ $file=$entry['file']; } }
     if(!$file){ throw new DomainException('Schermata non disponibile.',404); }$path=alphano_manual_screen_path($file);
-    if(!is_file($path)||is_link($path)){ throw new DomainException('Schermata non disponibile.',404); }
+    $real=alphano_canonical_inside(dirname($path), $path);
+    if($real===null||!is_file($real)||is_link($real)){ throw new DomainException('Schermata non disponibile.',404); }
+    $path=$real;
     if(session_status()===PHP_SESSION_ACTIVE){ session_write_close(); }
     header('Content-Type: image/png');header('Cache-Control: private, no-store');header('X-Content-Type-Options: nosniff');header('Content-Length: '.filesize($path));readfile($path);
 }catch(Throwable $e){http_response_code($e instanceof DomainException?$e->getCode():404);header('Cache-Control: private, no-store');exit;}

@@ -128,4 +128,29 @@ final class FrontendSourceCheckTest extends \PHPUnit\Framework\TestCase
         );
         self::assertSame([], alphanoCssColorDeclarations(''));
     }
+
+    /**
+     * L'audit completo classifica i sorgenti corretti come sicuri.
+     */
+    public function testAuditFrontend(): void
+    {
+        $audit = alphanoFrontendAudit(dirname(__DIR__, 2));
+        self::assertTrue(alphanoFrontendAuditSafe($audit));
+        self::assertSame('6px', $audit['css/theme/maps.css']['radius']);
+        self::assertTrue($audit['css/theme/maps.css']['pixels']);
+        self::assertGreaterThan(0, $audit['js/password.js']['loops']);
+        self::assertSame([], $audit['js/password.js']['implicit']);
+    }
+
+    /**
+     * L'audit rifiuta globali impliciti e raggi non espressi in pixel.
+     */
+    public function testAuditInsicuro(): void
+    {
+        self::assertFalse(alphanoFrontendAuditSafe(['a' => ['safe' => false]]));
+        self::assertTrue(alphanoFrontendAuditSafe(['a' => ['safe' => true], 'b' => ['safe' => true]]));
+        self::assertTrue(alphanoCssRadiusIsPixels('6px'));
+        self::assertFalse(alphanoCssRadiusIsPixels('6em'));
+        self::assertFalse(alphanoCssRadiusIsPixels('6'));
+    }
 }

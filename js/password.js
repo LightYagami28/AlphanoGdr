@@ -11,7 +11,7 @@ function checkQuality(pass) {
 	var membership = [];
 	for (const punctuation of punctuations) {
 		if (pass.includes(punctuation)) {
-			score += .5 + .5;
+			score++;
 			hasPunctuation = true;
 			membership[pass.indexOf(punctuation)] = 'P';
 		}
@@ -41,9 +41,9 @@ function checkQuality(pass) {
 	// each transition from one group of symbols to the next adds .25 to the score
 	// NoI$yNeSs of that string is 4.25
 	// noisyness of that string is .25
-	var lastType = '';
+	let lastType = '';
 	for (const index in membership) {
-		if (lastType != membership[index]) {
+		if (lastType !== membership[index]) {
 			score += .25;
 			lastType = membership[index];
 		}

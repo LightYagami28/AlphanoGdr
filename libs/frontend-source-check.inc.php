@@ -186,3 +186,58 @@ function alphanoFrontendSourceReport(string $root): array
     );
     return $report;
 }
+
+/**
+ * Verifica che un valore CSS sia un raggio espresso in pixel.
+ */
+function alphanoCssRadiusIsPixels(string $value): bool
+{
+    return preg_match('/^\d+px$/D', $value) === 1;
+}
+
+/**
+ * Costruisce un audit completo dei sorgenti frontend.
+ *
+ * @return array<string,array<string,mixed>>
+ */
+function alphanoFrontendAudit(string $root): array
+{
+    $audit = [];
+    foreach (alphanoFrontendJsFiles() as $file) {
+        $source = (string)file_get_contents($root.'/'.$file);
+        $assignments = alphanoJsAssignments($source);
+        $declared = alphanoJsDeclaredNames($source);
+        $loops = alphanoJsLoopNames($source);
+        $implicit = alphanoJsImplicitAssignments($source);
+        $audit[$file] = [
+            'assignments' => count($assignments),
+            'declared' => count($declared),
+            'loops' => count($loops),
+            'implicit' => $implicit,
+            'safe' => $implicit === [],
+        ];
+    }
+    $css = (string)file_get_contents($root.'/css/theme/maps.css');
+    $radius = alphanoCssRadiusValue($css);
+    $audit['css/theme/maps.css'] = [
+        'declarations' => count(alphanoCssDeclarations($css)),
+        'colors' => count(alphanoCssColorDeclarations($css)),
+        'radius' => $radius,
+        'pixels' => $radius !== null && alphanoCssRadiusIsPixels($radius),
+        'safe' => alphanoCssRadiusHasUnit($css),
+    ];
+    return $audit;
+}
+
+/**
+ * True quando ogni voce dell'audit e' sicura.
+ */
+function alphanoFrontendAuditSafe(array $audit): bool
+{
+    foreach ($audit as $entry) {
+        if (empty($entry['safe'])) {
+            return false;
+        }
+    }
+    return true;
+}

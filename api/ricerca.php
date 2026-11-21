@@ -24,8 +24,8 @@ $rows = $db->query($sql,$sqlParams);
 // ────────────────────────────────────────────────────────────────────
 $orgIDs   = $corpIDs   = $araldIDs = [];
 foreach ($rows as $r) {
-    if ($r['caricaorganizzazione']) $orgIDs[$r['caricaorganizzazione']] = true;
-    if ($r['caricacorporazione'])   $corpIDs[$r['caricacorporazione']]   = true;
+    if ($r['caricaorganizzazione']) { $orgIDs[$r['caricaorganizzazione']] = true; }
+    if ($r['caricacorporazione'])   { $corpIDs[$r['caricacorporazione']]   = true; }
     $araldIDs[$r['araldica']] = true;
 }
 
@@ -61,7 +61,7 @@ $ricerca = [];
 foreach ($rows as $d) {
     $portrait=alphano_profile_portrait($d);
     $visibleRace=alphano_visible_race($d);
-    if($visibleRace===ALPHANO_RACE_LEGACY_SPIRIT)$visibleRace=ALPHANO_RACE_SPIRIT;
+    if($visibleRace===ALPHANO_RACE_LEGACY_SPIRIT){ $visibleRace=ALPHANO_RACE_SPIRIT; }
     $item = [
         'portrait'=>$portrait['url'],'portrait_default'=>$portrait['default'],
         'idpg'        => (int)$d['id'],

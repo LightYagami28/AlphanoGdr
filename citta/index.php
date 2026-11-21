@@ -16,6 +16,6 @@ if (!is_scalar($rawId) || !is_string($section)
     alphano_fail('Città o sezione non valida.', 400);
 }
 $cityDirectory = alphano_city_directory(alphano_user(), (int)$rawId);
-if ((int)$rawId > 0 && $cityDirectory['selected'] === null) alphano_fail('Città non trovata.', 404);
+if ((int)$rawId > 0 && $cityDirectory['selected'] === null) { alphano_fail('Città non trovata.', 404); }
 require __DIR__ . '/../templates/cities/index.php';
 ClosePage();

@@ -10,7 +10,7 @@ require_once __DIR__ . '/../libs/libgrafica.inc.php';
 use Alphano\Database\PDOMySQLDriver;
 
 alphano_require_login();
-if ($_SERVER['REQUEST_METHOD'] === 'POST') alphano_require_csrf();
+if ($_SERVER['REQUEST_METHOD'] === 'POST') { alphano_require_csrf(); }
 
 $idpg    = GetIDPG(0, 1) ?: die('<h1>Accesso negato</h1>');
 $db      = ConnectDB();
@@ -218,16 +218,16 @@ function Smista(array $righe): array {
     $idpgs=[]; $idobjs=[]; $idcitys=[]; $idorgs=[];
     foreach ($righe as $r) {
         foreach (['esecutore','destinatario','origine','pg'] as $f) {
-            if (!empty($r[$f])) $idpgs[] = $r[$f];
+            if (!empty($r[$f])) { $idpgs[] = $r[$f]; }
         }
-        if (!empty($r['obj']))  $idobjs[]  = $r['obj'];
-        if (!empty($r['city'])) $idcitys[] = $r['city'];
-        if (!empty($r['org']))  $idorgs[]  = $r['org'];
+        if (!empty($r['obj']))  { $idobjs[]  = $r['obj']; }
+        if (!empty($r['city'])) { $idcitys[] = $r['city']; }
+        if (!empty($r['org']))  { $idorgs[]  = $r['org']; }
     }
     $fetchMap = function(array $ids, string $table, string $field, string $labelCol) use ($db) {
         $map = [];
         $ids = array_values(array_unique($ids));
-        if (!$ids) return $map;
+        if (!$ids) { return $map; }
         $ph = implode(',', array_fill(0, count($ids), '?'));
         $rows = $db->query(
             "SELECT `$field`,`$labelCol` FROM `$table` WHERE `$field` IN ($ph)",

@@ -12,17 +12,17 @@ function ai_background_query(string $question):string {
         '/\b(?:età|anni|anzian\p{L}*|giovan\p{L}*)\b/iu'=>'età anni',
         '/\b(?:etni\p{L}*|popolo|cultur\p{L}*)\b/iu'=>'etnia popolo cultura',
     ];
-    $query=$question;foreach($groups as $pattern=>$terms)if(preg_match($pattern,$question))$query.=' '.$terms;
+    $query=$question;foreach($groups as $pattern=>$terms){ if(preg_match($pattern,$question)){ $query.=' '.$terms; } }
     $entry=preg_match('/\b(?:entrar\p{L}*|entr[oaie]|ingress\p{L}*|access\p{L}*|varc\p{L}*|cancell\p{L}*|porton\p{L}*)\b/iu',$question)
         ||(preg_match('/\b(?:passar\p{L}*|pass[oaie])\b/iu',$question)&&!preg_match('/\b(?:tempo|giornat\p{L}*|serat\p{L}*|pomeriggio|insieme|moment\p{L}*)\b/iu',$question));
-    if($entry)$query.=' ingresso accesso passaggio varco cancello portone aperto chiuso';
+    if($entry){ $query.=' ingresso accesso passaggio varco cancello portone aperto chiuso'; }
     return $query;
 }
 
 /** Public psychology is also an editable temperament, not a decorative profile field. */
 function ai_background_persona(array $npc,array $rules,int $budget=320):string {
     $p=ai_npc_profile($npc);$psychology=trim((string)$p['psychology']);
-    if($psychology!=='')$npc['personality']=$psychology."\n".(string)($npc['personality']??'');
+    if($psychology!==''){ $npc['personality']=$psychology."\n".(string)($npc['personality']??''); }
     return ai_expression_persona($npc,$rules,$budget);
 }
 
@@ -46,33 +46,33 @@ function ai_background_context(array $npc,array $job,float $scale=.5):string {
     ];
     $units=[];
     foreach($fields as $label=>$text){
-        if(trim($text)==='')continue;
+        if(trim($text)===''){ continue; }
         $relevant=ai_expression_related($label.' '.$text,$query);
-        if(!$relevant&&!($personal&&in_array($label,['storia pubblica','storia personale'],true)))continue;
+        if(!$relevant&&!($personal&&in_array($label,['storia pubblica','storia personale'],true))){ continue; }
         $units[]=['label'=>$label,'text'=>$text,'priority'=>$relevant?1:0];
     }
     foreach($profile['details'] as $detail){
         $label=ai_text((string)($detail['label']??''),80);$text=(string)($detail['value']??'');
-        if($text!==''&&ai_expression_related($label.' '.$text,$query))$units[]=['label'=>$label,'text'=>$text,'priority'=>1];
+        if($text!==''&&ai_expression_related($label.' '.$text,$query)){ $units[]=['label'=>$label,'text'=>$text,'priority'=>1]; }
     }
     // A matching family/animal fact must not lose its budget to an unrelated biography.
     usort($units,static fn($a,$b)=>$b['priority']<=>$a['priority']);
     $parts=[];$remaining=$budget;$seen=[];
     foreach($units as $unit){
-        if($remaining<90)break;
+        if($remaining<90){ break; }
         $size=min($small?190:260,$remaining-mb_strlen($unit['label'])-3);
         $excerpt=ai_prompt_relevant_text($unit['text'],$query,$size);
         $excerpt=ai_expression_excerpt($excerpt,$size);
         $sentences=[];
         foreach(preg_split('/(?<=[.!?;])\s+/u',$excerpt,-1,PREG_SPLIT_NO_EMPTY)?:[] as $sentence){
             $key=trim(preg_replace('/[^\p{L}\p{N}]+/u',' ',mb_strtolower($sentence))??'');
-            if($key===''||isset($seen[$key]))continue;$seen[$key]=true;$sentences[]=$sentence;
+            if($key===''||isset($seen[$key])){ continue; }$seen[$key]=true;$sentences[]=$sentence;
         }
         $excerpt=implode(' ',$sentences);
-        if($excerpt==='')continue;
+        if($excerpt===''){ continue; }
         $line=$unit['label'].': '.$excerpt;$parts[]=$line;$remaining-=mb_strlen($line)+3;
     }
-    if(!$parts)return '';
+    if(!$parts){ return ''; }
     return "\nSFONDO PERSONALE PERTINENTE (dati del tuo profilo, non nuovi eventi): ".implode(' / ',$parts).'. Le relazioni attuali, le correzioni dello staff e gli esiti verificati prevalgono sullo sfondo; un affetto biografico non assegna sentimenti al PG presente. Non recitare la scheda e non inventare dettagli mancanti.';
 }
 
@@ -80,18 +80,18 @@ function ai_background_context(array $npc,array $job,float $scale=.5):string {
 function ai_background_duties(array $npc,array $rules,array $game,float $scale=.5):string {
     $occupation=trim((string)ai_npc_profile($npc)['occupation']," .\t\r\n");$parts=[];
     foreach([(string)$rules['duty'],(string)$game['duties']] as $duty){
-        $duty=trim($duty," .\t\r\n");if($duty===''||$duty===$occupation||in_array($duty,$parts,true))continue;$parts[]=$duty;
+        $duty=trim($duty," .\t\r\n");if($duty===''||$duty===$occupation||in_array($duty,$parts,true)){ continue; }$parts[]=$duty;
     }
     return $parts?"\nDOVERI DEL PNG: ".ai_expression_excerpt(implode('. ',$parts),$scale<=.3?140:220).'. Il dovere concreto non rende ogni argomento un divieto.':'';
 }
 
 /** Compact ordinary replies retain the same private session directions as larger prompts. */
 function ai_background_master_context(array $room,array $job,float $scale=.5):string {
-    if((int)($job['user_id']??0)<1)return '';$state=ai_game_session((string)$room['chat_key']);if(!$state)return '';
+    if((int)($job['user_id']??0)<1){ return ''; }$state=ai_game_session((string)$room['chat_key']);if(!$state){ return ''; }
     $g=$state['guidance'];$turn=ai_game_turn($g);
     $out="\nREGIA ATTUALE: fase ".$g['phase'].', giro '.(int)$g['round_number'].'. Gli esiti confermati del Master prevalgono; non risolvere nuovi tentativi o far avanzare il turno.';
-    if($turn)$out.=' Turno riservato a '.($turn['kind']==='npc'?'PNG':'PG').' #'.(int)$turn['id'].'.';
-    if(trim((string)$g['notes'])!=='')$out.="\nDIRETTIVA DEL MASTER PER LA TUA PROSSIMA RISPOSTA (prioritaria sulla trama generica): ".ai_expression_excerpt((string)$g['notes'],$scale<=.3?140:220).' Applica la direttiva alla tua condotta; se una condizione modifica voce o movimento, mostrane l’effetto concreto. Non citare il Master e non recitare le istruzioni.';
+    if($turn){ $out.=' Turno riservato a '.($turn['kind']==='npc'?'PNG':'PG').' #'.(int)$turn['id'].'.'; }
+    if(trim((string)$g['notes'])!==''){ $out.="\nDIRETTIVA DEL MASTER PER LA TUA PROSSIMA RISPOSTA (prioritaria sulla trama generica): ".ai_expression_excerpt((string)$g['notes'],$scale<=.3?140:220).' Applica la direttiva alla tua condotta; se una condizione modifica voce o movimento, mostrane l’effetto concreto. Non citare il Master e non recitare le istruzioni.'; }
     return $out;
 }
 
@@ -102,15 +102,15 @@ function ai_background_master_context(array $room,array $job,float $scale=.5):st
  */
 function ai_background_player_context(array $npc,array $job,bool $compact=false):string {
     $nid=(int)($npc['id']??0);$uid=(int)($job['user_id']??0);
-    if($nid<1||$uid<1)return '';
+    if($nid<1||$uid<1){ return ''; }
     $reading=ai_narrative_parse((string)($job['prompt']??''));$question=(string)$reading['speech'];
-    if($question==='')return '';
+    if($question===''){ return ''; }
     $personal='/\b(?:famigli\p{L}*|parent[ei]|genitor[ei]|padr[ei]|madr[ei]|fratell\p{L}*|sorell\p{L}*|figli\p{L}*|infanzia|origin\p{L}*|proven\p{L}*|nascit\p{L}*|mestier\p{L}*|lavor\p{L}*|profess\p{L}*|animali|cane|cani|gatto|gatti|cavall\p{L}*)\b/iu';
     $reminder=(bool)preg_match('/\b(?:ricord[\p{L}]*|raccontat[oa]|confidat[oa])\b/iu',$question);
-    if(!$reminder&&!preg_match($personal,$question))return '';
+    if(!$reminder&&!preg_match($personal,$question)){ return ''; }
     // "Avete fratelli?" asks about the NPC, not the visitor's old biography.
-    if(!$reminder&&!preg_match('/\b(?:mio|mia|miei|mie|io|me)\b/iu',$question))return '';
-    if(ai_recognition_anonymous($npc,$job))return '';
+    if(!$reminder&&!preg_match('/\b(?:mio|mia|miei|mie|io|me)\b/iu',$question)){ return ''; }
+    if(ai_recognition_anonymous($npc,$job)){ return ''; }
     $chat=(string)($job['chat_key']??'');$private=preg_match('/^(?:rent_|pvt_)/D',$chat)===1;
     $scope="(LEFT(m.chat_key,5)<>'rent_' AND LEFT(m.chat_key,4)<>'pvt_')";$params=[$nid,$uid];
     if($private){$scope='('.$scope.' OR m.chat_key=?)';$params[]=$chat;}
@@ -121,11 +121,11 @@ function ai_background_player_context(array $npc,array $job,bool $compact=false)
     $query=ai_background_query($question);$parts=[];$seen=[];$remaining=$compact?230:360;
     foreach($rows as $row){
         $speech=ai_narrative_parse((string)$row['msg'])['speech'];
-        if($speech===''||!preg_match($personal,$speech)||!ai_expression_related($speech,$query))continue;
+        if($speech===''||!preg_match($personal,$speech)||!ai_expression_related($speech,$query)){ continue; }
         $excerpt=ai_prompt_relevant_text($speech,$query,min(180,$remaining));
         $excerpt=ai_text($excerpt,$remaining);$key=ai_social_evidence_key($excerpt);
-        if($key===''||isset($seen[$key]))continue;$seen[$key]=true;$parts[]='«'.$excerpt.'»';$remaining-=mb_strlen($excerpt)+4;
-        if(count($parts)>=2||$remaining<90)break;
+        if($key===''||isset($seen[$key])){ continue; }$seen[$key]=true;$parts[]='«'.$excerpt.'»';$remaining-=mb_strlen($excerpt)+4;
+        if(count($parts)>=2||$remaining<90){ break; }
     }
     return $parts?"\nRACCONTI PERSONALI GIÀ ASCOLTATI DA QUESTO INTERLOCUTORE: ".implode(' / ',$parts).'. Sono sue dichiarazioni passate, non fatti verificati né nuove battute: se pertinenti puoi ricordare che te le ha raccontate. Non inventare dettagli, leggere pensieri o dedurre segreti dalla scheda. Il contesto attuale definito dallo staff prevale.':'';
 }

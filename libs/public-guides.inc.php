@@ -36,10 +36,10 @@ function alphano_registration_guides(): array
     $human=alphano_human_race_id();
     $race=ConnectDB()->query('SELECT r.id,r.nome,c.description FROM razze r LEFT JOIN rpg_races c ON c.race_id=r.id WHERE r.id=?',[$human])[0];
     $race=['id'=>(int)$race['id'],'nome'=>$race['nome'],'description'=>alphano_guide_text((string)$race['description'])?:'Una razza di esempio personalizzabile.','image'=>'/assets/avatar.svg'];
-    if(!is_file(dirname(__DIR__).$race['image']))$race['image']='/assets/avatar.svg';
+    if(!is_file(dirname(__DIR__).$race['image'])){ $race['image']='/assets/avatar.svg'; }
     $ethnicities=array_map(static fn($e)=>['id'=>(int)$e['id'],'nome'=>$e['nome'],'description'=>alphano_guide_text($e['descrizione']),'image'=>alphano_ethnicity_art((string)$e['nome'])],ConnectDB()->query('SELECT id,nome,descrizione FROM etnie ORDER BY nome'));
     $cities=array_values(array_filter(alphano_city_guides(),static fn($c)=>$c['entry_role']!==null));
-    foreach($cities as &$city)unset($city['statute_html']);unset($city);
+    foreach($cities as &$city){ unset($city['statute_html']); }unset($city);
     $alignments=alphano_alignment_catalog();
     return ['races'=>[$race],'ethnicities'=>$ethnicities,'cities'=>$cities,
         'alignments'=>$alignments['alignments'],'alignmentSummary'=>$alignments['summary'],'alignmentMechanics'=>$alignments['mechanics'],

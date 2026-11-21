@@ -9,7 +9,7 @@ function alphano_default_art_catalog(): array {
     );
 }
 function alphano_default_art(string $key): string {
-    foreach(alphano_default_art_catalog() as $asset)if($asset['key']===$key)return $asset['path'];
+    foreach(alphano_default_art_catalog() as $asset){ if($asset['key']===$key){ return $asset['path']; } }
     return '/assets/default-nav-scroll.svg';
 }
 function alphano_is_default_art(string $path): bool {
@@ -23,6 +23,6 @@ function alphano_default_header(string $url): string {
     $key=alphano_appearance_page_key($url);
     $base=alphano_appearance_page_key(parse_url($url,PHP_URL_PATH)?:'/');
     $art=$manifest['pages'][$key]??$manifest['pages'][$base]??null;
-    if($art===null)foreach($manifest['families'] as $prefix=>$value)if($base===$prefix||str_starts_with($base,$prefix.'-')){$art=$value;break;}
+    if($art===null){ foreach($manifest['families'] as $prefix=>$value){ if($base===$prefix||str_starts_with($base,$prefix.'-')){$art=$value;break;} } }
     return alphano_default_art('header-'.($art??'panorama'));
 }

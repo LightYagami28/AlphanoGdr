@@ -10,7 +10,7 @@ function alphano_status_document(string $title, string $message, string $action 
     foreach (['settings', 'appearance'] as $file) {
         $path = dirname(__DIR__).'/private/'.$file.'.json';
         $settings = is_file($path) ? json_decode((string)file_get_contents($path), true) : [];
-        if (is_array($settings) && in_array($settings['theme'] ?? '', ['blue','black','brown','red','purple'], true)) $palette = $settings['theme'];
+        if (is_array($settings) && in_array($settings['theme'] ?? '', ['blue','black','brown','red','purple'], true)) { $palette = $settings['theme']; }
     }
     $formHtml = '';
     if ($form !== null) {

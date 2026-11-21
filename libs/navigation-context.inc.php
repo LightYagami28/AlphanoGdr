@@ -14,7 +14,7 @@ function alphano_navigation_recent_scene(array $user): ?array
     $memory = $_SESSION['navigation_scene'] ?? [];
     $chat = (int)($memory['player_id'] ?? 0) === $player
         ? (string)($memory['chat'] ?? '') : (string)($user['chat'] ?? '');
-    if ($chat === '') return null;
+    if ($chat === '') { return null; }
 
     $db = ConnectDB();
     $room = $db->query('SELECT chat_key,title,position FROM mappe WHERE chat_key=? AND chat=1', [$chat])[0] ?? null;
@@ -23,13 +23,13 @@ function alphano_navigation_recent_scene(array $user): ?array
         try { $room = alphano_private_room($chat, $player); }
         catch (DomainException) { $room = null; }
     }
-    if (!$room) return null;
+    if (!$room) { return null; }
 
     // Reuse the territory resolver used by the game, including private room hosts.
     require_once __DIR__.'/ai.inc.php';
     $territory = ai_authority_place((string)($room['rental_host'] ?? $chat));
     $city = (string)$territory['city'];
-    if ($city === '' && isset($room['private_slug'])) $city = alphano_private_city($room['private_slug'])['city'];
+    if ($city === '' && isset($room['private_slug'])) { $city = alphano_private_city($room['private_slug'])['city']; }
     $title = trim((string)$room['title']);
     if ($city !== '') {
         $name = preg_quote($city, '/');

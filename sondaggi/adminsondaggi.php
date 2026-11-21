@@ -18,7 +18,7 @@ if (!IsAdmin($pgid)) {
 EnsureAdmin();
 
 $db = ConnectDB();
-if ($_SERVER['REQUEST_METHOD'] === 'POST') alphano_require_csrf();
+if ($_SERVER['REQUEST_METHOD'] === 'POST') { alphano_require_csrf(); }
 
 // 1) Elimina sondaggio
 if (!empty($_POST['elimina'])) {

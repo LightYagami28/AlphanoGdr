@@ -1,4 +1,4 @@
-<?php if (!defined('ALPHANO_SHELL')) exit; ?>
+<?php if (!defined('ALPHANO_SHELL')) { exit; } ?>
 <!doctype html>
 <html lang="it">
 <head>

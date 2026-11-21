@@ -44,13 +44,13 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     alphano_require_csrf();
     $action = $_POST['action'] ?? '';
     if ($action === 'admin') {
-        if (!$isAdmin) alphano_fail('Permesso negato.',403);
+        if (!$isAdmin) { alphano_fail('Permesso negato.',403); }
         $bugId=(int)($_POST['id'] ?? 0);
         $subaction=(string)($_POST['subaction'] ?? '');
         if ($subaction === 'prendiincarico') {
             $db->execute('UPDATE bug SET stato=1,admin=? WHERE id=? AND attivato=1 AND stato=0',[$idpg,$bugId]);
             $msg='Segnalazione presa in carico.';
-        } else alphano_fail('Azione non valida.',400);
+        } else { alphano_fail('Azione non valida.',400); }
     }
     if ($action==='search') {
         // where dinamico
@@ -75,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         }
         $sql = "SELECT * FROM bug WHERE ".implode(' AND ',$where)." ORDER BY id DESC";
         $results = $db->query($sql,$params);
-        if (!$results) $msg="Nessuna segnalazione trovata.";
+        if (!$results) { $msg="Nessuna segnalazione trovata."; }
     }
     if ($action==='insert') {
         $email = filter_var($_POST['email'] ?? '',FILTER_VALIDATE_EMAIL);

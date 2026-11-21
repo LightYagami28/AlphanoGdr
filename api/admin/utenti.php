@@ -54,7 +54,7 @@ if (str_contains($_SERVER['CONTENT_TYPE'] ?? '', 'application/json')) {
     try { $data = alphano_request_json(); }
     catch (Throwable) { http_response_code(400); echo json_encode(['success'=>false,'message'=>'JSON non valido']); exit; }
 }
-foreach($data as $key=>$value)if($key!=='changes'&&(is_array($value)||is_object($value))){http_response_code(422);echo json_encode(['success'=>false,'message'=>'Parametro non valido']);exit;}
+foreach($data as $key=>$value){ if($key!=='changes'&&(is_array($value)||is_object($value))){http_response_code(422);echo json_encode(['success'=>false,'message'=>'Parametro non valido']);exit;} }
 if(!is_string($data['azione']??'none')){http_response_code(422);echo json_encode(['success'=>false,'message'=>'Azione non valida']);exit;}
 $action = $data['azione'] ?? 'none';
 $readonly = ['incarichi','none','listarazze','stirpe','visualizzaflag','doppipg','mostrastatosociale','mostraemailreg'];
@@ -72,31 +72,31 @@ $response = ['success' => false];
 // switch sulle azioni (come prima, ma con PDO)
 try {
     $transaction = !in_array($action, array_merge($readonly,['dump','ottimizza']), true);
-    if ($transaction) $db->beginTransaction();
+    if ($transaction) { $db->beginTransaction(); }
     $targets = ['profile','cambiapass','cancella','cancellaposta','cambianome','setflag','statosociale','emailreg'];
-    if (in_array($action,$targets,true) && !GetPGID((string)($data['nome'] ?? ''))) throw new InvalidArgumentException('Personaggio non trovato');
+    if (in_array($action,$targets,true) && !GetPGID((string)($data['nome'] ?? ''))) { throw new InvalidArgumentException('Personaggio non trovato'); }
     switch ($action) {
         case 'incarichi':
             require_once __DIR__.'/../../libs/admin-governance.inc.php';
-            $name=$data['nome']??'';if(!is_string($name)||mb_strlen($name)>100)throw new DomainException('Nome non valido.',422);
+            $name=$data['nome']??'';if(!is_string($name)||mb_strlen($name)>100){ throw new DomainException('Nome non valido.',422); }
             $result=['catalog'=>alphano_governance_catalog()];
-            if($name!==''){$target=$db->query('SELECT * FROM utenti WHERE nome=?',[$name])[0]??null;if(!$target)throw new DomainException('Personaggio non trovato.',404);$result['person']=['id'=>(int)$target['id'],'name'=>$target['nome'],'values'=>alphano_governance_state($target),'revision'=>alphano_governance_revision($target)];}
+            if($name!==''){$target=$db->query('SELECT * FROM utenti WHERE nome=?',[$name])[0]??null;if(!$target){ throw new DomainException('Personaggio non trovato.',404); }$result['person']=['id'=>(int)$target['id'],'name'=>$target['nome'],'values'=>alphano_governance_state($target),'revision'=>alphano_governance_revision($target)];}
             $result['history']=alphano_governance_history((int)($target['id']??0));
             $response=['success'=>true,'data'=>$result];
             break;
         case 'salvaincarichi':
             require_once __DIR__.'/../../libs/admin-governance.inc.php';
             $target=filter_var($data['id']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
-            if(!$target||!is_array($data['changes']??null)||!is_string($data['revision']??null)||!is_string($data['reason']??null))throw new DomainException('Dati degli incarichi incompleti.',422);
+            if(!$target||!is_array($data['changes']??null)||!is_string($data['revision']??null)||!is_string($data['reason']??null)){ throw new DomainException('Dati degli incarichi incompleti.',422); }
             $result=alphano_governance_apply($idpg,$target,$data['changes'],$data['reason'],$data['revision']);
             $response=['success'=>true,'data'=>['person'=>$result,'history'=>alphano_governance_history($target),'issues'=>alphano_governance_issues()],'message'=>'Incarichi e permessi salvati e registrati.'];
             break;
 
         case 'stirpe':
             $name=$data['nome']??'';$race=filter_var($data['razza']??null,FILTER_VALIDATE_INT);
-            if(!is_string($name)||!in_array($race,[2,3,5,6],true))throw new DomainException('Personaggio o razza non validi.',422);
+            if(!is_string($name)||!in_array($race,[2,3,5,6],true)){ throw new DomainException('Personaggio o razza non validi.',422); }
             $target=$db->query('SELECT * FROM utenti WHERE nome=?',[$name])[0]??null;
-            if(!$target)throw new DomainException('Personaggio non trovato.',404);
+            if(!$target){ throw new DomainException('Personaggio non trovato.',404); }
             $response=['success'=>true,'plan'=>lineage_admin_plan($target,$race)];
             break;
 
@@ -156,7 +156,7 @@ try {
         ['timer' => $timer]
     );
     if ($cnt > 0) {
-        foreach ($emailList as $notice) SendDelAdvice($notice);
+        foreach ($emailList as $notice) { SendDelAdvice($notice); }
         $maintenance[] = "Sono stati eliminati {$cnt} PG che si sono registrati ma non sono mai entrati";
     }
 
@@ -199,7 +199,7 @@ try {
         ['t1' => $timer1, 't2' => $timer2]
     );
     if ($cnt2 > 0) {
-        foreach ($emailAdv as $notice) SendDelAdvice($notice);
+        foreach ($emailAdv as $notice) { SendDelAdvice($notice); }
         $maintenance[] = "Sono stati eliminati {$cnt2} PG che non entravano da più di 60 giorni";
     }
 
@@ -246,9 +246,9 @@ try {
             array_merge($uids, $uids)
         );
         $c3     = $db->execute("DELETE FROM richieste WHERE idpg NOT IN ($ph)", $uids);
-        if ($c1 > 0) $maintenance[] = "Sono state cancellate {$c1} candidature alle elezioni che appartenevano a pg cancellati";
-        if ($c2 > 0) $maintenance[] = "Sono state cancellate {$c2} votazioni alle elezioni che interessavano pg cancellati";
-        if ($c3 > 0) $maintenance[] = "Sono state cancellate {$c3} richieste di accesso a organizzazioni o corporazioni effettuate da pg cancellati";
+        if ($c1 > 0) { $maintenance[] = "Sono state cancellate {$c1} candidature alle elezioni che appartenevano a pg cancellati"; }
+        if ($c2 > 0) { $maintenance[] = "Sono state cancellate {$c2} votazioni alle elezioni che interessavano pg cancellati"; }
+        if ($c3 > 0) { $maintenance[] = "Sono state cancellate {$c3} richieste di accesso a organizzazioni o corporazioni effettuate da pg cancellati"; }
     }
 
     //
@@ -485,11 +485,11 @@ try {
         // — profilo
         case 'profile':
             $creatorRaw=$data['creator_id']??null;$creator=null;
-            if($creatorRaw!==null&&$creatorRaw!==''){$creator=filter_var($creatorRaw,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);if($creator===false)throw new DomainException('Creatore non valido.',422);}
+            if($creatorRaw!==null&&$creatorRaw!==''){$creator=filter_var($creatorRaw,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);if($creator===false){ throw new DomainException('Creatore non valido.',422); }}
             if(alphano_config('lineages_enabled')&&in_array((string)($data['razza']??''),['2','3'],true)){
                 lineage_policy_lock((string)$data['razza']==='2'?'vampire':'lycan');
                 $target=$db->query('SELECT * FROM utenti WHERE nome=?',[(string)($data['nome']??'')])[0];
-                if(lineage_admin_plan($target,(int)$data['razza'])['requires_creator']&&$creator===null)throw new DomainException('Chi lo sta generando? Seleziona un creatore.',422);
+                if(lineage_admin_plan($target,(int)$data['razza'])['requires_creator']&&$creator===null){ throw new DomainException('Chi lo sta generando? Seleziona un creatore.',422); }
             }
             $msg = SetProfile(
                 $idpg,
@@ -618,7 +618,7 @@ try {
 
         // — cambia stato sociale
         case 'statosociale':
-            if (trim((string)($data['stato'] ?? '')) === '' || mb_strlen((string)$data['stato'])>60) throw new InvalidArgumentException('Stato sociale non valido');
+            if (trim((string)($data['stato'] ?? '')) === '' || mb_strlen((string)$data['stato'])>60) { throw new InvalidArgumentException('Stato sociale non valido'); }
             if (!($admin||$adminstatosociale)) {
                 throw new RuntimeException('Non autorizzato');
             }
@@ -646,7 +646,7 @@ try {
 
         // — cambia email registrazione
         case 'emailreg':
-            if (!filter_var($data['email'] ?? '', FILTER_VALIDATE_EMAIL)) throw new InvalidArgumentException('Email non valida');
+            if (!filter_var($data['email'] ?? '', FILTER_VALIDATE_EMAIL)) { throw new InvalidArgumentException('Email non valida'); }
             $db->execute(
                 "UPDATE utenti SET email=:email WHERE nome=:nome",
                 [
@@ -671,11 +671,11 @@ try {
             $response = ['success'=>false,'message'=>"Azione '{$action}' non valida"];
             break;
     }
-    if(!empty($response['success'])&&!in_array($action,array_merge($readonly,['setflag','salvaincarichi']),true))$db->execute("INSERT INTO logs_adminpg(data,esecutore,destinatario,azione,descr,chat) VALUES(?,?,?,'admin-utenti',?,'')",[time(),$idpg,(int)GetPGID(is_string($data['nome']??null)?$data['nome']:''),'Operazione amministrativa: '.$action]);
-    if ($transaction) $db->commit();
+    if(!empty($response['success'])&&!in_array($action,array_merge($readonly,['setflag','salvaincarichi']),true)){ $db->execute("INSERT INTO logs_adminpg(data,esecutore,destinatario,azione,descr,chat) VALUES(?,?,?,'admin-utenti',?,'')",[time(),$idpg,(int)GetPGID(is_string($data['nome']??null)?$data['nome']:''),'Operazione amministrativa: '.$action]); }
+    if ($transaction) { $db->commit(); }
 
 } catch (\Throwable $e) {
-    if ($db->inTransaction()) $db->rollBack();
+    if ($db->inTransaction()) { $db->rollBack(); }
     if($action==='salvaincarichi'&&$admin){try{$db->execute("INSERT INTO logs_adminpg(data,esecutore,destinatario,azione,descr,chat) VALUES(?,?,?,'incarichi-rifiutati',?,'')",[time(),$idpg,(int)(filter_var($data['id']??0,FILTER_VALIDATE_INT)?:0),mb_substr($e instanceof DomainException?$e->getMessage():'Operazione non completata',0,255)]);}catch(Throwable $logError){error_log('[audit incarichi] '.$logError->getMessage());}}
     $domain=$e instanceof DomainException&&$e->getCode()>=400&&$e->getCode()<500;
     http_response_code($domain?$e->getCode():($e instanceof InvalidArgumentException?400:500));

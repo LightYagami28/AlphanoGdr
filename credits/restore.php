@@ -8,10 +8,10 @@ if(!is_file($root.'/config/local.php')){
 require_once $root.'/libs/kernel.inc.php';
 require_once $root.'/libs/credits-guard.inc.php';
 header('Cache-Control: no-store, private');header('Referrer-Policy: no-referrer');
-$user=alphano_user();if(isset($_GET['login']))unset($_SESSION['alphano_login_error']);$error='';$restored=$_SESSION['credits_restored']??[];unset($_SESSION['credits_restored']);
+$user=alphano_user();if(isset($_GET['login'])){ unset($_SESSION['alphano_login_error']); }$error='';$restored=$_SESSION['credits_restored']??[];unset($_SESSION['credits_restored']);
 if(($_SERVER['REQUEST_METHOD']??'GET')==='POST'){
  alphano_require_csrf();
- if(!$user||empty($user['admin']))alphano_fail('Il ripristino richiede un account amministratore completo.',403);
+ if(!$user||empty($user['admin'])){ alphano_fail('Il ripristino richiede un account amministratore completo.',403); }
  if(($_POST['confirm_restore']??'')!=='1'){$error='Conferma l’inserimento dei crediti nelle pagine indicate.';http_response_code(422);}
  else{try{$_SESSION['credits_restored']=alphano_credits_restore();header('Location: /credits/restore.php?restored=1',true,303);exit;}catch(Throwable $e){http_response_code(422);$error=$e instanceof DomainException?$e->getMessage():'Ripristino non riuscito: ricarica il pacchetto originale.';error_log('[Credits recovery] '.$e->getMessage());}}
 }

@@ -28,7 +28,7 @@ require_once "$root/libs/mail-presentation.inc.php";
 // LOGIN & COLORI
 // ———————————————————————————
 $idpg      = alphano_require_login();
-if ($_SERVER['REQUEST_METHOD'] === 'POST') alphano_require_csrf();
+if ($_SERVER['REQUEST_METHOD'] === 'POST') { alphano_require_csrf(); }
 $db        = ConnectDB();
 
 
@@ -52,7 +52,7 @@ $salva      = 0; // Le risposte restano nella conversazione.
 // CARICAMENTO UTENTE
 // ———————————————————————————
 $user = $db->query('SELECT * FROM utenti WHERE id = ?', [$idpg])[0] ?? null;
-if (!$user) die('❗ Utente non trovato');
+if (!$user) { die('❗ Utente non trovato'); }
 if (!empty($user['admin'])) {
     EnsureAdmin();
 }
@@ -89,7 +89,7 @@ $city       = $_POST["citta'"]      ?? '';
 
 $params     = [];
 $conditions = ["1=1"];
-if ($destId > 0) { $conditions[]="utenti.id=?"; $params[]=$destId; if ($pgName==='') $pgName=GetPGFromID($destId); }
+if ($destId > 0) { $conditions[]="utenti.id=?"; $params[]=$destId; if ($pgName==='') { $pgName=GetPGFromID($destId); } }
 
 if ($pgName !== '' && $pgName !== '%') {
     if (strpos($pgName,';') !== false) {
@@ -149,8 +149,8 @@ $destRows = $db->query($sql, $params);
 // INVIO MISSIVA
 // ———————————————————————————
 if ($send) {
-    if ($pgName === '' && count($conditions) === 1) alphano_fail('Specifica almeno un destinatario.',400);
-    if ($messaggio === '') alphano_fail('Inserisci un messaggio.',400);
+    if ($pgName === '' && count($conditions) === 1) { alphano_fail('Specifica almeno un destinatario.',400); }
+    if ($messaggio === '') { alphano_fail('Inserisci un messaggio.',400); }
     if ($oggetto === '') {
         echo "<!DOCTYPE html><html lang='it'><head><meta charset='UTF-8'><title>Oggetto Mancante</title></head>"
            . "<body class='message-page'>"
@@ -161,7 +161,7 @@ if ($send) {
     }
     // Render each part independently: GML reply, signature, then the authorized quote.
     $messaggio = ProcessText($messaggio);
-    if (!empty($_POST['firma'])) $messaggio .= alphano_mail_signature($idpg);
+    if (!empty($_POST['firma'])) { $messaggio .= alphano_mail_signature($idpg); }
     if (!empty($_POST['include_previous']) && $oldmessaggio !== '') {
         $messaggio .= '<div class="mail-quoted-history"><p class="mail-history-heading">Conversazione precedente</p><blockquote>'.alphano_mail_render($oldmessaggio).'</blockquote></div>';
     }

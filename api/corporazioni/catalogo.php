@@ -158,7 +158,7 @@ try {
     $admincatalogo=$isGlobalAdmin || ($sameCorp && $admincatalogo);
     $admincorp=$isGlobalAdmin || ($sameCorp && $admincorp);
     $count=(int)$db->query('SELECT COUNT(*) AS n FROM equip WHERE approvato=0 AND idcreatore=?',[$idpg])[0]['n']+(int)$db->query('SELECT COUNT(*) AS n FROM newequip WHERE idcreatore=?',[$idpg])[0]['n'];
-    if (($_SERVER['REQUEST_METHOD'] ?? 'GET')==='POST') alphano_require_csrf(true);
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET')==='POST') { alphano_require_csrf(true); }
     // ─── CARICA TIPI (per <select>) ─────────────────────────────────────────────
     $tipiRaw = $admincatalogo
         ? $db->query(
@@ -189,7 +189,7 @@ try {
         $quality=(int)($production['quality'] ?? 0);
         $maxDurata=QUALITY[$quality]['durata'] ?? 0;
         $invalid=$maxDurata<=0 || !is_numeric($_POST['peso'] ?? null) || (float)str_replace(',','.',(string)$_POST['peso'])<0 || !in_array((int)($_POST['taglia'] ?? -1),array_keys(TAGLIE),true) || !in_array((int)($_POST['mani'] ?? -1),[1,2],true) || (int)($_POST['restore'] ?? 0)<0;
-        foreach (MATERIE_PRIME as $material) if (!ctype_digit((string)($_POST[$material] ?? '0'))) $invalid=true;
+        foreach (MATERIE_PRIME as $material) { if (!ctype_digit((string)($_POST[$material] ?? '0'))) { $invalid=true; } }
         if ($invalid) { http_response_code(400); respond(['success'=>false,'msg'=>'Tipo, qualità o proprietà dell’oggetto non validi']); }
     }
     switch ($azione) {
@@ -372,7 +372,7 @@ try {
                 }
                 foreach (($refs>0 ? [] : ["/uploads/equipment/{$id}","/uploads/equipment-pending/{$id}"]) as $f) {
                     $file = htmlroot . $f;
-                    if (file_exists($file)) @unlink($file);
+                    if (file_exists($file)) { @unlink($file); }
                 }
                 $db->execute('DELETE FROM newequip WHERE id = ?',[$id]);
                 respond(['success'=>true,'msg'=>'Oggetto eliminato correttamente']);

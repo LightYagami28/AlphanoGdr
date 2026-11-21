@@ -2,7 +2,7 @@
 declare(strict_types=1);
 require_once dirname(__DIR__).'/libs/app.inc.php';
 require_once dirname(__DIR__).'/libs/privacy-policy.inc.php';
-$privacy=(string)alphano_config('privacy_text');if($privacy==='Inserire qui l’informativa del proprio gioco e i contatti del titolare.')$privacy='Informazioni sul trattamento dei dati di questa installazione e sui contatti del gestore.';$terms=(string)alphano_config('terms_text');
+$privacy=(string)alphano_config('privacy_text');if($privacy==='Inserire qui l’informativa del proprio gioco e i contatti del titolare.'){ $privacy='Informazioni sul trattamento dei dati di questa installazione e sui contatti del gestore.'; }$terms=(string)alphano_config('terms_text');
 return ['engine_version'=>trim(file_get_contents(dirname(__DIR__).'/VERSION')),'version'=>substr(hash('sha256',$privacy.$terms.alphano_managed_revision('privacy-policy').hash_file('sha256',dirname(__DIR__).'/LICENSE')),0,16),'owner'=>alphano_config('owner_name'),'email'=>alphano_config('support_email'),'minimum_age'=>18,
  'privacy'=>['title'=>'Informativa privacy','intro'=>$privacy,'sections'=>alphano_policy_sections()],
  'cookies'=>['title'=>'Cookie e strumenti del browser','intro'=>'Come questa installazione gestisce sessione, preferenze e contenuti esterni.','sections'=>alphano_cookie_sections()],

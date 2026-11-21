@@ -15,7 +15,7 @@ foreach (array_merge($_GET,$_POST) as $value) {
  ********************************************************/
 
 require_once __DIR__ . '/../libs/kernel.inc.php';       // initSession(), ClosePage()
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') alphano_require_csrf();
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') { alphano_require_csrf(); }
 require_once __DIR__ . '/../libs/libpg.inc.php';       // GetIDPG()
 require_once __DIR__ . '/../libs/libgrafica.inc.php';
 require_once __DIR__ . '/../libs/libeconomia.inc.php';
@@ -131,7 +131,7 @@ $descrizione = $userRow['descrizione'];
 
 // Le immagini seguono lo storage configurato, anche nei cloni di verifica.
 $imgDir=htmlroot.'/uploads/badges/organizzazioni/'.$org;
-if (!is_dir($imgDir) && !@mkdir($imgDir,0755,true) && !is_dir($imgDir)) $msg.='Impossibile creare la cartella immagini';
+if (!is_dir($imgDir) && !@mkdir($imgDir,0755,true) && !is_dir($imgDir)) { $msg.='Impossibile creare la cartella immagini'; }
 
 // Lista città
 $listacity = [];
@@ -147,8 +147,8 @@ foreach ($listacity as $cid => $cdata) {
     $inElection = ElectionTime($cid);
     $inVoting   = VoteTime($cid);
     if ($cdata['elezioni'] && ($inElection || $inVoting)) {
-        if ($inElection) $electiontime = true;
-        if ($inVoting)   $votetime     = true;
+        if ($inElection) { $electiontime = true; }
+        if ($inVoting)   { $votetime     = true; }
         $rows = $db->query(
             'SELECT u.id, u.nome
                FROM utenti u
@@ -192,8 +192,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         http_response_code(403); exit('Ramo non appartenente alla tua organizzazione');
     }
     $groupActionResult=alphano_group_admin_action('organizzazioni',$org,$idpg,(string)$action,$_POST,$_FILES);
-    if ($groupActionResult!==null) $msg=$groupActionResult;
-    else switch ($action) {
+    if ($groupActionResult!==null) { $msg=$groupActionResult; }
+    else { switch ($action) {
         case 'admitpg':
             $pg    = (int)($_POST['pg'] ?? 0);
             $admit = isset($_POST['admit']);
@@ -332,12 +332,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $int = EconomiaIntero($_POST['interessi'] ?? '',0,100);
             if ($pid && ($acc || $canc || ($qta!==null && $int!==null))) {
                 $ok = EconomiaAzioneModulo(static function() use($pid,$idpg,$acc,$canc,$qta,$int): bool {
-                    if ($acc) return AcceptPrestito($pid,$idpg,$_POST['_request_key'] ?? null);
-                    if ($canc) return DeletePrestito($pid,$idpg,$_POST['_request_key'] ?? null);
+                    if ($acc) { return AcceptPrestito($pid,$idpg,$_POST['_request_key'] ?? null); }
+                    if ($canc) { return DeletePrestito($pid,$idpg,$_POST['_request_key'] ?? null); }
                     return UpdatePrestito($pid,$idpg,$qta,$int,3,$_POST['_request_key'] ?? null);
                 });
                 $msg = $ok ? 'Richiesta aggiornata correttamente' : 'Operazione non consentita, già inviata o fondi insufficienti';
-            } else $msg = 'Inserisci quantità intere positive e interessi tra 0 e 100';
+            } else { $msg = 'Inserisci quantità intere positive e interessi tra 0 e 100'; }
             break;
 
         case 'prestito':
@@ -346,7 +346,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($pid && $qta!==null) {
                 $ok = EconomiaAzioneModulo(static fn(): bool => CreaPrestitoPG($org,$pid,$qta,$_POST['_request_key'] ?? null));
                 $msg = $ok ? 'Prestito creato correttamente' : 'Prestito non consentito, già inviato o fondi insufficienti';
-            } else $msg = 'Inserisci un destinatario e una quantità intera positiva';
+            } else { $msg = 'Inserisci un destinatario e una quantità intera positiva'; }
             break;
 
         case 'setflag':
@@ -460,7 +460,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $activeTab = 'iscritti';
                 break;
-    }
+    } }
 
     // riallinea dati per template
     $requests    = GetRichiesteOrg($org);

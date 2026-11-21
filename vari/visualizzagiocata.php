@@ -11,18 +11,18 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
     if (isset($_POST['xmldata'])) {
         $name=trim((string)($_POST['nome'] ?? ''));
         $file=base64_decode((string)$_POST['xmldata'],true);
-        if ($name==='' || strlen($name)>255 || $file===false || strlen($file)>MaxUploadFileSize) alphano_fail('Nome o file giocata non valido.',400);
+        if ($name==='' || strlen($name)>255 || $file===false || strlen($file)>MaxUploadFileSize) { alphano_fail('Nome o file giocata non valido.',400); }
         $messages=GetArrayFromBZXML($file,'giocata');
-        if (!is_array($messages)) alphano_fail('File giocata non valido. I vecchi archivi compressi richiedono BZip2; le nuove registrazioni XML funzionano su tutti gli hosting supportati.',400);
+        if (!is_array($messages)) { alphano_fail('File giocata non valido. I vecchi archivi compressi richiedono BZip2; le nuove registrazioni XML funzionano su tutti gli hosting supportati.',400); }
         $db->execute('INSERT INTO giocate(idpg,data,giocata,nome) VALUES(?,?,?,?)',[$idpg,time(),base64_encode($file),$name]);
         $sent=true;
     } else {
         $upload=$_FILES['giocata'] ?? [];
-        if (($upload['error'] ?? UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_OK || ($upload['size'] ?? 0)>MaxUploadFileSize || !is_uploaded_file($upload['tmp_name'] ?? '')) $error='Seleziona un file giocata valido.';
+        if (($upload['error'] ?? UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_OK || ($upload['size'] ?? 0)>MaxUploadFileSize || !is_uploaded_file($upload['tmp_name'] ?? '')) { $error='Seleziona un file giocata valido.'; }
         else {
             $file=file_get_contents($upload['tmp_name']);
             $messages=GetArrayFromBZXML($file,'giocata');
-            if (!is_array($messages)) $error='File giocata non valido.';
+            if (!is_array($messages)) { $error='File giocata non valido.'; }
         }
     }
 }

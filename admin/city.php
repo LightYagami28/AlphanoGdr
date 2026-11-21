@@ -16,7 +16,7 @@ foreach (array_merge($_GET,$_POST) as $value) {
 
 /* ─────────────────── 1) Bootstrap ─────────────────── */
 require_once __DIR__ . '/../libs/kernel.inc.php';       // initSession(), ClosePage()
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') alphano_require_csrf();
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') { alphano_require_csrf(); }
 require_once __DIR__ . '/../libs/libpg.inc.php';       // GetIDPG()
 require_once __DIR__ . '/../libs/libgrafica.inc.php';
 require_once __DIR__ . '/../libs/libeconomia.inc.php'; // ConsegnaStipendiCity()
@@ -52,7 +52,7 @@ $araldica_id = (int)$userRow['araldica'];
 // A general administrator can select a city without acquiring its mayoral flag.
 $ownCity=(int)($db->query('SELECT city FROM araldiche WHERE id=?',[$araldica_id])[0]['city']??0);
 $availableCities=!empty($userRow['admin'])?$db->query('SELECT id,city FROM city ORDER BY city,id'):[];
-if(!$ownCity&&!empty($userRow['admin']))$ownCity=(int)($availableCities[0]['id']??0);
+if(!$ownCity&&!empty($userRow['admin'])){ $ownCity=(int)($availableCities[0]['id']??0); }
 $rawCity=$_POST['_city']??$_GET['city']??$ownCity;
 $selectedCity=filter_var($rawCity,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
 if(!$selectedCity||(empty($userRow['admin'])&&$selectedCity!==$ownCity)){http_response_code(403);exit('Mandato non valido per questa città.');}
@@ -74,12 +74,12 @@ $votetime      = VoteTime($pgcity);
 $toFree=EconomiaAtomica(static function() use($db,$pgcity): int {
     $orphans=$db->query('SELECT d.id,d.indirizzo FROM dimore d LEFT JOIN utenti u ON u.id=d.pg LEFT JOIN araldiche a ON a.id=u.araldica WHERE d.city=? AND (a.city IS NULL OR a.city<>?) FOR UPDATE',[$pgcity,$pgcity]);
     $counts=[];
-    foreach ($orphans as $row) $counts[(int)$row['indirizzo']]=($counts[(int)$row['indirizzo']] ?? 0)+1;
-    foreach ($counts as $address=>$quantity) $db->execute('UPDATE indirizzi SET disp=disp+? WHERE id=? AND city=?',[$quantity,$address,$pgcity]);
-    foreach ($orphans as $row) $db->execute('DELETE FROM dimore WHERE id=? AND city=?',[$row['id'],$pgcity]);
+    foreach ($orphans as $row) { $counts[(int)$row['indirizzo']]=($counts[(int)$row['indirizzo']] ?? 0)+1; }
+    foreach ($counts as $address=>$quantity) { $db->execute('UPDATE indirizzi SET disp=disp+? WHERE id=? AND city=?',[$quantity,$address,$pgcity]); }
+    foreach ($orphans as $row) { $db->execute('DELETE FROM dimore WHERE id=? AND city=?',[$row['id'],$pgcity]); }
     return count($orphans);
 });
-if ($toFree) $msg="Sono state liberate {$toFree} dimore appartenenti a personaggi che non abitano più in questa città";
+if ($toFree) { $msg="Sono state liberate {$toFree} dimore appartenenti a personaggi che non abitano più in questa città"; }
 
 /* ─────────────────── 3) Gestione POST ─────────────────── */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -105,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         case 'admitpg':
             $pg    = (int)($_POST['pg'] ?? 0);
             try {
-                if(!in_array($_POST['admit']??'',['0','1'],true))throw new DomainException('Scegli se accettare o respingere la richiesta.',422);
+                if(!in_array($_POST['admit']??'',['0','1'],true)){ throw new DomainException('Scegli se accettare o respingere la richiesta.',422); }
                 $result=alphano_governance_city_citizenship($idpg,$pg,$pgcity,$_POST['admit']==='1'?'accept':'reject',(string)($_POST['reason']??''));
                 $msg.=$result['message'];
             } catch(DomainException $e){http_response_code($e->getCode());$msg.=$e->getMessage();}
@@ -114,7 +114,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         case 'grantcitizenship':
             try {
                 $target=(int)GetPGID(trim((string)($_POST['nomepg']??'')));
-                if($target<1)throw new DomainException('Personaggio non trovato. Inserisci il nome completo.',404);
+                if($target<1){ throw new DomainException('Personaggio non trovato. Inserisci il nome completo.',404); }
                 $result=alphano_governance_city_citizenship($idpg,$target,$pgcity,'grant',(string)($_POST['reason']??''));
                 $msg.=$result['message'];
             } catch(DomainException $e){http_response_code($e->getCode());$msg.=$e->getMessage();}
@@ -141,7 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         case 'consegnastipendi':
             try { $msg .= ConsegnaStipendiCity($pgcity,$_POST['_request_key'] ?? null); }
             catch (RuntimeException $e) {
-                if (!in_array($e->getCode(),[400,409],true)) throw $e;
+                if (!in_array($e->getCode(),[400,409],true)) { throw $e; }
                 http_response_code($e->getCode());$msg .= $e->getMessage();
             }
             break;
@@ -237,7 +237,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 try {
                     $freed=EconomiaAtomica(static function() use($db,$dimId,$pgcity): bool {
                         $info=$db->query('SELECT indirizzo FROM dimore WHERE id=? AND city=? FOR UPDATE',[$dimId,$pgcity])[0] ?? null;
-                        if (!$info) return false;
+                        if (!$info) { return false; }
                         $db->execute(
                             'UPDATE indirizzi SET disp = disp + 1 WHERE id = ? AND city=?',
                             [(int)$info['indirizzo'],$pgcity]
@@ -283,10 +283,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($activityActions[$action]) && $activityBefore!==$activityAfter && ($action!=='sfratta' || !empty($freed))) {
         [$section,$title]=$activityActions[$action];
         $audiences=[['scope'=>'citta','id'=>$pgcity,'section'=>$section,'role'=>'admin']];
-        if ($action==='admitpg') $audiences[]=['scope'=>'personale','id'=>(int)$_POST['pg'],'section'=>'cittadinanza','role'=>'member'];
-        if ($action==='sfratta') foreach ($activityBefore['homes'] as $home) {
-            if ((int)$home['id']===$id) $audiences[]=['scope'=>'personale','id'=>(int)$home['pg'],'section'=>'dimora','role'=>'member'];
-        }
+        if ($action==='admitpg') { $audiences[]=['scope'=>'personale','id'=>(int)$_POST['pg'],'section'=>'cittadinanza','role'=>'member']; }
+        if ($action==='sfratta') { foreach ($activityBefore['homes'] as $home) {
+            if ((int)$home['id']===$id) { $audiences[]=['scope'=>'personale','id'=>(int)$home['pg'],'section'=>'dimora','role'=>'member']; }
+        } }
         $summarize=static function(array $state): array {
             foreach (['roles','districts','requests','homes'] as $collection) {
                 $state[$collection]=['count'=>count($state[$collection]),'hash'=>hash('sha256',json_encode($state[$collection]))];

@@ -39,18 +39,18 @@ function alphano_unread_notifications(int $user,?array &$allActivity=null): arra
                 $filters[$parentLink][$target['group'].':'.$target['section']]=['group'=>$target['group'],'section'=>$target['section']];
             }
         }
-        foreach($noticeGroups as $key=>$_)$counts[$key]=($counts[$key]??0)+1;
-        foreach($noticeSections as $key=>$_)$sections[$key]=($sections[$key]??0)+1;
-        foreach($noticeLinks as $key=>$_)$links[$key]=($links[$key]??0)+1;
+        foreach($noticeGroups as $key=>$_){ $counts[$key]=($counts[$key]??0)+1; }
+        foreach($noticeSections as $key=>$_){ $sections[$key]=($sections[$key]??0)+1; }
+        foreach($noticeLinks as $key=>$_){ $links[$key]=($links[$key]??0)+1; }
     }
-    foreach($filters as &$filter)$filter=array_values($filter);unset($filter);
+    foreach($filters as &$filter){ $filter=array_values($filter); }unset($filter);
     return ['mail'=>$mail,'mail_latest_unread'=>(int)$mailRow['latest'],'quests'=>$rows,'activity'=>array_slice($activity,0,200),
         'counts'=>$counts,'sections'=>$sections,'links'=>$links,'link_filters'=>$filters,'activity_total'=>count($activity),'activity_limit'=>200];
 }
 
 function alphano_read_notifications(int $user, array $ids): void
 {
-    if(!$ids)return;
+    if(!$ids){ return; }
     ConnectDB()->execute('UPDATE quest_notifications SET read_at=? WHERE recipient=? AND read_at IS NULL AND id IN('.implode(',',array_fill(0,count($ids),'?')).')',[time(),$user,...$ids]);
 }
 
@@ -69,7 +69,7 @@ function alphano_activity_notifications(int $recipient): array
 {
     $db=ConnectDB();
     $user=$db->query('SELECT * FROM utenti WHERE id=?',[$recipient])[0] ?? null;
-    if(!$user)return [];
+    if(!$user){ return []; }
     $activity=[];
     $add=static function(string $key,string $group,string $title,string $detail,string $url,int $created=0,int $priority=0)use(&$activity):void{
         $activity[$key]=['key'=>$key,'title'=>$title,'detail'=>$detail,'url'=>$url,'group'=>$group,
@@ -100,12 +100,12 @@ function alphano_activity_notifications(int $recipient): array
     // Appunti are personal: unlike the global administrator's group forums, another
     // player's Appunti are never visible or counted, including to administrators.
     $types=[];
-    if(!empty($user['admin']) || !empty($user['fatepower']))$types[]='M';
-    if(!empty($user['admin']) || !empty($user['adminaccademia']))$types[]='A';
-    if((int)$user['organizzazione']>0)$types[]='Org'.(int)$user['organizzazione'];
-    if((int)$user['corporazione']>0)$types[]='Corp'.(int)$user['corporazione'];
+    if(!empty($user['admin']) || !empty($user['fatepower'])){ $types[]='M'; }
+    if(!empty($user['admin']) || !empty($user['adminaccademia'])){ $types[]='A'; }
+    if((int)$user['organizzazione']>0){ $types[]='Org'.(int)$user['organizzazione']; }
+    if((int)$user['corporazione']>0){ $types[]='Corp'.(int)$user['corporazione']; }
     $typeWhere=$types?'d.tipo IN('.implode(',',array_fill(0,count($types),'?')).')':'0';
-    if(!empty($user['admin']))$typeWhere="($typeWhere OR d.tipo REGEXP '^(Org|Corp)[1-9][0-9]*$')";
+    if(!empty($user['admin'])){ $typeWhere="($typeWhere OR d.tipo REGEXP '^(Org|Corp)[1-9][0-9]*$')"; }
     $posts=$db->query("SELECT d.id,d.replyid,d.data,d.tipo,root.id AS thread_id,root.idpg AS owner,root.oggetto,u.nome AS author,
           o.nome AS org_name,c.nome AS corp_name FROM discussioni d
         JOIN discussioni root ON root.id=IF(d.replyid=0,d.id,d.replyid) AND root.replyid=0 AND root.tipo=d.tipo
@@ -146,7 +146,7 @@ function alphano_activity_notifications(int $recipient): array
             }elseif($now>=$voting && $now<$end && CanVote($recipient)){
                 $phase=!empty($homeCity['ballottaggio'])?'ballottaggio':'votazioni';
                 $title=!empty($homeCity['ballottaggio'])?'Aperto il ballottaggio':'Aperte le votazioni';$created=$voting;
-            }else $phase='';
+            }else { $phase=''; }
             if($phase!==''){
                 $key=alphano_activity_key('city-election',$homeId,[(int)$round['id'],$phase,$round['start_elezioni'],$round['end_elezioni']]);
                 $add($key,'citta',$title,$homeCity['city'].' · Assemblea cittadina',$assemblyUrl,$created,1);
@@ -161,7 +161,7 @@ function alphano_activity_notifications(int $recipient): array
         foreach(['organizzazione'=>[$org,'organizzazioni','Nuova richiesta di adesione','/organizzazioni/admin.php#tab-iscritti'],
             'corporazione'=>[$corp,'corporazioni','Nuova richiesta di adesione','/corporazioni/admin.php#iscritti'],
             'city'=>[$requestCity,'citta','Nuova richiesta di cittadinanza','/admin/city.php?city='.$requestCity.'#richieste-cittadinanza']] as $column=>$target){
-            if(!$target[0] || (int)$row[$column]!==$target[0])continue;
+            if(!$target[0] || (int)$row[$column]!==$target[0]){ continue; }
             $key=alphano_activity_key('request-'.$column,(int)$row['idpg'],[$target[0],(int)$row['data']]);
             $add($key,$target[1],$target[2],$row['nome'].' · In attesa di valutazione',$target[3],(int)$row['data'],1);
         }
@@ -173,12 +173,12 @@ function alphano_activity_notifications(int $recipient): array
         $states=[0=>'Da prendere in carico',1=>'Presa in carico',2=>'Contrattazione organizzazione',3=>'In attesa di risposta',4=>'Contrattazione corporazione',5=>'Accettato'];
         $recorded=alphano_recorded_sources($user,'loan',array_column($loans,'id'));
         foreach($loans as $row){
-            if(isset($recorded[(int)$row['id']]))continue;
+            if(isset($recorded[(int)$row['id']])){ continue; }
             $version=[(int)$row['stato'],(int)$row['quantita'],(int)$row['interessi'],(int)$row['restituiti'],(int)$row['pgorg'],(int)$row['pgcorp']];
-            if($org && (int)$row['org']===$org)$add(alphano_activity_key('loan-org',$row['id'],$version),'organizzazioni','Prestito: '.$row['corp_name'],
-                $row['quantita'].alphano_currency_text(' corone · ').($states[(int)$row['stato']] ?? 'Aggiornato'),'/organizzazioni/admin.php#tab-finanze',(int)$row['data'],1);
-            if($corp && (int)$row['corp']===$corp)$add(alphano_activity_key('loan-corp',$row['id'],$version),'corporazioni','Prestito: '.$row['org_name'],
-                $row['quantita'].alphano_currency_text(' corone · ').($states[(int)$row['stato']] ?? 'Aggiornato'),'/corporazioni/admin.php#finanze',(int)$row['data'],1);
+            if($org && (int)$row['org']===$org){ $add(alphano_activity_key('loan-org',$row['id'],$version),'organizzazioni','Prestito: '.$row['corp_name'],
+                $row['quantita'].alphano_currency_text(' corone · ').($states[(int)$row['stato']] ?? 'Aggiornato'),'/organizzazioni/admin.php#tab-finanze',(int)$row['data'],1); }
+            if($corp && (int)$row['corp']===$corp){ $add(alphano_activity_key('loan-corp',$row['id'],$version),'corporazioni','Prestito: '.$row['org_name'],
+                $row['quantita'].alphano_currency_text(' corone · ').($states[(int)$row['stato']] ?? 'Aggiornato'),'/corporazioni/admin.php#finanze',(int)$row['data'],1); }
         }
     }
     if((int)$user['corporazione']>0 && (!empty($user['admincorporazione']) || !empty($user['admintrasfcorp']))){
@@ -186,7 +186,7 @@ function alphano_activity_notifications(int $recipient): array
             WHERE t.corp=? AND t.verso=2 AND t.stato<6',[(int)$user['corporazione']]);
         $recorded=alphano_recorded_sources($user,'order',array_column($orders,'id'));
         foreach($orders as $row){
-            if(isset($recorded[(int)$row['id']]))continue;
+            if(isset($recorded[(int)$row['id']])){ continue; }
             $key=alphano_activity_key('order',$row['id'],[(int)$row['stato'],(int)$row['qta'],(int)$row['prezzo'],(int)$row['pgcorp']]);
             $add($key,'corporazioni',((int)$row['stato']===5?'Oggetto da consegnare: ':'Ordine: ').$row['nomeobj'],
                 ($row['customer'] ?: 'Giocatore').' · Quantità '.$row['qta'],'/corporazioni/trasferimenti.php#'.((int)$row['stato']===5?'produzione':'corp'),(int)$row['data'],1);
@@ -204,10 +204,10 @@ function alphano_activity_notifications(int $recipient): array
                 $version=[(int)$row['datamodifica'],$row['shortDesc'],$row['desc']];
                 $title=($change?'Modifica oggetto: ':'Nuovo oggetto: ').$row['shortDesc'];
                 $created=(int)($row['datamodifica'] ?: $row['datacreazione']);
-                if($isAcademy)$add(alphano_activity_key($change?'academy-item-change':'academy-item',$row['id'],$version),
-                    'accademia',$title,'Valutazione Accademia','/admin/accademia.php#'.($change?'modifiche':'proposte'),$created,1);
-                if($catalogCorp && (int)$row['corp']===$catalogCorp)$add(alphano_activity_key($change?'catalog-change':'catalog-item',$row['id'],$version),
-                    'corporazioni',$title,'Catalogo · In valutazione Accademia','/corporazioni/catalogo.php?corp='.$catalogCorp,$created,1);
+                if($isAcademy){ $add(alphano_activity_key($change?'academy-item-change':'academy-item',$row['id'],$version),
+                    'accademia',$title,'Valutazione Accademia','/admin/accademia.php#'.($change?'modifiche':'proposte'),$created,1); }
+                if($catalogCorp && (int)$row['corp']===$catalogCorp){ $add(alphano_activity_key($change?'catalog-change':'catalog-item',$row['id'],$version),
+                    'corporazioni',$title,'Catalogo · In valutazione Accademia','/corporazioni/catalogo.php?corp='.$catalogCorp,$created,1); }
             }
         }
     }
@@ -234,11 +234,11 @@ function alphano_activity_notifications(int $recipient): array
     // tasks whose version keys depend on the current state of their source row.
     foreach(array_chunk(array_keys($activity),300) as $keys){
         $read=$db->query('SELECT notice_key FROM activity_notification_reads WHERE recipient=? AND notice_key IN('.implode(',',array_fill(0,count($keys),'?')).')',[$recipient,...$keys]);
-        foreach($read as $row)unset($activity[$row['notice_key']]);
+        foreach($read as $row){ unset($activity[$row['notice_key']]); }
     }
     $activity=array_values($activity);
     usort($activity,static fn(array $a,array $b):int=>($b['priority']<=>$a['priority']) ?: ($b['created_at']<=>$a['created_at']) ?: ((str_starts_with($a['key'],'event:')&&str_starts_with($b['key'],'event:'))?((int)substr($b['key'],6)<=>(int)substr($a['key'],6)):strcmp($a['key'],$b['key'])));
-    foreach($activity as &$notice)unset($notice['priority']);
+    foreach($activity as &$notice){ unset($notice['priority']); }
     return $activity;
 }
 
@@ -248,14 +248,14 @@ function alphano_store_notification_reads(int $recipient,array $keys): void
     foreach(array_chunk(array_values(array_unique($keys)),300) as $chunk){
         $values=[];$params=[];
         foreach($chunk as $key){$values[]='(?,?,?)';array_push($params,$recipient,$key,time());}
-        if($values)$db->execute('INSERT IGNORE INTO activity_notification_reads(recipient,notice_key,read_at) VALUES'.implode(',',$values),$params);
+        if($values){ $db->execute('INSERT IGNORE INTO activity_notification_reads(recipient,notice_key,read_at) VALUES'.implode(',',$values),$params); }
     }
 }
 
 /** Only acknowledge activities currently visible to this exact recipient. */
 function alphano_read_activity_notifications(int $recipient,array $keys): void
 {
-    if(!$keys)return;
+    if(!$keys){ return; }
     $visible=array_column(alphano_activity_notifications($recipient),null,'key');
     alphano_store_notification_reads($recipient,array_values(array_filter($keys,static fn(string $key):bool=>isset($visible[$key]))));
 }
@@ -266,17 +266,17 @@ function alphano_read_notification_thread(int $recipient,array $target): void
     $db=ConnectDB();$user=$db->query('SELECT * FROM utenti WHERE id=?',[$recipient])[0] ?? [];
     $source=$target['source'] ?? null;$scope=$target['scope'] ?? null;
     $thread=$target['thread'] ?? null;$max=$target['max_id'] ?? null;
-    if(!is_int($thread)||$thread<1||!is_int($max)||$max<1)throw new RuntimeException('Discussione non valida',400);
+    if(!is_int($thread)||$thread<1||!is_int($max)||$max<1){ throw new RuntimeException('Discussione non valida',400); }
     if($source==='board'){
-        if(!is_int($scope)||$scope<1)throw new RuntimeException('Bacheca non valida',400);
+        if(!is_int($scope)||$scope<1){ throw new RuntimeException('Bacheca non valida',400); }
         player_require_board($db,$scope,$user);
         $table='bacheche';$column='bacheca';$prefix='board:';
     }elseif($source==='discussion'){
-        if(!is_string($scope)||strlen($scope)>50)throw new RuntimeException('Discussione non valida',400);
+        if(!is_string($scope)||strlen($scope)>50){ throw new RuntimeException('Discussione non valida',400); }
         player_discussion_access($scope,$user);
         $table='discussioni';$column='tipo';$prefix='discussion:';
-    }else throw new RuntimeException('Fonte non valida',400);
-    if(!$db->query("SELECT id FROM $table WHERE id=? AND $column=? AND replyid=0",[$thread,$scope]))throw new RuntimeException('Discussione non trovata',404);
+    }else { throw new RuntimeException('Fonte non valida',400); }
+    if(!$db->query("SELECT id FROM $table WHERE id=? AND $column=? AND replyid=0",[$thread,$scope])){ throw new RuntimeException('Discussione non trovata',404); }
     $rows=$db->query("SELECT id FROM $table WHERE $column=? AND (id=? OR replyid=?) AND id<=?",[$scope,$thread,$thread,$max]);
     alphano_store_notification_reads($recipient,array_map(static fn(array $row):string=>$prefix.$row['id'],$rows));
 }
@@ -304,12 +304,12 @@ function alphano_notification_parent_links(string $url): array
 
 function alphano_notification_section(string $group,string $key,string $url): string
 {
-    if(str_starts_with($key,'board:')||str_starts_with($key,'discussion:'))return 'forum';
+    if(str_starts_with($key,'board:')||str_starts_with($key,'discussion:')){ return 'forum'; }
     $fragment=parse_url($url,PHP_URL_FRAGMENT);
-    if($fragment)return preg_replace('/^tab-/','',$fragment);
-    if(str_starts_with($key,'city-statute:'))return 'statuto';
-    if(str_starts_with($key,'city-election:'))return 'elezioni';
-    if(str_starts_with($key,'catalog-'))return 'catalogo';
+    if($fragment){ return preg_replace('/^tab-/','',$fragment); }
+    if(str_starts_with($key,'city-statute:')){ return 'statuto'; }
+    if(str_starts_with($key,'city-election:')){ return 'elezioni'; }
+    if(str_starts_with($key,'catalog-')){ return 'catalogo'; }
     return $group;
 }
 
@@ -324,17 +324,17 @@ function alphano_notification_inbox(int $recipient,string $view,?string $group,?
     }else{
         $items=[];
         foreach($unread??alphano_activity_notifications($recipient) as $item){
-            foreach($item['destinations']??[$item] as $target)if((!$group||$target['group']===$group)&&(!$section||$target['section']===$section)){
-                if($group||$section)foreach(['group','section','url'] as $field)$item[$field]=$target[$field];
+            foreach($item['destinations']??[$item] as $target){ if((!$group||$target['group']===$group)&&(!$section||$target['section']===$section)){
+                if($group||$section){ foreach(['group','section','url'] as $field){ $item[$field]=$target[$field]; } }
                 $items[]=$item;break;
-            }
+            } }
         }
         $total=count($items);$pages=max(1,(int)ceil($total/$perPage));$page=min($page,$pages);
         $items=array_slice($items,($page-1)*$perPage,$perPage);
-        $ids=[];foreach($items as $item)if(!empty($item['persistent']))$ids[]=(int)substr($item['key'],6);
+        $ids=[];foreach($items as $item){ if(!empty($item['persistent'])){ $ids[]=(int)substr($item['key'],6); } }
         if($ids){
             $full=array_column(alphano_persisted_activity($recipient,false,0,0,$group,$section,false,$ids),null,'key');
-            foreach($items as &$item)if(isset($full[$item['key']]))$item=$full[$item['key']];unset($item);
+            foreach($items as &$item){ if(isset($full[$item['key']])){ $item=$full[$item['key']]; } }unset($item);
         }
     }
     return ['items'=>$items,'total'=>$total,'page'=>$page,'pages'=>$pages,'per_page'=>$perPage,'view'=>$view];

@@ -50,7 +50,7 @@ function InsertIntoChat(string $chat, string $html, array $metadata=[]): int
 {
     $html = stripslashes($html);
     $db=db();$own=!$db->inTransaction();$handle=null;$locked=false;$originalSize=null;
-    if ($own) $db->beginTransaction();
+    if ($own) { $db->beginTransaction(); }
     try {
         $sceneMaster=(bool)preg_match('/\b(?:MasterKey|DescrKey)\b/',$html);
         if($sceneMaster){
@@ -58,7 +58,7 @@ function InsertIntoChat(string $chat, string $html, array $metadata=[]): int
             // Serialize authoritative announcements with NPC publication before
             // assigning a chat ID. Otherwise an older in-flight reply could get
             // a later ID and appear to ignore an as-yet-uncommitted metamorphosis.
-            if(ai_perception_ready())$db->query('SELECT chat_key FROM ai_rooms WHERE chat_key=? FOR UPDATE',[$chat]);
+            if(ai_perception_ready()){ $db->query('SELECT chat_key FROM ai_rooms WHERE chat_key=? FOR UPDATE',[$chat]); }
         }
         $db->execute('INSERT INTO chat (ora,chat,msg) VALUES (?,?,?)',[time(),$chat,$html]);
         $source=(int)$db->lastInsertId();
@@ -75,35 +75,35 @@ function InsertIntoChat(string $chat, string $html, array $metadata=[]): int
         if ($row) {
             $logFile=rtrim(htmlroot,'/').'/sessione/log/'.$row[0]['id'].'.html';
             $handle=@fopen($logFile,'c+b');
-            if ($handle===false) throw new RuntimeException('Impossibile aprire il registro della sessione');
+            if ($handle===false) { throw new RuntimeException('Impossibile aprire il registro della sessione'); }
             $locked=@flock($handle,LOCK_EX);
-            if (!$locked) throw new RuntimeException('Impossibile bloccare il registro della sessione');
+            if (!$locked) { throw new RuntimeException('Impossibile bloccare il registro della sessione'); }
             $stat=@fstat($handle);
-            if (!$stat || (($stat['mode'] & 0170000)!==0100000)) throw new RuntimeException('Registro della sessione non valido');
+            if (!$stat || (($stat['mode'] & 0170000)!==0100000)) { throw new RuntimeException('Registro della sessione non valido'); }
             $originalSize=(int)$stat['size'];
             // Alcuni stream locali non implementano questa opzione: i controlli
             // su scrittura e flush restano obbligatori in entrambi i casi.
             @stream_set_write_buffer($handle,0);
-            if (@fseek($handle,0,SEEK_END)!==0) throw new RuntimeException('Impossibile aggiornare il registro della sessione');
+            if (@fseek($handle,0,SEEK_END)!==0) { throw new RuntimeException('Impossibile aggiornare il registro della sessione'); }
             $content=$html."<br>\n";$offset=0;$length=strlen($content);
             while ($offset<$length) {
                 $written=@fwrite($handle,substr($content,$offset));
-                if ($written===false || $written===0) throw new RuntimeException('Scrittura del registro della sessione incompleta');
+                if ($written===false || $written===0) { throw new RuntimeException('Scrittura del registro della sessione incompleta'); }
                 $offset+=$written;
             }
-            if (!@fflush($handle)) throw new RuntimeException('Impossibile salvare il registro della sessione');
+            if (!@fflush($handle)) { throw new RuntimeException('Impossibile salvare il registro della sessione'); }
         }
-        if ($own) $db->commit();
+        if ($own) { $db->commit(); }
     } catch (Throwable $error) {
         // Un append parziale viene rimosso mantenendo il lock sullo stesso file.
         $restored=true;
-        if (is_resource($handle) && $locked && $originalSize!==null) $restored=@ftruncate($handle,$originalSize) && @fflush($handle);
-        if ($own && $db->inTransaction()) $db->rollBack();
-        if (!$restored) throw new RuntimeException('Ripristino del registro della sessione non riuscito',0,$error);
+        if (is_resource($handle) && $locked && $originalSize!==null) { $restored=@ftruncate($handle,$originalSize) && @fflush($handle); }
+        if ($own && $db->inTransaction()) { $db->rollBack(); }
+        if (!$restored) { throw new RuntimeException('Ripristino del registro della sessione non riuscito',0,$error); }
         throw $error;
     } finally {
         if (is_resource($handle)) {
-            if ($locked) @flock($handle,LOCK_UN);
+            if ($locked) { @flock($handle,LOCK_UN); }
             @fclose($handle);
         }
     }

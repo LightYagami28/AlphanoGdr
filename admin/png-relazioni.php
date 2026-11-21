@@ -4,14 +4,14 @@ require_once __DIR__.'/../libs/ai.inc.php';
 require_once __DIR__.'/../libs/ai-adult-admin.inc.php';
 require_once __DIR__.'/../libs/profile-art.inc.php';
 require_once __DIR__.'/../libs/revelations.inc.php';
-$viewer=alphano_require_login();if(!alphano_relations_staff($viewer))alphano_fail('Consultazione riservata a Master, Accademia e amministratori.',403);
+$viewer=alphano_require_login();if(!alphano_relations_staff($viewer)){ alphano_fail('Consultazione riservata a Master, Accademia e amministratori.',403); }
 $canEdit=!empty(alphano_user()['admin']);$canEditRelations=alphano_relations_editor($viewer);$db=ai_db();$h=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
 $npcs=$db->query('SELECT id,name,chat_key FROM ai_npcs ORDER BY name');
 if(!$npcs&&!isset($_GET['npc'])){?><!doctype html><html lang="it"><head><meta charset="utf-8"><title>Relazioni dei PNG</title></head><body><main><h1>Relazioni dei PNG</h1><p>Non sono ancora stati creati personaggi non giocanti. Dopo aver configurato un PNG, qui potrai consultarne ricordi e relazioni.</p><?php if($canEdit): ?><a class="action-btn" href="/admin/master-ia.php">Configura i PNG</a><?php endif; ?></main></body></html><?php return;}
 $raw=$_GET['npc']??($npcs[0]['id']??0);$playerRaw=$_GET['player']??alphano_user()['id'];
-if(!is_scalar($raw)||!is_scalar($playerRaw)||!ctype_digit((string)$raw)||!ctype_digit((string)$playerRaw))alphano_fail('Selezione non valida.',400);
+if(!is_scalar($raw)||!is_scalar($playerRaw)||!ctype_digit((string)$raw)||!ctype_digit((string)$playerRaw)){ alphano_fail('Selezione non valida.',400); }
 $nid=(int)$raw;$player=(int)$playerRaw;$npc=$db->query('SELECT * FROM ai_npcs WHERE id=?',[$nid])[0]??null;
-if(!$npc||!ai_player_identity($player))alphano_fail('Personaggio non disponibile.',404);
+if(!$npc||!ai_player_identity($player)){ alphano_fail('Personaggio non disponibile.',404); }
 $adult=ai_adult_admin_settings($nid);
 $workplace=$adult['workplace_key']!==''?($db->query('SELECT title FROM mappe WHERE chat_key=?',[$adult['workplace_key']])[0]['title']??$adult['workplace_key']):'Nessun luogo assegnato';
 $exclusive=$adult['exclusive_player_id']?($db->query('SELECT nome FROM utenti WHERE id=?',[$adult['exclusive_player_id']])[0]['nome']??'Personaggio non disponibile'):'Nessun vincolo esclusivo';
@@ -20,11 +20,11 @@ $nature=ai_perception_ready()?($db->query('SELECT * FROM ai_nature_knowledge WHE
 $sceneEvidence=ai_scene_context((string)$npc['chat_key'],$nid);
 $recognition=ai_recognition_view($nid,$player);$authority=ai_npc_authority($nid,$player);
 $identityEvidence=ai_recognition_ready()?($db->query('SELECT source_id,chat_key,face_hidden,identified,reason,created_at FROM ai_identity_observations WHERE npc_id=? AND player_id=? ORDER BY source_id DESC LIMIT 5',[$nid,$player])):[];
-$pageRaw=$_GET['page']??'1';if(!is_scalar($pageRaw)||!ctype_digit((string)$pageRaw))alphano_fail('Pagina non valida.',400);$page=max(1,min(100000,(int)$pageRaw));
+$pageRaw=$_GET['page']??'1';if(!is_scalar($pageRaw)||!ctype_digit((string)$pageRaw)){ alphano_fail('Pagina non valida.',400); }$page=max(1,min(100000,(int)$pageRaw));
 $overview=ai_personality_overview($nid,40,($page-1)*40);$history=ai_personality_history($nid);
 $pgq=is_scalar($_GET['pgq']??'')?mb_substr(trim((string)($_GET['pgq']??'')),0,60):'';
 $players=$db->query('SELECT id,nome FROM utenti'.($pgq!==''?' WHERE nome LIKE ?':'').' ORDER BY nome LIMIT 80',$pgq!==''?['%'.$pgq.'%']:[]);
-if(!in_array($player,array_map('intval',array_column($players,'id')),true))array_unshift($players,['id'=>$player,'nome'=>ai_player_identity($player)['nome']]);
+if(!in_array($player,array_map('intval',array_column($players,'id')),true)){ array_unshift($players,['id'=>$player,'nome'=>ai_player_identity($player)['nome']]); }
 $transactions=$db->query('SELECT t.*,u.nome FROM ai_npc_transactions t JOIN utenti u ON u.id=t.player_id WHERE t.npc_id=? ORDER BY t.id DESC LIMIT 100',[$nid]);
 $debt=$db->query('SELECT player_owes,npc_owes FROM ai_npc_debts WHERE npc_id=? AND player_id=?',[$nid,$player])[0]??['player_owes'=>0,'npc_owes'=>0];
 $reflections=$db->query('SELECT s.job_id,s.status,s.error FROM ai_social_jobs s JOIN ai_jobs j ON j.id=s.job_id WHERE j.npc_id=? AND j.user_id=? ORDER BY s.job_id DESC LIMIT 30',[$nid,$player]);

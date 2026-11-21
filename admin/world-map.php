@@ -1,13 +1,13 @@
 <?php
 declare(strict_types=1);
 require_once dirname(__DIR__).'/libs/world-map.inc.php';
-$uid=alphano_require_login();if(!alphano_can('admin'))alphano_fail('Accesso riservato agli amministratori completi.',403);$db=ConnectDB();$area=filter_var($_GET['area']??0,FILTER_VALIDATE_INT,['options'=>['min_range'=>0]]);if($area===false)alphano_fail('Mappa non valida.',422);$selected=$area?$db->query('SELECT * FROM world_areas WHERE id=?',[$area])[0]??null:null;if($area&&!$selected)alphano_fail('Destinazione non trovata.',404);$error='';
+$uid=alphano_require_login();if(!alphano_can('admin')){ alphano_fail('Accesso riservato agli amministratori completi.',403); }$db=ConnectDB();$area=filter_var($_GET['area']??0,FILTER_VALIDATE_INT,['options'=>['min_range'=>0]]);if($area===false){ alphano_fail('Mappa non valida.',422); }$selected=$area?$db->query('SELECT * FROM world_areas WHERE id=?',[$area])[0]??null:null;if($area&&!$selected){ alphano_fail('Destinazione non trovata.',404); }$error='';
 if($_SERVER['REQUEST_METHOD']==='POST'){
  alphano_require_csrf();try{
   if(($_POST['action']??'')==='add_city'){
-   $city=filter_var($_POST['city_id']??0,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);$c=$city?$db->query('SELECT id,city FROM city WHERE id=?',[$city])[0]??null:null;if(!$c)throw new DomainException('Seleziona una città esistente.');
-   $db->beginTransaction();try{$db->query('SELECT id FROM city WHERE id=? FOR UPDATE',[$city]);if(!$db->query('SELECT id FROM world_areas WHERE city_id=?',[$city])){$db->execute('INSERT INTO world_areas(slug,title,description,image,city_id,enabled,position) VALUES(?,?,?,?,?,1,0)',['city_'.bin2hex(random_bytes(6)),$c['city'],'','/assets/default-city.svg',$city]);}$db->commit();}catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
-  }else alphano_world_map_save($area,$_POST,$_FILES);
+   $city=filter_var($_POST['city_id']??0,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);$c=$city?$db->query('SELECT id,city FROM city WHERE id=?',[$city])[0]??null:null;if(!$c){ throw new DomainException('Seleziona una città esistente.'); }
+   $db->beginTransaction();try{$db->query('SELECT id FROM city WHERE id=? FOR UPDATE',[$city]);if(!$db->query('SELECT id FROM world_areas WHERE city_id=?',[$city])){$db->execute('INSERT INTO world_areas(slug,title,description,image,city_id,enabled,position) VALUES(?,?,?,?,?,1,0)',['city_'.bin2hex(random_bytes(6)),$c['city'],'','/assets/default-city.svg',$city]);}$db->commit();}catch(Throwable $e){if($db->inTransaction()){ $db->rollBack(); }throw $e;}
+  }else { alphano_world_map_save($area,$_POST,$_FILES); }
   $db->execute('INSERT INTO engine_admin_audit(actor,action,entity_id,created_at) VALUES(?,?,?,?)',[$uid,'world-map:update',$area,time()]);header('Location: /admin/world-map.php?area='.$area.'&saved=1',true,303);exit;
  }catch(Throwable $e){$error=$e instanceof DomainException?$e->getMessage():'Salvataggio non riuscito. Verifica immagine e posizioni.';http_response_code(422);}
 }

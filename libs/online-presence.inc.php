@@ -6,6 +6,6 @@ function alphano_player_online(array $player):bool{return isset($player['id'])&&
 
 /** Authenticated browser heartbeat. A resumed tab can return after stale-location cleanup. */
 function alphano_presence_touch(int $id):void {
-    if($id<=0||!empty($_SESSION['support_session_id']))return;
+    if($id<=0||!empty($_SESSION['support_session_id'])){ return; }
     ConnectDB()->execute("UPDATE utenti SET lastmove=?, posizione=CASE WHEN posizione='off' THEN 'online' ELSE posizione END WHERE id=?",[time(),$id]);
 }

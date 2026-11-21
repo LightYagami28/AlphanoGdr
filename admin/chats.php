@@ -28,7 +28,7 @@ function h($s): string { return htmlspecialchars((string)$s, ENT_QUOTES); }
 /*──────────────────────────────────────────────────────────
   Sessione & permessi                                        */
 alphano_require_login();
-if ($_SERVER['REQUEST_METHOD'] === 'POST') alphano_require_csrf();
+if ($_SERVER['REQUEST_METHOD'] === 'POST') { alphano_require_csrf(); }
 initSession();
 $idpg = GetIDPG(false);
 
@@ -112,7 +112,7 @@ $av   = [];  // avviso stanza
 switch ($act) {
  case 'save_board_games':
   require_once __DIR__.'/../libs/board-games.inc.php';
-  if(!$IS_ADMIN)alphano_fail('Riservato alla gestione.',403);
+  if(!$IS_ADMIN){ alphano_fail('Riservato alla gestione.',403); }
   bg_save_room($idpg,$st,array_map(static fn($key)=>isset($_POST[$key]),array_combine(['scacchi','dama','coins','items','materials'],['scacchi','dama','coins','items','materials'])));
   $msg='Giochi e poste del luogo aggiornati.';break;
 
@@ -152,7 +152,7 @@ switch ($act) {
 
   // Work edits have a single permission-checked and audited home.
   case 'show_lavori': case 'add_lavoro': case 'edit_lavoro': case 'save_lavoro': case 'del_lavoro':
-    if(!$IS_ADMIN&&!$IS_ACCADEMIA)alphano_fail('La gestione dei lavori è riservata ad amministratori e responsabili dell’Accademia.',403);
+    if(!$IS_ADMIN&&!$IS_ACCADEMIA){ alphano_fail('La gestione dei lavori è riservata ad amministratori e responsabili dell’Accademia.',403); }
     header('Location: /admin/lavori.php?chat='.rawurlencode($st ?: (string)($P['chat']??'')));exit;
 
   // Mostra avviso stanza
@@ -199,7 +199,7 @@ switch ($act) {
   <div class="debug">
 DEBUG $_POST:
 <?=h(print_r($P,true))?>
-<?php if($md) echo "\nDEBUG \$md:\n".h(print_r($md,true)); ?>
+<?php if($md) { echo "\nDEBUG \$md:\n".h(print_r($md,true)); } ?>
   </div>
 <?php endif; ?>
 

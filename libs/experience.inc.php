@@ -7,21 +7,21 @@ function alphano_experience_defaults():array {
 }
 function alphano_experience_settings(int $user):array {
  $row=ConnectDB()->query('SELECT * FROM user_experience_settings WHERE user_id=?',[$user])[0]??[];
- $settings=alphano_experience_defaults();$email=json_decode($row['email_preferences']??'{}',true)??[];foreach($email as $key=>$value)if(array_key_exists($key,$settings)&&str_starts_with($key,'email_'))$row[$key]=$value;foreach($settings as $key=>$default)if(array_key_exists($key,$row))$settings[$key]=is_bool($default)?(bool)$row[$key]:(is_int($default)?(int)$row[$key]:(string)$row[$key]);return $settings;
+ $settings=alphano_experience_defaults();$email=json_decode($row['email_preferences']??'{}',true)??[];foreach($email as $key=>$value){ if(array_key_exists($key,$settings)&&str_starts_with($key,'email_')){ $row[$key]=$value; } }foreach($settings as $key=>$default){ if(array_key_exists($key,$row)){ $settings[$key]=is_bool($default)?(bool)$row[$key]:(is_int($default)?(int)$row[$key]:(string)$row[$key]); } }return $settings;
 }
 function alphano_experience_validate(array $input,array $current):array {
  $allowed=array_keys(alphano_experience_defaults());
  foreach($input as $key=>$value){
-  if(!in_array($key,$allowed,true))throw new DomainException('Preferenza sconosciuta.',400);
+  if(!in_array($key,$allowed,true)){ throw new DomainException('Preferenza sconosciuta.',400); }
   if(str_starts_with($key,'email_')||in_array($key,['map_effects','map_lighting','ambient_sound','notification_sound'],true)){
-   if(!is_bool($value))throw new DomainException('Valore della preferenza non valido.',400);
+   if(!is_bool($value)){ throw new DomainException('Valore della preferenza non valido.',400); }
   }elseif(in_array($key,['ambient_volume','notification_volume'],true)){
-   if(!is_int($value)||$value<0||$value>100)throw new DomainException('Il volume deve essere compreso tra 0 e 100.',400);
+   if(!is_int($value)||$value<0||$value>100){ throw new DomainException('Il volume deve essere compreso tra 0 e 100.',400); }
   }elseif($key==='chess_skin'){
-   if(!is_string($value)||!in_array($value,['classic'],true))throw new DomainException('Skin degli scacchi non valida.',400);
+   if(!is_string($value)||!in_array($value,['classic'],true)){ throw new DomainException('Skin degli scacchi non valida.',400); }
   }elseif($key==='relationship_effects'){
-   if(!is_string($value)||!in_array($value,['private','public','off'],true))throw new DomainException('Visibilità delle emozioni non valida.',400);
-  }elseif(!is_string($value)||!in_array($value,['castle','bell','chime','soft'],true))throw new DomainException('Suono non valido.',400);
+   if(!is_string($value)||!in_array($value,['private','public','off'],true)){ throw new DomainException('Visibilità delle emozioni non valida.',400); }
+  }elseif(!is_string($value)||!in_array($value,['castle','bell','chime','soft'],true)){ throw new DomainException('Suono non valido.',400); }
   $current[$key]=$value;
  }return $current;
 }
@@ -29,7 +29,7 @@ function alphano_experience_confirmed(int $user):bool {
  $row=ConnectDB()->query('SELECT * FROM user_experience_settings WHERE user_id=?',[$user])[0]??[];return (int)($row['confirmed_at']??0)>0;
 }
 function alphano_experience_save(int $user,array $patch,bool $confirm=false):array {
- $db=ConnectDB();$own=!$db->inTransaction();if($own)$db->beginTransaction();
+ $db=ConnectDB();$own=!$db->inTransaction();if($own){ $db->beginTransaction(); }
  try{
   $db->query('SELECT id FROM utenti WHERE id=? FOR UPDATE',[$user]);
   $previous=alphano_experience_settings($user);$settings=alphano_experience_validate($patch,$previous);
@@ -37,11 +37,11 @@ function alphano_experience_save(int $user,array $patch,bool $confirm=false):arr
   $emails=array_filter($settings,static fn($k)=>str_starts_with($k,'email_'),ARRAY_FILTER_USE_KEY);
   $oldRow=$db->query('SELECT email_preferences,email_enabled_at FROM user_experience_settings WHERE user_id=?',[$user])[0]??[];
   $oldJson=json_decode($oldRow['email_preferences']??'{}',true)??[];$since=$oldJson['_since']??[];
-  foreach($emails as $key=>$enabled){if($enabled&&!$previous[$key])$since[$key]=time();elseif($enabled&&!isset($since[$key]))$since[$key]=(int)($oldRow['email_enabled_at']??time());}
+  foreach($emails as $key=>$enabled){if($enabled&&!$previous[$key]){ $since[$key]=time(); }elseif($enabled&&!isset($since[$key])){ $since[$key]=(int)($oldRow['email_enabled_at']??time()); }}
   $db->execute('UPDATE user_experience_settings SET email_preferences=?,email_enabled_at=CASE WHEN email_enabled_at=0 AND ? THEN ? ELSE email_enabled_at END WHERE user_id=?',[json_encode($emails+['_since'=>$since]),in_array(true,$emails,true)?1:0,time(),$user]);
-  if($confirm)$db->execute('UPDATE user_experience_settings SET confirmed_at=? WHERE user_id=?',[time(),$user]);
-  if($own)$db->commit();return $settings;
- }catch(Throwable $e){if($own&&$db->inTransaction())$db->rollBack();throw $e;}
+  if($confirm){ $db->execute('UPDATE user_experience_settings SET confirmed_at=? WHERE user_id=?',[time(),$user]); }
+  if($own){ $db->commit(); }return $settings;
+ }catch(Throwable $e){if($own&&$db->inTransaction()){ $db->rollBack(); }throw $e;}
 }
 function alphano_map_environment(?array $weather=null,?int $now=null,?array $sun=null):array {
  require_once __DIR__.'/astro.inc.php';require_once __DIR__.'/libmeteo.inc.php';

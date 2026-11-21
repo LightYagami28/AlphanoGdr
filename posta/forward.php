@@ -24,7 +24,7 @@ require_once "$root/libs/libposta.inc.php";
 // LOGIN & COLORI
 // ———————————————————————————
 $idpg    = alphano_require_login();
-if ($_SERVER['REQUEST_METHOD'] === 'POST') alphano_require_csrf();
+if ($_SERVER['REQUEST_METHOD'] === 'POST') { alphano_require_csrf(); }
 $db      = ConnectDB();
 
 

@@ -50,7 +50,7 @@ function sendNewPass(string $email, string $nome, string $frase, string $passwor
 {
     // Legacy callers now receive a reset link; never send a reusable password.
     $db=ConnectDB();$user=$db->query('SELECT id FROM utenti WHERE email=? AND nome=?',[$email,$nome])[0]??null;
-    if(!$user)return false;$token=bin2hex(random_bytes(32));
+    if(!$user){ return false; }$token=bin2hex(random_bytes(32));
     $db->execute('REPLACE INTO password_resets(pg,token_hash,created_at,expires_at) VALUES(?,?,?,?)',[(int)$user['id'],hash('sha256',$token),time(),time()+3600]);
     return sendPasswordReset($email,$nome,$token);
 }

@@ -17,8 +17,8 @@ function alphano_policy_fields():array{return [
 ];}
 function alphano_policy_sections():array{
  $v=alphano_managed_read('privacy-policy');$out=[];
- foreach(alphano_policy_fields() as $key=>[$title])if(trim((string)($v[$key]??''))!=='')$out[]=[$title,$v[$key]];
- if(!$out)$out[]=['Informativa da completare','Il gestore deve completare i dati della propria installazione. Contatto del gioco: '.alphano_config('owner_name').' · '.alphano_config('support_email').'.'];
+ foreach(alphano_policy_fields() as $key=>[$title]){ if(trim((string)($v[$key]??''))!==''){ $out[]=[$title,$v[$key]]; } }
+ if(!$out){ $out[]=['Informativa da completare','Il gestore deve completare i dati della propria installazione. Contatto del gioco: '.alphano_config('owner_name').' · '.alphano_config('support_email').'.']; }
  return $out;
 }
 function alphano_cookie_sections():array{

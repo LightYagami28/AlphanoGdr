@@ -19,7 +19,7 @@ function alphano_chat_text(string $text, string $sex, bool $action=false): strin
         }
         return $html.$narrate(substr($text,$offset));
     }
-    if ($action) return $narrate($text);
+    if ($action) { return $narrate($text); }
     // Un messaggio senza delimitatori rimane parlato; *gesto* marca un inciso.
     $parts=preg_split('/(\*[^*\r\n]+\*)/u',$text,-1,PREG_SPLIT_DELIM_CAPTURE);
     return implode('',array_map(static fn($part)=>str_starts_with($part,'*')&&str_ends_with($part,'*')?$narrate(mb_substr($part,1,-1)):$escape($part),$parts));

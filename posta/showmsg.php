@@ -25,7 +25,7 @@ require_once "$root/libs/mail-presentation.inc.php";  // per PurgePosta se serve
 // LOGIN & COLORI
 // ———————————————————————————
 $idpg    = alphano_require_login();
-if ($_SERVER['REQUEST_METHOD'] === 'POST') alphano_require_csrf();
+if ($_SERVER['REQUEST_METHOD'] === 'POST') { alphano_require_csrf(); }
 $db      = ConnectDB();
 
 
@@ -97,10 +97,10 @@ $otherName = $otherId>0?GetPGFromID($otherId):'Alphano · Sistema';
 $mailPeople=alphano_mail_people([(int)$row['idmittente'],(int)$row['iddestinatario']]);
 $before=max(0,(int)($_POST['before']??0));
 $conversation=alphano_mail_contact_conversation($row,$idpg,$before);
-$hasEarlier=count($conversation)>80;if($hasEarlier)array_shift($conversation);
-if(!$conversation)$conversation=[$row];
-$readIds=[];foreach($conversation as $letter)if((int)$letter['iddestinatario']===$idpg&&!(int)$letter['letto'])$readIds[]=(int)$letter['id'];
-if($readIds)$db->execute('UPDATE mail SET letto=1 WHERE iddestinatario=? AND id IN('.implode(',',array_fill(0,count($readIds),'?')).')',[$idpg,...$readIds]);
+$hasEarlier=count($conversation)>80;if($hasEarlier){ array_shift($conversation); }
+if(!$conversation){ $conversation=[$row]; }
+$readIds=[];foreach($conversation as $letter){ if((int)$letter['iddestinatario']===$idpg&&!(int)$letter['letto']){ $readIds[]=(int)$letter['id']; } }
+if($readIds){ $db->execute('UPDATE mail SET letto=1 WHERE iddestinatario=? AND id IN('.implode(',',array_fill(0,count($readIds),'?')).')',[$idpg,...$readIds]); }
 $replyToId=(int)$conversation[count($conversation)-1]['id'];
 $readNoticeId=$readIds[0]??($isDest?$msgId:0);
 $title = $otherId>0 ? "Conversazione con $otherName" : "Avviso di Alphano";

@@ -10,7 +10,7 @@ foreach (array_merge($_GET,$_POST) as $value) {
 }
 
 require __DIR__ . '/../libs/kernel.inc.php';
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') alphano_require_csrf();
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') { alphano_require_csrf(); }
 require __DIR__ . '/../libs/libpg.inc.php';
 require __DIR__ . '/../libs/libgrafica.inc.php';
 require __DIR__ . '/../libs/libtext.inc.php';
@@ -98,8 +98,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $activitySubject=(int)($_POST['soggetto'] ?? 0);
     $activityTable=str_contains($activityAction,'ramo')?'ramiaraldiche':'araldiche';
     $activityCity=(int)($db->query("SELECT city FROM {$activityTable} WHERE id=?",[$activitySubject])[0]['city'] ?? 0);
-    if (!$activityCity) $activityCity=(int)($activityAction==='addramo' ? ($_POST['cityramo'] ?? 0) : ($_POST['city'] ?? 0));
-    if ($activityAction==='changecarica') $activityCity=(int)($db->query('SELECT city FROM araldiche WHERE id=?',[(int)($_POST['carica'] ?? 0)])[0]['city'] ?? 0);
+    if (!$activityCity) { $activityCity=(int)($activityAction==='addramo' ? ($_POST['cityramo'] ?? 0) : ($_POST['city'] ?? 0)); }
+    if ($activityAction==='changecarica') { $activityCity=(int)($db->query('SELECT city FROM araldiche WHERE id=?',[(int)($_POST['carica'] ?? 0)])[0]['city'] ?? 0); }
     $activityPlayer=$activityAction==='changecarica' ? ($admin ? (int)GetPGID((string)($_POST['nomepg'] ?? '')) : (int)($_POST['pg'] ?? 0)) : 0;
     $activityState=static function() use($db,$activityCity,$activityPlayer,$activitySubject): array {
         $state=['roles'=>$db->query('SELECT id,nome,city,prima,ramo,livello,descrizione FROM araldiche WHERE city=? ORDER BY id',[$activityCity]),
@@ -117,7 +117,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           "SELECT COUNT(*) AS tot FROM araldiche WHERE city=? AND prima=1 AND id<>?",
           [$admin ? (int)($_POST['city'] ?? 0) : $idcity,(int)($_POST['soggetto'] ?? 0)]
         )[0]['tot'] ?? 0;
-        if ($cnt) $prima = 0;
+        if ($cnt) { $prima = 0; }
     }
 
     switch ($_POST['azione'] ?? '') {
@@ -172,7 +172,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           (int)($_POST['ramo'] ?? 0), (int)($_POST['livellocarica'] ?? 0),
           $_FILES['immagine'] ?? ['error'=>UPLOAD_ERR_NO_FILE]
         ];
-        if ($fn==='ModifyAraldica') array_unshift($args,(int)($_POST['soggetto'] ?? 0));
+        if ($fn==='ModifyAraldica') { array_unshift($args,(int)($_POST['soggetto'] ?? 0)); }
         $msg=$fn(...$args);
         break;
 
@@ -217,9 +217,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($activityCity>0 && isset($activityTitles[$activityAction]) && $activityBefore!==$activityAfter) {
         $section=str_contains($activityAction,'ramo')?'rami-araldici':'araldiche';
         $audiences=[['scope'=>'citta','id'=>$activityCity,'section'=>$section,'role'=>'admin']];
-        if ($activityPlayer>0) $audiences[]=['scope'=>'personale','id'=>$activityPlayer,'section'=>'araldica','role'=>'member'];
+        if ($activityPlayer>0) { $audiences[]=['scope'=>'personale','id'=>$activityPlayer,'section'=>'araldica','role'=>'member']; }
         $summarize=static function(array $state): array {
-            foreach (['roles','branches'] as $key) $state[$key]=['count'=>count($state[$key]),'hash'=>hash('sha256',json_encode($state[$key]))];
+            foreach (['roles','branches'] as $key) { $state[$key]=['count'=>count($state[$key]),'hash'=>hash('sha256',json_encode($state[$key]))]; }
             return $state;
         };
         alphano_record_activity('heraldry_'.$activityAction,(int)$pgid,$audiences,$activityTitles[$activityAction],$msg,

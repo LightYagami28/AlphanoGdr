@@ -3,11 +3,11 @@ declare(strict_types=1);
 /** Shared, versioned illustrations: no account writes and no per-icon SQL queries. */
 function alphano_profile_illustrations():array {
  static $index=null;
- if($index!==null)return $index;
+ if($index!==null){ return $index; }
  $catalog=json_decode(file_get_contents(__DIR__.'/../config/profile-symbols.json'),true,64,JSON_THROW_ON_ERROR);$index=['symbols'=>[],'ethnicities'=>[]];
  foreach($catalog['assets'] as $asset){
-  if($asset['group']==='profile')$index['symbols'][substr($asset['key'],8)]=$asset['path'];
-  elseif($asset['group']==='ethnicity')$index['ethnicities'][mb_strtolower(trim($asset['label']))]=$asset['path'];
+  if($asset['group']==='profile'){ $index['symbols'][substr($asset['key'],8)]=$asset['path']; }
+  elseif($asset['group']==='ethnicity'){ $index['ethnicities'][mb_strtolower(trim($asset['label']))]=$asset['path']; }
  }
  return $index;
 }

@@ -1,13 +1,13 @@
 <?php
 declare(strict_types=1);
 require_once dirname(__DIR__).'/libs/kernel.inc.php';
-$uid=alphano_require_login();if(!alphano_can('admin'))alphano_fail('Accesso riservato.',403);$error='';$notice='';$config=require dirname(__DIR__).'/config/app.php';
+$uid=alphano_require_login();if(!alphano_can('admin')){ alphano_fail('Accesso riservato.',403); }$error='';$notice='';$config=require dirname(__DIR__).'/config/app.php';
 if($_SERVER['REQUEST_METHOD']==='POST'){
  alphano_require_csrf();try{
   if(($_POST['action']??'')==='test_email'){
    require_once dirname(__DIR__).'/libs/sendmail.inc.php';
-   if($config['mail_transport']==='disabled')throw new DomainException('Invio email disabilitato.');
-   if(!alphano_mailer()->send($config['mail_from'],$config['support_email'],'Prova email · '.$config['game_name'],'La configurazione email funziona.'))throw new DomainException('Invio non riuscito.');$notice=$config['mail_transport']==='log'?'Email di prova salvata in private/mail.':'Email di prova accettata per l’invio all’indirizzo di assistenza. Verifica anche posta e spam del destinatario.';
+   if($config['mail_transport']==='disabled'){ throw new DomainException('Invio email disabilitato.'); }
+   if(!alphano_mailer()->send($config['mail_from'],$config['support_email'],'Prova email · '.$config['game_name'],'La configurazione email funziona.')){ throw new DomainException('Invio non riuscito.'); }$notice=$config['mail_transport']==='log'?'Email di prova salvata in private/mail.':'Email di prova accettata per l’invio all’indirizzo di assistenza. Verifica anche posta e spam del destinatario.';
   }else{
    $new=alphano_validate_site($_POST);$path=dirname(__DIR__).'/private/settings.json';$old=is_file($path)?json_decode(file_get_contents($path),true,32,JSON_THROW_ON_ERROR):[];alphano_settings_write(array_replace($old,$new));ConnectDB()->execute('INSERT INTO engine_admin_audit(actor,action,created_at) VALUES(?,?,?)',[$uid,'settings:update',time()]);header('Location: /admin/settings.php?saved=1',true,303);exit;
   }
@@ -15,7 +15,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
 }
 function setting_input(string $key,string $label,string $type='text'):void{global $config;echo '<label>'.alphano_escape($label).'<input name="'.$key.'" type="'.$type.'" value="'.alphano_escape($type==='password'?'':$config[$key]).'" '.($type==='password'?'autocomplete="new-password"':($key==='currency_name'?'required maxlength="60"':'')).'></label>';}
 function setting_text(string $key,string $label):void{global $config;echo '<label>'.alphano_escape($label).'<textarea name="'.$key.'" rows="5">'.alphano_escape($config[$key]).'</textarea></label>';}
-function setting_select(string $key,string $label,array $options):void{global $config;echo '<label>'.alphano_escape($label).'<select name="'.$key.'">';foreach($options as $value=>$title)echo '<option value="'.$value.'" '.($config[$key]===$value?'selected':'').'>'.alphano_escape($title).'</option>';echo '</select></label>';}
+function setting_select(string $key,string $label,array $options):void{global $config;echo '<label>'.alphano_escape($label).'<select name="'.$key.'">';foreach($options as $value=>$title){ echo '<option value="'.$value.'" '.($config[$key]===$value?'selected':'').'>'.alphano_escape($title).'</option>'; }echo '</select></label>';}
 function setting_check(string $key,string $label):void{global $config;echo '<label class="check"><input name="'.$key.'" type="checkbox" value="1" '.($config[$key]?'checked':'').'>'.alphano_escape($label).'</label>';}
 ?>
 <!doctype html><html lang="it"><head><meta charset="utf-8"><title>Impostazioni del gioco</title></head><body class="engine-admin"<?=isset($_GET['saved'])?' data-appearance-saved':''?>><main class="admin-wrap"><p class="eyebrow">AlphanoGdr · Gestione</p><h1>Il gioco, come lo vuoi tu.</h1><p><a href="/admin/setup.php">Riepilogo configurazione</a> · <a href="/admin/appearance.php">Template e homepage</a> · <a href="/admin/privacy.php">Cookie e privacy</a> · <a href="/admin/world-map.php">Mappa visiva</a> · <a href="/admin/world.php">Città e chat</a> · <a href="/admin/rpg.php">Razze e abilità</a> · <a href="/regole/">Manuali</a> · <a href="/main.php">Torna al gioco</a></p><?php if($error):?><p class="error" role="alert"><?=alphano_escape($error)?></p><?php endif;?><?php if($notice||isset($_GET['saved'])):?><p class="notice"><?=alphano_escape($notice?:'Impostazioni salvate. Ricarica il gioco per aggiornare tema, disposizione e nome della valuta.')?></p><?php endif;?>

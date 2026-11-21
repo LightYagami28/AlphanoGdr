@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 /** A small, bounded proposal schema prevents narrative/extra fields from consuming the output budget. */
 function ai_social_proposal_schema(int $playerSegments,int $npcSegments):array {
-    $metrics=[];foreach(AI_RELATION_METRICS as $key=>$_)$metrics[$key]=['type'=>'integer','minimum'=>-3,'maximum'=>3];
+    $metrics=[];foreach(AI_RELATION_METRICS as $key=>$_){ $metrics[$key]=['type'=>'integer','minimum'=>-3,'maximum'=>3]; }
     return ['type'=>'object','additionalProperties'=>false,'required'=>['category','player_evidence_id','npc_evidence_id','deltas','state','revealed','money'],'properties'=>[
         'category'=>['type'=>'string','enum'=>AI_SOCIAL_CATEGORIES],
         'player_evidence_id'=>['type'=>'integer','minimum'=>0,'maximum'=>$playerSegments],
@@ -30,7 +30,7 @@ function ai_social_proposal_grammar(int $playerSegments,int $npcSegments):string
     $enum=static fn(array $values):string=>implode(' | ',array_map($jsonString,$values));
     $keys=array_keys(AI_RELATION_METRICS);$entries=[];$lines=[];
     foreach($keys as $index=>$key){
-        $entries[]='metric-'.$index;$later=[];for($next=$index+1;$next<count($keys);$next++)$later[]='metric-'.$next;
+        $entries[]='metric-'.$index;$later=[];for($next=$index+1;$next<count($keys);$next++){ $later[]='metric-'.$next; }
         $lines[]='metric-'.$index.' ::= '.$jsonString($key).' ws ":" ws delta ws'.($later?' ("," ws ('.implode(' | ',$later).'))?':'');
     }
     $grammar=<<<'GBNF'
@@ -61,10 +61,10 @@ function ai_social_proposal_decode(array $response):array {
         throw new RuntimeException('Riflessione JSON troncata: limite di generazione raggiunto ('.$tokens.' token). '.($thought?'Il runtime ha prodotto soltanto il canale di ragionamento, senza JSON. ':'').'Nessuna variazione applicata.');
     }
     $text=$choice['message']['content']??null;
-    if(!is_string($text)||trim($text)==='')throw new RuntimeException('Riflessione JSON vuota o non testuale. Nessuna variazione applicata.');
+    if(!is_string($text)||trim($text)===''){ throw new RuntimeException('Riflessione JSON vuota o non testuale. Nessuna variazione applicata.'); }
     try{$proposal=json_decode($text,true,32,JSON_THROW_ON_ERROR);}
     catch(JsonException $e){throw new RuntimeException('Riflessione JSON non valida (fine '.$reason.', '.$tokens.' token): '.$e->getMessage(),0,$e);}
-    if(!is_array($proposal)||array_is_list($proposal))throw new RuntimeException('Proposta sociale non valida: occorre un oggetto JSON.');
+    if(!is_array($proposal)||array_is_list($proposal)){ throw new RuntimeException('Proposta sociale non valida: occorre un oggetto JSON.'); }
     return $proposal;
 }
 

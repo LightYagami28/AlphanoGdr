@@ -5,7 +5,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../libs/kernel.inc.php';
 alphano_require_login();
 foreach (array_merge($_GET, $_POST) as $value) {
-    if (!is_scalar($value)) alphano_fail('Parametri della posta non validi.', 400);
+    if (!is_scalar($value)) { alphano_fail('Parametri della posta non validi.', 400); }
 }
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     alphano_require_csrf();

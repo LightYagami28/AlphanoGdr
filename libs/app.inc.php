@@ -26,7 +26,7 @@ function alphano_config(string $key): mixed
 {
     static $config;
     $config ??= (static function (): array { return require dirname(__DIR__) . '/config/app.php'; })();
-    if (!array_key_exists($key, $config)) throw new InvalidArgumentException('Configurazione sconosciuta: ' . $key);
+    if (!array_key_exists($key, $config)) { throw new InvalidArgumentException('Configurazione sconosciuta: ' . $key); }
     return $config[$key];
 }
 
@@ -49,7 +49,7 @@ function alphano_user(): ?array
 {
     alphano_session();
     $id = (int)($_SESSION['user_id'] ?? 0);
-    if ($id < 1) return null;
+    if ($id < 1) { return null; }
     return ConnectDB()->query('SELECT * FROM utenti WHERE id = ? LIMIT 1', [$id])[0] ?? null;
 }
 
@@ -83,18 +83,18 @@ function alphano_fail(string $message, int $status, bool $json = false, ?string 
 function alphano_require_login(bool $json = false): int
 {
     $user = alphano_user();
-    if (!$user) alphano_fail('Devi effettuare il login.', $json ? 401 : 403, $json);
+    if (!$user) { alphano_fail('Devi effettuare il login.', $json ? 401 : 403, $json); }
     $path=parse_url($_SERVER['REQUEST_URI']??'',PHP_URL_PATH)??'';
-    if((str_starts_with($path,'/corporazioni/')||str_starts_with($path,'/api/corporazioni/'))&&!alphano_config('corporations_enabled'))alphano_fail('Corporazioni e produzione di oggetti disabilitate dalla gestione.',403,$json);
-    if(str_starts_with($path,'/organizzazioni/')&&!alphano_config('organizations_enabled'))alphano_fail('Organizzazioni disabilitate dalla gestione.',403,$json);
-    if (!empty($user['bloccato'])) alphano_fail('Il personaggio è bloccato.', 403, $json);
+    if((str_starts_with($path,'/corporazioni/')||str_starts_with($path,'/api/corporazioni/'))&&!alphano_config('corporations_enabled')){ alphano_fail('Corporazioni e produzione di oggetti disabilitate dalla gestione.',403,$json); }
+    if(str_starts_with($path,'/organizzazioni/')&&!alphano_config('organizations_enabled')){ alphano_fail('Organizzazioni disabilitate dalla gestione.',403,$json); }
+    if (!empty($user['bloccato'])) { alphano_fail('Il personaggio è bloccato.', 403, $json); }
     return (int)$user['id'];
 }
 
 function alphano_csrf_token(): string
 {
     alphano_session();
-    if (empty($_SESSION['csrf_token'])) $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    if (empty($_SESSION['csrf_token'])) { $_SESSION['csrf_token'] = bin2hex(random_bytes(32)); }
     return $_SESSION['csrf_token'];
 }
 
@@ -104,7 +104,7 @@ function alphano_request_json(): array
     if ($decoded === null) {
         $raw = file_get_contents('php://input');
         $decoded = $raw === '' ? [] : json_decode($raw, true, 64, JSON_THROW_ON_ERROR);
-        if (!is_array($decoded)) throw new InvalidArgumentException('Corpo JSON non valido');
+        if (!is_array($decoded)) { throw new InvalidArgumentException('Corpo JSON non valido'); }
     }
     return $decoded;
 }
@@ -132,13 +132,13 @@ function alphano_password_verify(string $password, string $hash): bool
 /** Protezione condivisa per le form storiche e i client fetch, senza cambiare l'interfaccia. */
 function alphano_html_runtime(): void
 {
-    if (PHP_SAPI === 'cli') return;
+    if (PHP_SAPI === 'cli') { return; }
     $token = alphano_csrf_token();
     ob_start(static function (string $html) use ($token): string {
         foreach (headers_list() as $header) {
-            if (preg_match('/^Content-Type:\s*(application\/json|application\/pdf|image\/)/i', $header)) return $html;
+            if (preg_match('/^Content-Type:\s*(application\/json|application\/pdf|image\/)/i', $header)) { return $html; }
         }
-        if (!preg_match('/<(?:!doctype\s+html|html)\b/i', $html)) return alphano_credits_filter_html($html);
+        if (!preg_match('/<(?:!doctype\s+html|html)\b/i', $html)) { return alphano_credits_filter_html($html); }
         alphano_privacy_headers();
         $html = alphano_theme_document($html);
         $escaped = htmlspecialchars($token, ENT_QUOTES, 'UTF-8');
@@ -154,27 +154,27 @@ function alphano_html_runtime(): void
                     if (!$target || !in_array(strtolower($target['scheme'] ?? ''), ['http','https'], true)
                         || strcasecmp($target['host'] ?? '', $origin['host'] ?? '') !== 0
                         || strtolower($target['scheme']) !== $requestScheme
-                        || ($target['port'] ?? ($requestScheme === 'https' ? 443 : 80)) !== ($origin['port'] ?? ($requestScheme === 'https' ? 443 : 80))) return $tag;
+                        || ($target['port'] ?? ($requestScheme === 'https' ? 443 : 80)) !== ($origin['port'] ?? ($requestScheme === 'https' ? 443 : 80))) { return $tag; }
                 }
             }
             return preg_match('/\bmethod\s*=\s*["\x27]?post\b/i', $tag)
                 ? $tag . '<input type="hidden" name="_csrf" value="' . $escaped . '">' : $tag;
         }, $html);
         $assets='';
-        if (!str_contains($html, '/js/character-markers.js')) $assets.='<script src="/js/character-markers.js?v='.filemtime(dirname(__DIR__).'/js/character-markers.js').'" defer></script>';
-        if (!str_contains($html, '/js/board-game-notices.js')) $assets.='<script src="/js/board-game-notices.js?v='.filemtime(dirname(__DIR__).'/js/board-game-notices.js').'" defer></script>';
-        if (!str_contains($html, '/js/presence-games.js')) $assets.='<script src="/js/presence-games.js?v='.filemtime(dirname(__DIR__).'/js/presence-games.js').'" defer></script>';
-        if (!str_contains($html, '/js/commerce-ui.js')) $assets.='<script src="/js/commerce-ui.js?v='.filemtime(dirname(__DIR__).'/js/commerce-ui.js').'" defer></script>';
-        if (!str_contains($html, '/js/ui-dialog.js')) $assets.='<script src="/js/ui-dialog.js?v='.filemtime(dirname(__DIR__).'/js/ui-dialog.js').'" defer></script>';
+        if (!str_contains($html, '/js/character-markers.js')) { $assets.='<script src="/js/character-markers.js?v='.filemtime(dirname(__DIR__).'/js/character-markers.js').'" defer></script>'; }
+        if (!str_contains($html, '/js/board-game-notices.js')) { $assets.='<script src="/js/board-game-notices.js?v='.filemtime(dirname(__DIR__).'/js/board-game-notices.js').'" defer></script>'; }
+        if (!str_contains($html, '/js/presence-games.js')) { $assets.='<script src="/js/presence-games.js?v='.filemtime(dirname(__DIR__).'/js/presence-games.js').'" defer></script>'; }
+        if (!str_contains($html, '/js/commerce-ui.js')) { $assets.='<script src="/js/commerce-ui.js?v='.filemtime(dirname(__DIR__).'/js/commerce-ui.js').'" defer></script>'; }
+        if (!str_contains($html, '/js/ui-dialog.js')) { $assets.='<script src="/js/ui-dialog.js?v='.filemtime(dirname(__DIR__).'/js/ui-dialog.js').'" defer></script>'; }
         if (!str_contains($html, '/js/runtime.js')) {
             $assets .= '<meta name="csrf-token" content="' . $escaped . '">'
                 . '<script src="/js/runtime.js?v=' . filemtime(dirname(__DIR__) . '/js/runtime.js') . '" defer></script>';
         }
         if($assets!==''){
-            if (stripos($html, '</head>') !== false) $html = preg_replace('/<\/head>/i', $assets . '</head>', $html, 1);
-            else $html .= $assets;
+            if (stripos($html, '</head>') !== false) { $html = preg_replace('/<\/head>/i', $assets . '</head>', $html, 1); }
+            else { $html .= $assets; }
         }
-        if(!empty($GLOBALS['alphano_support_active']))$html=str_ireplace('</body>',alphano_support_banner().'</body>',$html);
+        if(!empty($GLOBALS['alphano_support_active'])){ $html=str_ireplace('</body>',alphano_support_banner().'</body>',$html); }
         return alphano_credits_filter_html($html);
     });
 }
@@ -182,8 +182,8 @@ function alphano_html_runtime(): void
 date_default_timezone_set((string)alphano_config('timezone'));
 if(PHP_SAPI!=='cli'){
  $route=parse_url($_SERVER['REQUEST_URI']??'',PHP_URL_PATH)??'';
- if((str_starts_with($route,'/corporazioni/')||str_starts_with($route,'/api/corporazioni/'))&&!alphano_config('corporations_enabled'))alphano_fail('Corporazioni e produzione di oggetti disabilitate dalla gestione.',403,str_starts_with($route,'/api/'));
- if(str_starts_with($route,'/organizzazioni/')&&!alphano_config('organizations_enabled'))alphano_fail('Organizzazioni disabilitate dalla gestione.',403);
+ if((str_starts_with($route,'/corporazioni/')||str_starts_with($route,'/api/corporazioni/'))&&!alphano_config('corporations_enabled')){ alphano_fail('Corporazioni e produzione di oggetti disabilitate dalla gestione.',403,str_starts_with($route,'/api/')); }
+ if(str_starts_with($route,'/organizzazioni/')&&!alphano_config('organizations_enabled')){ alphano_fail('Organizzazioni disabilitate dalla gestione.',403); }
 }
 alphano_html_runtime();
 
@@ -191,7 +191,7 @@ alphano_html_runtime();
 function LegacyFetchRow(array &$rows): array|false
 {
     $row = current($rows);
-    if ($row === false) return false;
+    if ($row === false) { return false; }
     next($rows);
     return $row;
 }
@@ -203,11 +203,11 @@ if (!class_exists('PEAR', false)) {
 }
 
 // Errori inattesi: diagnostica nel log e risposta coerente con il tipo dell'endpoint.
-if (PHP_SAPI !== 'cli') set_exception_handler(static function (Throwable $exception): never {
+if (PHP_SAPI !== 'cli') { set_exception_handler(static function (Throwable $exception): never {
     error_log('[Alphano] ' . $exception);
     $reference=alphano_error_reference($exception,'document');
-    while (ob_get_level()) ob_end_clean();
+    while (ob_get_level()) { ob_end_clean(); }
     $json = false;
-    foreach (headers_list() as $header) if (stripos($header, 'Content-Type: application/json') === 0) $json = true;
+    foreach (headers_list() as $header) { if (stripos($header, 'Content-Type: application/json') === 0) { $json = true; } }
     alphano_fail('Operazione non completata. Riprova tra poco. Codice assistenza: '.$reference, 500, $json);
-});
+}); }

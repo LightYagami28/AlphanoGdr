@@ -30,7 +30,7 @@ final class KernelFunctionsTest extends \PHPUnit\Framework\TestCase
 	public function testFiltraIdentificativi(): void
 	{
 		$valori = [1, '2', '012', 0, -3, '0', 'x12', 12.5, null, true, false, '', '100', 100, 2];
-		self::assertSame([1, 2, 100], alphano_sql_ids($valori));
+		self::assertSame([1, 2, 100], alphanoSqlIds($valori));
 	}
 
 	/**
@@ -38,9 +38,9 @@ final class KernelFunctionsTest extends \PHPUnit\Framework\TestCase
 	 */
 	public function testValoriNonArray(): void
 	{
-		self::assertSame([], alphano_sql_ids('1,2,3'));
-		self::assertSame([], alphano_sql_ids(null));
-		self::assertSame([], alphano_sql_ids(7));
+		self::assertSame([], alphanoSqlIds('1,2,3'));
+		self::assertSame([], alphanoSqlIds(null));
+		self::assertSame([], alphanoSqlIds(7));
 	}
 
 	/**
@@ -48,10 +48,10 @@ final class KernelFunctionsTest extends \PHPUnit\Framework\TestCase
 	 */
 	public function testSegnapostoSql(): void
 	{
-		self::assertSame('?,?,?', alphano_sql_placeholders(3));
-		self::assertSame('?', alphano_sql_placeholders(1));
-		self::assertSame('', alphano_sql_placeholders(0));
-		self::assertSame('', alphano_sql_placeholders(-2));
+		self::assertSame('?,?,?', alphanoSqlPlaceholders(3));
+		self::assertSame('?', alphanoSqlPlaceholders(1));
+		self::assertSame('', alphanoSqlPlaceholders(0));
+		self::assertSame('', alphanoSqlPlaceholders(-2));
 	}
 }
 

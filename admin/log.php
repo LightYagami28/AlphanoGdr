@@ -76,6 +76,7 @@ switch ($_POST['aztartarcontrol'] ?? '') {
             $results = $db->query($sql . ' ORDER BY data DESC LIMIT 1000', $params);
         }
         break;
+    default: break;
 }
 ?>
 <!DOCTYPE html>

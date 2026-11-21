@@ -1,5 +1,7 @@
 <?php
 declare(strict_types=1);
+const ALPHANO_MSG_PARAMETRI_NON_ESAURIENTI_B98C = 'Parametri non esaurienti';
+const ALPHANO_MSG_QUESTA_AZIONE_RISERVATA_AI_MASTE_66EF = 'Questa azione è riservata ai Master';
 
 /********************************************************
  * admin/ferite.php
@@ -102,7 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $msg  = Uccidi($target, $idpg, $modo, $chatRoom)
                       ? 'Personaggio ucciso con successo'
                       : 'Impossibile uccidere il personaggio';
-            } else { $msg = 'Parametri non esaurienti'; }
+            } else { $msg = ALPHANO_MSG_PARAMETRI_NON_ESAURIENTI_B98C; }
             break;
 
         case 'ferisci':
@@ -113,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $msg = SetFerite($target, $pf, $tipo, $idpg, $chatRoom)
                      ? 'Personaggio ferito con successo'
                      : 'Impossibile ferire il personaggio';
-            } else { $msg = 'Parametri non esaurienti'; }
+            } else { $msg = ALPHANO_MSG_PARAMETRI_NON_ESAURIENTI_B98C; }
             break;
 
         /* ― Resurrezione ― */
@@ -122,14 +124,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $msg = Resuscita($target, $idpg, $chatRoom)
                      ? 'Personaggio resuscitato con successo'
                      : 'Impossibile resuscitare il personaggio';
-            } else { $msg = 'Parametri non esaurienti'; }
+            } else { $msg = ALPHANO_MSG_PARAMETRI_NON_ESAURIENTI_B98C; }
             break;
 
         /* ― Ricompense Master (solo se sessione attiva) ― */
         case 'ricompensa':
             $soldi = EconomiaIntero($_POST['soldi'] ?? null,1,1000000000);
             if ($soldi===null) { throw new InvalidArgumentException(alphano_currency_text('Le Corone devono essere un numero intero da 1 a 1000000000')); }
-            if (!$canMaster) { throw new DomainException('Questa azione è riservata ai Master',403); }
+            if (!$canMaster) { throw new DomainException(ALPHANO_MSG_QUESTA_AZIONE_RISERVATA_AI_MASTE_66EF,403); }
             if ($target && $target !== $idpg && $canMaster && $sessionRunning
                 && in_array((string)$target, $partecipanti, true) && $soldi > 0) {
                 $msg = Ricompensa($target, $soldi, $idpg, $chatRoom,$requestKey,$replayed)
@@ -141,7 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         case 'oggetto':
             $objId = EconomiaIntero($_POST['oggetto'] ?? null,1);
             if ($objId===null) { throw new InvalidArgumentException('Oggetto non valido'); }
-            if (!$canMaster) { throw new DomainException('Questa azione è riservata ai Master',403); }
+            if (!$canMaster) { throw new DomainException(ALPHANO_MSG_QUESTA_AZIONE_RISERVATA_AI_MASTE_66EF,403); }
             if ($target && $target !== $idpg && $canMaster && $sessionRunning
                 && in_array((string)$target, $partecipanti, true) && $objId > 0) {
                 $msg = DaiOggetto($target, $objId, $idpg, $chatRoom,$requestKey,$replayed)
@@ -155,12 +157,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $objId = EconomiaIntero($_POST['oggetto'] ?? null,1);
             $qty   = EconomiaIntero($_POST['quantita'] ?? null,1,2147483647);
             if ($objId===null || $qty===null) { throw new InvalidArgumentException('Oggetto e quantità devono essere numeri interi validi'); }
-            if (!$canMaster) { throw new DomainException('Questa azione è riservata ai Master',403); }
+            if (!$canMaster) { throw new DomainException(ALPHANO_MSG_QUESTA_AZIONE_RISERVATA_AI_MASTE_66EF,403); }
             if ($target && $objId > 0 && $qty > 0 && $canMaster) {
                 $msg = ConsumaMaster($target,$objId,$qty,$idpg,$chatRoom,$requestKey,$replayed)
                      ? 'Oggetto consumato con successo'
                      : 'Impossibile consumare l’oggetto';
-            } else { $msg = 'Parametri non esaurienti'; }
+            } else { $msg = ALPHANO_MSG_PARAMETRI_NON_ESAURIENTI_B98C; }
             break;
 
         /* ― Note Master ― */
@@ -170,7 +172,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $msg = NotaMaster($target,$idpg,$chatRoom,$nota,$requestKey,$replayed,'Nota inserita dal pannello del Master')
                      ? 'Nota inserita con successo'
                      : 'Impossibile inserire la nota';
-            } else { $msg = 'Parametri non esaurienti'; }
+            } else { $msg = ALPHANO_MSG_PARAMETRI_NON_ESAURIENTI_B98C; }
             break;
     }
     } catch (Throwable $error) {

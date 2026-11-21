@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+const ALPHANO_MSG_PARAMETRI_NON_ESAURIENTI_B98C = 'Parametri non esaurienti';
 
 // ———————————————————————————
 // 1) INCLUDI LIBRERIE
@@ -91,7 +92,7 @@ switch ($_POST['azione'] ?? '') {
                  ? 'Personaggio bloccato con successo'
                  : 'Impossibile bloccare l\'utente selezionato';
         } else {
-            $msg = 'Parametri non esaurienti';
+            $msg = ALPHANO_MSG_PARAMETRI_NON_ESAURIENTI_B98C;
         }
         break;
 
@@ -103,7 +104,7 @@ switch ($_POST['azione'] ?? '') {
                  ? 'Personaggio sbloccato con successo'
                  : 'Impossibile sbloccare il personaggio selezionato';
         } else {
-            $msg = 'Parametri non esaurienti';
+            $msg = ALPHANO_MSG_PARAMETRI_NON_ESAURIENTI_B98C;
         }
         break;
 
@@ -116,7 +117,7 @@ switch ($_POST['azione'] ?? '') {
                  ? 'Personaggio imprigionato con successo'
                  : 'Impossibile imprigionare il personaggio selezionato';
         } else {
-            $msg = 'Parametri non esaurienti';
+            $msg = ALPHANO_MSG_PARAMETRI_NON_ESAURIENTI_B98C;
         }
         break;
 
@@ -128,7 +129,7 @@ switch ($_POST['azione'] ?? '') {
                  ? 'Personaggio scarcerato con successo'
                  : 'Impossibile scarcerare il personaggio selezionato';
         } else {
-            $msg = 'Parametri non esaurienti';
+            $msg = ALPHANO_MSG_PARAMETRI_NON_ESAURIENTI_B98C;
         }
         break;
 
@@ -141,7 +142,7 @@ switch ($_POST['azione'] ?? '') {
                  ? 'Ricercato inserito correttamente'
                  : 'Errore nell\'inserimento del ricercato';
         } else {
-            $msg = 'Parametri non esaurienti';
+            $msg = ALPHANO_MSG_PARAMETRI_NON_ESAURIENTI_B98C;
         }
         break;
 }

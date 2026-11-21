@@ -46,7 +46,10 @@
   if(window.navigator?.locks)try{return await window.navigator.locks.request('alphano:notification-audio',{ifAvailable:true},lock=>lock?play():false);}catch(_){}
   // Older engines: short verified lease lets one tab win before playing.
   const lease='alphano:notice-sound-lease',token=String(Math.random())+Date.now();
-  try{localStorage.setItem(lease,token);await new Promise(resolve=>setTimeout(resolve,40));if(!safeEqual(localStorage.getItem(lease),token)){return false;}}catch(_){}
+  try{localStorage.setItem(lease,token);await new Promise(resolve=>setTimeout(resolve,40));if(!safeEqual(localStorage.getItem(lease),token)){return false;}}catch(error){
+   // localStorage puo' essere disabilitato: senza lease verificabile si riproduce
+   // come dispositivo singolo, senza bloccare l'audio.
+  }
   return play();
  }
  window.alphanoExperience={notifyOnce,ready,save,unlock,refresh:read,subscribe(fn){subscribers.add(fn);if(environment){fn({settings,environment});}return()=>subscribers.delete(fn);},setScene(value){scene=value;updateAmbient();},clearScene(token){if(safeEqual(scene?.token,token)){scene=null;stopAmbient();}},notification,async test(patch){await ready().catch(()=>{});await unlock();return notification(patch);},getState:()=>({settings:{...settings},environment,unlocked})};

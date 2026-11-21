@@ -1,42 +1,42 @@
 <?php
 declare(strict_types=1);
 require_once dirname(__DIR__).'/libs/kernel.inc.php';
-$uid=alphano_require_login();if(!alphano_can('admin'))alphano_fail('Accesso riservato agli amministratori completi.',403);
+$uid=alphano_require_login();if(!alphano_can('admin')){alphano_fail('Accesso riservato agli amministratori completi.',403);}
 $sections=['defaults'=>'Colori e disposizione','home'=>'Homepage e manuali','groups'=>'Immagini dei menu','items'=>'Immagini dei sottomenu','pages'=>'Sfondi di tutte le pagine'];
-$section=$_GET['section']??'defaults';if(!is_string($section)||!isset($sections[$section]))$section='defaults';
-$target=$_GET['target']??'';if(!is_string($target))$target='';
+$section=$_GET['section']??'defaults';if(!is_string($section)||!isset($sections[$section])){$section='defaults';}
+$target=$_GET['target']??'';if(!is_string($target)){$target='';}
 $groups=require dirname(__DIR__).'/config/navigation.php';$catalog=alphano_appearance_catalog();$menu=alphano_appearance_menu_catalog();$error='';
 if($_SERVER['REQUEST_METHOD']==='POST'){
-    if(empty($_POST)&&(int)($_SERVER['CONTENT_LENGTH']??0)>0)alphano_fail('Caricamento troppo grande per il server. Carica un’immagine alla volta (limite complessivo: '.ini_get('post_max_size').').',413);
+    if(empty($_POST)&&(int)($_SERVER['CONTENT_LENGTH']??0)>0){alphano_fail('Caricamento troppo grande per il server. Carica un’immagine alla volta (limite complessivo: '.ini_get('post_max_size').').',413);}
     alphano_require_csrf();
     try{
-        $posted=$_POST['section']??'';if($posted!==$section||($_POST['target']??'')!==$target)throw new DomainException('Destinazione non valida.');
+        $posted=$_POST['section']??'';if($posted!==$section||($_POST['target']??'')!==$target){throw new DomainException('Destinazione non valida.');}
         $layout=[];
-        if($section==='defaults')foreach(['theme'=>array_keys(alphano_themes()),'sidebar_position'=>['left','right'],'header_position'=>['top','bottom']] as $key=>$allowed){if(!in_array($_POST[$key]??'', $allowed,true))throw new DomainException('Opzione non valida: '.$key);$layout[$key]=$_POST[$key];}
+        if($section==='defaults'){foreach(['theme'=>array_keys(alphano_themes()),'sidebar_position'=>['left','right'],'header_position'=>['top','bottom']] as $key=>$allowed){if(!in_array($_POST[$key]??'', $allowed,true)){throw new DomainException('Opzione non valida: '.$key);}$layout[$key]=$_POST[$key];}}
         alphano_appearance_save($_POST,$_FILES);
         if($layout){$file=dirname(__DIR__).'/private/settings.json';$old=is_file($file)?json_decode(file_get_contents($file),true,32,JSON_THROW_ON_ERROR):[];alphano_settings_write(array_replace($old,$layout));}
         ConnectDB()->execute('INSERT INTO engine_admin_audit(actor,action,created_at) VALUES(?,?,?)',[$uid,'appearance:'.$section.':'.$target,time()]);
         header('Location: /admin/appearance.php?'.http_build_query(['section'=>$section,'target'=>$target,'saved'=>1]),true,303);exit;
-    }catch(Throwable $e){$error=$e instanceof DomainException?$e->getMessage():'Salvataggio non riuscito. Controlla il log del server.';if(!$e instanceof DomainException)error_log('[Appearance] '.$e->getMessage());http_response_code(422);}
+    }catch(Throwable $e){$error=$e instanceof DomainException?$e->getMessage():'Salvataggio non riuscito. Controlla il log del server.';if(!$e instanceof DomainException){error_log('[Appearance] '.$e->getMessage());}http_response_code(422);}
 }
 $a=alphano_appearance();$config=require dirname(__DIR__).'/config/app.php';$selection=null;
-if($section==='groups'&&isset($groups[$target]))$selection=['label'=>$groups[$target]['title']];
-if($section==='items'&&isset($menu[$target]))$selection=$menu[$target];
-if($section==='pages'&&isset($catalog[$target]))$selection=$catalog[$target];
+if($section==='groups'&&isset($groups[$target])){$selection=['label'=>$groups[$target]['title']];}
+if($section==='items'&&isset($menu[$target])){$selection=$menu[$target];}
+if($section==='pages'&&isset($catalog[$target])){$selection=$catalog[$target];}
 $values=in_array($section,['defaults','home'],true)?($a[$section]??[]):($a[$section][$target]??[]);
-if($section==='groups'&&$selection)$values['default_image']=$groups[$target]['image'];
+if($section==='groups'&&$selection){$values['default_image']=$groups[$target]['image'];}
 if($section==='items'&&$selection){$defaults=require dirname(__DIR__).'/config/navigation-icons.php';$values['default_image']=$defaults[$selection['label']]??$groups[$selection['group']]['image'];}
-if($section==='home')$values+=['default_logo'=>'/assets/alphanogdr-logo.png','default_banner'=>alphano_appearance_page('/')['header'],'default_scene_library'=>alphano_default_art('header-library')];
-if($section==='pages'&&$selection)$values['default_header']=alphano_appearance_page($selection['url'])['header'];
-if($section==='defaults')$values['default_header']=alphano_default_art('header-panorama');
+if($section==='home'){$values+=['default_logo'=>'/assets/alphanogdr-logo.png','default_banner'=>alphano_appearance_page('/')['header'],'default_scene_library'=>alphano_default_art('header-library')];}
+if($section==='pages'&&$selection){$values['default_header']=alphano_appearance_page($selection['url'])['header'];}
+if($section==='defaults'){$values['default_header']=alphano_default_art('header-panorama');}
 function appearance_image_field(string $name,string $label,array $values): void {
     $value=$values[$name]??'';$id='preview-'.$name;$fallback=$values['default_'.$name]??'/assets/placeholder.svg';
     echo '<div class="appearance-image-field"><label>'.alphano_escape($label).'<input type="file" name="'.$name.'" accept="image/png,image/jpeg,image/webp" data-image-preview="'.$id.'"></label><label>Immagine del pacchetto<select aria-label="Immagine del pacchetto: '.alphano_escape($label).'" name="preset_'.$name.'" data-default-art-picker="'.$id.'"><option value="">Usa percorso o caricamento · eredita il predefinito</option>';
-    foreach(alphano_default_art_catalog() as $asset)echo '<option value="'.alphano_escape($asset['path']).'">'.alphano_escape($asset['title']).'</option>';
+    foreach(alphano_default_art_catalog() as $asset){echo '<option value="'.alphano_escape($asset['path']).'">'.alphano_escape($asset['title']).'</option>';}
     echo '</select></label><img id="'.$id.'" class="appearance-preview" data-default-src="'.alphano_escape($fallback).'" src="'.alphano_escape($value?:$fallback).'" alt="Anteprima '.alphano_escape($label).'" width="220" height="110"><label>Percorso già presente sul sito<input type="text" name="'.$name.'" value="'.alphano_escape($value).'" placeholder="/uploads/appearance/immagine.png"></label><label class="check"><input type="checkbox" name="remove_'.$name.'" value="1">Rimuovi la personalizzazione</label></div>';
 }
 function appearance_select(string $key,string $label,array $options,array $config): void {
-    echo '<label>'.$label.'<select name="'.$key.'">';foreach($options as $value=>$title)echo '<option value="'.$value.'"'.($config[$key]===$value?' selected':'').'>'.alphano_escape($title).'</option>';echo '</select></label>';
+    echo '<label>'.$label.'<select name="'.$key.'">';foreach($options as $value=>$title){echo '<option value="'.$value.'"'.($config[$key]===$value?' selected':'').'>'.alphano_escape($title).'</option>';}echo '</select></label>';
 }
 ?>
 <!doctype html><html lang="it"><head><meta charset="utf-8"><title>Template e homepage</title></head><body class="engine-admin appearance-admin"<?=isset($_GET['saved'])?' data-appearance-saved':''?>><main class="admin-wrap">
@@ -56,5 +56,5 @@ function appearance_select(string $key,string $label,array $options,array $confi
 <?php endif;?>
 <?php if(!in_array($section,['defaults','home'],true)):?>
 <section class="appearance-catalog"><h2><?=$section==='pages'?'Catalogo completo delle pagine':($section==='groups'?'Menu principali':'Tutte le voci dei sottomenu')?></h2><label>Cerca nel catalogo<input type="search" data-appearance-filter placeholder="Nome, gruppo o percorso della pagina"></label><p class="muted">Le voci disponibili in gioco dipendono dai moduli e dai permessi attivi. Il catalogo comprende anche le pagine riservate e quelle dei moduli facoltativi.</p><div class="appearance-rows">
-<?php $entries=$section==='groups'?array_map(static fn($key,$g)=>['key'=>$key,'label'=>$g['title'],'group'=>$key,'url'=>''],array_keys($groups),array_values($groups)):($section==='items'?array_values($menu):array_values($catalog));foreach($entries as $entry):$key=$entry['key'];$current=$a[$section][$key]??[];$image=$current['image']??$current['header']??$current['background']??'';if($image===''&&$section==='pages')$image=alphano_appearance_page($entry['url'])['header'];if($image===''&&$section==='groups')$image=$groups[$key]['image']??'';if($image===''&&$section==='items')$image=$entry['image']??alphano_default_art($entry['icon']??'scroll');?><article data-appearance-row><div class="appearance-row-image"><?php if($image):?><img src="<?=alphano_escape($image)?>" alt="" width="64" height="64" loading="lazy"><?php else:?><span data-icon="<?=$groups[$entry['group']]['icon']??'scroll'?>" aria-hidden="true"></span><?php endif;?></div><div><small><?=alphano_escape($groups[$entry['group']]['title']??ucfirst($entry['group']))?></small><h3><?=alphano_escape($entry['label'])?></h3><code><?=alphano_escape($entry['url'])?></code></div><a class="button secondary" href="?<?=http_build_query(['section'=>$section,'target'=>$key])?>">Personalizza<span class="sr-only"> <?=alphano_escape($entry['label'])?></span></a></article><?php endforeach;?>
+<?php $entries=$section==='groups'?array_map(static fn($key,$g)=>['key'=>$key,'label'=>$g['title'],'group'=>$key,'url'=>''],array_keys($groups),array_values($groups)):($section==='items'?array_values($menu):array_values($catalog));foreach($entries as $entry):$key=$entry['key'];$current=$a[$section][$key]??[];$image=$current['image']??$current['header']??$current['background']??'';if($image===''&&$section==='pages'){$image=alphano_appearance_page($entry['url'])['header'];}if($image===''&&$section==='groups'){$image=$groups[$key]['image']??'';}if($image===''&&$section==='items'){$image=$entry['image']??alphano_default_art($entry['icon']??'scroll');}?><article data-appearance-row><div class="appearance-row-image"><?php if($image):?><img src="<?=alphano_escape($image)?>" alt="" width="64" height="64" loading="lazy"><?php else:?><span data-icon="<?=$groups[$entry['group']]['icon']??'scroll'?>" aria-hidden="true"></span><?php endif;?></div><div><small><?=alphano_escape($groups[$entry['group']]['title']??ucfirst($entry['group']))?></small><h3><?=alphano_escape($entry['label'])?></h3><code><?=alphano_escape($entry['url'])?></code></div><a class="button secondary" href="?<?=http_build_query(['section'=>$section,'target'=>$key])?>">Personalizza<span class="sr-only"> <?=alphano_escape($entry['label'])?></span></a></article><?php endforeach;?>
 </div></section><?php endif;?></main></body></html>

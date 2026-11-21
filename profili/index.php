@@ -37,7 +37,10 @@ $visibleRace=alphano_visible_race($row);
 $isAlt = alphano_profile_uses_alt_art($row);
 $avatarKey = $isAlt ? 'avatar2' : 'avatar';
 $avatar = (string)(($row[$avatarKey] ?? '') ?: ($row['avatar'] ?? ''));
-if ($avatar !== '' && !empty($row['upload']) && is_file(__DIR__ . '/pg/' . $cid . '/' . $avatar)) { $avatar = '/profili/pg/' . $cid . '/' . $avatar; }
+$avatarDir = __DIR__ . '/pg/' . $cid;
+$avatarRoot = realpath($avatarDir);
+$avatarPath = ($avatarRoot !== false && $avatar !== '') ? realpath($avatarDir . '/' . $avatar) : false;
+if ($avatarPath !== false && str_starts_with($avatarPath, rtrim($avatarRoot, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR) && !empty($row['upload']) && is_file($avatarPath)) { $avatar = '/profili/pg/' . $cid . '/' . basename($avatarPath); }
 $doppiRaw = alphanoSqlIds(TrovaDoppi($cid) ?: []);
 $visits = (int)$row['visite'];
 if (!in_array($visitorId, $doppiRaw, true)) { $visits += IncrementaVisite($visitorId, $cid); }

@@ -11,6 +11,21 @@ require_once __DIR__ . '/app.inc.php';
 define('maxmissive', 50);
 define('maxpuntif', 1000);
 
+/** Restituisce il percorso canonico solo se risolve dentro $base, altrimenti null. */
+function alphano_canonical_inside(string $base, string $path): ?string
+{
+    $root = realpath($base);
+    if ($root === false) {
+        return null;
+    }
+    $real = realpath($path);
+    if ($real === false) {
+        return null;
+    }
+    $prefix = rtrim($root, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+    return str_starts_with($real, $prefix) ? $real : null;
+}
+
 /** Normalizza un elenco di identificativi a interi positivi, scartando valori non validi. */
 function alphanoSqlIds(mixed $values): array
 {

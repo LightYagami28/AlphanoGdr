@@ -2,14 +2,14 @@ const mailEsc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>
 const mailData=document.getElementById('mail-data'),posta=JSON.parse(mailData.textContent),mailViewer=Number(mailData.dataset.viewer);
 let activeMailbox=0,mailListPending=false;
 function mailSource(box){
- if(box!==0)return posta[box];
- const unique=new Map();for(const item of [...posta[0],...posta[2].filter(x=>x.kind==='personal')])unique.set(item.id,item);return [...unique.values()];
+ if(box!==0){return posta[box];}
+ const unique=new Map();for(const item of [...posta[0],...posta[2].filter(x=>x.kind==='personal')]){unique.set(item.id,item);}return [...unique.values()];
 }
 function mailGroups(box){
  const groups=new Map();
  for(const item of mailSource(box)){
   const personal=item.kind==='personal',other=item.from.id===mailViewer?item.to:item.from,key=personal?'person-'+other.id:'notice-'+item.id;
-  if(!groups.has(key))groups.set(key,{key,person:other,personal,items:[]});groups.get(key).items.push(item);
+  if(!groups.has(key)){groups.set(key,{key,person:other,personal,items:[]});}groups.get(key).items.push(item);
  }
  for(const group of groups.values()){
   group.items.sort((a,b)=>b.id-a.id);group.latest=group.items[0];group.unread=group.items.filter(x=>x.to.id===mailViewer&&!x.letto).length;
@@ -32,8 +32,8 @@ function Carica(box){
 }
 function ReadMail(id){const form=document.getElementById('mail-actions-form');form.elements.namedItem('id').value=id;form.elements.namedItem('baule').disabled=true;form.action='./showmsg.php';form.submit();}
 window.addEventListener('DOMContentLoaded',()=>{
- for(const el of document.querySelectorAll('[data-mail-type],#mail-search,#mail-kind,#mail-state'))el.addEventListener(el.type==='search'?'input':'change',()=>Carica(activeMailbox));
+ for(const el of document.querySelectorAll('[data-mail-type],#mail-search,#mail-kind,#mail-state')){el.addEventListener(el.type==='search'?'input':'change',()=>Carica(activeMailbox));}
  document.getElementById('mail-filter-reset').addEventListener('click',()=>{document.querySelectorAll('[data-mail-type]').forEach(el=>el.checked=true);document.getElementById('mail-search').value='';document.getElementById('mail-kind').value='all';document.getElementById('mail-state').value='all';Carica(activeMailbox);});Carica(0);
 });
-async function refreshMailList(){if(mailListPending||document.hidden)return;mailListPending=true;try{const response=await fetch('/api/mail-list.php',{cache:'no-store'});if(!response.ok)return;const next=await response.json();if(JSON.stringify(next)!==JSON.stringify(posta)){posta.splice(0,posta.length,...next);Carica(activeMailbox);}}catch{}finally{mailListPending=false;}}
+async function refreshMailList(){if(mailListPending||document.hidden){return;}mailListPending=true;try{const response=await fetch('/api/mail-list.php',{cache:'no-store'});if(!response.ok){return;}const next=await response.json();if(JSON.stringify(next)!==JSON.stringify(posta)){posta.splice(0,posta.length,...next);Carica(activeMailbox);}}catch{}finally{mailListPending=false;}}
 document.addEventListener('alphano:commerce-refresh',refreshMailList);document.addEventListener('alphano:mail-read',refreshMailList);setInterval(refreshMailList,30000);

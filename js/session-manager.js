@@ -4,10 +4,10 @@ const picker=document.querySelector('[data-session-location-picker]');
 if(picker){
  const search=picker.querySelector('#session-location-search'),cards=[...picker.querySelectorAll('[data-session-location]')],count=picker.querySelector('#session-location-count'),empty=picker.querySelector('#session-location-empty');
  const normalize=value=>String(value).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('it');
- search.addEventListener('input',()=>{const query=normalize(search.value.trim());let visible=0;for(const card of cards){card.hidden=!normalize(card.dataset.search).includes(query);if(!card.hidden)visible++;}count.textContent=visible+(visible===1?' luogo disponibile':' luoghi disponibili');empty.hidden=visible>0;});
+ search.addEventListener('input',()=>{const query=normalize(search.value.trim());let visible=0;for(const card of cards){card.hidden=!normalize(card.dataset.search).includes(query);if(!card.hidden){visible++;}}count.textContent=visible+(visible===1?' luogo disponibile':' luoghi disponibili');empty.hidden=visible>0;});
  return;
 }
-const root=document.querySelector('[data-session-manager]');if(!root)return;
+const root=document.querySelector('[data-session-manager]');if(!root){return;}
 const $=id=>root.querySelector('#'+id),endpoint=new URL(root.dataset.endpoint,location.href);
 let state=null,busy=false,timer,stopped=false,lastSession=0,draft=[],dirty=false,roster=[],people=[],pending=null,draftVersion=0,draftGuidance=0;
 const keyOf=person=>person.kind+':'+person.id;
@@ -35,15 +35,15 @@ function renderTurns(){
   number.className='session-control-turn-number';number.textContent=String(index+1);name.className='session-control-turn-name';name.textContent=person.name;type.textContent=person.kind==='npc'?'PNG':'Personaggio';name.append(type);controls.className='session-control-turn-controls';
   for(const [action,label,text] of [['up','Sposta prima '+person.name,'↑'],['down','Sposta dopo '+person.name,'↓'],['remove','Togli '+person.name+' dall’ordine','×']]){
    const b=document.createElement('button');b.type='button';b.textContent=text;b.setAttribute('aria-label',label);b.setAttribute('data-ui-no-icon','');b.dataset.sessionMutating='turns';
-   if((action==='up'&&index===0)||(action==='down'&&index===draft.length-1))b.dataset.edge='1';
-   b.addEventListener('click',()=>{if(busy||!state?.can_manage)return;markDraft();if(action==='remove')draft.splice(index,1);else {const next=index+(action==='up'?-1:1);if(next<0||next>=draft.length)return;[draft[index],draft[next]]=[draft[next],draft[index]];}renderTurns();});controls.append(b);
+   if((action==='up'&&index===0)||(action==='down'&&index===draft.length-1)){b.dataset.edge='1';}
+   b.addEventListener('click',()=>{if(busy||!state?.can_manage){return;}markDraft();if(action==='remove'){draft.splice(index,1);}else {const next=index+(action==='up'?-1:1);if(next<0||next>=draft.length){return;}[draft[index],draft[next]]=[draft[next],draft[index]];}renderTurns();});controls.append(b);
   }
   li.append(number,name,controls);list.append(li);
  });
  $('session-turn-empty').hidden=Boolean(draft.length);$('session-turn-draft').hidden=!dirty;$('session-turn-reset').hidden=!dirty;
  const select=$('session-turn-select'),selected=select.value;select.replaceChildren();select.add(new Option('Scegli fra i presenti…',''));
- for(const person of roster)if(!draft.some(p=>keyOf(p)===keyOf(person)))select.add(new Option(person.name+(person.kind==='npc'?' · PNG':''),keyOf(person)));
- if([...select.options].some(o=>o.value===selected))select.value=selected;permissions();
+ for(const person of roster)if(!draft.some(p=>keyOf(p)===keyOf(person))){select.add(new Option(person.name+(person.kind==='npc'?' · PNG':''),keyOf(person)));}
+ if([...select.options].some(o=>o.value===selected)){select.value=selected;}permissions();
 }
 function markDraft(){if(!dirty){draftVersion=state.version;draftGuidance=state.guidance_version;}dirty=true;}
 function refreshRoster(){
@@ -66,26 +66,26 @@ function render(next){
   $('session-dice').textContent=Number(s.dadi)?'disponibili':'disattivati';$('session-dice-button').textContent=Number(s.dadi)?'Disattiva i dadi':'Attiva i dadi';
  }else if(lastSession){$('session-last-log').href='/sessione/viewlog.php?azione=aprilog&id='+lastSession;$('session-last-log').hidden=false;dirty=false;}
  const select=$('session-master-select'),selected=select.value;select.replaceChildren();
- for(const m of state.masters||[])if(Number(m.id)!==Number(state.conductor?.id))select.add(new Option(String(m.name),String(m.id)));
- if(!select.options.length)select.add(new Option('Nessun altro Master attivo qui',''));if([...select.options].some(o=>o.value===selected))select.value=selected;
+ for(const m of state.masters||[])if(Number(m.id)!==Number(state.conductor?.id)){select.add(new Option(String(m.name),String(m.id)));}
+ if(!select.options.length){select.add(new Option('Nessun altro Master attivo qui',''));}if([...select.options].some(o=>o.value===selected)){select.value=selected;}
  $('session-transfer-note').textContent=select.value?'Il trasferimento riesce solo se il Master scelto è ancora attivo nella stessa chat.':'Per trasferire la regia, l’altro Master deve essere attivo nella stessa chat.';
- if(!dirty)draft=normalize(state.turn_order);refreshRoster();permissions();root.dispatchEvent(new CustomEvent('alphano:session-state',{bubbles:true,detail:state}));
+ if(!dirty){draft=normalize(state.turn_order);}refreshRoster();permissions();root.dispatchEvent(new CustomEvent('alphano:session-state',{bubbles:true,detail:state}));
 }
 async function refresh(){
- clearTimeout(timer);if(stopped)return;
- if(!busy)try{const url=new URL(endpoint);url.searchParams.set('status','1');const response=await fetch(url,{cache:'no-store',credentials:'same-origin',signal:AbortSignal.timeout(6000)}),result=await response.json();if(!response.ok)throw new Error(result.error||'Impossibile leggere la scena.');render(result);$('session-connection').hidden=true;}
+ clearTimeout(timer);if(stopped){return;}
+ if(!busy)try{const url=new URL(endpoint);url.searchParams.set('status','1');const response=await fetch(url,{cache:'no-store',credentials:'same-origin',signal:AbortSignal.timeout(6000)}),result=await response.json();if(!response.ok){throw new Error(result.error||'Impossibile leggere la scena.');}render(result);$('session-connection').hidden=true;}
  catch(_){$('session-connection').textContent='Aggiornamento momentaneamente non disponibile. Le scelte che stai preparando restano nel pannello.';$('session-connection').hidden=false;}
- if(!stopped)timer=setTimeout(refresh,document.hidden?10000:5000);
+ if(!stopped){timer=setTimeout(refresh,document.hidden?10000:5000);}
 }
 async function action(name,fields={},confirmation=null){
- if(busy||!state)return;busy=true;permissions();
+ if(busy||!state){return;}busy=true;permissions();
  try{
-  if(confirmation){const answer=await window.alphanoDialog.notice({cancelLabel:'Annulla',...confirmation});if(answer!=='ack')return;}
+  if(confirmation){const answer=await window.alphanoDialog.notice({cancelLabel:'Annulla',...confirmation});if(answer!=='ack'){return;}}
   const raw=new URLSearchParams(fields);raw.set('azione',name);const signature=raw.toString()+':'+Number(state.session?.id||0);
   if(!pending||pending.signature!==signature){raw.set('session_id',String(state.session?.id||0));raw.set('version',String(name==='turns'&&dirty?draftVersion:state.version??''));raw.set('guidance_version',String(name==='turns'&&dirty?draftGuidance:state.guidance_version??''));raw.set('_csrf',root.dataset.csrf);raw.set('request_key',crypto.randomUUID());pending={signature,body:raw.toString()};}
   const response=await fetch(endpoint,{method:'POST',body:new URLSearchParams(pending.body),credentials:'same-origin',signal:AbortSignal.timeout(15000)}),result=await response.json();
   if(!response.ok){pending=null;throw new Error(result.error||'Operazione non completata.');}
-  pending=null;if(['turns','crea','chiudi'].includes(name))dirty=false;if(result.state)render(result.state);else if(Object.prototype.hasOwnProperty.call(result,'session'))render(result);
+  pending=null;if(['turns','crea','chiudi'].includes(name)){dirty=false;}if(result.state){render(result.state);}else if(Object.prototype.hasOwnProperty.call(result,'session')){render(result);}
   if(result.logFile)for(const id of ['session-log','session-last-log']){$(id).href=result.logFile;$(id).hidden=false;}
   const messages={crea:'La giocata è aperta.',chiudi:'Giocata conclusa. Il resoconto è disponibile.',takeover:'Hai assunto la regia della scena.',ai:'La scena è stata affidata al Master IA.',transfer:'La regia è stata trasferita.',turns:'Ordine degli interventi aggiornato.',next:'Il prossimo personaggio può intervenire.',cambia:'Ingresso aggiornato.',dadi:'Disponibilità dei dadi aggiornata.'};feedback(messages[name]||'Scelta aggiornata.');root.dispatchEvent(new CustomEvent('alphano:session-updated',{bubbles:true}));
  }catch(error){feedback(error.name==='TimeoutError'?'La conferma sta impiegando più tempo. Puoi riprovare: la stessa richiesta non verrà applicata due volte.':error.message,'error');}
@@ -94,12 +94,12 @@ async function action(name,fields={},confirmation=null){
 root.querySelectorAll('[data-session-help]').forEach(b=>b.addEventListener('click',()=>{const p=$(b.dataset.sessionHelp),open=b.getAttribute('aria-expanded')==='true';b.setAttribute('aria-expanded',String(!open));p.hidden=open;}));
 root.querySelectorAll('[data-session-scroll]').forEach(button=>button.addEventListener('click',()=>{$(button.dataset.sessionScroll)?.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});}));
 $('session-create-form').addEventListener('submit',event=>{event.preventDefault();action('crea',new URLSearchParams(new FormData(event.currentTarget)));});
-$('session-transfer-form').addEventListener('submit',event=>{event.preventDefault();const master=$('session-master-select');if(master.value)action('transfer',{master_id:master.value},{title:'Trasferisci la regia',message:'Affidare la giocata a '+master.selectedOptions[0].textContent+'?',detail:'Il nuovo Master deve essere attivo nella stessa chat. La storia è conservata.',buttonLabel:'Trasferisci la regia'});});
+$('session-transfer-form').addEventListener('submit',event=>{event.preventDefault();const master=$('session-master-select');if(master.value){action('transfer',{master_id:master.value},{title:'Trasferisci la regia',message:'Affidare la giocata a '+master.selectedOptions[0].textContent+'?',detail:'Il nuovo Master deve essere attivo nella stessa chat. La storia è conservata.',buttonLabel:'Trasferisci la regia'});}});
 root.querySelectorAll('[data-session-action]').forEach(b=>b.addEventListener('click',()=>{
  const name=b.dataset.sessionAction;let confirm=null;
- if(name==='chiudi')confirm={title:'Concludi la giocata',message:'Chiudere la sessione attuale?',detail:'La chiusura viene annunciata in chat. Il resoconto resta nell’archivio e le risposte automatiche vengono fermate.',buttonLabel:'Chiudi la giocata'};
- if(name==='takeover')confirm={title:'Assumi la regia',message:'Vuoi condurre personalmente la giocata?',detail:'La conduzione precedente viene sostituita; la storia e gli interventi già svolti restano conservati.',buttonLabel:'Assumi la regia'};
- if(name==='ai')confirm={title:'Affida al Master IA',message:'Lasciare la conduzione automatica della scena?',detail:'Il Master IA proseguirà dal contesto e dai personaggi presenti. Potrai riprendere la regia con i permessi necessari.',buttonLabel:'Affida la scena'};
+ if(name==='chiudi'){confirm={title:'Concludi la giocata',message:'Chiudere la sessione attuale?',detail:'La chiusura viene annunciata in chat. Il resoconto resta nell’archivio e le risposte automatiche vengono fermate.',buttonLabel:'Chiudi la giocata'};}
+ if(name==='takeover'){confirm={title:'Assumi la regia',message:'Vuoi condurre personalmente la giocata?',detail:'La conduzione precedente viene sostituita; la storia e gli interventi già svolti restano conservati.',buttonLabel:'Assumi la regia'};}
+ if(name==='ai'){confirm={title:'Affida al Master IA',message:'Lasciare la conduzione automatica della scena?',detail:'Il Master IA proseguirà dal contesto e dai personaggi presenti. Potrai riprendere la regia con i permessi necessari.',buttonLabel:'Affida la scena'};}
  action(name,{},confirm);
 }));
 $('session-master-select').addEventListener('change',permissions);$('session-turn-select').addEventListener('change',permissions);
@@ -109,7 +109,7 @@ $('session-turn-save').addEventListener('click',()=>action('turns',{turn_order:J
 $('session-turn-reset').addEventListener('click',()=>{dirty=false;draft=normalize(state?.turn_order);renderTurns();});
 $('session-turn-free').addEventListener('click',()=>action('turns',{turn_order:'[]'}));
 document.addEventListener('alphano:participants-state',event=>{if(event.detail?.chat===state?.chat_key||event.detail?.chat===endpoint.searchParams.get('chat')){people=event.detail.participants;refreshRoster();}});
-$('session-close-panel').addEventListener('click',()=>{try{if(typeof window.parent.CloseSessionManager==='function'){window.parent.CloseSessionManager();return;}}catch(_){}if(window.opener)window.close();else if(history.length>1)history.back();else location.href='/chat/index.php?chat='+encodeURIComponent(endpoint.searchParams.get('chat')||'');});
-window.addEventListener('pagehide',()=>{stopped=true;clearTimeout(timer);});document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
-try{const initial=JSON.parse($('session-initial-state').textContent);if(initial)render(initial);}catch(_){}permissions();refresh();
+$('session-close-panel').addEventListener('click',()=>{try{if(typeof window.parent.CloseSessionManager==='function'){window.parent.CloseSessionManager();return;}}catch(_){}if(window.opener){window.close();}else if(history.length>1){history.back();}else {location.href='/chat/index.php?chat='+encodeURIComponent(endpoint.searchParams.get('chat')||'');}});
+window.addEventListener('pagehide',()=>{stopped=true;clearTimeout(timer);});document.addEventListener('visibilitychange',()=>{if(!document.hidden){refresh();}});
+try{const initial=JSON.parse($('session-initial-state').textContent);if(initial){render(initial);}}catch(_){}permissions();refresh();
 })();

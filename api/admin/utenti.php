@@ -609,8 +609,8 @@ try {
             if (!$ids) {
                 $response = ['success'=>false,'message'=>'Nessun doppio trovato'];
             } else {
-                $ph   = implode("','",$ids);
-                $rows = $db->query("SELECT nome FROM utenti WHERE id IN ('$ph')");
+                $ph   = implode(',', array_fill(0, count($ids), '?'));
+                $rows = $db->query("SELECT nome FROM utenti WHERE id IN ($ph)", array_map('intval', $ids));
                 $dups = array_map(fn($r) => $r['nome'], $rows);
                 $response = ['success'=>true,'duplicates'=>$dups];
             }

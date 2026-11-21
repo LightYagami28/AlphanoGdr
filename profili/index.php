@@ -38,14 +38,15 @@ $isAlt = alphano_profile_uses_alt_art($row);
 $avatarKey = $isAlt ? 'avatar2' : 'avatar';
 $avatar = (string)(($row[$avatarKey] ?? '') ?: ($row['avatar'] ?? ''));
 $avatarDir = __DIR__ . '/pg/' . $cid;
-$avatarPath = $avatar !== '' ? alphano_canonical_inside($avatarDir, $avatarDir . '/' . $avatar) : null;
-if ($avatarPath !== null && !empty($row['upload']) && is_file($avatarPath)) { $avatar = '/profili/pg/' . $cid . '/' . basename($avatarPath); }
-$doppiRaw = alphano_sql_ids(TrovaDoppi($cid) ?: []);
+$avatarRoot = realpath($avatarDir);
+$avatarPath = ($avatarRoot !== false && $avatar !== '') ? realpath($avatarDir . '/' . $avatar) : false;
+if ($avatarPath !== false && str_starts_with($avatarPath, rtrim($avatarRoot, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR) && !empty($row['upload']) && is_file($avatarPath)) { $avatar = '/profili/pg/' . $cid . '/' . basename($avatarPath); }
+$doppiRaw = alphanoSqlIds(TrovaDoppi($cid) ?: []);
 $visits = (int)$row['visite'];
 if (!in_array($visitorId, $doppiRaw, true)) { $visits += IncrementaVisite($visitorId, $cid); }
 $doppi = [];
 if ($doppiRaw) {
-    $placeholders = alphano_sql_placeholders(count($doppiRaw));
+    $placeholders = alphanoSqlPlaceholders(count($doppiRaw));
     foreach ($db->query("SELECT id,nome FROM utenti WHERE id IN ($placeholders) ORDER BY nome", $doppiRaw) as $other) { $doppi[] = '<a href="/profili/?Id=' . (int)$other['id'] . '">' . $escape($other['nome']) . '</a>'; }
 }
 $textRow = static fn(string $label, mixed $value, string $fallback = 'Non dichiarato'): array => ['label' => $label, 'html' => $escape($value !== null && $value !== '' ? $value : $fallback)];

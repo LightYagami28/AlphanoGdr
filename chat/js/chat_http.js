@@ -1,11 +1,12 @@
 /* Chat HTTP incrementale. La presentazione e i comandi restano quelli del gioco. */
+const renderHTML=(el,markup)=>{const doc=new DOMParser().parseFromString(String(markup??''),'text/html');el.replaceChildren(...[...doc.body.childNodes].map(node=>document.importNode(node,true)));};
 (() => {
   'use strict';
   const room = window.chatRoom;
   const token = window.chatToken;
   if (!room || !window.myPgId) {return;}
 
-  const endpoint = `/chat/messages.php?chat=${encodeURIComponent(room)}`;
+  const endpoint = '/chat/messages.php?chat=' + (encodeURIComponent(room));
   let cursor = 0;
   let relationCursor = 0;
   let questVersion = "";
@@ -36,7 +37,7 @@
     for(const job of jobs) {
       const id=String(job.id);let node=typingNodes.get(id);
       if(!node){node=document.createElement('div');node.className='riga npc-typing';node.dataset.aiTyping=id;node.setAttribute('role','status');typingNodes.set(id,node);}
-      node.textContent=job.name+' sta scrivendo…';box.append(node);
+      node.textContent=job.name+' sta scrivendoÔÇª';box.append(node);
     }
     if(stick){box.scrollTop=box.scrollHeight;}
   }
@@ -47,8 +48,8 @@
     const slot=document.getElementById('quest-header-slot');if(!slot){return;}
     if(!bar){bar=document.createElement('div');bar.id='quest-chat-status';bar.className='quest-chat-status';slot.append(bar);}
     const button=document.createElement('button');button.type='button';button.className='quest-header-button';
-    const phase=q.paused?'En pausa':q.status==='active'?'Tocca a '+(q.turn||'…'):'Master in elaborazione';
-    button.textContent=`Giro ${q.round} · ${phase}`;button.title=(q.remaining||q.next_queue||[]).map(p=>p.name).join(' → ')+(q.progress?.label?' · '+q.progress.label:'');
+    const phase=q.paused?'En pausa':q.status==='active'?'Tocca a '+(q.turn||'ÔÇª'):'Master in elaborazione';
+    button.textContent='Giro ' + (q.round) + ' ┬À ' + (phase);button.title=(q.remaining||q.next_queue||[]).map(p=>p.name).join(' ÔåÆ ')+(q.progress?.label?' ┬À '+q.progress.label:'');
     button.setAttribute('aria-label','Scontro: '+button.textContent+'. Apri coda e dettagli');
     button.addEventListener('click',()=>window.dispatchEvent(new CustomEvent('alphano:open-panel',{detail:'scontro'})));
     bar.replaceChildren(button);
@@ -71,7 +72,7 @@
       line.dataset.pg = message.pg || 0;
       if (message.pg && message.location) {locations.set(message.pg, message.location);}
       const styled=message.kind==='character'?window.alphanoChatView?.character(message):message.kind==='master'?window.alphanoChatView?.master(message):null;
-      if(styled){line.classList.add('has-scene-view');line.append(styled);}else {line.innerHTML = message.msg;}
+      if(styled){line.classList.add('has-scene-view');line.append(styled);}else {renderHTML(line, message.msg);}
       fragment.appendChild(line);
       window.alphanoSceneEffects?.receive(message, initial);
     }
@@ -81,7 +82,7 @@
       const author = Number(line.dataset.pg);
       line.classList.toggle('same-location', !!ownLocation && author !== window.myPgId && locations.get(author) === ownLocation);
     }
-    // Limita il DOM anche nelle giocate lunghe. Gli ID vecchi sono già esclusi dal cursore.
+    // Limita il DOM anche nelle giocate lunghe. Gli ID vecchi sono gi├á esclusi dal cursore.
     while (box.children.length > 500) {
       seen.delete(Number(box.firstElementChild.dataset.messageId));
       box.firstElementChild.remove();
@@ -112,16 +113,16 @@
     controller = new AbortController();
     const timeout = setTimeout(() => controller?.abort(), 10000);
     try {
-      const response = await fetch(`${endpoint}&relationSince=${relationCursor}&since=${cursor}&initial=${initial ? 1 : 0}&questVersion=${encodeURIComponent(questVersion)}`, {
+      const response = await fetch((endpoint) + '&relationSince=' + (relationCursor) + '&since=' + (cursor) + '&initial=' + (initial ? 1 : 0) + '&questVersion=' + (encodeURIComponent(questVersion)), {
         credentials: 'same-origin', cache: 'no-store', signal: controller.signal,
       });
       if(response.status===410){const data=await response.json();if(data.rental_expired){stopped=true;window.dispatchEvent(new CustomEvent('alphano:rental-expired',{detail:data.rental_expired}));return;}}
       if (response.status === 401 || response.status === 403) {
         stopped = true;
-        connectionStatus('Sessione scaduta o accesso non consentito. Accedi nuovamente al gioco. La bozza è conservata.');
+        connectionStatus('Sessione scaduta o accesso non consentito. Accedi nuovamente al gioco. La bozza ├¿ conservata.');
         return;
       }
-      if (!response.ok) {throw new Error(`Chat HTTP ${response.status}`);}
+      if (!response.ok) {throw new Error('Chat HTTP ' + (response.status));}
       if (response.status === 204) {
         cursor = Math.max(cursor, Number(response.headers.get('X-Chat-Cursor')) || 0);
         relationCursor=Math.max(relationCursor,Number(response.headers.get('X-Relation-Cursor'))||0);
@@ -143,7 +144,7 @@
       failures = 0;
       connectionStatus('');
     } catch (error) {
-      if (!stopped){failures += 1;connectionStatus('Collegamento alla chat interrotto. Riconnessione automatica in corso…');}
+      if (!stopped){failures += 1;connectionStatus('Collegamento alla chat interrotto. Riconnessione automatica in corsoÔÇª');}
     } finally {
       clearTimeout(timeout);
       controller = null;
@@ -154,7 +155,7 @@
     }
   }
 
-  // I pannelli di sessione salvano già sul server: qui si richiede solo l'aggiornamento.
+  // I pannelli di sessione salvano gi├á sul server: qui si richiede solo l'aggiornamento.
   // Nessun echo HTML locale, quindi nessun messaggio doppio al prossimo controllo.
   window.chatSendSystem = () => {
     lastActivity = Date.now();
@@ -168,18 +169,18 @@
 
   async function chatNotice(error,title='Avviso della chat') {
     const q=error.quest;
-    const options={title,message:error.message,detail:'Il testo che hai scritto è stato conservato.'};
+    const options={title,message:error.message,detail:'Il testo che hai scritto ├¿ stato conservato.'};
     if(q){
-      options.eyebrow='Alphano · Regia della quest';
-      if(q.progress?.label){options.detail=q.progress.label+' Il testo che hai scritto è stato conservato.';}
+      options.eyebrow='Alphano ┬À Regia della quest';
+      if(q.progress?.label){options.detail=q.progress.label+' Il testo che hai scritto ├¿ stato conservato.';}
       options.title=q.paused?'Regia sospesa':q.status==='review'?'In attesa del verdetto':q.status==='resolving'?'Il Master sta valutando il giro':q.status==='attention'?'Intervento del Master': 'Attendi il tuo turno';
-      options.message=q.paused?'Il Master ha sospeso la regia di questa scena.':q.status==='review'?`Il giro ${q.round} è terminato. Si attende la verifica degli esiti prima di una nuova azione.`:q.status==='resolving'?`Il giro ${q.round} è terminato. Il Master sta preparando il verdetto.`:q.status==='attention'?'La regia sta recuperando questo giro. Le azioni già inviate sono conservate.':`Adesso tocca a ${q.turn||'un altro partecipante'}. Potrai inviare la tua azione quando arriverà il tuo turno.`;
+      options.message=q.paused?'Il Master ha sospeso la regia di questa scena.':q.status==='review'?'Il giro ' + (q.round) + ' ├¿ terminato. Si attende la verifica degli esiti prima di una nuova azione.':q.status==='resolving'?'Il giro ' + (q.round) + ' ├¿ terminato. Il Master sta preparando il verdetto.':q.status==='attention'?'La regia sta recuperando questo giro. Le azioni gi├á inviate sono conservate.':'Adesso tocca a ' + (q.turn||'un altro partecipante') + '. Potrai inviare la tua azione quando arriver├á il tuo turno.';
       const current=q.status==='active'&&!q.paused;
       options.itemsTitle=current?'Coda del giro':'Ordine del prossimo giro';
-      options.items=((current?q.remaining:q.next_queue)||[]).map((member,index)=>({label:member.name,meta:(member.kind==='pg'?'Giocatore':'PNG')+(current&&index===0?' · Turno attuale':'')}));
+      options.items=((current?q.remaining:q.next_queue)||[]).map((member,index)=>({label:member.name,meta:(member.kind==='pg'?'Giocatore':'PNG')+(current&&index===0?' ┬À Turno attuale':'')}));
     }
     if(window.alphanoDialog){return window.alphanoDialog.notice(options);}
-    aiStatus(options.message); // Il testo resta accessibile anche se un asset non è stato caricato.
+    aiStatus(options.message); // Il testo resta accessibile anche se un asset non ├¿ stato caricato.
   }
 
   async function loadAiState() {
@@ -209,7 +210,7 @@
 
   function watchAiJob(job, started = Date.now()) {
     if(job.name && !typingNodes.has(String(job.id))) {
-      renderTyping([...typingNodes.keys()].map(id=>({id,name:typingNodes.get(id).textContent.replace(/ sta scrivendo…$/,'')})).concat(job));
+      renderTyping([...typingNodes.keys()].map(id=>({id,name:typingNodes.get(id).textContent.replace(/ sta scrivendoÔÇª$/,'')})).concat(job));
     }
     const timer = setTimeout(async () => {
       aiTimers.delete(timer);
@@ -238,7 +239,7 @@
     const trimmed=text.trim();
     if(abilityId&&!['+','//','$','&','#'].some(prefix=>trimmed.startsWith(prefix))){text='+'+trimmed;}
     const content = JSON.stringify([text, mood, location, aiRequested, npcId,abilityId,item,work]);
-    // Un nuovo tentativo dello stesso invio mantiene l'ID, anche se la risposta è andata persa.
+    // Un nuovo tentativo dello stesso invio mantiene l'ID, anche se la risposta ├¿ andata persa.
     if (!pendingSubmission || pendingSubmission.content !== content) {
       pendingSubmission = { content, id: crypto.randomUUID() };
     }
@@ -263,7 +264,7 @@
 
   let recording = false;
   async function loadRecordingState() {
-    const response = await fetch(`/chat/recordings.php?chat=${encodeURIComponent(room)}`, { cache: 'no-store' });
+    const response = await fetch('/chat/recordings.php?chat=' + (encodeURIComponent(room)), { cache: 'no-store' });
     if (!response.ok) {return;}
     recording = (await response.json()).recording;
     const recordButton=document.getElementById('recordBtn');
@@ -275,7 +276,7 @@
     const button = document.getElementById('recordBtn');
     button.disabled = true;
     try {
-      const response = await fetch(`/chat/recordings.php?chat=${encodeURIComponent(room)}`, {
+      const response = await fetch('/chat/recordings.php?chat=' + (encodeURIComponent(room)), {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: recording ? 'save' : 'start', token }),
       });
@@ -309,7 +310,7 @@
       // Non cancellare quello che l'utente ha scritto mentre aspettava la risposta.
       if (input.value.trim() === draft) {input.value = '';input.style.height='auto';input.dispatchEvent(new Event('input'));}
     } catch (error) {
-      // Il testo resta nel campo ed è possibile riprovare senza duplicare l'azione.
+      // Il testo resta nel campo ed ├¿ possibile riprovare senza duplicare l'azione.
       if(error.serverRejected){window.alphanoWorkChat?.failed();}
       if(error.name==='TimeoutError'||error.name==='TypeError'){error.message='Connessione interrotta. Premi Invia per riprovare.';}
       await chatNotice(error);

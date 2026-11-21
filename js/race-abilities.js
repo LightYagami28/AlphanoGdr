@@ -8,12 +8,12 @@ if(roots.length){
  function paint(){
   if(sheet){renderLearningBalance(shop?.querySelector('[data-rpg-learning-balance]'),sheet);}
   const owned=new Map((sheet?.abilities||[]).map(a=>[Number(a.id),a]));
-  for(const {catalog,view} of views){view.update(catalog.map(a=>({...a,...(owned.get(Number(a.id))||{owned:false,available:false,reason:sheet?'Non disponibile per la tua stirpe o forma attuale':'Verifica disponibilità…'}),requirements_text:a.requirements_text})),{editable:Boolean(sheet?.can_edit)&&!busy});}
+  for(const {catalog,view} of views){view.update(catalog.map(a=>({...a,...(owned.get(Number(a.id))||{owned:false,available:false,reason:sheet?'Non disponibile per la tua stirpe o forma attuale':'Verifica disponibilit├áÔÇª'}),requirements_text:a.requirements_text})),{editable:Boolean(sheet?.can_edit)&&!busy});}
  }
  async function load(){sheet=await api('profile');paint();}
  async function learn(ability){
   if(busy||!canLearnAbility(ability,sheet?.can_edit)){return;}busy=true;paint();if(feedback){feedback.textContent='';}
-  try{const answer=await window.alphanoDialog.notice({title:'Apprendi '+ability.name,message:'Investire '+ability.cost+' PE? Dopo l’acquisto resteranno '+(sheet.xp.available-ability.cost)+' PE.',detail:ability.description,buttonLabel:'Apprendi',eyebrow:'Alphano · Progressione'});if(answer!=='ack'){return;}await api('buy_ability',{ability_id:ability.id,request_id:crypto.randomUUID()});if(feedback){feedback.textContent=ability.name+' appresa. Punti esperienza aggiornati.';}}
+  try{const answer=await window.alphanoDialog.notice({title:'Apprendi '+ability.name,message:'Investire '+ability.cost+' PE? Dopo lÔÇÖacquisto resteranno '+(sheet.xp.available-ability.cost)+' PE.',detail:ability.description,buttonLabel:'Apprendi',eyebrow:'Alphano ┬À Progressione'});if(answer!=='ack'){return;}await api('buy_ability',{ability_id:ability.id,request_id:crypto.randomUUID()});if(feedback){feedback.textContent=ability.name+' appresa. Punti esperienza aggiornati.';}}
   catch(error){if(feedback){feedback.textContent=error.message;}}
   finally{try{await load();}catch(error){if(feedback){feedback.textContent=error.message;}}busy=false;paint();}
  }

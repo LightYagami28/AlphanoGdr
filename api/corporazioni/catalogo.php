@@ -273,13 +273,11 @@ try {
                 $db->execute('DELETE FROM accademia WHERE obj = ?', [$id]);
 
                 // inserisco la nuova proposta: colonne da whitelist, valori solo nei bind
-                $columns = [
-                    'shortDesc','desc','peso','tipo','taglia','mani','sacro','restore',
-                    'lavorazione','destinatario','destorg','immagine','approvato','durata',
-                    'datamodifica','idcreatore','corp','game_rules','department',
-                    ...\MATERIE_PRIME,
-                ];
-                [$sql, $params] = alphano_sql_insert('newequip', array_merge(['id'], $columns), ['id' => $id] + $fields);
+                [$sql, $params] = alphano_sql_insert(
+                    'newequip',
+                    alphano_equip_insert_columns(\MATERIE_PRIME, true),
+                    ['id' => $id] + $fields
+                );
                 $db->execute($sql, $params);
 
                 // notifica gli accademici
@@ -336,13 +334,7 @@ try {
                 foreach (\MATERIE_PRIME as $mp) {
                     $fields[$mp] = (int)($_POST[$mp] ?? 0);
                 }
-                $columns = [
-                    'shortDesc','desc','peso','tipo','taglia','mani','sacro','restore',
-                    'lavorazione','destinatario','destorg','approvato','durata','immagine',
-                    'datacreazione','idcreatore','corp',
-                    ...\MATERIE_PRIME,
-                ];
-                [$sql, $params] = alphano_sql_insert('equip', $columns, $fields);
+                [$sql, $params] = alphano_sql_insert('equip', alphano_equip_insert_columns(\MATERIE_PRIME), $fields);
                 $db->execute($sql, $params);
                 $newId = (int)$db->lastInsertID();
                 if (isset($tempImg) && $newId > 0) {

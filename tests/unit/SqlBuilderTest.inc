@@ -105,4 +105,37 @@ final class SqlBuilderTest extends \PHPUnit\Framework\TestCase
             self::assertSame('Nessuna colonna valida', $e->getMessage());
         }
     }
+
+    /**
+     * La whitelist del catalogo contiene tutte le colonne degli INSERT.
+     */
+    public function testColonneCatalogo(): void
+    {
+        $columns = alphano_equip_insert_columns(['argento', 'oro']);
+        self::assertContains('shortDesc', $columns);
+        self::assertContains('game_rules', $columns);
+        self::assertContains('department', $columns);
+        self::assertSame(['argento', 'oro'], array_slice($columns, -2));
+        self::assertNotContains('id', $columns);
+
+        $withId = alphano_equip_insert_columns(['argento'], true);
+        self::assertSame('id', $withId[0]);
+        self::assertContains('argento', $withId);
+        self::assertSame('shortDesc', $withId[1]);
+    }
+
+    /**
+     * Le materie prime sono validate prima di entrare nella whitelist.
+     */
+    public function testMateriePrimeNonValide(): void
+    {
+        foreach ([['oro` DROP', 'argento'], [12], [['nested']]] as $materials) {
+            try {
+                alphano_equip_insert_columns($materials);
+                self::fail('La materia prima non valida doveva essere rifiutata');
+            } catch (InvalidArgumentException $e) {
+                self::assertSame('Materia prima non valida', $e->getMessage());
+            }
+        }
+    }
 }

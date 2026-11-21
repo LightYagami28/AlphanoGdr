@@ -39,3 +39,29 @@ function alphano_sql_insert(string $table, array $columns, array $values): array
          .implode(',', array_fill(0, count($quoted), '?')).')';
     return [$sql, $params];
 }
+
+/**
+ * Colonne ammesse per gli INSERT del catalogo equip/newequip.
+ *
+ * @param array<int,string> $materials Materie prime definite in libequip
+ * @param bool              $withId    Aggiunge la colonna id (solo newequip)
+ * @return array<int,string>
+ */
+function alphano_equip_insert_columns(array $materials, bool $withId = false): array
+{
+    $columns = [
+        'shortDesc', 'desc', 'peso', 'tipo', 'taglia', 'mani', 'sacro', 'restore',
+        'lavorazione', 'destinatario', 'destorg', 'approvato', 'durata', 'immagine',
+        'datacreazione', 'datamodifica', 'idcreatore', 'corp', 'game_rules', 'department',
+    ];
+    if ($withId) {
+        array_unshift($columns, 'id');
+    }
+    foreach ($materials as $material) {
+        if (!is_string($material) || preg_match('/^[a-z][a-z0-9_]*$/D', $material) !== 1) {
+            throw new InvalidArgumentException('Materia prima non valida');
+        }
+        $columns[] = $material;
+    }
+    return $columns;
+}

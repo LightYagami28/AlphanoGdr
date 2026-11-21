@@ -2,6 +2,7 @@ cff-version: 1.2.0
 message: "If you use this software, please cite it."
 title: "AlphanoGdr"
 date-released: 2026-10-05
+license: AGPL-3.0-only
 authors:
   - family-names: Maule
     given-names: Alessandro

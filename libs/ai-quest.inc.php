@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/notifications.inc.php';
-function ai_quest_json(mixed $v):string{return json_encode($v,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);}
+function ai_quest_json(mixed $v):string{return json_encode($v,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_INVALID_UTF8_SUBSTITUTE|JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);}
 function ai_quest_audit(int $session,string $type,array $data,int $actor=0):void{ai_db()->execute('INSERT INTO ai_quest_audit(session_id,actor_id,event_type,payload,created_at) VALUES(?,?,?,?,?)',[$session,$actor,$type,ai_quest_json($data),time()]);}
 /** Public output and its durable outbox share the transaction: replay never repeats announcements. */
 function ai_quest_publish(int $session,string $key,string $text,?string $html=null):int{

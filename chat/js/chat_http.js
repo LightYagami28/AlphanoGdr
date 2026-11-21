@@ -235,7 +235,8 @@
     const aiRequested = npcId > 0;
     const abilityId=window.alphanoRpgChat?.selectedId()||0;const item=window.alphanoItemChat?.choice()||{instance:0};
     const work=window.alphanoWorkChat?.choice()||{id:0};
-    if(abilityId&&!/^(?:\+|\/\/|[$&#])/.test(text.trim())){text='+'+text.trim();}
+    const trimmed=text.trim();
+    if(abilityId&&!['+','//','$','&','#'].some(prefix=>trimmed.startsWith(prefix))){text='+'+trimmed;}
     const content = JSON.stringify([text, mood, location, aiRequested, npcId,abilityId,item,work]);
     // Un nuovo tentativo dello stesso invio mantiene l'ID, anche se la risposta è andata persa.
     if (!pendingSubmission || pendingSubmission.content !== content) {

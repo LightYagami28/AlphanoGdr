@@ -130,7 +130,7 @@ $mappa       = $userRow['mappa'];
 $descrizione = $userRow['descrizione'];
 
 // Le immagini seguono lo storage configurato, anche nei cloni di verifica.
-$imgDir=htmlroot.'/uploads/badges/organizzazioni/'.$org;
+$imgDir=rtrim(htmlroot,'/').'/uploads/badges/organizzazioni/'.(int)$org;
 if (!is_dir($imgDir) && !@mkdir($imgDir,0755,true) && !is_dir($imgDir)) { $msg.='Impossibile creare la cartella immagini'; }
 
 // Lista città

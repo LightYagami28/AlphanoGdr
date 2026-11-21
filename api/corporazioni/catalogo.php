@@ -369,8 +369,8 @@ try {
                     $db->execute('DELETE FROM equip WHERE id = ?',[$id]);
                 }
                 foreach (($refs>0 ? [] : ["/uploads/equipment/{$id}","/uploads/equipment-pending/{$id}"]) as $f) {
-                    $file = htmlroot . $f;
-                    if (file_exists($file)) { @unlink($file); }
+                    $file = alphano_canonical_inside(rtrim(htmlroot,'/').'/uploads', htmlroot . $f);
+                    if ($file !== null && is_file($file)) { @unlink($file); }
                 }
                 $db->execute('DELETE FROM newequip WHERE id = ?',[$id]);
                 respond(['success'=>true,'msg'=>'Oggetto eliminato correttamente']);

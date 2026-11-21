@@ -52,7 +52,7 @@ function alphano_participants_inventory(int $actor,string $chat,int $target):arr
 }
 function alphano_participants_int(array $input,string $name,int $min,int $max):int {
     $raw=$input[$name]??null;
-    if(!is_int($raw)&&(!is_string($raw)||!preg_match('/^[0-9]+$/D',$raw)))throw new DomainException('Valore non valido: '.$name.'.',422);
+    if(!is_int($raw)&&(!is_string($raw)||!preg_match('/^\d+$/D',$raw)))throw new DomainException('Valore non valido: '.$name.'.',422);
     $value=filter_var($raw,FILTER_VALIDATE_INT);
     if($value===false||$value<$min||$value>$max)throw new DomainException('Valore non valido: '.$name.'.',422);
     return $value;

@@ -318,7 +318,7 @@ class PGN
     $pgn = preg_replace('/{[^}]*}/', ' ', $pgn);
 
     // remove all move number indicators
-    $pgn = preg_replace('/[0-9]+\.+/', ' ', $pgn);
+    $pgn = preg_replace('/\d+\.+/', ' ', $pgn);
 
     // remove excessive whitespaces
     $pgn = preg_replace('/\s+/', ' ', $pgn);

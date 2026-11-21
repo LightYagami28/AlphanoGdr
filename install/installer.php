@@ -26,7 +26,7 @@ function alphano_install(array $in):void{
   $port=filter_var($in['db_port']??3306,FILTER_VALIDATE_INT,['options'=>['min_range'=>1,'max_range'=>65535]]);
   if(!preg_match('/^[a-zA-Z0-9_.:-]+$/D',$host)||!preg_match('/^[a-zA-Z0-9_-]{1,64}$/D',$name)||$user===''||strlen($user)>100||$port===false||preg_match('/[;\r\n\x00]/',$socket)||($socket!==''&&!str_starts_with($socket,'/')))throw new DomainException('Parametri del database non validi.');
   $admin=(string)($in['admin_name']??'');$password=(string)($in['admin_password']??'');
-  if(!preg_match('/^[A-Za-z][A-Za-z0-9_]{2,19}$/D',$admin)||strlen($password)<12||strlen($password)>72||$password!==($in['admin_password_confirm']??''))throw new DomainException('Nome amministratore: 3–20 caratteri. Password: 12–72 caratteri, con conferma uguale.');
+  if(!preg_match('/^[A-Za-z]\w{2,19}$/D',$admin)||strlen($password)<12||strlen($password)>72||$password!==($in['admin_password_confirm']??''))throw new DomainException('Nome amministratore: 3–20 caratteri. Password: 12–72 caratteri, con conferma uguale.');
   $dsn='mysql:'.($socket!==''?'unix_socket='.$socket:'host='.$host.';port='.$port).';dbname='.$name.';charset=utf8mb4';
   try{$pdo=new PDO($dsn,$user,$pass,[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_EMULATE_PREPARES=>false,\Pdo\Mysql::ATTR_MULTI_STATEMENTS=>false]);}catch(Throwable){throw new DomainException('Connessione MySQL non riuscita. Verificare host, porta, database, utente e password.');}
   $lock=$pdo->prepare('SELECT GET_LOCK(?,0)');$lock->execute([alphano_lock_name('install',$name,$name)]);if((int)$lock->fetchColumn()!==1)throw new DomainException('Il database è già in uso da un’altra installazione.');$databaseLock=true;

@@ -12,7 +12,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET')==='POST') {
     alphano_require_csrf();
     if (isset($_POST['vota']) || isset($_POST['id'])) {
         $answer=$_POST['vota'] ?? '';$pollId=$_POST['id'] ?? '';
-        if (!is_scalar($answer) || !is_scalar($pollId) || !preg_match('/^[1-9][0-9]*$/D',(string)$answer) || !preg_match('/^[1-9][0-9]*$/D',(string)$pollId)) alphano_fail('Scegli una risposta valida.',400);
+        if (!is_scalar($answer) || !is_scalar($pollId) || !preg_match('/^[1-9]\d*$/D',(string)$answer) || !preg_match('/^[1-9]\d*$/D',(string)$pollId)) alphano_fail('Scegli una risposta valida.',400);
         try { Vote((int)$answer,(int)$pollId,$pgid);$message='Il tuo voto è registrato.'; }
         catch (RuntimeException $error) { alphano_fail($error->getMessage(),400); }
     }

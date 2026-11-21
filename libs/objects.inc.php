@@ -9,7 +9,7 @@ class AlphanoBase {
     var $dati = [];
     function __construct($id=null) { if ($id !== null) $this->load($id); }
     protected function identifier($name) {
-        if (!is_string($name) || !preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/D', $name)) throw new InvalidArgumentException('Identificatore non valido');
+        if (!is_string($name) || !preg_match('/^[a-zA-Z_]\w*$/D', $name)) throw new InvalidArgumentException('Identificatore non valido');
         return '`' . $name . '`';
     }
     protected function condition($where) {
@@ -18,7 +18,7 @@ class AlphanoBase {
             return [implode(' AND ',$parts), array_values($where)];
         }
         // Sintassi storica dei chiamanti interni: confronti semplici, convertiti in parametri.
-        if (is_string($where) && preg_match('/^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(\d+)$/D', trim($where), $m)) return [$this->identifier($m[1]).' = ?',[(int)$m[2]]];
+        if (is_string($where) && preg_match('/^([a-zA-Z_]\w*)\s*=\s*(\d+)$/D', trim($where), $m)) return [$this->identifier($m[1]).' = ?',[(int)$m[2]]];
         throw new InvalidArgumentException('Usare criteri di ricerca espliciti');
     }
     function load($id,$key=null) { $rows=ConnectDB()->query('SELECT * FROM '.$this->identifier($this->table).' WHERE '.$this->identifier($key??$this->key).' = ? LIMIT 1',[$id]);$this->setArray($rows[0]??[]);return (bool)$rows; }

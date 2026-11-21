@@ -10,11 +10,11 @@ function ai_local_model_config():?array {
     if(!in_array($host,['localhost','127.0.0.1','[::1]','::1'],true))return null;
     if(PHP_SAPI!=='cli'){
         if(!in_array($_SERVER['REMOTE_ADDR']??'',['127.0.0.1','::1'],true))return null;
-        if(!preg_match('/^(?:localhost|127\.0\.0\.1|\[::1\])(?::[0-9]+)?$/D',$_SERVER['HTTP_HOST']??''))return null;
+        if(!preg_match('/^(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/D',$_SERVER['HTTP_HOST']??''))return null;
     }
     $all=json_decode((string)file_get_contents($path),true);
     $value=$all['environments'][(string)alphano_config('db_db')]??null;
-    if(!is_array($value)||empty($value['enabled'])||!preg_match('~^http://127\.0\.0\.1:[0-9]{2,5}$~D',$value['url']??''))return null;
+    if(!is_array($value)||empty($value['enabled'])||!preg_match('~^http://127\.0\.0\.1:\d{2,5}$~D',$value['url']??''))return null;
     foreach(['state_file','token_file'] as $key)if(!is_string($value[$key]??null)||!str_starts_with($value[$key],'/'))return null;
     return $value;
 }
@@ -26,7 +26,7 @@ function ai_local_model_pin(bool $reset=false):?array {
     if($read)return $pin;$read=true;
     $config=ai_local_model_config();if(!$config||!is_file($config['state_file']))return null;
     $value=json_decode((string)file_get_contents($config['state_file']),true);
-    if(!is_array($value)||!preg_match('~^http://127\.0\.0\.1:[0-9]{2,5}$~D',$value['url']??'')||!preg_match('/^[a-zA-Z0-9_.-]{1,100}$/D',$value['model']??''))return null;
+    if(!is_array($value)||!preg_match('~^http://127\.0\.0\.1:\d{2,5}$~D',$value['url']??'')||!preg_match('/^[a-zA-Z0-9_.-]{1,100}$/D',$value['model']??''))return null;
     return $pin=$value;
 }
 function ai_model_name():string{return (string)(ai_local_model_pin()['model']??alphano_config('ai_model'));}

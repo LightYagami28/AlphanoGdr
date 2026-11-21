@@ -27,7 +27,7 @@ function ai_relation_context_capture(string $description):array {
 }
 /** Fixed internal aliases only, values are server-owned non-negative integer IDs. */
 function ai_relation_context_memory_scope(int $npc,int $player,string $alias=''):string {
-    if($alias!==''&&!preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/D',$alias))throw new LogicException('Alias non valido.');
+    if($alias!==''&&!preg_match('/^[a-zA-Z_]\w*$/D',$alias))throw new LogicException('Alias non valido.');
     $context=ai_relation_context_current($npc,$player);if(!$context)return '';
     $prefix=$alias!==''?$alias.'.':'';
     // A quest job may be rebound to a new source after a context correction.
@@ -35,7 +35,7 @@ function ai_relation_context_memory_scope(int $npc,int $player,string $alias='')
     return ' AND '.$prefix.'id>'.$context['memory_id'].' AND ('.$prefix.'job_id IS NULL OR '.$prefix.'job_id>'.$context['job_id'].' OR '.$source.')';
 }
 function ai_relation_context_event_scope(int $npc,int $player,string $alias=''):string {
-    if($alias!==''&&!preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/D',$alias))throw new LogicException('Alias non valido.');
+    if($alias!==''&&!preg_match('/^[a-zA-Z_]\w*$/D',$alias))throw new LogicException('Alias non valido.');
     $context=ai_relation_context_current($npc,$player);
     return $context?' AND '.($alias!==''?$alias.'.':'').'id>'.$context['event_id']:'';
 }

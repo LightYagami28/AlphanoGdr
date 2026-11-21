@@ -28,7 +28,7 @@
     }
     function render(next,{reset=false}={}){
       const focused=roster.contains(document.activeElement)?document.activeElement.value:null;
-      state=next;for(const id of [...selected])if(!state.participants.some(person=>person.id===id)){selected.delete(id);}
+      state=next;for(const id of [...selected]){if(!state.participants.some(person=>person.id===id)){selected.delete(id);}}
       const filter=$('[data-participants-search]').value.trim().toLocaleLowerCase('it');roster.replaceChildren();
       for(const person of state.participants){
         if(filter&&!person.name.toLocaleLowerCase('it').includes(filter)){continue;}

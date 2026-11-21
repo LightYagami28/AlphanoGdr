@@ -18,7 +18,7 @@
    const save=root.querySelector('[data-treasury-action="save"]');if(save){save.elements.revision.value=value.policy.revision;}
    const mandate=root.querySelector('[data-treasury-action="mandate"]');mandate.elements.revision.value=value.donation?.revision||0;
    const tbody=root.querySelector('[data-treasury-history] tbody');tbody.replaceChildren();for(const entry of value.history){const row=document.createElement('tr');for(const text of [new Date(entry.created_at*1000).toLocaleString('it-IT'),(entry.kind==='payroll'?'Stipendi':'Donazione')+' · #'+entry.id,entry.amount+window.AlphanoCurrency.text(' Corone'),({applied:'Eseguito',waiting:'In attesa',failed:'Non eseguito',pending:'In preparazione'}[entry.status]||entry.status)+' · '+entry.detail]){const cell=document.createElement('td');cell.textContent=text;row.append(cell);}tbody.append(row);}
-   if(data.request_id)for(const[key,request]of receipts)if(request===data.request_id){receipts.delete(key);}
+   if(data.request_id){for(const[key,request]of receipts){if(request===data.request_id){receipts.delete(key);}}}
   }catch(error){feedback.textContent=error.message;await notice({title:'Operazione da verificare',message:error.message});}finally{setBusy(false);}
  });}
 })();

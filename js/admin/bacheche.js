@@ -11,12 +11,12 @@
   function toast(message,error=false){const el=document.getElementById('toast');el.textContent=message;el.dataset.state=error?'error':'success';el.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove('show'),3500);}
   async function fetchData(payload={}){
     const response=await fetch(config.apiUrl,{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':config.csrfToken},body:JSON.stringify(payload)});
-    const result=await response.json();if(!response.ok||!result.success)throw new Error(result.error||'Operazione non riuscita');return result;
+    const result=await response.json();if(!response.ok||!result.success){throw new Error(result.error||'Operazione non riuscita');}return result;
   }
   function accept(data){
     boards=data.bacheche;images=data.images||[];
     cities=config.canManageAll?[...new Set([...data.cities,...boards.map(board=>board.location)])]:[config.mayorCity];
-    if(!cities.includes(selectedCity))selectedCity=cities[0]||'';
+    if(!cities.includes(selectedCity)){selectedCity=cities[0]||'';}
     document.getElementById('board-admin-city').innerHTML=cities.map(city=>`<option value="${esc(city)}"${city===selectedCity?' selected':''}>${esc(city)}</option>`).join('');
     document.getElementById('board-admin-city').disabled=cities.length<2;
     renderList();
@@ -35,7 +35,7 @@
     content().querySelector('[name=header_image]').onchange=e=>content().querySelector('.board-cover-preview').src=e.target.value;
     if(typeof Quill==='function'){quill=new Quill(editor,{theme:'snow'});quill.clipboard.dangerouslyPasteHTML(board.descrizione||'');}
     else{editor.contentEditable='true';editor.classList.add('board-description-fallback');editor.innerHTML=board.descrizione||'';quill={root:editor};}
-    document.getElementById('board-editor').onsubmit=async event=>{event.preventDefault();const form=event.currentTarget,submit=form.querySelector('[type=submit]');submit.disabled=true;try{if(!quill.root.textContent.trim())throw new Error('Scrivi una descrizione per la bacheca.');const fields=new FormData(form);const location=fields.get('location');await mutate(editing?'modifica':'aggiungi',{id:board.id||0,location,nome:fields.get('nome'),descrizione:quill.root.innerHTML,header_image:fields.get('header_image'),clear:fields.has('clear')?1:0},location);}catch(error){toast(error.message,true);}finally{submit.disabled=false;}};
+    document.getElementById('board-editor').onsubmit=async event=>{event.preventDefault();const form=event.currentTarget,submit=form.querySelector('[type=submit]');submit.disabled=true;try{if(!quill.root.textContent.trim()){throw new Error('Scrivi una descrizione per la bacheca.');}const fields=new FormData(form);const location=fields.get('location');await mutate(editing?'modifica':'aggiungi',{id:board.id||0,location,nome:fields.get('nome'),descrizione:quill.root.innerHTML,header_image:fields.get('header_image'),clear:fields.has('clear')?1:0},location);}catch(error){toast(error.message,true);}finally{submit.disabled=false;}};
   }
   function permissions(board){
     selectedBoard=board.id;const rights=board.diritti||{};
@@ -44,16 +44,16 @@
   }
   async function mutate(azione,params,city=selectedCity){const data=await fetchData({azione,...params});selectedCity=city;accept(data);toast(data.message||'Operazione riuscita');}
   async function dispatch(event){
-    const target=event.target.closest('[data-action]');if(!target)return;const action=target.dataset.action;
-    if(action==='back')return renderList();const board=boards.find(board=>board.id===Number(target.dataset.id));if(!board)return;
-    try{if(action==='show')return showBoard(board);if(action==='edit')return openForm('edit',board);if(action==='permissions')return permissions(board);
-      if(action==='clear'&&await confirmBoard('Svuotare tutte le discussioni della bacheca “'+board.nome+'”?'))await mutate('svuota',{id:board.id});
-      if(action==='delete'&&await confirmBoard('Eliminare la bacheca “'+board.nome+'” e tutte le sue discussioni?'))await mutate('cancella',{id:board.id,all:1});
+    const target=event.target.closest('[data-action]');if(!target){return;}const action=target.dataset.action;
+    if(action==='back'){return renderList();}const board=boards.find(board=>board.id===Number(target.dataset.id));if(!board){return;}
+    try{if(action==='show'){return showBoard(board);}if(action==='edit'){return openForm('edit',board);}if(action==='permissions'){return permissions(board);}
+      if(action==='clear'&&await confirmBoard('Svuotare tutte le discussioni della bacheca “'+board.nome+'”?')){await mutate('svuota',{id:board.id});}
+      if(action==='delete'&&await confirmBoard('Eliminare la bacheca “'+board.nome+'” e tutte le sue discussioni?')){await mutate('cancella',{id:board.id,all:1});}
     }catch(error){toast(error.message,true);}
   }
   document.addEventListener('DOMContentLoaded',async()=>{
     content().addEventListener('click',dispatch);document.getElementById('board-admin-city').onchange=event=>{selectedCity=event.target.value;renderList();};document.getElementById('create-board').onclick=()=>openForm('create');
-    const removeCity=document.getElementById('delete-city-boards');if(removeCity)removeCity.onclick=async()=>{if(!await confirmBoard('Eliminare tutte le bacheche e le discussioni di “'+selectedCity+'”?'))return;try{await mutate('cancella',{location:selectedCity,all:1});}catch(error){toast(error.message,true);}};
+    const removeCity=document.getElementById('delete-city-boards');if(removeCity){removeCity.onclick=async()=>{if(!await confirmBoard('Eliminare tutte le bacheche e le discussioni di “'+selectedCity+'”?')){return;}try{await mutate('cancella',{location:selectedCity,all:1});}catch(error){toast(error.message,true);}};}
     try{accept(await fetchData());}catch(error){content().innerHTML='<p class="ui-empty error" role="alert">'+esc(error.message)+'</p>';}
   });
 })();

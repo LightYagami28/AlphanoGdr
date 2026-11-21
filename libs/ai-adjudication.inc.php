@@ -137,7 +137,8 @@ function ai_adjudicate(int $sid):array{
    foreach($analysis['acts'] as $act){ if($act['intent']==='assalto'&&preg_match('/\b(?:mord\p{L}*|azzann\p{L}*)\b|'.ai_narrative_bite_pattern().'/iu',$act['text'])){
     $biteTarget=ai_action_target($q,'+ '.$act['text'],(int)$a['actor_id']);
     if($biteTarget&&($biteTarget['kind'].':'.$biteTarget['id'])!==$targetKey){ $differentBiteTarget=true; }
-   } }
+   }
+   }
    if($differentBiteTarget){$r['outcome']='la dichiarazione indica avversari diversi';$r['reason']='La presa e il morso sono rivolti a persone diverse: occorre scegliere una sola manovra e il suo bersaglio. Nessuna ferita viene assegnata alla prima persona nominata per errore.';$results[]=$r;continue;}
   }
   if(preg_match('/iniett\p{L}*.{0,45}veleno|veleno.{0,35}maledizion|farlo trasform/iu',$raw)&&in_array((int)$actor['razza'],[2,5],true)){$r['outcome']='la maledizione non si trasmette in questo modo';$r['reason']='Il morso precedente resta una ferita, ma i denti non iniettano un veleno capace di creare un vampiro. La trasformazione richiede il rito e le condizioni della stirpe: questa intenzione non li sostituisce e non apre una seconda ferita.';$results[]=$r;continue;}
@@ -337,7 +338,9 @@ function ai_adjudication_narrate(array $room,array $technical,bool $offline=fals
   $names=[];foreach($technical['results'] as $r){ $names=array_merge($names,[$r['actor'],$r['target']]); }
   foreach(ai_db()->query('SELECT name FROM ai_npcs WHERE chat_key=?',[$room['chat_key']]) as $n){ $names[]=$n['name']; }
   if(is_string($candidate)&&ai_adjudication_atmosphere_safe($candidate,$names)){ $intro=trim($candidate)."\n\n"; }
- }catch(RuntimeException|JsonException $e){error_log('[Regia atmosfera] '.$e->getMessage());} }
+ }
+ catch(RuntimeException|JsonException $e){error_log('[Regia atmosfera] '.$e->getMessage());}
+ }
  return ['narrative'=>ai_text($intro.$facts,12000),'changes'=>$technical['allowed_changes'],'scene_finished'=>(bool)$technical['can_finish'],'finish_reason'=>'I partecipanti hanno concluso la scena.'];
 }
 

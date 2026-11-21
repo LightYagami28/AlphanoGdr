@@ -2,7 +2,8 @@
 (() => {
  'use strict';
  const registration=document.getElementById('registrazione');
- function reveal(){const hash=location.hash;if((hash==='#registrazione'||hash==='#register')&&registration){registration.open=true;registration.scrollIntoView({block:'start'});}else if(hash==='#login'){document.getElementById('accesso')?.scrollIntoView({block:'start'});}}
+ const targets=new Map([['#registrazione',registration],['#register',registration],['#login',document.getElementById('accesso')]]);
+ function reveal(){const target=targets.get(location.hash);if(!target){return;}if(target===registration){target.open=true;}target.scrollIntoView({block:'start'});}
  document.querySelectorAll('a[href="#registrazione"]').forEach(link=>link.addEventListener('click',()=>{if(registration){registration.open=true;}}));
  window.addEventListener('hashchange',reveal);reveal();
 })();

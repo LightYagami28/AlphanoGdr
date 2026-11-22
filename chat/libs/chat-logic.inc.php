@@ -286,8 +286,6 @@ function buildChatMessage(
 
     // 7) SWITCH sui comandi
 
-    if ($early !== null) { return $early; }
-
     $early = alphanoChatRenderCommand($db,$idpg,$str,$ora,$razImg,$fPar,$fAzo,$name,$araldica,$render,$SessionIsRunning,$NeedsDadi,$incog,$pg,$out,$dest,$newLoc,$l,$OnGame,$location);
     if ($early !== null) { return $early; }
     // Persist a semantic presentation type; no schema change, also retained in saved logs.

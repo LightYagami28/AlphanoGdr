@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/regex-any.inc.php';
 
 /** Retrieval vocabulary only: it never adds facts or rewrites the visitor's turn. */
 function aiBackgroundQuery(string $question):string {
@@ -13,7 +14,7 @@ function aiBackgroundQuery(string $question):string {
         '/\b(?:etni\p{L}*|popolo|cultur\p{L}*)\b/iu'=>'etnia popolo cultura',
     ];
     $query=$question;foreach($groups as $pattern=>$terms){ if(preg_match($pattern,$question)){ $query.=' '.$terms; } }
-    $entry=preg_match('/\b(?:entrar\p{L}*|entr[oaie]|ingress\p{L}*|access\p{L}*|varc\p{L}*|cancell\p{L}*|porton\p{L}*)\b/iu',$question)
+    $entry=aiRegexAny(['/\b(?:entrar\p{L}*)\b/iu','/\b(?:entr[oaie])\b/iu','/\b(?:ingress\p{L}*)\b/iu','/\b(?:access\p{L}*)\b/iu','/\b(?:varc\p{L}*)\b/iu','/\b(?:cancell\p{L}*)\b/iu','/\b(?:porton\p{L}*)\b/iu'],$question)
         ||(preg_match('/\b(?:passar\p{L}*|pass[oaie])\b/iu',$question)&&!preg_match('/\b(?:tempo|giornat\p{L}*|serat\p{L}*|pomeriggio|insieme|moment\p{L}*)\b/iu',$question));
     if($entry){ $query.=' ingresso accesso passaggio varco cancello portone aperto chiuso'; }
     return $query;
@@ -31,7 +32,7 @@ function aiBackgroundContext(array $npc,array $job,float $scale=.5):string {
     $reading=aiNarrativeParse((string)($job['prompt']??''));
     $question=$reading['speech']!==''?$reading['speech']:aiPersonalityObservable((string)($job['prompt']??''));
     $query=aiBackgroundQuery($question);$profile=aiNpcProfile($npc);$small=$scale<=.3;$budget=$small?300:440;
-    $personal=(bool)preg_match('/\b(?:ricord[oi]|infanzia|famigli\p{L}*|parent[ei]|genitor[ei]|padr[ei]|madr[ei]|fratell\p{L}*|sorell\p{L}*|origin\p{L}*|proven\p{L}*|provien\p{L}*|nat[oaie]|nascit\p{L}*|felic[ei]|vostra\s+storia|tua\s+storia|parlatemi\s+di\s+voi|parlami\s+di\s+te|vi\s+piace|ti\s+piace)\b|\b(?:da|di)\s+dove\s+(?:vieni|venite|sei|siete)\b/iu',$question);
+    $personal=(bool)aiRegexAny(['/\b(?:ricord[oi])\b/iu','/\b(?:infanzia)\b/iu','/\b(?:famigli\p{L}*)\b/iu','/\b(?:parent[ei])\b/iu','/\b(?:genitor[ei])\b/iu','/\b(?:padr[ei])\b/iu','/\b(?:madr[ei])\b/iu','/\b(?:fratell\p{L}*)\b/iu','/\b(?:sorell\p{L}*)\b/iu','/\b(?:origin\p{L}*)\b/iu','/\b(?:proven\p{L}*)\b/iu','/\b(?:provien\p{L}*)\b/iu','/\b(?:nat[oaie])\b/iu','/\b(?:nascit\p{L}*)\b/iu','/\b(?:felic[ei])\b/iu','/\b(?:vostra\s+storia)\b/iu','/\b(?:tua\s+storia)\b/iu','/\b(?:parlatemi\s+di\s+voi)\b/iu','/\b(?:parlami\s+di\s+te)\b/iu','/\b(?:vi\s+piace)\b/iu','/\b(?:ti\s+piace)\b/iu','/\b(?:da|di)\s+dove\s+(?:vieni|venite|sei|siete)\b/iu'],$question);
     $fields=[
         'storia pubblica'=>(string)$profile['biography'],
         'storia personale'=>(string)($npc['history']??''),

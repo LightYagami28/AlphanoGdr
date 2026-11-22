@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/regex-any.inc.php';
 
 const AI_QUEST_ACTIVE_PG_SQL = 'SELECT active FROM ai_quest_cast WHERE session_id=? AND kind=\'pg\' AND actor_id=?';
 
@@ -318,7 +319,7 @@ $context[]=$a['kind']==='pg'?aiQuestAttemptSummary($a):$visual;
   $match=$proposal['changes']===$ids||aiQuestJson($proposal['changes'])===aiQuestJson($technical['allowed_changes']);
   if(!$match){ $technical['reasons'][]='La proposta del modello non corrisponde agli effetti ammessi dal backend'; }
   $hpChange=(bool)array_filter($technical['allowed_changes'],static fn($c)=>$c['type']==='hp'&&$c['delta']<0);
-  $forbidden=preg_match('/\b(morto|morte|ucciso|uccide|decapita|amputato|mutilato|imprigionato|arrestato|consegna.{0,20}corone)\b/iu',$proposal['narrative']);
+  $forbidden=aiRegexAny(['/\b(morto)\b/iu','/\b(morte)\b/iu','/\b(ucciso)\b/iu','/\b(uccide)\b/iu','/\b(decapita)\b/iu','/\b(amputato)\b/iu','/\b(mutilato)\b/iu','/\b(imprigionato)\b/iu','/\b(arrestato)\b/iu','/\b(consegna.{0,20}corone)\b/iu'],$proposal['narrative']);
   if(!$hpChange&&preg_match('/\b(ferisce|ha colpito|colpo a segno|colpisce|sanguina)\b/iu',$proposal['narrative'])){ $forbidden=1; }
   if($forbidden){ $technical['reasons'][]='La narrazione contiene conseguenze non autorizzate: convalida umana necessaria'; }
   if(!empty($technical['engine'])){$proposal['changes']=$technical['allowed_changes'];$forbidden=0;$match=true;}
@@ -497,15 +498,15 @@ function aiQuestGuardNpcText(array $npc,array $job,string $text):array{
  // A reference to an existing wound is not a newly imposed injury. Only a
  // completed harmful act/reaction is rejected; attempts stay valid prose.
  foreach(preg_split('/(?<=[.!?;])\s+/u',$outside) as $clause){
-  if(preg_match('/contro\s+(?:il\s+|la\s+|un[ao]?\s+|l[’\x{27}])?(muro|parete|porta|banco|tavolo)/iu',$clause,$anchor)&&!str_contains((string)($continuity['state']['position']??''),mb_strtolower($anchor[1]))&&!preg_match('/\b(?:tenta|cerca|prova|evitare|impedire|non)\b/iu',$clause)){ $bad=1; }
-  if(!$heldNow&&preg_match('/\b(?:sente|avverte|subisce)\s+(?:la|una)\s+presa|\b(?:viene|è|rimane|resta)\s+(?:immobilizzat[oa]|trattenut[oa]|afferrat[oa])\b/iu',$clause)&&!preg_match('/\b(?:tenta|cerca|prova|evitare|impedire|non)\b/iu',$clause)){ $bad=1; }
-  if(preg_match('/(?:blocca(?:ndo)?|para(?:ndo)?|ferma(?:ndo)?)\s+(?:il|un|l[’\x{27}])?\s*(?:pugno|colpo|attacco)|(?:il|un)\s+(?:pugno|colpo).{0,20}(?:bloccato|fermato|parato)/iu',$clause)&&!preg_match('/\b(?:tenta|cerca|prova|evitare|impedire)\b/iu',$clause)){ $bad=1; }
+  if(aiRegexAny(['/contro\s+(?:il\s+)?(muro|parete|porta|banco|tavolo)/iu','/contro\s+(?:la\s+)?(muro|parete|porta|banco|tavolo)/iu','/contro\s+(?:un[ao]?\s+)?(muro)/iu','/contro\s+(?:un[ao]?\s+)?(parete)/iu','/contro\s+(?:un[ao]?\s+)?(porta)/iu','/contro\s+(?:un[ao]?\s+)?(banco)/iu','/contro\s+(?:un[ao]?\s+)?(tavolo)/iu','/contro\s+(?:l[’\x{27}])?(muro|parete|porta|banco|tavolo)/iu'],$clause,$anchor)&&!str_contains((string)($continuity['state']['position']??''),mb_strtolower($anchor[1]))&&!preg_match('/\b(?:tenta|cerca|prova|evitare|impedire|non)\b/iu',$clause)){ $bad=1; }
+  if(!$heldNow&&aiRegexAny(['/\b(?:sente|avverte|subisce)\s+(?:la|una)\s+presa/iu','/\b(?:viene)\s+(?:immobilizzat[oa]|trattenut[oa]|afferrat[oa])\b/iu','/\b(?:è)\s+(?:immobilizzat[oa]|trattenut[oa]|afferrat[oa])\b/iu','/\b(?:rimane)\s+(?:immobilizzat[oa]|trattenut[oa]|afferrat[oa])\b/iu','/\b(?:resta)\s+(?:immobilizzat[oa]|trattenut[oa]|afferrat[oa])\b/iu'],$clause)&&!preg_match('/\b(?:tenta|cerca|prova|evitare|impedire|non)\b/iu',$clause)){ $bad=1; }
+  if(aiRegexAny(['/(?:blocca(?:ndo)?)\s+(?:il)?\s*(?:pugno|colpo|attacco)/iu','/(?:blocca(?:ndo)?)\s+(?:un)?\s*(?:pugno|colpo|attacco)/iu','/(?:blocca(?:ndo)?)\s+(?:l[’\x{27}])?\s*(?:pugno|colpo|attacco)/iu','/(?:para(?:ndo)?)\s+(?:il)?\s*(?:pugno|colpo|attacco)/iu','/(?:para(?:ndo)?)\s+(?:un)?\s*(?:pugno|colpo|attacco)/iu','/(?:para(?:ndo)?)\s+(?:l[’\x{27}])?\s*(?:pugno|colpo|attacco)/iu','/(?:ferma(?:ndo)?)\s+(?:il)?\s*(?:pugno|colpo|attacco)/iu','/(?:ferma(?:ndo)?)\s+(?:un)?\s*(?:pugno|colpo|attacco)/iu','/(?:ferma(?:ndo)?)\s+(?:l[’\x{27}])?\s*(?:pugno|colpo|attacco)/iu','/(?:il|un)\s+(?:pugno|colpo).{0,20}(?:bloccato|fermato|parato)/iu'],$clause)&&!preg_match('/\b(?:tenta|cerca|prova|evitare|impedire)\b/iu',$clause)){ $bad=1; }
   if(preg_match('/\b(?:ferisce|colpisce|uccide|sanguina|crolla|cade)\b/iu',$clause)
    &&!preg_match('/\b(?:tenta|cerca|prova|vorrebbe|potrebbe|evita|impedire|non)\b/iu',$clause)){ $bad=1; }
   if(preg_match('/\b(?:fa|costringe|obbliga).{0,30}\b(?:cadere|sanguinare|crollare|svenire)\b/iu',$clause)
    &&!preg_match('/\b(?:tenta|cerca|prova|vorrebbe|potrebbe|evita|impedire|non)\b/iu',$clause)){ $bad=1; }
  }
- if(preg_match('/\b(?:io|mi|me|mio|mia|miei|mie|cerco|tento|porto|arretro|sgrancio|mantengo|osservo|sollevo|stringo|alzo)\b/iu',$outside)){ $bad=1; }
+ if(aiRegexAny(['/\b(?:io)\b/iu','/\b(?:mi)\b/iu','/\b(?:me)\b/iu','/\b(?:mio)\b/iu','/\b(?:mia)\b/iu','/\b(?:miei)\b/iu','/\b(?:mie)\b/iu','/\b(?:cerco)\b/iu','/\b(?:tento)\b/iu','/\b(?:porto)\b/iu','/\b(?:arretro)\b/iu','/\b(?:sgrancio)\b/iu','/\b(?:mantengo)\b/iu','/\b(?:osservo)\b/iu','/\b(?:sollevo)\b/iu','/\b(?:stringo)\b/iu','/\b(?:alzo)\b/iu'],$outside)){ $bad=1; }
  foreach(aiDb()->query("SELECT n.id,n.name FROM ai_npcs n JOIN ai_quest_cast c ON c.kind='npc' AND c.actor_id=n.id WHERE c.session_id=?",[(int)$job['session_id']]) as $other){ if((int)$other['id']!==(int)$npc['id']){
   $first=preg_split('/\s+/u',$other['name'])[0];
   if(preg_match('/(?<!\p{L})'.preg_quote($first,'/').'\s+(?:si\s+\p{L}+|solleva|stringe|attacca|colpisce|arretra|cade|grida|dice|risponde)\b/iu',$outside)){ $bad=1; }
@@ -514,7 +515,7 @@ function aiQuestGuardNpcText(array $npc,array $job,string $text):array{
  if(preg_match('/stringe.{0,35}stoppino/iu',$outside)){ $bad=1; }
  $inventory=aiGameInventory('npc',(int)$npc['id']);
  try{aiOrdinaryActorGuard($npc,$job,$text,$inventory);}catch(RuntimeException){$bad=1;}
- if(!empty($job['quest_threat'])&&empty($job['quest_threat']['verbal'])&&($job['quest_decision']??'')==='difesa'&&!preg_match('/\b(?:tenta|cerca di|arretra|scarta|schiva|frappone|parare|deviare|proteggersi|si sposta)\b/iu',$outside)){ $bad=1; }
+ if(!empty($job['quest_threat'])&&empty($job['quest_threat']['verbal'])&&($job['quest_decision']??'')==='difesa'&&!aiRegexAny(['/\b(?:tenta)\b/iu','/\b(?:cerca di)\b/iu','/\b(?:arretra)\b/iu','/\b(?:scarta)\b/iu','/\b(?:schiva)\b/iu','/\b(?:frappone)\b/iu','/\b(?:parare)\b/iu','/\b(?:deviare)\b/iu','/\b(?:proteggersi)\b/iu','/\b(?:si sposta)\b/iu'],$outside)){ $bad=1; }
  if(($job['quest_decision']??'')==='aiuto'&&!preg_match('/aiut|soccor|rinforz/iu',$text)){ $bad=1; }
  if($heldNow&&(!preg_match('/presa|trattenut|divincol|liberar/iu',$outside)||preg_match('/\b(si libera|si sottrae|spezza la presa|si svincola|torna libero)\b/iu',$outside))){ $bad=1; }
  if(!$bad){if($continuity['wounds']!==''&&!preg_match('/ferit|dolor|sangue|morso|lesion/iu',$outside)){ $text=$npc['name'].' deve fare i conti con le ferite riportate: '.aiText($continuity['wounds'],240).'. '.$text; }return ['testo'=>$text,'guardrail'=>null];}

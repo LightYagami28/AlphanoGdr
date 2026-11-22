@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/regex-any.inc.php';
 require_once __DIR__.'/ai-coercion.inc.php';
 
 /** Incoming conduct is perceived before a reply. Consent and reciprocation belong to the NPC. */
@@ -7,7 +8,7 @@ function aiEpisodeInterpret(string $raw):array {
     $reading=aiNarrativeParse($raw);$spoken=$reading['speech'];$action=$reading['action'];
     // A sending-channel prefix cannot hide direct addressed words. Recover only
     // obvious utterances, never a physical attempt, thought or reported action.
-    if($spoken===''&&$action!==''&&!in_array($reading['intent'],['assalto','arresto','furto','potere'],true)&&preg_match('/^(?:avete|hai|volete|vuoi|decidete|obbedisci|obbedite|da\s+oggi|se\s+non)\b/iu',$action)){ $spoken=$action; }
+    if($spoken===''&&$action!==''&&!in_array($reading['intent'],['assalto','arresto','furto','potere'],true)&&aiRegexAny(['/^(?:avete)\b/iu','/^(?:hai)\b/iu','/^(?:volete)\b/iu','/^(?:vuoi)\b/iu','/^(?:decidete)\b/iu','/^(?:obbedisci)\b/iu','/^(?:obbedite)\b/iu','/^(?:da\s+oggi)\b/iu','/^(?:se\s+non)\b/iu'],$action)){ $spoken=$action; }
     $episode=['category'=>'dialogo','evidence'=>'','reading'=>$reading,'known'=>false,'help_offer'=>(bool)preg_match('/\b(?:posso|vorrei|voglio|desidero)\s+aiutar(?:ti|vi)\b/iu',$spoken),'invitation'=>'','aggression'=>false];
     $speech=preg_split('/(?<=[.!?;])\s+/u',$spoken,-1,PREG_SPLIT_NO_EMPTY)?:[];
     $patterns=[
@@ -25,9 +26,9 @@ function aiEpisodeInterpret(string $raw):array {
     if(preg_match('/\b(?:urla|grida|ringhia)\b.{0,100}\b(?:intimor|minacci|spavent)\p{L}*/iu',$action)){ return [...$episode,'category'=>'minaccia','evidence'=>aiText($action,250),'known'=>true]; }
     foreach($patterns as $category=>$pattern){ foreach($speech as $sentence){
         if(preg_match('/\b(?:ha\s+detto|diceva|racconta\s+che)\b/iu',$sentence)){ continue; }
-        if(preg_match('/\b(?:non\s+(?:ti|vi)\s+(?:odio|disprezzo|umilierò|ucciderò|ammazzerò|uccido|ammazzo)|non\s+(?:sei|siete))\b/iu',$sentence)&&in_array($category,['minaccia','offesa'],true)){ continue; }
-        if($category==='cordialita'&&preg_match('/\bnon\s+(?:sei|siete|vi\s+ringrazio|ti\s+ringrazio|mi\s+fa\s+piacere|apprezzo)\b/iu',$sentence)){ continue; }
-        if($category==='riconciliazione'&&preg_match('/non\s+(?:vi\s+|ti\s+)?(?:chiedo\s+scusa|chiedo\s+perdono)|non\s+mi\s+dispiace|colpa\s+(?:tua|vostra)/iu',$sentence)){ continue; }
+        if(aiRegexAny(['/\b(?:non\s+(?:ti)\s+(?:odio|disprezzo|umilierò|ucciderò|ammazzerò|uccido|ammazzo))\b/iu','/\b(?:non\s+(?:vi)\s+(?:odio|disprezzo|umilierò|ucciderò|ammazzerò|uccido|ammazzo))\b/iu','/\b(?:non\s+(?:sei|siete))\b/iu'],$sentence)&&in_array($category,['minaccia','offesa'],true)){ continue; }
+        if($category==='cordialita'&&aiRegexAny(['/\bnon\s+(?:sei)\b/iu','/\bnon\s+(?:siete)\b/iu','/\bnon\s+(?:vi\s+ringrazio)\b/iu','/\bnon\s+(?:ti\s+ringrazio)\b/iu','/\bnon\s+(?:mi\s+fa\s+piacere)\b/iu','/\bnon\s+(?:apprezzo)\b/iu'],$sentence)){ continue; }
+        if($category==='riconciliazione'&&aiRegexAny(['/non\s+(?:vi\s+|ti\s+)?(?:chiedo\s+scusa|chiedo\s+perdono)/iu','/non\s+mi\s+dispiace/iu','/colpa\s+(?:tua|vostra)/iu'],$sentence)){ continue; }
         if($category==='critica'&&preg_match('/\b(?:non\s+mi\s+(?:avete|hai)\s+deluso|non\s+(?:trovo|ritengo))\b/iu',$sentence)){ continue; }
         if(preg_match($pattern,$sentence)){ return [...$episode,'category'=>$category==='critica'?'offesa':$category,'criticism'=>$category==='critica','coercive'=>$category==='minaccia'&&(bool)preg_match('/obbed|ordini|comando|servir/iu',$spoken),'evidence'=>aiText($sentence,250),'known'=>true]; }
     }
@@ -35,8 +36,8 @@ function aiEpisodeInterpret(string $raw):array {
     foreach($speech as $sentence){
         if(preg_match('/\b(?:non\s+(?:voglio|desidero|vorrei)|ha\s+detto|diceva|racconta\s+che)\b/iu',$sentence)){ continue; }
         $invitation=match(true){
-            (bool)preg_match('/\b(?:conversazione|compagnia|ompagnia|trascorrere\s+(?:del\s+)?tempo\s+con\s+(?:te|voi)|parlatemi\s+di\s+voi|parlami\s+di\s+te|cambiamo\s+argomento|parlare\s+(?:un\s+po|con\s+(?:te|voi)))\b/iu',$sentence)=>'conversare',
-            (bool)preg_match('/\b(?:andrebbe|va|vorrest[ei]|volete|vuoi|facciamo|possiamo)\b.{0,50}\b(?:passeggiata|due\s+passi|pausa|riposar|sederc[ie])\b/iu',$sentence)=>'una pausa',
+            (bool)aiRegexAny(['/\b(?:conversazione)\b/iu','/\b(?:compagnia)\b/iu','/\b(?:ompagnia)\b/iu','/\b(?:trascorrere\s+(?:del\s+)?tempo\s+con\s+(?:te|voi))\b/iu','/\b(?:parlatemi\s+di\s+voi)\b/iu','/\b(?:parlami\s+di\s+te)\b/iu','/\b(?:cambiamo\s+argomento)\b/iu','/\b(?:parlare\s+(?:un\s+po|con\s+(?:te|voi)))\b/iu'],$sentence)=>'conversare',
+            (bool)aiRegexAny(['/\b(?:andrebbe)\b.{0,50}\b(?:passeggiata|due\s+passi|pausa|riposar|sederc[ie])\b/iu','/\b(?:va)\b.{0,50}\b(?:passeggiata|due\s+passi|pausa|riposar|sederc[ie])\b/iu','/\b(?:vorrest[ei])\b.{0,50}\b(?:passeggiata|due\s+passi|pausa|riposar|sederc[ie])\b/iu','/\b(?:volete)\b.{0,50}\b(?:passeggiata|due\s+passi|pausa|riposar|sederc[ie])\b/iu','/\b(?:vuoi)\b.{0,50}\b(?:passeggiata|due\s+passi|pausa|riposar|sederc[ie])\b/iu','/\b(?:facciamo)\b.{0,50}\b(?:passeggiata|due\s+passi|pausa|riposar|sederc[ie])\b/iu','/\b(?:possiamo)\b.{0,50}\b(?:passeggiata|due\s+passi|pausa|riposar|sederc[ie])\b/iu'],$sentence)=>'una pausa',
             default=>''
         };
         if($invitation!==''){ return [...$episode,'category'=>'cordialita','evidence'=>aiText($sentence,250),'known'=>true,'invitation'=>$invitation]; }
@@ -59,7 +60,7 @@ function aiEpisodeRecentRefusal(array $npc,array $job):bool {
     if(($job['kind']??'')!=='play'){ return false; }
     foreach(aiDialogueHistory($job,6) as $line){ if((int)$line['npc_id']===(int)$npc['id']){
         if((int)$line['created_at']<=aiRelationLastCorrection((int)$npc['id'],(int)$job['user_id'])){ return false; }
-        return (bool)preg_match('/restiamo\s+amic|preferisco.{0,35}(?:amic|distan)|non.{0,20}(?:interessat|desidero.{0,12}corteggi|ricambio)/iu',aiNarrativeParse($line['content'])['speech']);
+        return (bool)aiRegexAny(['/restiamo\s+amic/iu','/preferisco.{0,35}(?:amic|distan)/iu','/non.{0,20}(?:interessat|desidero.{0,12}corteggi|ricambio)/iu'],aiNarrativeParse($line['content'])['speech']);
     }
     }
     return false;
@@ -179,8 +180,8 @@ function aiEpisodeReplyProblem(array $npc,array $job,string $text):?string {
     if((int)($job['user_id']??0)>0&&!aiRomanceAllowed($npc,aiPlayerIdentity((int)$job['user_id']),aiSocialRules((int)$npc['id']))&&aiSocialReciprocalInterest(aiNarrativeParse($text)['speech'])){ return 'Non sei disponibile per una relazione con questo interlocutore: non ricambiare romanticamente, puoi esprimere cordialità o un rifiuto rispettoso.'; }
     if(aiEpisodeEcho($text,(string)($job['episode_input']??$job['prompt']))){ return 'La battuta ripete il PG: deve parlare il PNG, reagendo alle sue parole.'; }
     $e=$job['episode']??[];if(empty($e['known'])||!empty($e['observer'])){ return null; }
-    if(!empty($e['invitation'])&&!preg_match('/convers|compagnia|parl(?:are|iamo)|ascolt|raccont|pausa|volentieri|mi\s+fa\s+piacere|preferisco|non\s+posso|devo\s+(?:finire|terminare|restare)|due\s+passi|restiamo|sediamoci/iu',aiNarrativeParse($text)['speech'])){ return 'Rispondi all’invito di compagnia: puoi accettare, proporre una condizione o declinare, senza deviare su una domanda sul mestiere.'; }
-    if(!empty($e['invitation'])&&aiSituationAcceptsCompany(aiNarrativeParse($text)['speech'])&&preg_match('/(?:cosa|che\s+cosa)\b.{0,25}(?:sapere|interessa)\b.{0,35}(?:questo\s+posto|questo\s+luogo|mio\s+lavoro|mio\s+mestiere)|(?:domande|chiedere)\b.{0,25}(?:sui|sulle|riguardo\s+ai)\b/iu',aiNarrativeParse($text)['speech'])){ return 'Hai accettato di parlare d’altro: fai proseguire la conversazione personale, senza ricondurla subito al mestiere o al luogo.'; }
+    if(!empty($e['invitation'])&&!aiRegexAny(['/convers/iu','/compagnia/iu','/parl(?:are|iamo)/iu','/ascolt/iu','/raccont/iu','/pausa/iu','/volentieri/iu','/mi\s+fa\s+piacere/iu','/preferisco/iu','/non\s+posso/iu','/devo\s+(?:finire|terminare|restare)/iu','/due\s+passi/iu','/restiamo/iu','/sediamoci/iu'],aiNarrativeParse($text)['speech'])){ return 'Rispondi all’invito di compagnia: puoi accettare, proporre una condizione o declinare, senza deviare su una domanda sul mestiere.'; }
+    if(!empty($e['invitation'])&&aiSituationAcceptsCompany(aiNarrativeParse($text)['speech'])&&aiRegexAny(['/(?:cosa)\b.{0,25}(?:sapere)\b.{0,35}(?:questo\s+posto)/iu','/(?:cosa)\b.{0,25}(?:sapere)\b.{0,35}(?:questo\s+luogo)/iu','/(?:cosa)\b.{0,25}(?:sapere)\b.{0,35}(?:mio\s+lavoro)/iu','/(?:cosa)\b.{0,25}(?:sapere)\b.{0,35}(?:mio\s+mestiere)/iu','/(?:cosa)\b.{0,25}(?:interessa)\b.{0,35}(?:questo\s+posto)/iu','/(?:cosa)\b.{0,25}(?:interessa)\b.{0,35}(?:questo\s+luogo)/iu','/(?:cosa)\b.{0,25}(?:interessa)\b.{0,35}(?:mio\s+lavoro)/iu','/(?:cosa)\b.{0,25}(?:interessa)\b.{0,35}(?:mio\s+mestiere)/iu','/(?:che\s+cosa)\b.{0,25}(?:sapere)\b.{0,35}(?:questo\s+posto)/iu','/(?:che\s+cosa)\b.{0,25}(?:sapere)\b.{0,35}(?:questo\s+luogo)/iu','/(?:che\s+cosa)\b.{0,25}(?:sapere)\b.{0,35}(?:mio\s+lavoro)/iu','/(?:che\s+cosa)\b.{0,25}(?:sapere)\b.{0,35}(?:mio\s+mestiere)/iu','/(?:che\s+cosa)\b.{0,25}(?:interessa)\b.{0,35}(?:questo\s+posto)/iu','/(?:che\s+cosa)\b.{0,25}(?:interessa)\b.{0,35}(?:questo\s+luogo)/iu','/(?:che\s+cosa)\b.{0,25}(?:interessa)\b.{0,35}(?:mio\s+lavoro)/iu','/(?:che\s+cosa)\b.{0,25}(?:interessa)\b.{0,35}(?:mio\s+mestiere)/iu','/(?:domande|chiedere)\b.{0,25}(?:sui|sulle|riguardo\s+ai)\b/iu'],aiNarrativeParse($text)['speech'])){ return 'Hai accettato di parlare d’altro: fai proseguire la conversazione personale, senza ricondurla subito al mestiere o al luogo.'; }
     $relevant=match($e['category']){
         'minaccia'=>!empty($e['coercive'])?'/obbed|ordini|vita|risparmi|ferir|uccid|ascolt|farò|faro/iu':'/minacc|paura|ferir|far.{0,12}male|colpir|indietro|distan|basta|fermat|allontan|trem|protegg|difend|non.{0,15}(?:tocc|avvicin)|chiama.{0,10}aiuto/iu',
         'offesa'=>!empty($e['criticism'])?'/delus|sfiduc|fidar|non.{0,15}fid|chiar|dissent|non\s+(?:sono|siamo)\s+d[’\x{27}]accordo|(?:mio|nostro)\s+(?:modo|comportamento)|(?:tue|vostre)\s+(?:parole|critiche)|capisco|comprendo|ascolt/iu':'/offes|insult|disprezz|umili|non.{0,20}(?:accett|permett|parlar|trattar)|rispetto|andate|vattene|distan|basta/iu',
@@ -248,7 +249,7 @@ function aiEpisodeFallback(array $npc,array $job):string {
         ;
     }
     }
-    $affectiveQuestion=(bool)preg_match('/\b(?:mi\s+(?:ami|amate)|(?:provi|provate)\s+per\s+me|sentimenti|innamorat[oa])\b/iu',aiNarrativeParse((string)($job['prompt']??''))['speech']);
+    $affectiveQuestion=(bool)aiRegexAny(['/\b(?:mi\s+(?:ami|amate))\b/iu','/\b(?:(?:provi|provate)\s+per\s+me)\b/iu','/\b(?:sentimenti)\b/iu','/\b(?:innamorat[oa])\b/iu'],aiNarrativeParse((string)($job['prompt']??''))['speech']);
     if(!aiRecognitionAnonymous($npc,$job)&&empty($job['episode']['observer'])&&empty($job['episode']['declined'])&&($category==='corteggiamento'||(in_array($category,['dialogo','cordialita'],true)&&$affectiveQuestion))&&aiRelationFeelings(aiRelation((int)$npc['id'],(int)$job['user_id']))['close']&&aiRomanceAllowed($npc,aiPlayerIdentity((int)$job['user_id']),aiSocialRules((int)$npc['id']))){
         $speech=['Ti amo. Sono felice quando possiamo stare insieme e parlare senza fretta.','Quello che provo per te è amore. Voglio condividere con te questo momento.','Sì, ti amo. Mi fa piacere averti vicino e dedicarti il mio tempo.'][$variant];
         $gesture='si rivolge all’interlocutore con un sorriso affettuoso';

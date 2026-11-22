@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/regex-any.inc.php';
 
 if (!defined('S1192_LIBS_AI_EXPRESSION_INC_PHP_0B8E96_S_U')) { define('S1192_LIBS_AI_EXPRESSION_INC_PHP_0B8E96_S_U', '/\s+/u'); }
 
@@ -36,7 +37,7 @@ function aiExpressionPersona(array $npc,array $rules,int $budget=320):string {
             $sentence=trim($sentence);$key=$normalize($sentence);if($key===''){ continue; }
             // The surrounding prompt already supplies name and occupation.
             if($key===$occupation||$key===$name||($occupation!==''&&$key===$name.' '.$occupation)){ continue; }
-            $score=$priority+(preg_match('/\b(?:senza|non|mai|detesta|rifiuta|rispetta|evita|arroganza|bullismo|compassione|generos\p{L}*|pazien\p{L}*)\b/iu',$sentence)?15:0);
+            $score=$priority+(aiRegexAny(['/\b(?:senza)\b/iu','/\b(?:non)\b/iu','/\b(?:mai)\b/iu','/\b(?:detesta)\b/iu','/\b(?:rifiuta)\b/iu','/\b(?:rispetta)\b/iu','/\b(?:evita)\b/iu','/\b(?:arroganza)\b/iu','/\b(?:bullismo)\b/iu','/\b(?:compassione)\b/iu','/\b(?:generos\p{L}*)\b/iu','/\b(?:pazien\p{L}*)\b/iu'],$sentence)?15:0);
             if(preg_match('/\b(?:per prendere tempo|abitud\p{L}*|tic)\b/iu',$sentence)){ $score-=25; }
             $duplicate=false;
             foreach($units as &$old){
@@ -87,7 +88,7 @@ function aiExpressionItalian(string $text):bool {
     if($words<1){ return false; }
     preg_match_all('/\b(?:il|lo|la|gli|le|un|una|di|da|ha|del|della|che|non|si|è|con|per|nel|sul|dal|dallo|dalla|dalle|al|allo|alla|alle|sotto|tra|ma|e|a)\b/ui',$text,$markers);
     if(count($markers[0])>=max(2,min(5,(int)ceil($words/10)))){ return true; }
-    return $words<=12&&(bool)preg_match('/\b(?:grazie|prego|buonasera|buongiorno|salve|ditemi|ascolto|entrate|guardate|accomodatevi|volentieri|certamente|arrivederci|capisco|scusatemi|va\s+bene)\b/iu',$text);
+    return $words<=12&&(bool)aiRegexAny(['/\b(?:grazie)\b/iu','/\b(?:prego)\b/iu','/\b(?:buonasera)\b/iu','/\b(?:buongiorno)\b/iu','/\b(?:salve)\b/iu','/\b(?:ditemi)\b/iu','/\b(?:ascolto)\b/iu','/\b(?:entrate)\b/iu','/\b(?:guardate)\b/iu','/\b(?:accomodatevi)\b/iu','/\b(?:volentieri)\b/iu','/\b(?:certamente)\b/iu','/\b(?:arrivederci)\b/iu','/\b(?:capisco)\b/iu','/\b(?:scusatemi)\b/iu','/\b(?:va\s+bene)\b/iu'],$text);
 }
 
 /** Select the topic before clipping: even a short dossier may contain unrelated restrictions. */
@@ -105,7 +106,7 @@ function aiExpressionKnowledge(string $text,string $question,int $budget=350):st
         $chosen[$i]=$sentence;
         // Preserve the uncertainty qualifying the preceding observed fact.
         $next=$sentences[$i+1]??'';
-        if(preg_match('/^(?:non\s+(?:sa|conosce|ha\s+visto|ricorda)|ignora|ma\b|tuttavia\b|però\b)/iu',$next)){ $chosen[$i+1]=$next; }
+        if(aiRegexAny(['/^(?:non\s+(?:sa|conosce|ha\s+visto|ricorda))/iu','/^(?:ignora)/iu','/^(?:ma\b)/iu','/^(?:tuttavia\b)/iu','/^(?:però\b)/iu'],$next)){ $chosen[$i+1]=$next; }
     }
     if(!$chosen){ return aiPromptRelevantText($text,$question,$budget); }
     ksort($chosen);

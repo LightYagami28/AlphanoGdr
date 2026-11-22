@@ -11,10 +11,6 @@ const Catalogo = (function(){
   let taglie          = [];
   let organizzazioni  = [];
   let materie         = [];
-  let nome            = '';
-  let organizzazione  = '';
-  let magicimg        = '';
-  let approvedimg     = '';
   let oldtree         = 'Catalogo';
   let corpId;
   let isAdminCatalogo = false;
@@ -25,10 +21,6 @@ const Catalogo = (function(){
   // ÔöÇÔöÇÔöÇ INIT E CARICAMENTO DATI ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
   function init(options) {
     corpId           = options.corp;
-    nome             = options.nome           || '';
-    organizzazione   = options.organizzazione || '';
-    magicimg         = options.magicimg       || '/assets/placeholder.svg';
-    approvedimg      = options.approvedimg    || '/assets/placeholder.svg';
     taglie           = options.taglie         || [];
     organizzazioni   = options.organizzazioni || [];
     materie          = options.materie        || [];
@@ -61,7 +53,7 @@ const Catalogo = (function(){
     .then(res => {
       if (!res.ok) {throw new Error(res.statusText);}
       return res.json();
-    }).then(data=>{if(data.error){throw Error(data.message || 'Catalogo non disponibile');}return data;});
+    }).then(data=>{if(data.error){throw new Error(data.message || 'Catalogo non disponibile');}return data;});
   }
 
   // ÔöÇÔöÇÔöÇ SETUP UI ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
@@ -95,6 +87,17 @@ const Catalogo = (function(){
   function CaricaCatalogoPersOrg() { renderList(catalogoPersOrg, 'destorg',      'shortDesc'); }
   function CaricaRiparazioni() { renderList(riparazioni,'tipo','shortDesc'); }
 
+  function availabilityLabel(o){
+    if(!o.approvato){return 'In revisione';}
+    if(o.rules?.kind==='animal'){return o.available>0?o.available+' disponibili':'Allevamento esaurito';}
+    return 'Su ordinazione';
+  }
+  function buildRuleFacts(o,rules){
+    if(rules.kind==='animal'){return '<dt>Allevamento</dt><dd>' + (Number(o.available)) + ' disponibili ┬À addestramento ' + (Number(rules.training||0)) + '/3</dd><dt>Carico massimo</dt><dd>' + (Number(rules.capacity||0)) + ' kg</dd>';}
+    if(rules.kind==='container'){return '<dt>Capacit├á</dt><dd>' + (Number(rules.capacity)) + ' kg</dd>';}
+    if(rules.kind){return '<dt>Dosi / cariche</dt><dd>' + (Number(rules.charges)) + '</dd><dt>Ricarica / recupero</dt><dd>' + (Number(rules.recharge_rounds)) + ' / ' + (Number(rules.cooldown_rounds)) + ' turni</dd>';}
+    return '';
+  }
   function renderList(arr, groupKey, labelKey) {
     const lista = document.getElementById('lista'),
           corpo = document.getElementById('corpo');
@@ -113,7 +116,8 @@ const Catalogo = (function(){
     const map = {};
     arr.forEach(o=>{
       const k = groupKey==='tipo'?(o.department||departments[o.production]||o[groupKey]||'Altri manufatti'):o[groupKey]||'';
-      (map[k] = map[k]||[]).push(o);
+      if(!map[k]){map[k]=[];}
+      map[k].push(o);
     });
     let html = '<div class="catalogue-index">';
     for (const g in map) {
@@ -122,7 +126,7 @@ const Catalogo = (function(){
         .sort((a,b)=>a[labelKey].localeCompare(b[labelKey]))
         .forEach(o=>{
           const idx = source.indexOf(o);
-          html += '<li><button type="button" data-ui-no-icon data-catalogue-item="' + (idx) + '">' + (o.immagine?'<img src="' + (escapeHtml(o.immagine)) + '" alt="" loading="lazy">':'') + '<span><strong>' + (escapeHtml(o[labelKey])) + '</strong><small>' + (escapeHtml(o.tipo||'')) + ' ┬À ' + (Number(o.peso||0)) + ' kg</small><span class="catalogue-quality">' + (escapeHtml(o.quality||'')) + ' ┬À ' + (o.approvato?(o.rules?.kind==='animal'?(o.available>0?o.available+' disponibili':'Allevamento esaurito'):'Su ordinazione'):'In revisione') + '</span></span><span aria-hidden="true">ÔÇ║</span></button></li>';
+          html += '<li><button type="button" data-ui-no-icon data-catalogue-item="' + (idx) + '">' + (o.immagine?'<img src="' + (escapeHtml(o.immagine)) + '" alt="" loading="lazy">':'') + '<span><strong>' + (escapeHtml(o[labelKey])) + '</strong><small>' + (escapeHtml(o.tipo||'')) + ' ┬À ' + (Number(o.peso||0)) + ' kg</small><span class="catalogue-quality">' + (escapeHtml(o.quality||'')) + ' ┬À ' + (availabilityLabel(o)) + '</span></span><span aria-hidden="true">ÔÇ║</span></button></li>';
         });
       html += '</ul></section>';
     }
@@ -133,7 +137,13 @@ const Catalogo = (function(){
   }
 
   // ÔöÇÔöÇÔöÇ MOSTRA DETTAGLI ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
-  function Mostra(idx) { if(oldtree==='Riparazioni'){if(riparazioni[idx]){renderRepair(riparazioni[idx]);}return;} const rows=oldtree==='CatalogoPers' ? catalogoPers : oldtree==='CatalogoPersOrg' ? catalogoPersOrg : catalogo; if(rows[idx]){renderDetails(rows[idx]);} }
+  function Mostra(idx) {
+    if(oldtree==='Riparazioni'){if(riparazioni[idx]){renderRepair(riparazioni[idx]);}return;}
+    let rows=catalogo;
+    if(oldtree==='CatalogoPers'){rows=catalogoPers;}
+    else if(oldtree==='CatalogoPersOrg'){rows=catalogoPersOrg;}
+    if(rows[idx]){renderDetails(rows[idx]);}
+  }
   function MostraRip(idx) { renderRepair(riparazioni[idx]); }
 
   function materialsTable(values) {
@@ -142,12 +152,12 @@ const Catalogo = (function(){
   }
   function renderDetails(o) {
     const panel=document.getElementById('corpo');
-    const rules=o.rules||{};const ruleFacts=(rules.kind==='animal'?'<dt>Allevamento</dt><dd>' + (Number(o.available)) + ' disponibili ┬À addestramento ' + (Number(rules.training||0)) + '/3</dd><dt>Carico massimo</dt><dd>' + (Number(rules.capacity||0)) + ' kg</dd>':rules.kind==='container'?'<dt>Capacit├á</dt><dd>' + (Number(rules.capacity)) + ' kg</dd>':rules.kind?'<dt>Dosi / cariche</dt><dd>' + (Number(rules.charges)) + '</dd><dt>Ricarica / recupero</dt><dd>' + (Number(rules.recharge_rounds)) + ' / ' + (Number(rules.cooldown_rounds)) + ' turni</dd>':'');
+    const rules=o.rules||{};const ruleFacts=buildRuleFacts(o,rules);
     const orderForm=o.approvato ? '<form id="catalogo-order-' + (o.id) + '" class="ui-form" method="post" action="/api/corporazioni/catalogo.php" onsubmit="event.preventDefault();Catalogo.OrdinaObj(' + (o.id) + ',this);return false" aria-label="Ordina ' + (escapeHtml(o.shortDesc)) + '">\n      <input type="hidden" name="azione" value="ordina"><input type="hidden" name="id" value="' + (o.id) + '"><input type="hidden" name="corp" value="' + (corpId) + '">\n      <label for="catalogo-order-quantity-' + (o.id) + '">Quantit├á</label>\n      <input id="catalogo-order-quantity-' + (o.id) + '" name="qta" type="number" min="1" max="10000" step="1" value="1" required aria-describedby="catalogo-order-feedback-' + (o.id) + '">\n      <button type="submit">Ordina oggetto</button>\n      <p id="catalogo-order-feedback-' + (o.id) + '" class="notice" role="status" aria-live="polite" hidden></p>\n    </form>' : '<p>Oggetto non ancora approvato.</p>';
     let actions='';
     if(isAdminCatalogo || isAdminCorp){actions+='<button type="button" onclick="Catalogo.ModificaObj(' + (o.id) + ')">Modifica</button>';}
     if(isAdminCorp){actions+='<button type="button" onclick="Catalogo.CancellaObj(' + (o.id) + ')">Ritira dal catalogo</button>';}
-    renderHTML(panel, '<article class="ui-form catalogue-detail"><button type="button" class="catalogue-back" data-ui-no-icon onclick="document.getElementById(\'lista\').scrollIntoView({block:\'start\'})">ÔåÉ Torna alla vetrina</button><h2>' + (escapeHtml(o.shortDesc)) + '</h2><div class="equipment-detail ui-reading"><img src="' + (escapeHtml(o.immagine || '/assets/placeholder.svg')) + '" alt="' + (escapeHtml(o.shortDesc)) + '" onload="Catalogo.Resize(this)"><p>' + (escapeHtml(o.desc).replace(/\n/g,'<br>')) + '</p></div><dl class="catalogue-facts">' + (ruleFacts) + '<dt>Tipo</dt><dd>' + (escapeHtml(o.tipo)) + '</dd><dt>Taglia</dt><dd>' + (escapeHtml(o.taglia)) + '</dd><dt>Peso</dt><dd>' + (Number(o.peso)) + ' kg</dd><dt>Qualit├á e durata</dt><dd>' + (escapeHtml(o.quality)) + ' ┬À ' + (Number(o.durata)) + '</dd>' + (o.destinatario ? '<dt>Destinatario</dt><dd>' + (escapeHtml(o.destinatario)) + '</dd>' : '') + (o.destorg ? '<dt>Organizzazione</dt><dd>' + (escapeHtml(o.destorg)) + '</dd>' : '') + (o.lavorazione ? '<dt>Lavorazione</dt><dd>' + (escapeHtml(o.lavorazione)) + '</dd>' : '') + '</dl><h3>Materie per pezzo</h3>' + (materialsTable(o.materie)) + '<p>La corporazione proporr├á prezzo e quantit├á. Il pagamento avviene alla consegna.</p>' + (orderForm) + '<div class="ui-actions">' + (actions) + '</div></article>');
+    renderHTML(panel, '<article class="ui-form catalogue-detail"><button type="button" class="catalogue-back" data-ui-no-icon onclick="document.getElementById(\'lista\').scrollIntoView({block:\'start\'})">ÔåÉ Torna alla vetrina</button><h2>' + (escapeHtml(o.shortDesc)) + '</h2><div class="equipment-detail ui-reading"><img src="' + (escapeHtml(o.immagine || '/assets/placeholder.svg')) + '" alt="' + (escapeHtml(o.shortDesc)) + '" onload="Catalogo.Resize(this)"><p>' + (escapeHtml(o.desc).replaceAll('\n','<br>')) + '</p></div><dl class="catalogue-facts">' + (ruleFacts) + '<dt>Tipo</dt><dd>' + (escapeHtml(o.tipo)) + '</dd><dt>Taglia</dt><dd>' + (escapeHtml(o.taglia)) + '</dd><dt>Peso</dt><dd>' + (Number(o.peso)) + ' kg</dd><dt>Qualit├á e durata</dt><dd>' + (escapeHtml(o.quality)) + ' ┬À ' + (Number(o.durata)) + '</dd>' + (o.destinatario ? '<dt>Destinatario</dt><dd>' + (escapeHtml(o.destinatario)) + '</dd>' : '') + (o.destorg ? '<dt>Organizzazione</dt><dd>' + (escapeHtml(o.destorg)) + '</dd>' : '') + (o.lavorazione ? '<dt>Lavorazione</dt><dd>' + (escapeHtml(o.lavorazione)) + '</dd>' : '') + '</dl><h3>Materie per pezzo</h3>' + (materialsTable(o.materie)) + '<p>La corporazione proporr├á prezzo e quantit├á. Il pagamento avviene alla consegna.</p>' + (orderForm) + '<div class="ui-actions">' + (actions) + '</div></article>');
     if(matchMedia('(max-width:760px)').matches){panel.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth',block:'start'});}
   }
   function renderRepair(o) {
@@ -157,7 +167,7 @@ const Catalogo = (function(){
     if(!form || form.dataset.completed==='true'){return;}
     const input=form.elements.namedItem('qta');
     const raw=input.value;
-    if(!/^[0-9]+$/.test(raw) || Number(raw)<1 || Number(raw)>10000){
+    if(!/^\d+$/.test(raw) || Number(raw)<1 || Number(raw)>10000){
       input.setAttribute('aria-invalid','true');
       showFeedback('Inserisci una quantit├á intera tra 1 e 10000.',true,form);window.alphanoCommerce?.notify('Inserisci una quantit├á intera tra 1 e 10000.',true);
       input.focus();return;
@@ -183,7 +193,7 @@ const Catalogo = (function(){
   }
   async function CancellaObj(id) {
     if (await window.alphanoDialog.notice({title:'Ritira dal catalogo',message:'Vuoi ritirare questo oggetto dalla vetrina?',buttonLabel:'Ritira',cancelLabel:'Indietro'})!=='ack') {return;}
-    postAction({ azione:'cancellaobj', id });
+    return postAction({ azione:'cancellaobj', id });
   }
   function MostraTutti(v) {
     Cambia(oldtree);
@@ -195,7 +205,7 @@ const Catalogo = (function(){
     //  Se arriva o.tipo come stringa, trasformalo in ID
     if (typeof o.tipo === 'string') {
       const found = tipi.find(t=>t.nome===o.tipo);
-      o.tipo = found ? found.id : (tipi[0] && tipi[0].id) || 0;
+      o.tipo = found ? found.id : tipi[0]?.id || 0;
     }
     // Garantisco che tipo e taglia siano interi
     if (!Number.isInteger(o.tipo)) {o.tipo = tipi.length>0 ? tipi[0].id : 0;}
@@ -232,7 +242,7 @@ const Catalogo = (function(){
 
   // ÔöÇÔöÇÔöÇ HELPERS ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
   function showFeedback(message,error=false,form=null,orderLink=false) {
-    const feedback=(form && form.querySelector('[role="status"]')) || document.getElementById('catalogo-feedback');
+    const feedback=form?.querySelector('[role="status"]') || document.getElementById('catalogo-feedback');
     if(!feedback){return;}
     feedback.hidden=false;
     feedback.classList.toggle('error',error);
@@ -279,11 +289,11 @@ const Catalogo = (function(){
 
   function escapeHtml(s){
     return String(s||'')
-      .replace(/&/g,'&amp;')
-      .replace(/</g,'&lt;')
-      .replace(/>/g,'&gt;')
-      .replace(/"/g,'&quot;')
-      .replace(/'/g,'&#39;');
+      .replaceAll('&','&amp;')
+      .replaceAll('<','&lt;')
+      .replaceAll('>','&gt;')
+      .replaceAll('"','&quot;')
+      .replaceAll("'",'&#39;');
   }
 
   // ÔöÇÔöÇÔöÇ EXPORT ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ

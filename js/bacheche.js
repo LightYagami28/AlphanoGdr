@@ -1,4 +1,5 @@
 const renderHTML=(el,markup)=>{const doc=new DOMParser().parseFromString(String(markup??''),'text/html');el.replaceChildren(...[...doc.body.childNodes].map(node=>document.importNode(node,true)));};
+function stripHtml(value){const text=String(value??'');let result='',inside=false;for(const char of text){if(char==='<'){inside=true;}else if(char==='>'){inside=false;}else if(!inside){result+=char;}}return result;}
 document.addEventListener('DOMContentLoaded', () => {
   'use strict';
   const F=window.alphanoForum,{esc,button}=F,config=F.config;
@@ -11,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const response=await fetch(url,opts),result=await response.json();if(!response.ok||!result.success){throw new Error(result.error||'Richiesta non riuscita');}return result;
   }
   function toast(message,error=false){const el=document.getElementById('toast');el.textContent=message;el.dataset.state=error?'error':'success';el.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove('show'),3500);}
-  function headerIndex(){renderHTML(header, '<div><h2>Voci dai territori</h2><p class="forum-summary">Le bacheche generali, poi le comunit├á di ogni citt├á.</p></div><label class="forum-location">Mostra<select id="forum-location"><option value="">Tutti i territori</option>' + (cities.map(city=>'<option value="' + (esc(city.location)) + '"' + (selectedCity===city.location?' selected':'') + '>' + (esc(city.location)) + '</option>').join('')) + '</select></label>');header.querySelector('select').onchange=event=>{selectedCity=event.target.value;renderIndex();};}
+  function headerIndex(){renderHTML(header, '<div><h2>Voci dai territori</h2><p class="forum-summary">Le bacheche generali, poi le comunit├á di ogni citt├á.</p></div><label class="forum-location">Mostra<select id="forum-location"><option value="">Tutti i territori</option>' + (cities.map(city=>'<option value="' + (esc(city.location)) + '"' + (selectedCity===city.location?' selected':'') + '>' + (esc(city.location)) + '</option>').join('')) + '</select></label>');header.querySelector('select').onchange=event=>{selectedCity=event.target.value;void renderIndex();};}
   async function renderIndex(){
     const request=++generation;currentBoard=0;currentThread=0;renderHTML(panel, F.notice('Caricamento delle bachecheÔÇª'));header.classList.remove('forum-board-hero');header.style.removeProperty('--board-cover');setHeadingArt('/assets/placeholder.svg','Bacheche','Notizie, racconti e conversazioni della comunit├á.');
     try{
@@ -20,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const sections=result.sections.filter(section=>!selectedCity||section.location===selectedCity);
       const content=await Promise.all(sections.map(async section=>{
         const rows=await Promise.all(section.boards.map(async board=>{
-          boards.set(board.id,board);let last='<span class="forum-no-activity">Nessun intervento</span>';const description=esc((board.descrizione||'').replace(/<[^>]+>/g,''));
+          boards.set(board.id,board);let last='<span class="forum-no-activity">Nessun intervento</span>';const description=esc(stripHtml(board.descrizione||''));
           const link=content=>board.allowed?'<a class="forum-board-link" data-action="board" data-id="' + (board.id) + '" href="/bacheche/?board=' + (board.id) + '">' + (content) + '</a>':content;
           if(board.lastPostDate&&board.lastPostPg){const person=await F.profile(board.lastPostPg);last=(F.author(board.lastPostPg,person)) + '<button type="button" class="ui-text-action" data-action="last" data-board="' + (board.id) + '" data-thread="' + (board.lastPostId) + '"><strong>' + (esc(board.lastPostSubject||'Discussione')) + '</strong></button><small class="ui-cell-meta">' + (F.date(board.lastPostDate)) + '</small>';}
           return '<tr' + (board.unread?' class="forum-board-unread"':'') + '><td>' + (link('<img class="forum-board-thumbnail" src="' + (esc(board.image)) + '" alt="" width="200" height="112" loading="lazy"><strong>' + (esc(board.nome)) + '</strong>')) + ' ' + (F.newBadge(board.unread)) + '</td><td><div class="ui-cell-summary">' + (link(description||'Consulta le discussioni')) + '</div>' + (!board.allowed?'<small class="ui-cell-meta">Riservata a: ' + (esc((board.required||[]).join(', '))) + '</small>':'') + '</td><td>' + (Number(board.threadsCount)) + ' discussioni<small class="ui-cell-meta">' + (Number(board.postsCount)) + ' risposte</small></td><td><div class="forum-last-activity">' + (last) + '</div>' + (!board.allowed?'<span class="forum-restricted">Riservata</span>':'') + '</td></tr>';
@@ -32,8 +33,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }catch(error){if(request===generation){renderHTML(panel, F.notice(error.message,true));}}
   }
   function setHeadingArt(image,title,description){const heading=header.closest('[data-page-heading]')||document.querySelector('[data-page-heading]');if(!heading){return;}heading.dataset.headerImage=image;const art=heading.querySelector('.ui-header-art');if(art){art.src=image;}const h1=heading.querySelector('h1');if(h1){h1.textContent=title;}const copy=heading.querySelector(':scope > div > p');if(copy){copy.textContent=description;}}
-  function boardHero(board){header.classList.add('forum-board-hero');header.dataset.mode='board';header.style.setProperty('--board-cover','url("' + (board.image) + '")');setHeadingArt(board.image,board.nome,(board.descrizione||board.location||'').replace(/<[^>]+>/g,''));}
-  function controls(item,root=true){const own=Number(item.idpg)===Number(config.currentUserId)||config.isAdmin;return (root?button('Apri','thread','data-id="' + (item.id) + '"','book'):'') + (own?button('Modifica','edit','data-id="' + (item.id) + '"','settings'):'') + (config.isAdmin&&root?button(item.chiusa==='1'?'Riapri':'Chiudi','toggle','data-id="' + (item.id) + '"','shield'):'') + (own?button('Elimina','delete','data-id="' + (item.id) + '"','settings'):'') + (!root?button('Cita','quote','data-id="' + (item.id) + '"')+button('Storico','history','data-id="' + (item.id) + '"','scroll'):'');}
+  function boardHero(board){header.classList.add('forum-board-hero');header.dataset.mode='board';header.style.setProperty('--board-cover','url("' + (board.image) + '")');setHeadingArt(board.image,board.nome,stripHtml(board.descrizione||board.location||''));}
+  function controls(item,root=true){
+    const own=Number(item.idpg)===Number(config.currentUserId)||config.isAdmin;
+    const closeLabel=item.chiusa==='1'?'Riapri':'Chiudi';
+    let html='';
+    if(root){html+=button('Apri','thread','data-id="' + (item.id) + '"','book');}
+    if(own){html+=button('Modifica','edit','data-id="' + (item.id) + '"','settings');}
+    if(config.isAdmin&&root){html+=button(closeLabel,'toggle','data-id="' + (item.id) + '"','shield');}
+    if(own){html+=button('Elimina','delete','data-id="' + (item.id) + '"','settings');}
+    if(!root){html+=button('Cita','quote','data-id="' + (item.id) + '"')+button('Storico','history','data-id="' + (item.id) + '"','scroll');}
+    return html;
+  }
   async function openBoard(id,openId=0){
     const request=++generation;currentBoard=Number(id);currentThread=0;renderHTML(panel, F.notice('CaricamentoÔÇª'));
     renderHTML(header, '<div class="forum-breadcrumb">' + (button('Bacheche','index','','book')) + '<h2>' + (esc(boards.get(currentBoard)?.nome||'Discussioni')) + '</h2></div>' + (button('Nuova discussione','create','','messages')));
@@ -59,22 +70,42 @@ document.addEventListener('DOMContentLoaded', () => {
     renderHTML(form, '<input type="hidden" name="action" value="' + (action) + '"><input type="hidden" name="board" value="' + (currentBoard) + '">' + (currentThread?'<input type="hidden" name="thread" value="' + (currentThread) + '">':'') + (action==='modify'?'<input type="hidden" name="id" value="' + (item.id) + '">':'') + (!reply?'<label>Oggetto<input type="text" name="subject" maxlength="255" required value="' + (esc(item.oggetto||'')) + '"></label>':'') + '<label>Messaggio<textarea name="message" rows="9" required>' + (esc(item.message_raw??'')) + '</textarea></label>' + (action!=='modify'?'<label class="forum-check"><input type="checkbox" name="firma" value="1" checked> Inserisci la firma</label>':'') + (action==='postThread'?'<label class="forum-check"><input type="checkbox" name="segnalazione" value="1"> Avvisami via missiva delle risposte</label>':'') + '<div class="ui-row-actions"><button type="submit" data-icon="check">Invia</button><button type="button" data-cancel>Annulla</button></div>');
     F.editor(form);form.querySelector('[data-cancel]').onclick=()=>modal.classList.remove('open');modal.classList.add('open');form.querySelector('input[type=text],textarea').focus();
   }
+  async function quoteItem(item){const person=await F.profile(item.idpg);return openForm('postReply',{message_raw:'[q '+person.nome+']'+(item.message_raw??'')+'[/q]\n'});}
+  async function openHistory(id){
+    const result=await api('getHistory',{id});modal.querySelector('.modal-title').textContent='Storico delle modifiche';
+    const rendered=await Promise.all(result.history.map(async entry=>F.post({id:entry.id,userId:entry.idpg,profile:await F.profile(entry.idpg),name:entry.nome,message:entry.messaggio,title:entry.oggetto,timestamp:entry.data})));
+    renderHTML(form, rendered.length?'<div class="forum-posts">'+rendered.join('')+'</div>':F.notice('Nessuna modifica precedente.'));modal.classList.add('open');
+  }
+  async function deleteItem(id){
+    if(!confirm('Eliminare questo messaggio e le eventuali risposte?')){return;}
+    await api('delete',{id},'POST');
+    if(id===currentThread){await openBoard(currentBoard);}
+  }
+  async function toggleItem(item,id){
+    const closed=item.chiusa==='1';
+    if(!confirm(closed?'Riaprire la discussione?':'Chiudere la discussione?')){return;}
+    await api(closed?'open':'close',{id},'POST');
+  }
   async function dispatch(event){
-    const target=event.target.closest('[data-action]');if(!target){return;}if(target.tagName==='A'){event.preventDefault();}const id=Number(target.dataset.id),action=target.dataset.action;
+    const target=event.target.closest('[data-action]');if(!target){return;}if(target.tagName==='A'){event.preventDefault();}
+    const id=Number(target.dataset.id),action=target.dataset.action;
+    const simple={
+      index:()=>renderIndex(),board:()=>openBoard(id),last:()=>openBoard(Number(target.dataset.board),Number(target.dataset.thread)),
+      back:()=>openBoard(currentBoard),thread:()=>showThread(id),create:()=>openForm('postThread'),reply:()=>openForm('postReply')
+    };
     try{
-      if(action==='index'){return renderIndex();}if(action==='board'){return openBoard(id);}if(action==='last'){return openBoard(Number(target.dataset.board),Number(target.dataset.thread));}if(action==='back'){return openBoard(currentBoard);}if(action==='thread'){return showThread(id);}
-      if(action==='create'){return openForm('postThread');}if(action==='reply'){return openForm('postReply');}
-      const item=[...threads,...posts].find(item=>item.id===id);if(!item){return;}
+      if(simple[action]){return simple[action]();}
+      const item=[...threads,...posts].find(post=>post.id===id);if(!item){return;}
       if(action==='edit'){return openForm('modify',item);}
-      if(action==='quote'){const person=await F.profile(item.idpg);return openForm('postReply',{message_raw:'[q '+person.nome+']'+(item.message_raw??'')+'[/q]\n'});}
-      if(action==='history'){const result=await api('getHistory',{id});modal.querySelector('.modal-title').textContent='Storico delle modifiche';renderHTML(form, result.history.length?'<div class="forum-posts">'+(await Promise.all(result.history.map(async entry=>F.post({id:entry.id,userId:entry.idpg,profile:await F.profile(entry.idpg),name:entry.nome,message:entry.messaggio,title:entry.oggetto,timestamp:entry.data})))).join('')+'</div>':F.notice('Nessuna modifica precedente.'));modal.classList.add('open');return;}
-      if(action==='delete'){if(!confirm('Eliminare questo messaggio e le eventuali risposte?')){return;}await api('delete',{id},'POST');if(id===currentThread){return openBoard(currentBoard);}}
-      if(action==='toggle'){const closed=item.chiusa==='1';if(!confirm(closed?'Riaprire la discussione?':'Chiudere la discussione?')){return;}await api(closed?'open':'close',{id},'POST');}
+      if(action==='quote'){return quoteItem(item);}
+      if(action==='history'){return openHistory(id);}
+      if(action==='delete'){return deleteItem(id);}
+      if(action==='toggle'){return toggleItem(item,id);}
       await openBoard(currentBoard,currentThread);toast('Operazione riuscita');
     }catch(error){toast(error.message,true);}
   }
   panel.addEventListener('click',dispatch);header.addEventListener('click',dispatch);
   form.onsubmit=async event=>{event.preventDefault();const submit=form.querySelector('[type=submit]');submit.disabled=true;try{const data=Object.fromEntries(new FormData(form)),result=await api(data.action,data,'POST');modal.classList.remove('open');toast(result.message||'Operazione riuscita');await openBoard(currentBoard,data.action==='postThread'?Number(result.id):currentThread);}catch(error){toast(error.message,true);}finally{submit.disabled=false;}};
   modal.querySelector('.close-modal').onclick=()=>modal.classList.remove('open');modal.onclick=event=>{if(event.target===modal){modal.classList.remove('open');}};
-  const initialBoard=Number(config.initialBoard||query.get('board')),initialThread=Number(config.initialThread||query.get('thread'));if(initialBoard>0){openBoard(initialBoard,initialThread||0);}else {renderIndex();}
+  const initialBoard=Number(config.initialBoard||query.get('board')),initialThread=Number(config.initialThread||query.get('thread'));if(initialBoard>0){void openBoard(initialBoard,initialThread||0);}else {void renderIndex();}
 });

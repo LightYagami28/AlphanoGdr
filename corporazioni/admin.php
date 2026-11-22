@@ -859,7 +859,8 @@ $lista2     = ListaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
                     <tr>
                       <td><a href="javascript:ShowDetails(<?= (int)$sid ?>)"><?= htmlentities($sname, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></a></td>
                       <td>
-                        <select name="produzione<?= (int)$sid ?>" onchange="Controlla(this,<?= (int)$sid ?>)">
+                        <label class="sr-only" for="produzione<?= (int)$sid ?>">Qualita per <?= htmlentities($sname, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></label>
+                        <select id="produzione<?= (int)$sid ?>" name="produzione<?= (int)$sid ?>" onchange="Controlla(this,<?= (int)$sid ?>)">
                           <?php foreach($quality as $qk=>$qv): ?>
                             <option value="<?= (int)$qk ?>" <?= ($produzioni[$sid]??0)==$qk?'selected':'' ?>>
                               <?= htmlentities($qv['nome'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>

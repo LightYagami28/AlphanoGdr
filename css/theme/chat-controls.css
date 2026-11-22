@@ -5,7 +5,7 @@
 :is(body[data-view=chat-index],body.session-replay) .scene-return .scene-control-art{width:20px;height:20px;flex-basis:20px}
 .scene-mobile-links>button{display:flex;align-items:center;justify-content:flex-start;gap:12px;text-align:left;min-height:48px}
 .scene-mobile-links .scene-control-art{width:32px;height:32px;flex-basis:32px}
-body[data-view=chat-index] .scene-controls .scene-actions>#scene-master-control{padding:3px 10px;width:52px;min-width:0;padding:0}
+body[data-view=chat-index] .scene-controls .scene-actions>#scene-master-control{width:52px;min-width:0;padding:0}
 @media(max-width:760px){:is(body[data-view=chat-index],body.session-replay) .scene-controls .scene-actions .scene-tool{padding:3px}.scene-control-art{width:30px;height:30px;flex-basis:30px}}
 
 /* The medallion is the control: no surrounding button plate. */

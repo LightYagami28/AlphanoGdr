@@ -36,8 +36,8 @@ body[data-header=bottom] .game-navigation .tab-list{top:auto;bottom:var(--menu-b
 body[data-header=bottom] .game-navigation .menu-text::after{content:'⌃'}
 .scene-control-art[data-icon]{display:grid;place-items:center;border:1px solid var(--line);border-radius:12px;background:var(--panel-2);color:var(--gold)}
 .scene-control-art[data-icon]>.ui-icon{width:24px!important;height:24px!important;color:var(--gold)!important;margin:0}
-body[data-view=chat-index] .scene-controls .scene-actions>.scene-tool{height:65px;min-width:49px;width:58px;min-width:58px}
-body[data-view=chat-index] .scene-controls .scene-actions>.scene-tool:after{opacity:1;transform:translate(-50%,0);font-size:10px;max-width:76px;overflow:hidden;text-overflow:ellipsis;max-width:58px;white-space:nowrap;text-align:center}
+body[data-view=chat-index] .scene-controls .scene-actions>.scene-tool{height:65px;width:58px;min-width:58px}
+body[data-view=chat-index] .scene-controls .scene-actions>.scene-tool:after{opacity:1;transform:translate(-50%,0);font-size:10px;overflow:hidden;text-overflow:ellipsis;max-width:58px;white-space:nowrap;text-align:center}
 body[data-view=chat-index] .scene-tool.active .scene-control-art{border-color:var(--gold);box-shadow:0 0 0 2px var(--line)}
 /* Uploaded backgrounds sit behind an opaque-enough layer to retain contrast. */
 body[data-custom-background]{background-image:linear-gradient(color-mix(in srgb,var(--bg) 82%,transparent),color-mix(in srgb,var(--bg) 94%,transparent)),var(--custom-background)!important;background-size:cover!important;background-position:center!important;background-attachment:fixed!important}

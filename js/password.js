@@ -52,20 +52,9 @@ function checkQuality(pass) {
 	if (hasUppercase) score++;
 	if (hasLowercase) score++;
 	
-  if (score > 8) {
-    return 'Ottima (' + score + ')';
+  const levels=[[8,'Ottima'],[7,'Molto Buona'],[6,'Buona'],[5,'Discreta'],[4,'Decente']];
+  for(const [minimum,label] of levels){
+    if(score>minimum){return label+' ('+score+')';}
   }
-  if (score > 7) {
-    return 'Molto Buona (' + score + ')';
-  }
-  if (score > 6) {
-    return 'Buona (' + score + ')';
-  }
-  if (score > 5) {
-    return 'Discreta (' + score + ')';
-  }
-  if (score > 4) {
-    return 'Decente (' + score + ')';
-  }
-  return 'Inutile (' + score + ')';
+  return 'Inutile ('+score+')';
 }

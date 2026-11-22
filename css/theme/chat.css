@@ -1,20 +1,20 @@
 /* Riferimento interattivo: soli componenti della chat, senza dati dimostrativi. */
-:is(body[data-view=chat-index],body.session-replay) .scene-toolbar{min-height:63px;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 15px;background:linear-gradient(90deg,var(--panel),var(--panel) 60%,var(--panel));border-bottom:1px solid var(--line);flex-wrap:nowrap;gap:12px;min-height:70px}
+:is(body[data-view=chat-index],body.session-replay) .scene-toolbar{display:flex;justify-content:space-between;align-items:center;padding:9px 15px;background:linear-gradient(90deg,var(--panel),var(--panel) 60%,var(--panel));border-bottom:1px solid var(--line);flex-wrap:nowrap;gap:12px;min-height:70px}
 :is(body[data-view=chat-index],body.session-replay) .scene-id{display:flex;align-items:center;gap:10px;min-width:0;flex:0 1 auto}
 :is(body[data-view=chat-index],body.session-replay) .scene-id .scene-round-icon{width:39px;height:39px;border:1px solid #846634;background:linear-gradient(155deg,var(--panel-2),var(--panel));display:grid;place-items:center;border-radius:50%;color:var(--gold-2)}
 :is(body[data-view=chat-index],body.session-replay) .scene-id strong{display:block;font-size:17px;font-weight:600;letter-spacing:.3px;color:#eecd89;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 :is(body[data-view=chat-index],body.session-replay) .scene-id small{display:block;color:#9eabc0;font:11px system-ui,sans-serif;margin-top:5px;white-space:nowrap}
-:is(body[data-view=chat-index],body.session-replay) .scene-actions{display:flex;gap:6px;overflow-x:auto;min-width:0;scrollbar-width:none;flex-shrink:1;flex:none;max-width:none}
+:is(body[data-view=chat-index],body.session-replay) .scene-actions{display:flex;gap:6px;overflow-x:auto;min-width:0;scrollbar-width:none;flex:none;max-width:none}
 :is(body[data-view=chat-index],body.session-replay) .scene-actions::-webkit-scrollbar{display:none}
 :is(body[data-view=chat-index],body.session-replay) .scene-tool{border:1px solid rgba(210,175,107,.22);background:linear-gradient(var(--panel),var(--panel));color:#cdbb99;border-radius:9px;padding:9px 11px;display:flex;align-items:center;gap:7px;font-size:13px;white-space:nowrap;min-height:38px}
 :is(body[data-view=chat-index],body.session-replay) .scene-tool svg{color:#d6af66;width:17px;height:17px}
 :is(body[data-view=chat-index],body.session-replay) .scene-tool:hover,:is(body[data-view=chat-index],body.session-replay) .scene-tool.active{background:linear-gradient(var(--panel-2),var(--panel));color:#ffdf9d;border-color:#d0a35b;box-shadow:inset 0 -2px #ac8746}
 :is(body[data-view=chat-index],body.session-replay) .scene-tool span{display:inline}
 :is(body[data-view=chat-index],body.session-replay) .scene-tool.icon-only{padding:9px 10px}
-:is(body[data-view=chat-index],body.session-replay) .chat-message{position:relative;display:grid;grid-template-columns:118px minmax(0,1fr);gap:21px;margin:0 0 15px;padding:12px 14px 15px 8px;border-bottom:1px solid #a989574e;min-height:154px;grid-template-columns:142px minmax(0,1fr);gap:22px;grid-template-columns:var(--chat-card-column) minmax(0,1fr);gap:var(--chat-column-gap)}
+:is(body[data-view=chat-index],body.session-replay) .chat-message{position:relative;display:grid;margin:0 0 15px;padding:12px 14px 15px 8px;border-bottom:1px solid #a989574e;min-height:154px;grid-template-columns:var(--chat-card-column) minmax(0,1fr);gap:var(--chat-column-gap)}
 :is(body[data-view=chat-index],body.session-replay) .chat-message:last-child{border-bottom:0}
 :is(body[data-view=chat-index],body.session-replay) .chat-message-content{padding:5px 0 2px}
-:is(body[data-view=chat-index],body.session-replay) .chat-meta{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:10px;margin-bottom:10px}
+:is(body[data-view=chat-index],body.session-replay) .chat-meta{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:10px}
 :is(body[data-view=chat-index],body.session-replay) .chat-meta time{font:12px system-ui,sans-serif;color:#76684e}
 :is(body[data-view=chat-index],body.session-replay) .chat-meta .chat-persona{font:700 16px Georgia,serif;color:#5a4326;text-decoration:underline;text-decoration-color:#ac8d55;cursor:default}
 :is(body[data-view=chat-index],body.session-replay) .chat-meta .chat-location{font:700 11px system-ui,sans-serif;background:#f5e9d2;color:#884a33;padding:4px 7px;border:1px solid #caa87a;border-radius:6px}
@@ -25,7 +25,7 @@
 :is(body[data-view=chat-index],body.session-replay) .chat-prose blockquote{border-left:3px solid #ae8b56;padding-left:11px;margin:6px 0;color:#564736}
 :is(body[data-view=chat-index],body.session-replay) .chat-prose p{margin:0 0 11px}
 :is(body[data-view=chat-index],body.session-replay) .chat-prose p:last-child{margin-bottom:0}
-:is(body[data-view=chat-index],body.session-replay) .chat-master{margin:16px 0;padding:13px 17px;border-radius:11px;border:1px solid #b28a48;box-shadow:inset 0 0 0 1px #c7a96b40;background:linear-gradient(120deg,var(--panel),var(--panel));color:#e9d8b5;display:flex;align-items:center;gap:12px;align-items:flex-start;font-size:14px;text-align:left;margin:14px 0}
+:is(body[data-view=chat-index],body.session-replay) .chat-master{padding:13px 17px;border:1px solid #b28a48;box-shadow:inset 0 0 0 1px #c7a96b40;background:linear-gradient(120deg,var(--panel),var(--panel));color:#e9d8b5;display:flex;gap:12px;align-items:flex-start;font-size:14px;text-align:left;margin:14px 0}
 :is(body[data-view=chat-index],body.session-replay) .chat-master-mark{width:36px;height:36px;border:1px solid #866d4c;border-radius:50%;display:grid;place-items:center;color:#d3ac64;flex:none}
 :is(body[data-view=chat-index],body.session-replay) .chat-master strong{font-size:13px;display:block;color:#f6d995}
 :is(body[data-view=chat-index],body.session-replay) .chat-master span{display:block;margin-top:5px;font-size:14px}
@@ -33,10 +33,10 @@
 :is(body[data-view=chat-index],body.session-replay) .composer{padding:11px 13px;display:flex;gap:9px;align-items:center;border-top:1px solid var(--line);background:linear-gradient(180deg,var(--panel),var(--panel));min-height:71px;flex:0 0 auto;margin:0;border-radius:0;flex-wrap:nowrap}
 :is(body[data-view=chat-index],body.session-replay) .composer textarea{font:14px/1.3 system-ui,sans-serif;min-height:42px;max-height:120px;resize:none;border:0;outline:0;box-shadow:none!important;background:none;color:#f4e9d4;width:100%;padding:11px 12px}
 :is(body[data-view=chat-index],body.session-replay) .composer textarea::placeholder{color:#72839a}
-:is(body[data-view=chat-index],body.session-replay) .composer select{background:var(--panel);border:1px solid var(--hover);border-radius:9px;padding:11px 9px;color:#e2d6c0;font:12px system-ui,sans-serif;max-width:118px;cursor:pointer;flex:0 1 118px;min-width:0;max-width:140px;padding:11px 9px;background:var(--select-background);border:1px solid var(--select-line);border-radius:9px;color:var(--select-ink);font:12px var(--font-ui)}
-:is(body[data-view=chat-index],body.session-replay) .chat-drawer-backdrop{position:absolute;z-index:11;inset:63px 0 0;background:color-mix(in srgb,var(--bg) 60.00%,transparent);backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .22s;transform:none;opacity:1;pointer-events:auto;border:0;border-radius:0;padding:0}
+:is(body[data-view=chat-index],body.session-replay) .composer select{cursor:pointer;flex:0 1 118px;min-width:0;max-width:140px;padding:11px 9px;background:var(--select-background);border:1px solid var(--select-line);border-radius:9px;color:var(--select-ink);font:12px var(--font-ui)}
+:is(body[data-view=chat-index],body.session-replay) .chat-drawer-backdrop{position:absolute;z-index:11;inset:63px 0 0;background:color-mix(in srgb,var(--bg) 60.00%,transparent);backdrop-filter:blur(2px);transition:opacity .22s;transform:none;opacity:1;pointer-events:auto;border:0;border-radius:0;padding:0}
 :is(body[data-view=chat-index],body.session-replay) .chat-drawer-backdrop.open{opacity:1;pointer-events:auto}
-:is(body[data-view=chat-index],body.session-replay) .chat-drawer{position:absolute;z-index:12;top:67px;right:13px;width:min(510px,calc(100% - 26px));max-height:calc(100% - 85px);overflow:auto;background:linear-gradient(135deg,var(--panel),var(--panel));border:1px solid #b39052;border-radius:12px;box-shadow:0 25px 60px #000a,inset 0 0 0 4px #ffffff07;transform:translateY(-10px) scale(.98);opacity:0;pointer-events:none;transition:transform .25s,opacity .25s;transform:none;opacity:1;pointer-events:auto;top:67px}
+:is(body[data-view=chat-index],body.session-replay) .chat-drawer{position:absolute;z-index:12;right:13px;width:min(510px,calc(100% - 26px));max-height:calc(100% - 85px);overflow:auto;background:linear-gradient(135deg,var(--panel),var(--panel));border:1px solid #b39052;border-radius:12px;box-shadow:0 25px 60px #000a,inset 0 0 0 4px #ffffff07;transition:transform .25s,opacity .25s;transform:none;opacity:1;pointer-events:auto;top:67px}
 :is(body[data-view=chat-index],body.session-replay) .chat-drawer.open{transform:translateY(0) scale(1);opacity:1;pointer-events:auto}
 :is(body[data-view=chat-index],body.session-replay) .chat-drawer-head{padding:15px 17px;border-bottom:1px solid #a584463e;display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:0;background:var(--panel);z-index:2}
 :is(body[data-view=chat-index],body.session-replay) .chat-drawer-head h2{font-size:18px;letter-spacing:.4px;margin:0;color:#f3cf87;padding:0}
@@ -56,9 +56,9 @@
 :is(body[data-view=chat-index],body.session-replay) .chat-drawer-body .hint{color:#8294a9;font:12px/1.6 system-ui,sans-serif}
 :is(body[data-view=chat-index],body.session-replay) .chat-drawer-body .mini-people{display:flex;gap:10px;align-items:center;margin:10px 0;padding:9px 12px;background:var(--panel);border:1px solid #ffffff16;border-radius:9px}
 :is(body[data-view=chat-index],body.session-replay) .chat-drawer-body .key{color:#b4c3d3;font-size:12px}
-:is(body[data-view=chat-index],body.session-replay).chat-compact .chat-message{grid-template-columns:86px 1fr;min-height:110px;grid-template-columns:86px minmax(0,1fr);padding-top:5px;padding-bottom:8px}
+:is(body[data-view=chat-index],body.session-replay).chat-compact .chat-message{min-height:110px;grid-template-columns:86px minmax(0,1fr);padding-top:5px;padding-bottom:8px}
 
-:is(body[data-view=chat-index],body.session-replay).chat-noport .chat-message{grid-template-columns:minmax(0,1fr);grid-template-columns:minmax(0,1fr)}
+:is(body[data-view=chat-index],body.session-replay).chat-noport .chat-message{grid-template-columns:minmax(0,1fr)}
 :is(body[data-view=chat-index],body.session-replay).chat-darkpaper .feed{background:linear-gradient(160deg,var(--panel),var(--panel));color:#e1dbd0}
 :is(body[data-view=chat-index],body.session-replay).chat-darkpaper .feed-header{color:#ac915e}
 :is(body[data-view=chat-index],body.session-replay).chat-darkpaper .chat-message{border-color:#ffffff1e}
@@ -88,7 +88,7 @@
 :is(body[data-view=chat-index],body.session-replay) .scene-actions{max-width:55%}}
 /* Scena di gioco: geometria del riferimento e colori del tema centrale. */
 :is(body[data-view=chat-index],body.session-replay){display:flex;flex-direction:column;height:100dvh;min-height:0;overflow:hidden;padding:0;background:var(--grad);position:relative;isolation:isolate;--chat-card-column:142px;--chat-column-gap:22px;--chat-master-indent:calc(var(--chat-card-column) + var(--chat-column-gap) + 8px)}
-:is(body[data-view=chat-index],body.session-replay) #chat{display:flex;flex-direction:column;flex:1;min-height:0;padding:0}
+:is(body[data-view=chat-index],body.session-replay) #chat{display:flex;flex:1;min-height:0;padding:0}
 :is(body[data-view=chat-index],body.session-replay) #chatbox{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-color:var(--paper-scrollbar) var(--paper-scrollbar-track);scrollbar-width:thin;background:var(--reading-background);color:var(--parchment-ink);padding:16px 19px 25px;margin:0;border:0;border-radius:0;font-size:var(--chat-font,16px)}
 :is(body[data-view=chat-index],body.session-replay) .riga{padding:8px 0;margin:0;line-height:1.68;overflow-wrap:anywhere}
 :is(body[data-view=chat-index],body.session-replay) .riga.has-scene-view{padding:0}

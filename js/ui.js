@@ -16,20 +16,20 @@
     for(const [tag,attributes] of iconShapes[name]||iconShapes.scroll){const shape=document.createElementNS(svg.namespaceURI,tag);for(const [key,value] of Object.entries(attributes)){shape.setAttribute(key,value);}svg.append(shape);}return svg;
   }
   const iconRules=[
-    [/torna|indietro|annulla/i,'back'],
-    [/posta|missiv|casella|baule|inviata|avvis/i,'mail'],
-    [/ferit|ferisc|salut|resuscit|morte/i,'heart'],
-    [/coron|finanz|budget|stipend|cost|prestiti/i,'coins'],
-    [/memb|iscritt|richiest|relazion|personagg/i,'users'],
-    [/caric|araldic|rami|corporaz|gerarchia|appartenen|assegnaz|equipaggi|zaino/i,'shield'],
-    [/trasform|licantrop|senzien|ancestral/i,'moon'],
-    [/statut|storia|note|narr|regol|firma/i,'book'],
-    [/dimor|abitaz|quartier|città|cittadin|interna|territorio/i,'city'],
-    [/sicurez|access|privileg|flag|gestion/i,'settings'],
-    [/aspetto|identità|profil/i,'user']
+    {pattern:/torna|indietro|annulla/i,name:'back'},
+    {pattern:/posta|missiv|casella|baule|inviata|avvis/i,name:'mail'},
+    {pattern:/ferit|ferisc|salut|resuscit|morte/i,name:'heart'},
+    {pattern:/coron|finanz|budget|stipend|cost|prestiti/i,name:'coins'},
+    {pattern:/memb|iscritt|richiest|relazion|personagg/i,name:'users'},
+    {pattern:/caric|araldic|rami|corporaz|gerarchia|appartenen|assegnaz|equipaggi|zaino/i,name:'shield'},
+    {pattern:/trasform|licantrop|senzien|ancestral/i,name:'moon'},
+    {pattern:/statut|storia|note|narr|regol|firma/i,name:'book'},
+    {pattern:/dimor|abitaz|quartier|città|cittadin|interna|territorio/i,name:'city'},
+    {pattern:/sicurez|access|privileg|flag|gestion/i,name:'settings'},
+    {pattern:/aspetto|identità|profil/i,name:'user'}
   ];
   function chooseIcon(text){
-    for(const [pattern,name] of iconRules){if(pattern.test(text)){return name;}}
+    for(const {pattern,name} of iconRules){if(pattern.test(text)){return name;}}
     return 'scroll';
   }
   let fieldNumber=0;

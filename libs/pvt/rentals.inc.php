@@ -36,30 +36,40 @@ function alphanoRentalEnter(int $pg,string $host,string $word,string $action,int
  if($action==='rent'&&($hours<1||$hours>168||!preg_match('/^[a-zA-Z0-9-]{16,80}$/D',$request))){ throw new DomainException('Durata o identificativo dell’affitto non valido (da 1 a 168 ore).',422); }
  alphanoRentalExpire();$db=connectDB();$db->beginTransaction();
  try{
-  $u=$db->query('SELECT * FROM utenti WHERE id=? FOR UPDATE',[$pg])[0]??null;if(!$u||$u['bloccato']||$u['imprigionato']){ throw new DomainException('Non puoi affittare o raggiungere una camera in questo momento.',403); }
-  // A durable receipt resolves a retry even if the first response was lost after moving the player.
-  $old=$action==='rent'?($db->query('SELECT * FROM chat_rentals WHERE owner_id=? AND request_key=?',[$pg,$request])[0]??null):null;
-  if($old){if($old['host_key']!==$host||$old['closed_at']){ throw new DomainException('Richiesta già usata o affitto terminato.',409); }$db->commit();return ['chat_key'=>$old['chat_key'],'expires_at'=>(int)$old['expires_at'],'total_cost'=>(int)$old['total_cost']];}
-  if($u['chat']!==$host){ throw new DomainException('Raggiungi prima la sala comune per accedere alle camere.',403); }
-  $place=$db->query('SELECT * FROM mappe WHERE chat_key=? AND chat=1 FOR UPDATE',[$host])[0]??null;if(!$place||!$place['rental_enabled']){ throw new DomainException('Questo luogo non offre camere in affitto.',409); }
-  $lookup=alphanoRentalLookup($word);$room=$db->query('SELECT * FROM chat_rentals WHERE host_key=? AND word_lookup=? AND closed_at=0 FOR UPDATE',[$host,$lookup])[0]??null;
-  if($action==='rent'){
-   if($room){ throw new DomainException('Questa parola d’ordine è già in uso: entra nella camera oppure scegline un’altra.',409); }
-   $cost=(int)$place['rental_hourly_cost']*$hours;if((int)$u['denari']<$cost){ throw new DomainException(alphanoCurrencyText('Non hai abbastanza Corone per la durata scelta.'),409); }
-   $key='rent_'.bin2hex(random_bytes(20));$expires=time()+$hours*3600;
-   $db->execute('INSERT INTO chat_rentals(chat_key,host_key,owner_id,word_hash,word_lookup,hours,hourly_cost,total_cost,started_at,expires_at,request_key) VALUES(?,?,?,?,?,?,?,?,?,?,?)',[$key,$host,$pg,password_hash($word,PASSWORD_DEFAULT),$lookup,$hours,(int)$place['rental_hourly_cost'],$cost,time(),$expires,$request]);$id=(int)$db->lastInsertId();
-   $db->execute('UPDATE utenti SET denari=denari-? WHERE id=?',[$cost,$pg]);
-   $db->execute('INSERT INTO logs_adminpg(azione,data,chat,esecutore,destinatario,qta,obj,descr) VALUES(?,?,?,?,?,?,0,?)',['affitto-camera',time(),$host,$pg,$pg,$cost,$hours.' ore · tariffa '.$place['rental_hourly_cost'].alphanoCurrencyText(' corone/ora')]);
-   $room=['id'=>$id,'chat_key'=>$key,'expires_at'=>$expires,'total_cost'=>$cost];
-  }else{
-   $db->execute('INSERT IGNORE INTO chat_rental_limits(player_id,window_start,attempts) VALUES(?,?,0)',[$pg,time()]);$lim=$db->query('SELECT * FROM chat_rental_limits WHERE player_id=? FOR UPDATE',[$pg])[0];$count=time()-(int)$lim['window_start']<300?(int)$lim['attempts']:0;
-   if($count>=10){ throw new DomainException('Troppi tentativi. Attendi qualche minuto prima di riprovare.',429); }
-   $db->execute('UPDATE chat_rental_limits SET attempts=?,window_start=? WHERE player_id=?',[$count+1,$count?(int)$lim['window_start']:time(),$pg]);
-   if(!$room||!password_verify($word,$room['word_hash'])){$db->commit();throw new DomainException('Parola d’ordine non valida o camera scaduta.',403);}
-  }
-  companionshipAssertRentalJoin((int)$room['id'],$pg);
-  $db->execute('INSERT IGNORE INTO chat_rental_members(rental_id,player_id,joined_at) VALUES(?,?,?)',[$room['id'],$pg,time()]);
-  $db->execute('UPDATE utenti SET chat=?,posizione=?,lastmove=? WHERE id=?',[$room['chat_key'],$place['title'].' · Camera '.$room['id'],time(),$pg]);$db->commit();
-  return ['chat_key'=>$room['chat_key'],'expires_at'=>(int)$room['expires_at'],'total_cost'=>$action==='rent'?(int)$room['total_cost']:0];
+  return alphanoRentalEnterLocked($db,$pg,$host,$word,$action,$hours,$request);
  }catch(Throwable $e){if($db->inTransaction()){ $db->rollBack(); }throw $e;}
+ }
+function alphanoRentalResolveRoom($db,int $pg,string $host,string $word,string $action,int $hours,string $request):array {
+ $u=$db->query('SELECT * FROM utenti WHERE id=? FOR UPDATE',[$pg])[0]??null;if(!$u||$u['bloccato']||$u['imprigionato']){ throw new DomainException('Non puoi affittare o raggiungere una camera in questo momento.',403); }
+ $old=$action==='rent'?($db->query('SELECT * FROM chat_rentals WHERE owner_id=? AND request_key=?',[$pg,$request])[0]??null):null;
+ if($old){if($old['host_key']!==$host||$old['closed_at']){ throw new DomainException('Richiesta già usata o affitto terminato.',409); }$db->commit();return ['chat_key'=>$old['chat_key'],'expires_at'=>(int)$old['expires_at'],'total_cost'=>(int)$old['total_cost'],'replay'=>true];}
+ if($u['chat']!==$host){ throw new DomainException('Raggiungi prima la sala comune per accedere alle camere.',403); }
+ $place=$db->query('SELECT * FROM mappe WHERE chat_key=? AND chat=1 FOR UPDATE',[$host])[0]??null;if(!$place||!$place['rental_enabled']){ throw new DomainException('Questo luogo non offre camere in affitto.',409); }
+ $lookup=alphanoRentalLookup($word);$room=$db->query('SELECT * FROM chat_rentals WHERE host_key=? AND word_lookup=? AND closed_at=0 FOR UPDATE',[$host,$lookup])[0]??null;
+ return ['user'=>$u,'place'=>$place,'room'=>$room,'lookup'=>$lookup];
+}
+function alphanoRentalCreate($db,array $u,array $place,int $pg,string $host,string $word,int $hours,string $request,?array $room):array {
+ if($room){ throw new DomainException('Questa parola d’ordine è già in uso: entra nella camera oppure scegline un’altra.',409); }
+ $cost=(int)$place['rental_hourly_cost']*$hours;if((int)$u['denari']<$cost){ throw new DomainException(alphanoCurrencyText('Non hai abbastanza Corone per la durata scelta.'),409); }
+ $key='rent_'.bin2hex(random_bytes(20));$expires=time()+$hours*3600;
+ $db->execute('INSERT INTO chat_rentals(chat_key,host_key,owner_id,word_hash,word_lookup,hours,hourly_cost,total_cost,started_at,expires_at,request_key) VALUES(?,?,?,?,?,?,?,?,?,?,?)',[$key,$host,$pg,password_hash($word,PASSWORD_DEFAULT),alphanoRentalLookup($word),$hours,(int)$place['rental_hourly_cost'],$cost,time(),$expires,$request]);$id=(int)$db->lastInsertId();
+ $db->execute('UPDATE utenti SET denari=denari-? WHERE id=?',[$cost,$pg]);
+ $db->execute('INSERT INTO logs_adminpg(azione,data,chat,esecutore,destinatario,qta,obj,descr) VALUES(?,?,?,?,?,?,0,?)',['affitto-camera',time(),$host,$pg,$pg,$cost,$hours.' ore · tariffa '.$place['rental_hourly_cost'].alphanoCurrencyText(' corone/ora')]);
+ return ['id'=>$id,'chat_key'=>$key,'expires_at'=>$expires,'total_cost'=>$cost];
+}
+function alphanoRentalJoin($db,int $pg,?array $room,string $word):array {
+ $db->execute('INSERT IGNORE INTO chat_rental_limits(player_id,window_start,attempts) VALUES(?,?,0)',[$pg,time()]);$lim=$db->query('SELECT * FROM chat_rental_limits WHERE player_id=? FOR UPDATE',[$pg])[0];$count=time()-(int)$lim['window_start']<300?(int)$lim['attempts']:0;
+ if($count>=10){ throw new DomainException('Troppi tentativi. Attendi qualche minuto prima di riprovare.',429); }
+ $db->execute('UPDATE chat_rental_limits SET attempts=?,window_start=? WHERE player_id=?',[$count+1,$count?(int)$lim['window_start']:time(),$pg]);
+ if(!$room||!password_verify($word,$room['word_hash'])){$db->commit();throw new DomainException('Parola d’ordine non valida o camera scaduta.',403);}
+ return $room;
+}
+function alphanoRentalEnterLocked($db,int $pg,string $host,string $word,string $action,int $hours,string $request):array {
+ $ctx=alphanoRentalResolveRoom($db,$pg,$host,$word,$action,$hours,$request);
+ if(!empty($ctx['replay'])){ return ['chat_key'=>$ctx['chat_key'],'expires_at'=>$ctx['expires_at'],'total_cost'=>$ctx['total_cost']]; }
+ $room=$action==='rent' ? alphanoRentalCreate($db,$ctx['user'],$ctx['place'],$pg,$host,$word,$hours,$request,$ctx['room']) : alphanoRentalJoin($db,$pg,$ctx['room'],$word);
+ companionshipAssertRentalJoin((int)$room['id'],$pg);
+ $db->execute('INSERT IGNORE INTO chat_rental_members(rental_id,player_id,joined_at) VALUES(?,?,?)',[$room['id'],$pg,time()]);
+ $db->execute('UPDATE utenti SET chat=?,posizione=?,lastmove=? WHERE id=?',[$room['chat_key'],$ctx['place']['title'].' · Camera '.$room['id'],time(),$pg]);$db->commit();
+ return ['chat_key'=>$room['chat_key'],'expires_at'=>(int)$room['expires_at'],'total_cost'=>$action==='rent'?(int)$room['total_cost']:0];
 }

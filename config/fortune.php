@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 /** Pesi relativi: ogni estrazione usa random_int sul server. */
-return [
+return $GLOBALS['ALPHANO_CONFIG_CACHE'][__FILE__] = [
  'cooldown'=>21600,
  'resources'=>[
   'legno'=>20,'cotone'=>20,'canapa'=>20,'carbone'=>18,'erbe'=>18,'cera'=>16,

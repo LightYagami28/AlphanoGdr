@@ -194,40 +194,37 @@ function converti(
 ): string {
     $escape = static fn(mixed $value): string => htmlspecialchars((string)$value,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
     $jsArg  = static fn(mixed $value): string => json_encode((string)$value,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_INVALID_UTF8_SUBSTITUTE) ?: '""';
-    switch ($campo) {
-        case 'esecutore':
-        case 'destinatario':
-        case 'origine':
-        case 'pg':
-            $label = $escape($idpgs[$dato] ?? (string)$dato);
-            return $html
-                 ? "<a href=\"javascript:openProfileId(".$jsArg($dato).")\">$label</a>"
-                 : $label;
-        case 'nome':
-            $label = $escape($dato);
-            return $html
-                 ? "<a href=\"javascript:openProfile(".$jsArg($dato).")\">$label</a>"
-                 : $label;
-        case 'obj':  return $escape($idobjs[$dato]  ?? (string)$dato);
-        case 'data': return formatTimestamp((int)$dato);
-        case 'city': return $escape($idcitys[$dato] ?? (string)$dato);
-        case 'org':  return $escape($idorgs[$dato]  ?? (string)$dato);
-        default:     return $escape($dato);
+    $profileFields=['esecutore','destinatario','origine','pg'];
+    $js=null;
+    if(in_array($campo,$profileFields,true)){ $label=$escape($idpgs[$dato] ?? (string)$dato);$js='openProfileId'; }
+    elseif($campo==='nome'){ $label=$escape($dato);$js='openProfile'; }
+    else{
+        $label=match($campo){
+            'obj'=>$escape($idobjs[$dato] ?? (string)$dato),
+            'data'=>formatTimestamp((int)$dato),
+            'city'=>$escape($idcitys[$dato] ?? (string)$dato),
+            'org'=>$escape($idorgs[$dato] ?? (string)$dato),
+            default=>$escape($dato)
+        };
     }
+    return ($html&&$js!==null) ? "<a href=\"javascript:$js(".$jsArg($dato).")\">$label</a>" : $label;
 }
 
 // raccoglie tutti i valori distinti in $righe e costruisce le mappe id→label
-function smista(array $righe): array {
-    $db = connectDB();
-    $idpgs=[]; $idobjs=[]; $idcitys=[]; $idorgs=[];
+function logCollectIds(array $righe):array {
+    $idpgs=[];$idobjs=[];$idcitys=[];$idorgs=[];
     foreach ($righe as $r) {
-        foreach (['esecutore','destinatario','origine','pg'] as $f) {
-            if (!empty($r[$f])) { $idpgs[] = $r[$f]; }
-        }
+        foreach (['esecutore','destinatario','origine','pg'] as $f) { if (!empty($r[$f])) { $idpgs[] = $r[$f]; } }
         if (!empty($r['obj']))  { $idobjs[]  = $r['obj']; }
         if (!empty($r['city'])) { $idcitys[] = $r['city']; }
         if (!empty($r['org']))  { $idorgs[]  = $r['org']; }
     }
+    return [$idpgs,$idobjs,$idcitys,$idorgs];
+}
+function smista(array $righe): array {
+    $db = connectDB();
+    $idpgs=[]; $idobjs=[]; $idcitys=[]; $idorgs=[];
+    [$idpgs,$idobjs,$idcitys,$idorgs]=logCollectIds($righe);
     $fetchMap = function(array $ids, string $table, string $field, string $labelCol) use ($db) {
         $map = [];
         $ids = array_values(array_unique($ids));

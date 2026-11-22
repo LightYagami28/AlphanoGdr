@@ -7,5 +7,5 @@ if (!is_string($rawId) || filter_var($rawId, FILTER_VALIDATE_INT, ['options' => 
 require_once __DIR__.'/../libs/group-media.inc.php';
 $hierarchy = alphanoGroupHierarchy('corporazioni', (int)$rawId, alphanoUser());
 $hierarchy['header_image']=groupHeaderImage('corporazioni',(int)$rawId);
-require __DIR__ . '/../templates/groups/hierarchy.php';
+require_once __DIR__ . '/../templates/groups/hierarchy.php';
 closePage();

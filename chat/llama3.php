@@ -20,4 +20,4 @@ try {
     http_response_code($status>=400&&$status<=599?$status:500);
     echo json_encode(['ok'=>false,'error'=>$e->getMessage()],JSON_UNESCAPED_UNICODE);exit;
 }
-require __DIR__.'/messages.php';
+require_once __DIR__.'/messages.php';

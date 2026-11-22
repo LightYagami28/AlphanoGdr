@@ -13,6 +13,24 @@ use Alphano\Database\PDOMySQLDriver;
 
 
 
+function apiProfileFlags($db,array $row,array $flagsMap):array {
+ $flags=[];
+ foreach ($flagsMap as $field => $label) { if (!empty($row[$field])) { $flags[] = $label; } }
+ if (!empty($row['imprigionato'])) {
+  $city = $db->query('SELECT city FROM city WHERE id = ?', [(int)$row['imprigionato']])[0]['city'] ?? '';
+  $flags[] = "Imprig. a $city";
+ }
+ return $flags;
+}
+function apiProfileNotes($db,int $profileId):array {
+ $notesRaw = (!empty(alphanoUser()['admin']) || !empty(alphanoUser()['fatepower'])) ? $db->query(
+  'SELECT data, master, nota FROM notepg WHERE pg = ? ORDER BY id', [$profileId]) : [];
+ $notes=[];
+ foreach ($notesRaw as $n) {
+  $notes[] = ['data'=>$n['data'],'master'=>['id'=>(int)$n['master'],'name'=>GetPGFromID((int)$n['master'])],'nota'=>processText($n['nota'])];
+ }
+ return $notes;
+}
 // ────────────────────────────────────────────────────────────────────
 // 3) Recupero ID utente e connessione DB
 // ────────────────────────────────────────────────────────────────────
@@ -81,33 +99,10 @@ $flagsMap = [
     'upload'              => 'Upload',
     'vacanza'             => 'In Vacanza',
 ];
-$flags = [];
-foreach ($flagsMap as $field => $label) {
-    if (!empty($row[$field])) {
-        $flags[] = $label;
-    }
-}
-if (!empty($row['imprigionato'])) {
-    $city = $db->query('SELECT city FROM city WHERE id = ?', [(int)$row['imprigionato']])[0]['city'] ?? '';
-    $flags[] = "Imprig. a $city";
-}
+$flags = apiProfileFlags($db, $row, $flagsMap);
 
 // Note master
-$notesRaw = (!empty(alphanoUser()['admin']) || !empty(alphanoUser()['fatepower'])) ? $db->query(
-    'SELECT data, master, nota FROM notepg WHERE pg = ? ORDER BY id',
-    [$profileId]
-) : [];
-$notes = [];
-foreach ($notesRaw as $n) {
-    $notes[] = [
-        'data'   => $n['data'],
-        'master' => [
-            'id'   => (int)$n['master'],
-            'name' => GetPGFromID((int)$n['master']),
-        ],
-        'nota'   => processText($n['nota']),
-    ];
-}
+$notes = apiProfileNotes($db, $profileId);
 
 // ────────────────────────────────────────────────────────────────────
 // 6) Composizione JSON

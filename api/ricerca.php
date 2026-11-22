@@ -22,29 +22,7 @@ $rows = $db->query($sql,$sqlParams);
 // ────────────────────────────────────────────────────────────────────
 // 6) Raccolta dati di supporto per cariche e araldiche
 // ────────────────────────────────────────────────────────────────────
-$orgIDs   = $corpIDs   = $araldIDs = [];
-foreach ($rows as $r) {
-    if ($r['caricaorganizzazione']) { $orgIDs[$r['caricaorganizzazione']] = true; }
-    if ($r['caricacorporazione'])   { $corpIDs[$r['caricacorporazione']]   = true; }
-    $araldIDs[$r['araldica']] = true;
-}
-
-$org  = $corp  = $arald = [];
-if ($orgIDs) {
-    $in = implode(',', array_fill(0, count($orgIDs), '?'));
-    $tmp = $db->query("SELECT id,nome,descrizione FROM caricheorganizzazioni WHERE id IN ($in)", array_keys($orgIDs));
-    foreach ($tmp as $t) { $org[$t['id']] = $t; }
-}
-if ($corpIDs) {
-    $in = implode(',', array_fill(0, count($corpIDs), '?'));
-    $tmp = $db->query("SELECT id,nome,descrizione FROM carichecorporazioni WHERE id IN ($in)", array_keys($corpIDs));
-    foreach ($tmp as $t) { $corp[$t['id']] = $t; }
-}
-if ($araldIDs) {
-    $in = implode(',', array_fill(0, count($araldIDs), '?'));
-    $tmp = $db->query("SELECT id,nome,descrizione FROM araldiche WHERE id IN ($in)", array_keys($araldIDs));
-    foreach ($tmp as $t) { $arald[$t['id']] = $t; }
-}
+[$org,$corp,$arald] = apiSearchSupport($db,$rows);
 
 // map delle razze ed etnie
 $mapRaz = array_column(ListaRazze(true), 'nome','id');
@@ -58,7 +36,29 @@ $mapEtn = array_column(ListaEtnie(),     'nome','id');
 // imgaraldica, araldica, descaral, imgorg, org, descorg, imgcorp, corp, desccorp
 // ────────────────────────────────────────────────────────────────────
 $ricerca = [];
-foreach ($rows as $d) {
+foreach ($rows as $d) { $ricerca[]=apiSearchItem($d,$mapRaz,$mapEtn,$org,$corp,$arald); }
+
+// ────────────────────────────────────────────────────────────────────
+// 8) Output JSON
+// ────────────────────────────────────────────────────────────────────
+return $ricerca;
+});
+function apiSearchSupport($db,array $rows):array {
+ $orgIDs=$corpIDs=$araldIDs=[];
+ foreach ($rows as $r) {
+  if ($r['caricaorganizzazione']) { $orgIDs[$r['caricaorganizzazione']] = true; }
+  if ($r['caricacorporazione'])   { $corpIDs[$r['caricacorporazione']]   = true; }
+  $araldIDs[$r['araldica']] = true;
+ }
+ $org=$corp=$arald=[];
+ foreach([['caricheorganizzazioni',$orgIDs,&$org],['carichecorporazioni',$corpIDs,&$corp],['araldiche',$araldIDs,&$arald]] as [$table,$ids,&$target]){
+  if(!$ids){ continue; }
+  $in=implode(',',array_fill(0,count($ids),'?'));
+  foreach($db->query("SELECT id,nome,descrizione FROM $table WHERE id IN ($in)",array_keys($ids)) as $t){ $target[$t['id']]=$t; }
+ }
+ return [$org,$corp,$arald];
+}
+function apiSearchItem(array $d,array $mapRaz,array $mapEtn,array $org,array $corp,array $arald):array {
     $portrait=alphanoProfilePortrait($d);
     $visibleRace=alphanoVisibleRace($d);
     if($visibleRace===ALPHANO_RACE_LEGACY_SPIRIT){ $visibleRace=ALPHANO_RACE_SPIRIT; }
@@ -92,11 +92,5 @@ foreach ($rows as $d) {
         $item['corp']     = $c['nome']        ?? '';
         $item['desccorp'] = $c['descrizione'] ?? '';
     }
-    $ricerca[] = $item;
+    return $item;
 }
-
-// ────────────────────────────────────────────────────────────────────
-// 8) Output JSON
-// ────────────────────────────────────────────────────────────────────
-return $ricerca;
-});

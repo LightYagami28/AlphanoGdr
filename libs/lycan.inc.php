@@ -1,6 +1,5 @@
 <?php
 declare(strict_types=1);
-require_once __DIR__ . '/regex-any.inc.php';
 
 require_once __DIR__.'/kernel.inc.php';
 require_once __DIR__.'/transformations.inc.php';
@@ -10,10 +9,12 @@ function alphanoLycanContagionAttempt(string $raw): bool
 {
     if(preg_match('/^\s*\/\//u',$raw)){ return false; }
     $action=preg_replace('/«[^»]*»|"[^"]*"|\([^)]*\)/u','',$raw);
-    if(!preg_match('/mord\p{L}*|morso|azzann\p{L}*|affond\p{L}*.{0,16}denti/iu',$action)){ return false; }
-    if(aiRegexAny(['/\bnon\s+(?:(?:vuole)\s+)?(?:mord\p{L}*|azzann\p{L}*)/iu','/\bnon\s+(?:(?:voglio)\s+)?(?:mord\p{L}*|azzann\p{L}*)/iu','/\bnon\s+(?:(?:intende)\s+)?(?:mord\p{L}*|azzann\p{L}*)/iu','/\bnon\s+(?:(?:intendo)\s+)?(?:mord\p{L}*|azzann\p{L}*)/iu','/\bnon\s+(?:(?:tenta)\s+)?(?:mord\p{L}*|azzann\p{L}*)/iu','/\bnon\s+(?:(?:cerca di)\s+)?(?:mord\p{L}*|azzann\p{L}*)/iu'],$action)){ return false; }
-    if(aiRegexAny(['/\b(?:senza)\s*(?:infett\p{L}*|contagi\p{L}*|trasmett\p{L}*)/iu','/\b(?:non\s+(?:(?:lo)\s+)*)\s*(?:infett\p{L}*)/iu','/\b(?:non\s+(?:(?:lo)\s+)*)\s*(?:contagi\p{L}*)/iu','/\b(?:non\s+(?:(?:lo)\s+)*)\s*(?:trasmett\p{L}*)/iu','/\b(?:non\s+(?:(?:la)\s+)*)\s*(?:infett\p{L}*)/iu','/\b(?:non\s+(?:(?:la)\s+)*)\s*(?:contagi\p{L}*)/iu','/\b(?:non\s+(?:(?:la)\s+)*)\s*(?:trasmett\p{L}*)/iu','/\b(?:non\s+(?:(?:vuole)\s+)*)\s*(?:infett\p{L}*)/iu','/\b(?:non\s+(?:(?:vuole)\s+)*)\s*(?:contagi\p{L}*)/iu','/\b(?:non\s+(?:(?:vuole)\s+)*)\s*(?:trasmett\p{L}*)/iu','/\b(?:non\s+(?:(?:voglio)\s+)*)\s*(?:infett\p{L}*)/iu','/\b(?:non\s+(?:(?:voglio)\s+)*)\s*(?:contagi\p{L}*)/iu','/\b(?:non\s+(?:(?:voglio)\s+)*)\s*(?:trasmett\p{L}*)/iu','/\b(?:non\s+(?:(?:intende)\s+)*)\s*(?:infett\p{L}*)/iu','/\b(?:non\s+(?:(?:intende)\s+)*)\s*(?:contagi\p{L}*)/iu','/\b(?:non\s+(?:(?:intende)\s+)*)\s*(?:trasmett\p{L}*)/iu','/\b(?:non\s+(?:(?:intendo)\s+)*)\s*(?:infett\p{L}*)/iu','/\b(?:non\s+(?:(?:intendo)\s+)*)\s*(?:contagi\p{L}*)/iu','/\b(?:non\s+(?:(?:intendo)\s+)*)\s*(?:trasmett\p{L}*)/iu','/\b(?:non\s+(?:(?:tenta)\s+)*)\s*(?:infett\p{L}*)/iu','/\b(?:non\s+(?:(?:tenta)\s+)*)\s*(?:contagi\p{L}*)/iu','/\b(?:non\s+(?:(?:tenta)\s+)*)\s*(?:trasmett\p{L}*)/iu','/\b(?:non\s+(?:(?:cerca di)\s+)*)\s*(?:infett\p{L}*)/iu','/\b(?:non\s+(?:(?:cerca di)\s+)*)\s*(?:contagi\p{L}*)/iu','/\b(?:non\s+(?:(?:cerca di)\s+)*)\s*(?:trasmett\p{L}*)/iu'],$action)){ return false; }
-    return (bool)preg_match('/infett\p{L}*|infezion\p{L}*|contagi\p{L}*|trasmett\p{L}*.{0,55}maledizion/iu',$action);
+    return match(true){
+        !preg_match('/mord\p{L}*|morso|azzann\p{L}*|affond\p{L}*.{0,16}denti/iu',$action) => false,
+        (bool)preg_match('/\bnon\s+(?:(?:vuole|voglio|intende|intendo|tenta|cerca di)\s+)?(?:mord\p{L}*|azzann\p{L}*)/iu',$action) => false,
+        (bool)preg_match('/\b(?:senza|non\s+(?:(?:lo|la|vuole|voglio|intende|intendo|tenta|cerca di)\s+)*)\s*(?:infett\p{L}*|contagi\p{L}*|trasmett\p{L}*)/iu',$action) => false,
+        default => (bool)preg_match('/infett\p{L}*|infezion\p{L}*|contagi\p{L}*|trasmett\p{L}*.{0,55}maledizion/iu',$action)
+    };
 }
 
 /** Compatibility permissions for the optional lineage module. */

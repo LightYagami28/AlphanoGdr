@@ -31,7 +31,7 @@
       <label>Stato commerciale<select id="mail-state"><option value="all">Tutti gli stati</option><option value="action">Devi rispondere / prendere in carico</option><option value="waiting">In attesa</option><option value="delivery">Da consegnare</option><option value="completed">Conclusi</option><option value="cancelled">Annullati</option></select></label><button type="button" id="mail-filter-reset">Azzera filtri</button>
     </div></details><span id="mail-filter-count" aria-live="polite"></span>
   </section>
-  <details class="mail-push-panel"><summary>Avvisi e notifiche della posta</summary><?php require dirname(__DIR__).'/partials/push-controls.php'; ?></details>
+  <details class="mail-push-panel"><summary>Avvisi e notifiche della posta</summary><?php require_once dirname(__DIR__).'/partials/push-controls.php'; ?></details>
   <div id="Lista"></div>
   <div id="Opzioni"></div>
 

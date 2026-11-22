@@ -109,6 +109,16 @@ function resolveProfileRace(array $row, string $razza, ?int $creatorId, int $ese
     return [$assignment['user'], (string)$assignment['message']];
 }
 
+function setProfileNotice(string $name,array $row,string $notice):string {
+    $msg = 'Profilo aggiornato con successo a ' . htmlspecialchars($name, ENT_QUOTES) . ' · ' . htmlspecialchars(GetRazza((int)$row['razza']), ENT_QUOTES);
+    if (!empty($row['alternate_form'])) {
+        $msg .= ' · Forma alternativa';
+    }
+    if ($notice !== '') {
+        $msg .= ' · ' . htmlspecialchars($notice, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    }
+    return $msg;
+}
 function setProfile(int $esecutore,string $destinatarioNome,string $sesso='',string $etnia='',string $allineamento='',string $razza='',?int $creatorId=null):string {
     require_once __DIR__.'/lineages.inc.php';
     $db = connectDB();
@@ -138,14 +148,7 @@ function setProfile(int $esecutore,string $destinatarioNome,string $sesso='',str
         if ($own) {
             $db->commit();
         }
-        $msg = 'Profilo aggiornato con successo a ' . htmlspecialchars($destinatarioNome, ENT_QUOTES) . ' · ' . htmlspecialchars(GetRazza((int)$row['razza']), ENT_QUOTES);
-        if (!empty($row['alternate_form'])) {
-            $msg .= ' · Forma alternativa';
-        }
-        if ($notice !== '') {
-            $msg .= ' · ' . htmlspecialchars($notice, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-        }
-        return $msg;
+        return setProfileNotice($destinatarioNome, $row, $notice);
     } catch (Throwable $e) {
         if ($own && $db->inTransaction()) {
             $db->rollBack();

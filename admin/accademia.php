@@ -121,7 +121,7 @@ if ($azione === 'showvoti') {
         $titolo = getNomeGiocata((int)$giocata);
     }
     $academyView = 'votes';
-    require __DIR__ . '/../templates/academy/votes.php';
+    require_once __DIR__ . '/../templates/academy/votes.php';
     exit;
 }
 
@@ -238,4 +238,4 @@ foreach ($collections as $collection) {
     }
 }
 $approvedOrganizations = $admin ? getOrgApprovati() : [];
-require __DIR__ . '/../templates/academy/index.php';
+require_once __DIR__ . '/../templates/academy/index.php';

@@ -7,4 +7,4 @@ $idpg = GetIDPG(true);
 $user = alphanoUser();
 $forum = ['mode'=>'board', 'title'=>'Bacheche', 'apiBaseUrl'=>'/api/bacheche',
     'currentUserId'=>$idpg, 'isAdmin'=>!empty($user['admin']), 'csrfToken'=>alphanoCsrfToken()];
-require __DIR__ . '/../templates/forum/index.php';
+require_once __DIR__ . '/../templates/forum/index.php';

@@ -34,7 +34,7 @@ function alphanoPresence(): array
     $players=0;$npcs=0;
     foreach ($db->query("SELECT id,nome,razza,vampire_human_form,sesso,posizione,chat,lastmove,bloccato FROM utenti WHERE posizione<>'off' ORDER BY nome") as $user) {
         if(!alphanoPlayerOnline($user)){ continue; }
-        $key=$user['posizione']==='online'?'@parked':(isset($groups[$user['chat']])?$user['chat']:'@other');
+        if($user['posizione']==='online'){ $key='@parked'; }elseif(isset($groups[$user['chat']])){ $key=$user['chat']; }else{ $key='@other'; }
         if (!isset($groups[$key])) { $groups[$key]=['key'=>$key,'title'=>$key==='@parked'?'Fuori scena':'Altri luoghi e stanze riservate','url'=>null,'image'=>null,'session_active'=>false,'players'=>0,'npcs'=>0,'members'=>[]]; }
         $member=$person('player',(int)$user['id'],$user['nome'],alphanoVisibleRace($user),$user['sesso']);$member['game_invite_visible']=(int)$user['id']!==(int)$viewer['id'];$member['can_invite']=alphanoPlayerOnline($user)&&(int)$user['id']!==(int)$viewer['id'];$groups[$key]['members'][]=$member;
         $groups[$key]['players']++;$players++;

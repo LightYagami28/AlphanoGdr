@@ -72,5 +72,5 @@ foreach ($db->query(
 $names=[$pgid=>GetPGFromID($pgid)];
 $uniqueMail=[];foreach($mail as $box){ foreach($box as $row){ $uniqueMail[(int)$row['id']]=$row; } }
 $mailView=alphanoMailBoxes(array_values($uniqueMail),$pgid);
-require __DIR__.'/../templates/mail/workspace.php';
+require_once __DIR__.'/../templates/mail/workspace.php';
 closePage();

@@ -42,15 +42,8 @@ function resizeImage(string $srcPath, int $newWidth, string $destPath): bool
 
     $srcImg = @imagecreatefromstring($data);
     if (!$srcImg) {
-        // fallback: copia diretta
-        $dir = dirname($destPath);
-        if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
-            throw new \AlphanoStorageException("Impossibile creare dir: $dir");
-        }
-        if (!@copy($srcPath, $destPath)) {
-            throw new \AlphanoStorageException("Copy fallback fallito: $srcPath → $destPath");
-        }
-        return true;
+        alphanoEnsureImageDir($destPath);
+        return alphanoCopyImageFallback($srcPath, $destPath);
     }
 
     $scale = $width > $newWidth ? ($newWidth / $width) : 1;
@@ -71,11 +64,7 @@ function resizeImage(string $srcPath, int $newWidth, string $destPath): bool
     }
     imagedestroy($srcImg);
 
-    $dir = dirname($destPath);
-    if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
-        imagedestroy($thumb);
-        throw new \AlphanoStorageException("Impossibile creare dir: $dir");
-    }
+    alphanoEnsureImageDir($destPath, $thumb);
 
     $ok = writeImage($type, $thumb, $destPath);
     imagedestroy($thumb);
@@ -84,6 +73,25 @@ function resizeImage(string $srcPath, int $newWidth, string $destPath): bool
         throw new \AlphanoStorageException("writeImage fallito: $destPath");
     }
 
+    return true;
+}
+
+/** Ensure the destination directory exists, releasing a GD resource on failure. */
+function alphanoEnsureImageDir(string $destPath, ?\GdImage $thumb = null): void
+{
+    $dir = dirname($destPath);
+    if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
+        if ($thumb !== null) { imagedestroy($thumb); }
+        throw new \AlphanoStorageException("Impossibile creare dir: $dir");
+    }
+}
+
+/** Direct-copy fallback when GD cannot decode the source. */
+function alphanoCopyImageFallback(string $srcPath, string $destPath): bool
+{
+    if (!@copy($srcPath, $destPath)) {
+        throw new \AlphanoStorageException("Copy fallback fallito: $srcPath → $destPath");
+    }
     return true;
 }
 

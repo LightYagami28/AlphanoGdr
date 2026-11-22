@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/libs/config-loader.inc.php';
 require_once __DIR__.'/libs/kernel.inc.php';
 require_once __DIR__.'/libs/credits.inc.php';
 if(alphanoUser()&&!isset($_SESSION['alphano_login_error'])&&!(isset($_GET['preview'])&&alphanoCan('admin'))){header('Location: /main.php',true,303);exit;}
@@ -10,7 +11,7 @@ $loginName=$loginFailed?$failedLogin['username']:'';
 $home=alphanoAppearance()['home']??[];
 $pinned=array_flip($home['manuals']??[]);
 $homeManuals=$pinned?array_values(array_filter(alphanoAppearancePublicManuals(),static fn($m)=>isset($pinned[(int)$m['id']]))):[];
-$csrf=alphanoCsrfToken();$config=require __DIR__.'/config/app.php';
+$csrf=alphanoCsrfToken();$config=alphanoLoadConfig(__DIR__.'/config/app.php');
 require_once __DIR__.'/libs/rpg.inc.php';$stats=rpg_catalog()['stats'];
 $config['initial_race']=alphanoHumanRaceId();
 $config['registration_enabled']=$config['registration_enabled']&&$config['initial_race']>0;

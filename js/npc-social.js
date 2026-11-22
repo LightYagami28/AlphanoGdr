@@ -7,11 +7,8 @@
  const signed=value=>Number(value)>0?'+'+Number(value):String(Number(value)||0);
  const updateMeter=(meter,value)=>{if(!meter){return;}value=Math.max(-100,Math.min(100,Number(value)||0));const point=50+value/2;meter.style.setProperty('--meter-start',Math.min(50,point)+'%');meter.style.setProperty('--meter-width',Math.abs(value)/2+'%');meter.style.setProperty('--meter-point',point+'%');meter.setAttribute('aria-valuenow',value);meter.setAttribute('aria-valuetext',signed(value));};
  let refreshing=false;
- async function refresh(){
-  if(refreshing||document.hidden){return;}refreshing=true;
-  try{
-   const response=await fetch('/api/ai-social.php?action='+(readOnly?'staff_context':'profile')+'&npc_id='+encodeURIComponent(npc)+(readOnly?'&player_id='+encodeURIComponent(player):''),{cache:'no-store',credentials:'same-origin'});
-   if(!response.ok){return;}const profile=await response.json(),bond=profile.bond;
+  function renderBond(profile){
+   const bond=profile.bond;
    if(bond){
     const panel=document.querySelector('[data-npc-bond]'),meter=document.querySelector('[data-npc-bond-meter]');
     if(panel){panel.dataset.tone=bond.tone;panel.dataset.unknown=String(bond.value===null);}
@@ -20,32 +17,37 @@
     updateMeter(meter,score);
 
    }
+  }
+  function renderCounters(profile){
    text('[data-npc-relation-state]',profile.state.charAt(0).toUpperCase()+profile.state.slice(1));
    for(const name of ['encounters','interactions','meaningful']){text('[data-npc-count="'+name+'"]',profile[name]??0);}
+  }
+  function renderMetrics(profile){
    for(const [key,metric] of Object.entries(profile.metrics??{})){
     const item=document.querySelector('[data-npc-metric="'+key+'"]');if(!item){continue;}
     const meter=item.querySelector('[data-signed-meter]');updateMeter(meter,metric.value);item.dataset.unknown='false';item.dataset.metricSign=(metric.value??0)<0?'negative':'positive';
     item.querySelector('output').textContent=signed(metric.value);
 
    }
-   if(profile.development){
-    const node=(tag,content)=>{const el=document.createElement(tag);if(content!==undefined){el.textContent=content;}return el;};
-    const story=document.querySelector('[data-npc-development-story]'),wishes=document.querySelector('[data-npc-aspirations]');
-    if(story){
-     const fragment=document.createDocumentFragment();
-     for(const episode of profile.development.story??[]){const item=node('li'),date=new Date(episode.created_at*1000),time=node('time',date.toLocaleString('it-IT'));time.dateTime=date.toISOString();item.append(time,node('strong',episode.category==='trauma'?'Un incontro che ha segnato il PNG':'Il legame è cambiato'),node('p',episode.summary));fragment.append(item);}
+  }
+  function renderStory(story,development,node){
+const fragment=document.createDocumentFragment();
+     for(const episode of development.story??[]){const item=node('li'),date=new Date(episode.created_at*1000),time=node('time',date.toLocaleString('it-IT'));time.dateTime=date.toISOString();item.append(time,node('strong',episode.category==='trauma'?'Un incontro che ha segnato il PNG':'Il legame è cambiato'),node('p',episode.summary));fragment.append(item);}
      story.replaceChildren(fragment);const empty=document.querySelector('[data-npc-development-empty]');if(empty){empty.hidden=story.children.length>0;}
-    }
-    if(wishes){
-     const fragment=document.createDocumentFragment();
-     for(const wish of profile.development.aspirations??[]){const item=node('article');item.className='npc-offer';item.append(node('h4',(wish.stance==='desiderio'?'Una scelta desiderata':'Un limite dichiarato')+' · '+wish.family),node('p',wish.summary),node('blockquote',wish.evidence),node('time',new Date(wish.created_at*1000).toLocaleString('it-IT')));fragment.append(item);}
+  }
+  function renderWishes(wishes,development,node){
+const fragment=document.createDocumentFragment();
+     for(const wish of development.aspirations??[]){const item=node('article');item.className='npc-offer';item.append(node('h4',(wish.stance==='desiderio'?'Una scelta desiderata':'Un limite dichiarato')+' · '+wish.family),node('p',wish.summary),node('blockquote',wish.evidence),node('time',new Date(wish.created_at*1000).toLocaleString('it-IT')));fragment.append(item);}
      wishes.replaceChildren(fragment);
-    }
-   }
-   const known=document.querySelector('[data-npc-known-items]');
-   if(known&&profile.knowledge?.allowed){
-    const fragment=document.createDocumentFragment();
-    for(const item of profile.knowledge.items??[]){
+  }
+  function renderDevelopment(profile){
+   if(!profile.development){return;}
+    const node=(tag,content)=>{const el=document.createElement(tag);if(content!==undefined){el.textContent=content;}return el;};
+   const story=document.querySelector('[data-npc-development-story]'),wishes=document.querySelector('[data-npc-aspirations]');
+   if(story){renderStory(story,profile.development,node);}
+   if(wishes){renderWishes(wishes,profile.development,node);}
+  }
+  function knownCard(item,profile){
      const node=(tag,className,content)=>{const el=document.createElement(tag);if(className){el.className=className;}if(content!==undefined){el.textContent=content;}return el;};
      const article=node('article','revelation-card is-known'),header=node('header','revelation-card-header'),person=node('a','revelation-person');person.href=item.profile_url;person.dataset.characterMarkers='off';
      const portrait=node('img');portrait.src=item.portrait;portrait.alt='Ritratto di '+item.name;portrait.width=76;portrait.height=76;portrait.loading='lazy';
@@ -54,14 +56,31 @@
      const sex=node('span','revelation-sex '+(item.sex==='Femmina'?'is-female':'is-male'),item.sex==='Femmina'?'♀':'♂');sex.setAttribute('role','img');sex.setAttribute('aria-label',item.sex);markers.append(race,sex);identity.append(markers);person.append(portrait,identity);header.append(person);
      const metadata=node('dl','revelation-metadata');for(const [label,value] of [['Prima rivelazione',new Date(item.first_seen*1000).toLocaleString('it-IT')],['Luogo dell’ultima osservazione',item.place||item.chat_key]]){const row=node('div');row.append(node('dt','',label),node('dd','',value));metadata.append(row);}
      const memory=node('details','revelation-memory');memory.append(node('summary','','Il ricordo della scena'),node('p','',item.evidence));
-     article.append(header,node('span','revelation-status','Conosce il segreto'),node('h3','',item.name+(readOnly?' conosce la natura di '+profile.player?.name:' conosce la tua natura')),node('p','revelation-nature','Natura rivelata: '+item.race_label),metadata,memory);fragment.append(article);
-    }
+     article.append(header,node('span','revelation-status','Conosce il segreto'),node('h3','',item.name+(readOnly?' conosce la natura di '+profile.player?.name:' conosce la tua natura')),node('p','revelation-nature','Natura rivelata: '+item.race_label),metadata,memory);
+    return article;
+  }
+  function renderKnown(profile){
+   const known=document.querySelector('[data-npc-known-items]');
+   if(known&&profile.knowledge?.allowed){
+    const fragment=document.createDocumentFragment();
+    for(const item of profile.knowledge.items??[]){fragment.append(knownCard(item,profile));}
     if(!fragment.childNodes.length){const empty=document.createElement('p');empty.className='npc-known-empty';empty.textContent='Nessuna rivelazione della tua natura risulta osservata da questo PNG.';fragment.append(empty);}
     known.replaceChildren(fragment);
    }
-  }catch{/* Background refresh never turns a saved action into an error. */}
-  finally{refreshing=false;}
- }
+  }
+  async function refresh(){
+   if(refreshing||document.hidden){return;}refreshing=true;
+   try{
+    const response=await fetch('/api/ai-social.php?action='+(readOnly?'staff_context':'profile')+'&npc_id='+encodeURIComponent(npc)+(readOnly?'&player_id='+encodeURIComponent(player):''),{cache:'no-store',credentials:'same-origin'});
+    if(!response.ok){return;}const profile=await response.json();
+    renderBond(profile);
+    renderCounters(profile);
+    renderMetrics(profile);
+    renderDevelopment(profile);
+    renderKnown(profile);
+   }catch{/* Background refresh never turns a saved action into an error. */}
+   finally{refreshing=false;}
+  }
  window.addEventListener('focus',refresh);
  document.addEventListener('visibilitychange',()=>{if(!document.hidden){void refresh();}});
  setInterval(()=>{if(document.hasFocus()){void refresh();}},10000);

@@ -12,4 +12,4 @@ if (empty($user['admin'])) {
     if (!$mayorCity) { alphanoFail('Città non trovata.',404); }
 }
 $boardAdmin=['apiUrl'=>'/api/admin/bacheche.php','csrfToken'=>alphanoCsrfToken(),'canManageAll'=>!empty($user['admin']),'mayorCity'=>$mayorCity];
-require __DIR__ . '/../templates/forum/admin.php';
+require_once __DIR__ . '/../templates/forum/admin.php';

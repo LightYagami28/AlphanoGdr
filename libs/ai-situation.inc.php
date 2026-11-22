@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
-require_once __DIR__ . '/regex-any.inc.php';
+
+if (!defined('S1192_LIBS_AI_SITUATION_INC_PHP_AE5A6E_S_U')) { define('S1192_LIBS_AI_SITUATION_INC_PHP_AE5A6E_S_U', '/\s+/u'); }
 const AI_SITUATION_ANCHOR='/\b(?:cerchio(?:\s+(?:di\s+pietra|in\s+rovina))?|campo\s+di\s+studio|banco(?:\s+(?:della|delle|dei|di)\s+\p{L}+)?|portico(?:\s+laterale)?|sala\s+comune|riparo(?:\s+di\s+rami)?|muratura|cancelli|portone|varco|bancone|focolare|tavolo|salone|cortile|fontana|pontile|navata|cripta|molo|ingresso|sentier[oi]|pozzo|argine|cascat[ae]|scalinata|mura|scaffali|fucina|officina|altare|mulino|recinto|radici)\b/iu';
 
 function aiSituationPositions(array $room,array $npc):array {
@@ -10,12 +11,12 @@ function aiSituationPositions(array $room,array $npc):array {
 }
 
 function aiSituationAt(string $position):string {
-    if(aiRegexAny(['/^(?:al(?:la|le|lo|l[’\x{27}])?)\b/iu','/^(?:nel(?:la|le|lo|l[’\x{27}])?)\b/iu','/^(?:sul(?:la|le|lo|l[’\x{27}])?)\b/iu','/^(?:presso)\b/iu','/^(?:vicino)\b/iu','/^(?:accanto)\b/iu','/^(?:tra)\b/iu','/^(?:davanti)\b/iu','/^(?:dietro)\b/iu'],$position)){ return $position; }
+    if(preg_match('/^(?:al(?:la|le|lo|l[’\x{27}])?|nel(?:la|le|lo|l[’\x{27}])?|sul(?:la|le|lo|l[’\x{27}])?|presso|vicino|accanto|tra|davanti|dietro)\b/iu',$position)){ return $position; }
     $article=match(true){
         (bool)preg_match('/^(?:cancelli|scaffali|bassorilievi|sentieri)\b/iu',$position)=>'i ',
         (bool)preg_match('/^(?:rovine|radici|mura|colonne|cascate)\b/iu',$position)=>'le ',
         (bool)preg_match('/^[aeiouàèéìòù]/iu',$position)=>'l’',
-        (bool)aiRegexAny(['/^(?:sala)\b/iu','/^(?:fontana)\b/iu','/^(?:navata)\b/iu','/^(?:cripta)\b/iu','/^(?:fucina)\b/iu','/^(?:scalinata)\b/iu','/^(?:muratura)\b/iu','/^(?:porta)\b/iu','/^(?:foresta)\b/iu','/^(?:colonna)\b/iu','/^(?:cappella)\b/iu','/^(?:fortezza)\b/iu','/^(?:piazza)\b/iu','/^(?:radura)\b/iu','/^(?:sporgenza)\b/iu','/^(?:capanna)\b/iu','/^(?:riva)\b/iu','/^(?:stanza)\b/iu'],$position)=>'la ',
+        (bool)preg_match('/^(?:sala|fontana|navata|cripta|fucina|scalinata|muratura|porta|foresta|colonna|cappella|fortezza|piazza|radura|sporgenza|capanna|riva|stanza)\b/iu',$position)=>'la ',
         default=>'il '
     };
     return 'presso '.$article.$position;
@@ -30,14 +31,14 @@ function aiSituationBase(array $room,array $npc):array {
         if(aiMentionsNpc($clause,(string)$npc['name'])){
             // A room often describes several people in one sentence. Do not
             // prepend a colleague's actions as this NPC's new turn.
-            $full=mb_stripos($clause,$npc['name']);$first=preg_split('/\s+/u',$npc['name'])[0];$start=$full!==false?$full:mb_stripos($clause,$first);
+            $full=mb_stripos($clause,$npc['name']);$first=preg_split(S1192_LIBS_AI_SITUATION_INC_PHP_AE5A6E_S_U,$npc['name'])[0];$start=$full!==false?$full:mb_stripos($clause,$first);
             $own=mb_substr($clause,(int)$start);
             foreach(aiDb()->query('SELECT name FROM ai_npcs WHERE chat_key=? AND id<>?',[$room['chat_key'],(int)$npc['id']]) as $other){
-                $alias=preg_split('/\s+/u',$other['name'])[0];
+                $alias=preg_split(S1192_LIBS_AI_SITUATION_INC_PHP_AE5A6E_S_U,$other['name'])[0];
                 if(preg_match('/(?<!\p{L})'.preg_quote($alias,'/').'(?!\p{L})/iu',$own,$m,PREG_OFFSET_CAPTURE)){ $own=substr($own,0,$m[0][1]); }
             }
             $own=preg_replace('/(?:,\s*[^,.]*|\s+e(?:\s+(?:il|la|l[’\x{27}]))?[^,.]*)$/u','',$own)??$own;
-            $own=aiText($own,300);if(count(preg_split('/\s+/u',$own))<4){ $own=''; }break;
+            $own=aiText($own,300);if(count(preg_split(S1192_LIBS_AI_SITUATION_INC_PHP_AE5A6E_S_U,$own))<4){ $own=''; }break;
         }
     }
     $position=aiText((string)$profile['scene_position'],100);
@@ -85,12 +86,12 @@ function aiSituationOpenness(array $npc,array $rules,array $relation):string {
 }
 
 function aiSituationAcceptsCompany(string $speech):bool {
-    if(aiRegexAny(['/\bnon\s+(?:voglio|desidero|posso|accetto)\b.{0,25}(?:compagnia|convers|parlare|pausa)/iu','/lasciatemi\s+(?:solo|sola)/iu','/preferisco\s+(?:restare|stare)\s+(?:solo|sola)/iu'],$speech)){ return false; }
-    return (bool)aiRegexAny(['/\b(?:volentieri)\b/iu','/\b(?:parliamo)\b/iu','/\b(?:conversiamo)\b/iu','/\b(?:possiamo\s+parlare)\b/iu','/\b(?:mi\s+fa(?:rebbe)?\s+piacere)\b/iu','/\b(?:(?:posso)\s+(?:fare\s+)?(?:una\s+)?(?:breve\s+)?pausa)\b/iu','/\b(?:(?:possiamo)\s+(?:fare\s+)?(?:una\s+)?(?:breve\s+)?pausa)\b/iu','/\b(?:(?:facciamo)\s+(?:fare\s+)?(?:una\s+)?(?:breve\s+)?pausa)\b/iu','/\b(?:(?:posso|voglio)\s+conceder\p{L}*\s+(?:un\s+)?momento)\b/iu','/\b(?:vi\s+ascolto)\b/iu','/\b(?:ti\s+ascolto)\b/iu'],$speech);
+    if(preg_match('/\bnon\s+(?:voglio|desidero|posso|accetto)\b.{0,25}(?:compagnia|convers|parlare|pausa)|lasciatemi\s+(?:solo|sola)|preferisco\s+(?:restare|stare)\s+(?:solo|sola)/iu',$speech)){ return false; }
+    return (bool)preg_match('/\b(?:volentieri|parliamo|conversiamo|possiamo\s+parlare|mi\s+fa(?:rebbe)?\s+piacere|(?:posso|possiamo|facciamo)\s+(?:fare\s+)?(?:una\s+)?(?:breve\s+)?pausa|(?:posso|voglio)\s+conceder\p{L}*\s+(?:un\s+)?momento|vi\s+ascolto|ti\s+ascolto)\b/iu',$speech);
 }
 
 function aiSituationInvitationAccepted(string $speech,bool $invited):bool {
-    return aiSituationAcceptsCompany($speech)||($invited&&aiRegexAny(['/\b(?:va\s+bene)\b/iu','/\b(?:d[’\x{27}]accordo)\b/iu','/\b(?:posso\s+fare\s+due\s+passi)\b/iu','/\b(?:accetto\s+la\s+compagnia)\b/iu'],$speech)&&!preg_match('/\bnon\s+(?:posso|voglio|accetto)\b/iu',$speech));
+    return aiSituationAcceptsCompany($speech)||($invited&&preg_match('/\b(?:va\s+bene|d[’\x{27}]accordo|posso\s+fare\s+due\s+passi|accetto\s+la\s+compagnia)\b/iu',$speech)&&!preg_match('/\bnon\s+(?:posso|voglio|accetto)\b/iu',$speech));
 }
 
 function aiSituationContext(array $room,array $npc,array $job):string {

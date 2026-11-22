@@ -2,10 +2,12 @@
 declare(strict_types=1);
 require_once __DIR__ . '/regex-any.inc.php';
 
+if (!defined('S1192_LIBS_AI_EXPRESSION_INC_PHP_0B8E96_S_U')) { define('S1192_LIBS_AI_EXPRESSION_INC_PHP_0B8E96_S_U', '/\s+/u'); }
+
 /** Prompt excerpts are complete sentences where possible, otherwise complete UTF-8 words. */
 function aiExpressionExcerpt(string $text,int $budget):string {
     if($budget<1){ return ''; }
-    $text=trim(preg_replace('/\s+/u',' ',html_entity_decode(strip_tags($text),ENT_QUOTES|ENT_HTML5,'UTF-8'))??'');
+    $text=trim(preg_replace(S1192_LIBS_AI_EXPRESSION_INC_PHP_0B8E96_S_U,' ',html_entity_decode(strip_tags($text),ENT_QUOTES|ENT_HTML5,'UTF-8'))??'');
     if(mb_strlen($text)<=$budget){ return $text; }
     $sentences=preg_split('/(?<=[.!?;])\s+/u',$text,-1,PREG_SPLIT_NO_EMPTY)?:[$text];$complete='';
     foreach($sentences as $sentence){
@@ -30,7 +32,7 @@ function aiExpressionPersona(array $npc,array $rules,int $budget=320):string {
     $profile=is_array($npc['profile']??null)?$npc['profile']:(json_decode((string)($npc['profile']??'{}'),true)?:[]);
     $occupation=$normalize((string)($profile['occupation']??''));$name=$normalize((string)($npc['name']??''));$units=[];$position=0;
     foreach([[(string)($npc['personality']??''),40],[(string)($rules['honor_code']??''),35],[(string)($npc['character_text']??''),25]] as [$field,$priority]){
-        $field=trim(preg_replace('/\s+/u',' ',html_entity_decode(strip_tags($field),ENT_QUOTES|ENT_HTML5,'UTF-8'))??'');
+        $field=trim(preg_replace(S1192_LIBS_AI_EXPRESSION_INC_PHP_0B8E96_S_U,' ',html_entity_decode(strip_tags($field),ENT_QUOTES|ENT_HTML5,'UTF-8'))??'');
         foreach(preg_split('/(?<=[.!?])\s+/u',$field,-1,PREG_SPLIT_NO_EMPTY)?:[] as $sentence){
             $sentence=trim($sentence);$key=$normalize($sentence);if($key===''){ continue; }
             // The surrounding prompt already supplies name and occupation.
@@ -133,7 +135,7 @@ function aiExpressionSampling(string $model,string $kind):array {
 /** Constrain syntax only; meaning, identity, agency and equipment still need the usual guards. */
 function aiExpressionFormat(array $npc,array $job):array {
     if(($job['kind']??'')!=='npc-turn'){ return []; }
-    $name=trim(preg_replace('/\s+/u',' ',(string)($npc['name']??''))??'');
+    $name=trim(preg_replace(S1192_LIBS_AI_EXPRESSION_INC_PHP_0B8E96_S_U,' ',(string)($npc['name']??''))??'');
     if($name===''||mb_strlen($name)>100){ return []; }
     $prefix=json_encode($name.' ',JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_THROW_ON_ERROR);
     return ['grammar'=>'root ::= '.$prefix.' action (speech action?)?' ."\n".'action ::= [^«»<>\x00-\x1F]+' ."\n".'speech ::= "«" [^«»<>\x00-\x1F]+ "»"' ."\n"];

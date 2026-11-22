@@ -50,8 +50,8 @@ function alphanoLycanInfect(array $actor, int $target, string $chat, string $rea
 }
 
 /** Compatibility projection: ancestral contagion powers remain exclusive to lycans. */
-function alphanoLycanState(array $user,?int $now=null):array {
-    $s=alphanoTransformationState($user,$now);
+function alphanoLycanState(array $user):array {
+    $s=alphanoTransformationState($user);
     if($s['kind']!=='lycan'){$s['eligible']=false;$s['visible']=false;$s['canChoose']=false;$s['canTransform']=false;$s['ancestral']=false;}
     $s['form']=$s['form']==='native'&&$s['kind']==='lycan'?'wolf':'human';return $s;
 }
@@ -60,4 +60,4 @@ function alphanoLycanSync(int $id,?string $requested=null,?int $now=null):array 
     $s=alphanoTransformationSync($id,$requested,$now);
     if($s['kind']==='lycan'){ $s['form']=$s['form']==='native'?'wolf':'human'; }return $s;
 }
-function alphanoLycanTick(?int $now=null):int {return alphanoTransformationTick($now);}
+function alphanoLycanTick():int {return alphanoTransformationTick();}

@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
-require_once __DIR__ . '/regex-any.inc.php';
+
+if (!defined('S1192_LIBS_AI_ADJUDICATION_INC_PHP_7609D7_IL_TENTATIVO_DECISIVO_FALLISCE_E_I')) { define('S1192_LIBS_AI_ADJUDICATION_INC_PHP_7609D7_IL_TENTATIVO_DECISIVO_FALLISCE_E_I', 'il tentativo decisivo fallisce e il PNG ripiega'); }
+if (!defined('S1192_LIBS_AI_ADJUDICATION_INC_PHP_371BA4_QUEST')) { define('S1192_LIBS_AI_ADJUDICATION_INC_PHP_371BA4_QUEST', 'Quest #'); }
+if (!defined('S1192_LIBS_AI_ADJUDICATION_INC_PHP_A69C3F_GIRO')) { define('S1192_LIBS_AI_ADJUDICATION_INC_PHP_A69C3F_GIRO', ', giro '); }
 require_once __DIR__.'/rpg-combat.inc.php';
 require_once __DIR__.'/lycan.inc.php';
 require_once __DIR__.'/item-engine.inc.php';
@@ -39,7 +42,7 @@ function aiAdjudicationAbility(array $action,int $session,int $round):?array {
 function aiAdjudicationScore(array $actor,string $test,?array $ability=null):int {
  $stats=$actor['stats']??rpg_actor_stats($actor['kind'],(int)$actor['id']);$score=rpgCombatScore($stats,$test);
  if($ability&&!isset($ability['human_rules'])){$effect=$ability['effect'];$score=(int)round($score*.75+(int)($stats[$effect['stat']]??0)*.25);$abilityBonus=(int)$effect['bonus'];}
- $score+=max($abilityBonus??0,rpgHumanBonus($actor,$test,$ability));$score-=rpgMalusEvaluate((int)($actor['native_race_id']??$actor['razza']),$actor['_racial_malus']??[],in_array($test,['attack','defence'],true)?'physical':'mental')['penalty'];return (int)round($score*itemScoreModifier($actor['_item_effects']??[],$test,$stats));
+ $score+=max($abilityBonus??0,rpgHumanBonus($actor,$test,$ability));$score-=rpgMalusEvaluate((int)($actor['native_race_id']??$actor['razza']),$actor['_racial_malus']??[],in_array($test,['attack','defence'],true)?'physical':'mental')['penalty'];return (int)round($score*itemScoreModifier($actor['_item_effects']??[],$test));
 }
 /** Applies bounded damage to the in-memory verdict only, preserving the established racial exceptions. */
 function aiAdjudicationDamage(array &$result,array $actor,array $target,string $targetKey,int $damage,string $wound,array $cfg,array $room,bool $training,int $round,array &$hp,array &$wounds,array &$conditions,array &$deaths,array $states,int $session=0):void {
@@ -49,7 +52,7 @@ function aiAdjudicationDamage(array &$result,array $actor,array $target,string $
  // blow makes the NPC withdraw; no healing, immunity to other actors, or automatic PG victory is added.
  if(aiNpcSuperDecisiveDamage($hp[$targetKey],$damage)&&($gate=aiNpcSuperEncounterCheck($session,$actor,$target))){
   $result['specialist_encounter']=$gate;
-  if(!$gate['allowed']){$conditions['npc:'.$actor['id']]['super_withdrawn'][$targetKey]=['round'=>$round,'policy'=>$gate['policy']];$result['outcome']='il tentativo decisivo fallisce e il PNG ripiega';$result['reason']='La preparazione e la tenuta dell’avversario negano il varco decisivo. Il PNG interrompe l’assalto e cerca di sottrarsi alla contesa: quel colpo non infligge altre ferite.';return;}
+  if(!$gate['allowed']){$conditions['npc:'.$actor['id']]['super_withdrawn'][$targetKey]=['round'=>$round,'policy'=>$gate['policy']];$result['outcome']=S1192_LIBS_AI_ADJUDICATION_INC_PHP_7609D7_IL_TENTATIVO_DECISIVO_FALLISCE_E_I;$result['reason']='La preparazione e la tenuta dell’avversario negano il varco decisivo. Il PNG interrompe l’assalto e cerca di sottrarsi alla contesa: quel colpo non infligge altre ferite.';return;}
  }
  // An Original can fall to an Ancestral only when already gravely wounded, exactly as in the existing engine.
  if((int)$target['razza']===ALPHANO_RACE_ORIGINAL&&!((int)$actor['razza']===ALPHANO_RACE_ANCESTRAL&&(int)$target['puntif']<maxpuntif/3)){ $damage=min($damage,max(0,$hp[$targetKey]-1)); }
@@ -115,7 +118,7 @@ function aiAdjudicate(int $sid):array{
   $mental=$ability?$effectType==='mental':($analysis['intent']==='potere');
   if($mental&&!$ability){$r['outcome']='la dichiarazione non attiva una capacità appresa';$r['reason']='Per esercitare un potere mentale seleziona un’abilità appresa e disponibile: il nome scritto in chat non assegna effetti, non supera i requisiti e non evita il recupero.';$results[]=$r;continue;}
   $physical=mb_strtolower(implode(' ',array_column(array_filter($analysis['acts'],static fn($act)=>in_array($act['intent'],['assalto','arresto'],true)),'text')));
-  $bite=in_array($intent,['assalto','attacco'],true)&&(bool)preg_match('/\b(?:morde|mordo|mordere|morderlo|morderla|mordendolo|mordendola|morderli|morderle|azzanna|azzanno|azzannare|azzannarlo|azzannarla|azzannarli|azzannarle)\b|'.aiNarrativeBitePattern().'/iu',$physical);$grab=in_array($intent,['assalto','attacco','arresto'],true)&&(bool)aiRegexAny(['/\b(?:immobilizza)\b/iu','/\b(?:immobilizzo)\b/iu','/\b(?:immobilizzare)\b/iu','/\b(?:afferra)\b/iu','/\b(?:afferro)\b/iu','/\b(?:afferrare)\b/iu','/\b(?:afferrar(?:lo|la|li|le|gli))\b/iu','/\b(?:stringe)\b/iu','/\b(?:stringo)\b/iu','/\b(?:stringere)\b/iu','/\b(?:serrare)\b/iu'],$physical)&&!preg_match('/visto che|già|ha stretto|mantiene/iu',$physical);
+  $bite=in_array($intent,['assalto','attacco'],true)&&(bool)preg_match('/\b(?:morde|mordo|mordere|morderlo|morderla|mordendolo|mordendola|morderli|morderle|azzanna|azzanno|azzannare|azzannarlo|azzannarla|azzannarli|azzannarle)\b|'.aiNarrativeBitePattern().'/iu',$physical);$grab=in_array($intent,['assalto','attacco','arresto'],true)&&(bool)preg_match('/\b(?:immobilizza|immobilizzo|immobilizzare|afferra|afferro|afferrare|afferrar(?:lo|la|li|le|gli)|stringe|stringo|stringere|serrare)\b/iu',$physical)&&!preg_match('/visto che|già|ha stretto|mantiene/iu',$physical);
   // One declaration is one offensive manoeuvre. An attempted bite must not
   // disappear behind its preparatory grab, nor grant a free successful grapple.
   if($bite){ $grab=false; }
@@ -166,7 +169,7 @@ function aiAdjudicate(int $sid):array{
   $inventory=aiGameInventory($a['kind'],(int)$a['actor_id']);$weapon=rpgDeclaredWeapon($inventory,$raw);
   if($bite||$grab||preg_match('/pugno|calcio|mani nude|artigli/iu',$raw)){ $weapon=null; }
   if(!empty($effect['requires_weapon'])&&!$weapon){$r['outcome']='la tecnica armata non può diventare un colpo a mani nude';$r['reason']='L’abilità dichiarata richiede di usare l’arma impugnata: il morso, la presa o il pugno descritti non ne ricevono i bonus e non infliggono danni con quella tecnica.';$results[]=$r;continue;}
-  $claimedWeapon=(bool)aiRegexAny(['/spad\p{L}*/iu','/pugnal\p{L}*/iu','/lancia\b/iu','/fucil\p{L}*/iu','/pistol\p{L}*/iu','/moschett\p{L}*/iu','/carabin\p{L}*/iu','/trombon\p{L}*/iu','/\bspar\p{L}*/iu','/balestr\p{L}*/iu','/\barco\b/iu','/freccia/iu','/dardo/iu'],$raw);
+  $claimedWeapon=(bool)preg_match('/spad\p{L}*|pugnal\p{L}*|lancia\b|fucil\p{L}*|pistol\p{L}*|moschett\p{L}*|carabin\p{L}*|trombon\p{L}*|\bspar\p{L}*|balestr\p{L}*|\barco\b|freccia|dardo/iu',$raw);
   if($claimedWeapon&&!$weapon){$r['outcome']='non può usare l’arma dichiarata';$r['reason']='Quell’arma non risulta impugnata e utilizzabile: la sola dichiarazione non la fa comparire nella mano.';$results[]=$r;continue;}
   if($weaponReason=rpgWeaponLineageReason(['race_id'=>(int)$actor['razza'],'native_race_id'=>(int)($actor['native_race_id']??$actor['razza'])],$weapon)){$r['outcome']='non può usare l’arma da fuoco';$r['reason']=$weaponReason;$results[]=$r;continue;}
   $ranged=$weapon&&rpgRangedFamily($weapon)!=='';
@@ -181,7 +184,7 @@ function aiAdjudicate(int $sid):array{
   if($actor['kind']==='npc'&&$support===0){$f=aiNpcGame((int)$actor['id'])['faction'];$cover=0;foreach($actions as $ally){$ad=json_decode($ally['details'],true)?:[];if($ally['kind']==='npc'&&(int)$ally['actor_id']!==(int)$actor['id']&&$ally['status']!=='skipped'&&$f!==''&&aiNpcGame((int)$ally['actor_id'])['faction']===$f&&in_array($ad['intent']??'',['difesa','aiuto'],true)){ $cover++; }}$atk+=min($cover,$cfg['max_support'])*$cfg['support_bonus'];}
   $r['calculation']['attack']=$atk;$r['calculation']['defence']=$def;
   if($atk<=$def){$conditions[$targetKey]['defended_round']=$round;$r['outcome']=$grab?'la presa non si chiude':($bite?'il morso non raggiunge la carne':'il colpo viene contenuto');$r['reason']=$support?'L’avversario si sottrae alla traiettoria e il sostegno del collega restringe il varco disponibile. La maggiore forza da sola non garantisce il successo.':'La risposta difensiva arriva in tempo e nega l’apertura cercata, pur lasciando intatta la tensione dello scontro.';$results[]=$r;continue;}
-  if($grab&&($gate=aiNpcSuperEncounterCheck($sid,$actor,$target))){$r['specialist_encounter']=$gate;if(!$gate['allowed']){$conditions[$key]['super_withdrawn'][$targetKey]=['round'=>$round,'policy'=>$gate['policy']];$r['outcome']='il tentativo decisivo fallisce e il PNG ripiega';$r['reason']='La presa non riesce a contenere la forza del bersaglio: il PNG perde il varco e ripiega, senza immobilizzarlo.';$results[]=$r;continue;}}
+  if($grab&&($gate=aiNpcSuperEncounterCheck($sid,$actor,$target))){$r['specialist_encounter']=$gate;if(!$gate['allowed']){$conditions[$key]['super_withdrawn'][$targetKey]=['round'=>$round,'policy'=>$gate['policy']];$r['outcome']=S1192_LIBS_AI_ADJUDICATION_INC_PHP_7609D7_IL_TENTATIVO_DECISIVO_FALLISCE_E_I;$r['reason']='La presa non riesce a contenere la forza del bersaglio: il PNG perde il varco e ripiega, senza immobilizzarlo.';$results[]=$r;continue;}}
   if($grab){$conditions[$targetKey]['restrained_by']=$key;$conditions[$targetKey]['restrained_until']=0;$conditions[$targetKey]['restrained_kind']='grapple';aiTacticalContact($conditions,$key,$targetKey,$round);$r['outcome']='la presa si chiude e limita il movimento';$r['reason']='La spinta supera la tenuta avversaria e blocca il busto. La presa permane fino a un rilascio o una liberazione accertati; non infligge automaticamente ferite.';$results[]=$r;continue;}
    if(aiAdjudicationManeuverOutcome($r,$conditions,$ammoEffects,$maneuver,$raw,$target,$targetKey,$ability,$key,$round)){ $results[]=$r;continue; }
   $nativeTarget=(int)($target['native_race_id']??$target['razza']);if(in_array($nativeTarget,[3,6],true)&&!rpgWeaponSilver($weapon)){$r['outcome']='l’impatto non lascia una ferita persistente';$r['reason']='La resistenza mannara impedisce alle armi ordinarie di produrre lesioni autentiche. Serve argento sulla superficie offensiva verificato nell’oggetto.';$results[]=$r;continue;}
@@ -255,7 +258,7 @@ function aiAdjudicationNonAttackOutcome(array &$r,array &$conditions,array $cast
 /** Resolves push and human manoeuvre outcomes; returns true when the action is resolved. */
 function aiAdjudicationManeuverOutcome(array &$r,array &$conditions,array &$ammoEffects,string $maneuver,string $raw,array $target,string $targetKey,?array $ability,string $key,int $round):bool{
   if($maneuver==='push'){
-   aiTacticalContact($conditions,$key,$targetKey,$round);$position=aiRegexAny(['/contro\s+(?:il\s+)?(muro|parete|porta|banco|tavolo)/iu','/contro\s+(?:la\s+)?(muro|parete|porta|banco|tavolo)/iu','/contro\s+(?:un[ao]?\s+)?(muro)/iu','/contro\s+(?:un[ao]?\s+)?(parete)/iu','/contro\s+(?:un[ao]?\s+)?(porta)/iu','/contro\s+(?:un[ao]?\s+)?(banco)/iu','/contro\s+(?:un[ao]?\s+)?(tavolo)/iu','/contro\s+(?:l[’\x{27}])?(muro|parete|porta|banco|tavolo)/iu'],$raw,$anchor)?'contro '.(in_array(mb_strtolower($anchor[1]),['parete','porta'],true)?'la ':'il ').mb_strtolower($anchor[1]):'spostato all’indietro';
+   aiTacticalContact($conditions,$key,$targetKey,$round);$position=preg_match('/contro\s+(?:il\s+|la\s+|un[ao]?\s+|l[’\x{27}])?(muro|parete|porta|banco|tavolo)/iu',$raw,$anchor)?'contro '.(in_array(mb_strtolower($anchor[1]),['parete','porta'],true)?'la ':'il ').mb_strtolower($anchor[1]):'spostato all’indietro';
    $conditions[$targetKey]['position']=$position;$r['outcome']='la spinta sposta il bersaglio';$r['reason']='Il confronto supera la resistenza: '.$target['name'].' si trova '.$position.'. Le prese già accertate restano attive; non viene inflitta una ferita automatica.';return true;
  }
   if(isset($ability['human_rules'])&&in_array((int)$ability['human_rules']['number'],[4,10,11],true)){
@@ -279,7 +282,7 @@ function aiAdjudicationFallback(array $technical):string{
    $outcome==='la presa non si chiude'=>$actor.' cerca di serrare la presa su '.$target.', ma non trova una tenuta sufficiente: il corpo dell’avversario non rimane bloccato.',
    $outcome==='copre il settore minacciato'=>$actor.' dà consistenza alla propria difesa: copre il settore minacciato e conserva una protezione sulla quale il compagno può fare affidamento.',
    str_contains($outcome,'tradire')=>'La voce cerca di insinuarsi nella volontà di '.$target.', ma la suggestione di '.$actor.' non ottiene il tradimento richiesto.',
-   $outcome==='il tentativo decisivo fallisce e il PNG ripiega'=>$actor.' cerca l’ultima apertura contro '.$target.', ma non riesce a prevalere e ripiega.',
+   $outcome===S1192_LIBS_AI_ADJUDICATION_INC_PHP_7609D7_IL_TENTATIVO_DECISIVO_FALLISCE_E_I=>$actor.' cerca l’ultima apertura contro '.$target.', ma non riesce a prevalere e ripiega.',
    $outcome==='non agisce'=>$actor.' lascia trascorrere il momento concesso senza portare una nuova azione nella contesa.',
    $outcome==='interrompe il proprio assalto'=>$actor.' interrompe l’assalto: per lui il ritmo della contesa si arresta, senza obbligare gli altri a fare altrettanto.',
    default=>$actor.($target!==''?' di fronte a '.$target:'').': '.$outcome.'.',
@@ -304,7 +307,7 @@ function aiAdjudicationApply(array $v,array $q,array $s):void{
   elseif($e['type']==='infection'){
    $before['lineage_edge']=$db->query("SELECT * FROM lineage_members WHERE player_id=? AND kind='lycan'",[$id])[0]??null;
    $source=$infectionActors[$e['actor_kind'].':'.$e['actor_id']];
-   alphanoLycanInfect($source,$id,$q['chat_key'],'Quest #'.$sid.', giro '.$v['round_number'].': contagio da morso ancestrale di '.$source['name'].'.');
+   alphanoLycanInfect($source,$id,$q['chat_key'],S1192_LIBS_AI_ADJUDICATION_INC_PHP_371BA4_QUEST.$sid.S1192_LIBS_AI_ADJUDICATION_INC_PHP_A69C3F_GIRO.$v['round_number'].': contagio da morso ancestrale di '.$source['name'].'.');
   }
   elseif($kind==='pg'){
    if($e['type']==='death'){
@@ -314,8 +317,8 @@ function aiAdjudicationApply(array $v,array $q,array $s):void{
     $oldRace=(int)$before['razza'];$dead=in_array($oldRace,[2,5,7],true)?ALPHANO_RACE_DEAD_VAMPIRE:ALPHANO_RACE_SPIRIT;$db->execute('UPDATE utenti SET puntif=0,ferite=?,razza=?,infetto=0,ancestrale=0,senziente=0,datamorte=? WHERE id=?',[$e['text'],$dead,time(),$id]);
 }
    elseif(!$db->query("SELECT player_id FROM lineage_members WHERE player_id=? AND status='eliminated'",[$id])){ $db->execute('UPDATE utenti SET puntif=?,ferite=? WHERE id=?',[$e['hp'],$e['wounds'],$id]); }
-   $db->execute('INSERT INTO logs_adminpg(azione,data,chat,esecutore,destinatario,qta,obj,descr) VALUES(?,?,?,0,?, ?,0,?)',['regia-ia:'.$e['type'],time(),$q['chat_key'],$id,$e['hp']??0,'Regolamento Alphano v1, quest #'.$sid.', giro '.$v['round_number']]);
-   insertNote($id,0,'Quest #'.$sid.', giro '.$v['round_number'].': '.($e['type']==='death'?$e['text']:$e['wounds'].'; punti vita '.$e['hp'].'.'));
+   $db->execute('INSERT INTO logs_adminpg(azione,data,chat,esecutore,destinatario,qta,obj,descr) VALUES(?,?,?,0,?, ?,0,?)',['regia-ia:'.$e['type'],time(),$q['chat_key'],$id,$e['hp']??0,'Regolamento Alphano v1, quest #'.$sid.S1192_LIBS_AI_ADJUDICATION_INC_PHP_A69C3F_GIRO.$v['round_number']]);
+   insertNote($id,0,S1192_LIBS_AI_ADJUDICATION_INC_PHP_371BA4_QUEST.$sid.S1192_LIBS_AI_ADJUDICATION_INC_PHP_A69C3F_GIRO.$v['round_number'].': '.($e['type']==='death'?$e['text']:$e['wounds'].'; punti vita '.$e['hp'].'.'));
    alphanoRecordActivity('master-ia-esito',0,[['scope'=>'personale','id'=>$id,'section'=>'profilo','role'=>'member']],'Esito della quest registrato','La condizione di '.aiQuestName($kind,$id).' è cambiata durante la quest.',['sessione'=>$sid,'giro'=>(int)$v['round_number']],'ai-effect-'.$v['id'].'-'.$i);
   }else{$n=$db->query('SELECT * FROM ai_npcs WHERE id=? FOR UPDATE',[$id])[0];$p=aiNpcProfile($n);$p['hit_points']=$e['type']==='death'?0:$e['hp'];$p['wounds']=$e['type']==='death'?$e['text']:$e['wounds'];$db->execute('UPDATE ai_npcs SET profile=?,active=? WHERE id=?',[aiQuestJson($p),$e['type']==='death'?0:1,$id]);}
   if($kind==='pg'&&in_array($e['type'],['health','death'],true)){ foreach($db->query("SELECT actor_id FROM ai_quest_cast WHERE session_id=? AND kind='npc' AND active=1",[$sid]) as $observer){$summary=aiQuestName('pg',$id).' · '.($e['type']==='death'?'è caduto nello scontro':($e['type']==='health'?'ha riportato una ferita concreta durante lo scontro':'la sua posizione nella contesa è cambiata secondo il verdetto')).'.';$db->execute("INSERT INTO ai_personal_memories(npc_id,player_id,chat_key,category,summary,evidence,source,created_at,updated_at) VALUES(?,?,?,'quest',?,?,'system',?,?)",[(int)$observer['actor_id'],$id,$q['chat_key'],$summary,'effect:'.$key,time(),time()]);} }
@@ -337,7 +340,7 @@ function aiAdjudicationApply(array $v,array $q,array $s):void{
 function aiAdjudicationAtmosphereSafe(string $text,array $names=[]):bool{
  if($text===''||mb_strlen($text)>650){ return false; }
  foreach($names as $name){ if(is_string($name)&&$name!==''&&aiMentionsNpc($text,$name)){ return false; } }
- return !aiRegexAny(['/</iu','/```/iu','/[\x{3400}-\x{9fff}\x{0400}-\x{04ff}]/iu','/convalid/iu','/nessun esito/iu','/punti vita/iu','/corone/iu','/ferisce/iu','/uccid/iu','/muore/iu','/morto/iu','/cade/iu','/sanguin/iu','/morso/iu','/immobilizz/iu','/piogg/iu','/piov/iu','/nevic/iu','/neve/iu','/temporale/iu','/\b(?:vento)\b/iu','/\b(?:sole)\b/iu','/\b(?:nebbia)\b/iu','/\b(?:grandine)\b/iu','/\b(?:tuono)\b/iu','/\b(?:gelo)\b/iu','/\b(?:sergente)\b/iu','/\b(?:guardia)\b/iu','/\b(?:guardie)\b/iu','/\b(?:soldato)\b/iu','/\b(?:soldati)\b/iu','/\b(?:uomo)\b/iu','/\b(?:donna)\b/iu','/\b(?:visitatore)\b/iu','/\b(?:compagno)\b/iu','/\b(?:qualcuno)\b/iu','/\b(?:nessuno)\b/iu','/\b(?:egli)\b/iu','/\b(?:ella)\b/iu','/\b(?:lui)\b/iu','/\b(?:lei)\b/iu'],$text);
+ return !preg_match('/<|```|[\x{3400}-\x{9fff}\x{0400}-\x{04ff}]|convalid|nessun esito|punti vita|corone|ferisce|uccid|muore|morto|cade|sanguin|morso|immobilizz|piogg|piov|nevic|neve|temporale|\b(?:vento|sole|nebbia|grandine|tuono|gelo|sergente|guardia|guardie|soldato|soldati|uomo|donna|visitatore|compagno|qualcuno|nessuno|egli|ella|lui|lei)\b/iu',$text);
 }
 function aiAdjudicationNarrate(array $room,array $technical,bool $offline=false):array{
  $facts=aiAdjudicationFallback($technical);$intro='';
@@ -362,7 +365,7 @@ function aiQuestSettle(int $sid,string $reason):void{
  $cfg=aiSceneRules();$room=aiRoom($q['chat_key']);aiGameGuidance($sid);$count=(int)$db->query('SELECT COUNT(*) n FROM ai_quest_verdicts WHERE session_id=? AND status=\'applied\'',[$sid])[0]['n'];
  foreach($db->query("SELECT DISTINCT actor_id FROM ai_quest_cast WHERE session_id=? AND kind='pg'",[$sid]) as $c){$uid=(int)$c['actor_id'];
   if($db->query('SELECT player_id FROM ai_quest_settlements WHERE session_id=? AND player_id=?',[$sid,$uid])){ continue; }
-  $actions=$db->query("SELECT details FROM ai_quest_actions WHERE session_id=? AND kind='pg' AND actor_id=? AND status='submitted'",[$sid,$uid]);$money=0;$text='Quest #'.$sid.' conclusa: '.aiText($reason,220).'. Giri risolti: '.$count.'.';
+  $actions=$db->query("SELECT details FROM ai_quest_actions WHERE session_id=? AND kind='pg' AND actor_id=? AND status='submitted'",[$sid,$uid]);$money=0;$text=S1192_LIBS_AI_ADJUDICATION_INC_PHP_371BA4_QUEST.$sid.' conclusa: '.aiText($reason,220).'. Giri risolti: '.$count.'.';
   $eligible=count($actions)>=$cfg['reward_min_actions']&&$count>=$cfg['reward_min_rounds'];
   // A violent attack on a guard is not a repeatable source of money.
   foreach($actions as $declaration){$detail=json_decode($declaration['details'],true)?:[];if(in_array($detail['intent']??'',['assalto','attacco','furto','arresto','potere'],true)||($detail['social_category']??'')==='minaccia'){ $eligible=false; }}

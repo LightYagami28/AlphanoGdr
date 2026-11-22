@@ -1,12 +1,16 @@
 <?php
 declare(strict_types=1);
+
+if (!defined('S1192_LIBS_COMPANIONS_INC_PHP_2DA068_FOR_UPDATE')) { define('S1192_LIBS_COMPANIONS_INC_PHP_2DA068_FOR_UPDATE', ' FOR UPDATE'); }
+if (!defined('S1192_LIBS_COMPANIONS_INC_PHP_E8A269_RENT_A_F0_9_40_D')) { define('S1192_LIBS_COMPANIONS_INC_PHP_E8A269_RENT_A_F0_9_40_D', '/^rent_[a-f0-9]{40}$/D'); }
+if (!defined('S1192_LIBS_COMPANIONS_INC_PHP_A351E8_AI_INC_PHP')) { define('S1192_LIBS_COMPANIONS_INC_PHP_A351E8_AI_INC_PHP', '/ai.inc.php'); }
 require_once __DIR__.'/kernel.inc.php';
 require_once __DIR__.'/ai-profile.inc.php';
 require_once __DIR__.'/pvt/rentals.inc.php';
 
 /** Paid time buys a private conversation, never affection or a sexual outcome. */
 function companionshipPlayerConsent(int $player, bool $lock=false): array {
-    $row=connectDB()->query('SELECT * FROM ai_player_preferences WHERE player_id=?'.($lock?' FOR UPDATE':''),[$player])[0]??[];
+    $row=connectDB()->query('SELECT * FROM ai_player_preferences WHERE player_id=?'.($lock?S1192_LIBS_COMPANIONS_INC_PHP_2DA068_FOR_UPDATE:''),[$player])[0]??[];
     if ((int)($row['character_age']??0)<18 || empty($row['romance_enabled']) || empty($row['intimacy_enabled'])) {
         throw new DomainException('Dichiara un personaggio adulto e abilita separatamente trame romantiche e intimità nelle preferenze del profilo PNG.',403);
     }
@@ -30,13 +34,13 @@ function companionshipNpcAvailable(array $npc): bool {
 
 function companionshipNpcInQuest(int $npc): bool {
     $db=connectDB();
-    return (bool)$db->query("SELECT 1 FROM ai_quest_cast c JOIN ai_quests q ON q.session_id=c.session_id JOIN sessioni s ON s.id=c.session_id WHERE c.kind='npc' AND c.actor_id=? AND c.active=1 AND s.run=1 AND q.status IN('active','resolving','review','attention') AND EXISTS(SELECT 1 FROM mappe m WHERE BINARY m.chat_key=BINARY q.chat_key AND m.chat=1) LIMIT 1".($db->inTransaction()?' FOR UPDATE':''),[$npc]);
+    return (bool)$db->query("SELECT 1 FROM ai_quest_cast c JOIN ai_quests q ON q.session_id=c.session_id JOIN sessioni s ON s.id=c.session_id WHERE c.kind='npc' AND c.actor_id=? AND c.active=1 AND s.run=1 AND q.status IN('active','resolving','review','attention') AND EXISTS(SELECT 1 FROM mappe m WHERE BINARY m.chat_key=BINARY q.chat_key AND m.chat=1) LIMIT 1".($db->inTransaction()?S1192_LIBS_COMPANIONS_INC_PHP_2DA068_FOR_UPDATE:''),[$npc]);
 }
 
 /** Called under the rental row lock by the ordinary password-join path. */
 function companionshipAssertRentalJoin(int $rentalId,int $player): void {
     $db=connectDB();
-    $appointment=$db->query('SELECT player_id FROM companion_appointments WHERE rental_id=? AND finished_at=0 AND expires_at>?'.($db->inTransaction()?' FOR UPDATE':''),[$rentalId,time()])[0]??null;
+    $appointment=$db->query('SELECT player_id FROM companion_appointments WHERE rental_id=? AND finished_at=0 AND expires_at>?'.($db->inTransaction()?S1192_LIBS_COMPANIONS_INC_PHP_2DA068_FOR_UPDATE:''),[$rentalId,time()])[0]??null;
     if ($appointment && (int)$appointment['player_id']!==$player) { throw new DomainException('Questa camera ospita una visita riservata e non può accogliere altri ospiti.',403); }
 }
 
@@ -71,12 +75,12 @@ function companionshipReleaseExpired(?string $chat=null): void {
 
 /** Configured NPC and rental membership, with no client-controlled NPC substitution. */
 function companionshipRoomNpc(string $chat,?int $player=null): ?array {
-    if (!preg_match('/^rent_[a-f0-9]{40}$/D',$chat)) { return null; }
+    if (!preg_match(S1192_LIBS_COMPANIONS_INC_PHP_E8A269_RENT_A_F0_9_40_D,$chat)) { return null; }
     if (!connectDB()->inTransaction()) { companionshipReleaseExpired($chat); }
     $db=connectDB();$now=time();
     $row=$db->query('SELECT n.*,a.id AS appointment_id,a.player_id AS appointment_player,a.expires_at AS appointment_expires,a.host_key AS appointment_host,a.kind AS appointment_kind FROM companion_appointments a JOIN chat_rentals r ON r.id=a.rental_id JOIN ai_npcs n ON n.id=a.npc_id JOIN ai_npc_adult p ON p.npc_id=n.id WHERE r.chat_key=? AND r.closed_at=0 AND r.expires_at>? AND a.finished_at=0 AND a.expires_at>? AND n.active=1 AND p.sexuality_enabled=1',[$chat,$now,$now])[0]??null;
     if (!$row || !companionshipNpcAvailable($row) || companionshipNpcInQuest((int)$row['id'])) { return null; }
-    require_once __DIR__.'/ai.inc.php';
+    require_once __DIR__.S1192_LIBS_COMPANIONS_INC_PHP_A351E8_AI_INC_PHP;
     $owner=(int)$row['appointment_player'];
     if ($player!==null && $owner!==$player) { return null; }
     if (!$db->query('SELECT 1 FROM chat_rental_members m JOIN chat_rentals r ON r.id=m.rental_id WHERE r.chat_key=? AND m.player_id=?',[$chat,$owner])) { return null; }
@@ -122,7 +126,7 @@ function companionshipBookingError(Throwable $error): never {
 /** Player then host/NPC locks serialize bookings; unique active slots defend every write path. */
 function companionshipBook(int $player,string $host,int $npcId,string $request): array {
     // Kept lazy so private-room ACLs can load this library without loading the AI worker.
-    require_once __DIR__.'/ai.inc.php';
+    require_once __DIR__.S1192_LIBS_COMPANIONS_INC_PHP_A351E8_AI_INC_PHP;
     if (!preg_match('/^[a-zA-Z0-9-]{16,80}$/D',$request) || $npcId<1 || strlen($host)>100) { throw new DomainException('Prenotazione non valida.',422); }
     companionshipReleaseExpired();alphanoRentalExpire();
     $db=connectDB();$db->beginTransaction();
@@ -183,8 +187,8 @@ function companionshipInvitations(int $player,int $npcId): array {
 
 /** A free invitation requires the relationship evaluator, independent of any payment. */
 function companionshipInvite(int $player,int $npcId,string $chat,string $request): array {
-    require_once __DIR__.'/ai.inc.php';
-    if (!preg_match('/^rent_[a-f0-9]{40}$/D',$chat) || !preg_match('/^[a-zA-Z0-9-]{16,80}$/D',$request) || $npcId<1) { throw new DomainException('Invito non valido.',422); }
+    require_once __DIR__.S1192_LIBS_COMPANIONS_INC_PHP_A351E8_AI_INC_PHP;
+    if (!preg_match(S1192_LIBS_COMPANIONS_INC_PHP_E8A269_RENT_A_F0_9_40_D,$chat) || !preg_match('/^[a-zA-Z0-9-]{16,80}$/D',$request) || $npcId<1) { throw new DomainException('Invito non valido.',422); }
     companionshipReleaseExpired();alphanoRentalExpire();$db=connectDB();$db->beginTransaction();
     try {
         // Match the rental-expiry lock order before locking the owner's account.
@@ -220,7 +224,7 @@ function companionshipInvite(int $player,int $npcId,string $chat,string $request
 
 /** Ending early forfeits the remaining paid time, with a durable, repeatable close request. */
 function companionshipEnd(int $player,string $chat): array {
-    if (!preg_match('/^rent_[a-f0-9]{40}$/D',$chat)) { throw new DomainException('Camera non valida.',422); }
+    if (!preg_match(S1192_LIBS_COMPANIONS_INC_PHP_E8A269_RENT_A_F0_9_40_D,$chat)) { throw new DomainException('Camera non valida.',422); }
     $db=connectDB();$db->beginTransaction();
     try {
         $rental=$db->query('SELECT * FROM chat_rentals WHERE chat_key=? FOR UPDATE',[$chat])[0]??null;

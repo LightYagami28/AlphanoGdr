@@ -1,5 +1,7 @@
 <?php
 declare(strict_types=1);
+
+if (!defined('S1192_LIBS_SESSION_CONTROL_INC_PHP_84E933_CONTROL')) { define('S1192_LIBS_SESSION_CONTROL_INC_PHP_84E933_CONTROL', ':control:'); }
 require_once __DIR__.'/ai.inc.php';
 require_once __DIR__.'/operations.inc.php';
 require_once __DIR__.'/session-context.inc.php';
@@ -126,10 +128,10 @@ function alphanoSessionControlAction(int $uid,string $chat,string $action,array 
                 $target=filter_var($in['master_id']??0,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);if($target===false||$target===$owner){ throw new DomainException('Seleziona un altro Master presente.',422); }
                 $to=$db->query('SELECT id,nome FROM utenti WHERE id=? AND chat=? AND bloccato=0 AND (admin=1 OR fatepower=1) AND lastmove>? FOR UPDATE',[$target,$chat,time()-900])[0]??null;
                 if(!$to){ throw new DomainException('Il Master destinatario deve essere presente e collegato in questo luogo.',409); }
-                alphanoSessionSetHuman($s,$q,(int)$target,$uid);aiQuestPublish($sid,'session:'.$sid.':control:'.$nextVersion,$u['nome'].' affida la regia a '.$to['nome'].'. La sessione prosegue senza perdere la cronaca.');
+                alphanoSessionSetHuman($s,$q,(int)$target,$uid);aiQuestPublish($sid,'session:'.$sid.S1192_LIBS_SESSION_CONTROL_INC_PHP_84E933_CONTROL.$nextVersion,$u['nome'].' affida la regia a '.$to['nome'].'. La sessione prosegue senza perdere la cronaca.');
                 aiQuestAudit($sid,'master_transferred',['from'=>$owner,'to'=>(int)$target],$uid);
             }elseif($action==='takeover'){
-                alphanoSessionSetHuman($s,$q,$uid,$uid);aiQuestPublish($sid,'session:'.$sid.':control:'.$nextVersion,$u['nome'].' assume la regia umana della sessione. Gli interventi automatici della scena sono sospesi.');aiQuestAudit($sid,'human_takeover',['from'=>$owner],$uid);
+                alphanoSessionSetHuman($s,$q,$uid,$uid);aiQuestPublish($sid,'session:'.$sid.S1192_LIBS_SESSION_CONTROL_INC_PHP_84E933_CONTROL.$nextVersion,$u['nome'].' assume la regia umana della sessione. Gli interventi automatici della scena sono sospesi.');aiQuestAudit($sid,'human_takeover',['from'=>$owner],$uid);
             }elseif($action==='ai'){
                 alphanoSessionHandoffAi($s,$q,$uid);
             }elseif($action==='turns'){
@@ -195,6 +197,6 @@ function alphanoSessionHandoffAi(array $s,?array $q,int $uid):void {
     $db->execute('UPDATE sessioni SET conductor_id=0 WHERE id=?',[$sid]);
     alphanoSessionInvalidateWork($s['chat'],$sid,'Passaggio della sessione alla regia IA.');
     aiConductorSet(aiQuestRow($s['chat'],true),$uid,'auto');
-    aiQuestPublish($sid,'session:'.$sid.':control:'.((int)$s['control_version']+1),aiQuestName('pg',$uid).' affida la regia al Master IA. La cronaca pubblica della stessa sessione è stata riletta; turni, ferite e conseguenze già registrate restano validi.');
+    aiQuestPublish($sid,'session:'.$sid.S1192_LIBS_SESSION_CONTROL_INC_PHP_84E933_CONTROL.((int)$s['control_version']+1),aiQuestName('pg',$uid).' affida la regia al Master IA. La cronaca pubblica della stessa sessione è stata riletta; turni, ferite e conseguenze già registrate restano validi.');
     aiQuestAudit($sid,'ai_handoff',['from'=>$owner,'messages'=>$context['count'],'source_boundary'=>$context['boundary'],'transcript_hash'=>$context['hash'],'new_engine_adapter'=>$new],$uid);
 }

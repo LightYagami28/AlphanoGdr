@@ -17,5 +17,5 @@ try{
  $legal=require_once __DIR__.'/config/legal.php';$db->execute('INSERT INTO user_policy_acceptances(user_id,policy_version,accepted_at,adult_confirmed,terms_accepted,ai_policy_accepted) VALUES(?,?,?,1,1,?)',[$id,$legal['version'],time(),alphanoConfig('ai_enabled')?1:0]);
  $db->execute('INSERT INTO logs_registrazione(data,nome,id,ip,host) VALUES(?,?,?,?,?)',[time(),$name,$id,$ip,'']);$db->commit();
 }catch(Throwable $e){if($db->inTransaction()){$db->rollBack();}alphanoFail($e instanceof DomainException?$e->getMessage():'Registrazione non completata.',409);}finally{if($locked){$db->query('SELECT RELEASE_LOCK(?)',[$lock]);}}
-$sent=sendMail($email,$name,'','');
+$sent=sendMail($email,$name);
 ?><!doctype html><html lang="it"><head><meta charset="utf-8"><title>Registrazione completata</title></head><body class="portal"><main class="portal-wrap"><h1>Il tuo personaggio è pronto.</h1><p>Accedi con il nome e la password che hai scelto. <?=$sent?'La conferma email è stata elaborata.':'La conferma email non è stata inviata; puoi già accedere.'?></p><a href="/">Torna all’accesso</a></main></body></html>

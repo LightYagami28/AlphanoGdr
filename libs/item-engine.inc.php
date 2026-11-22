@@ -34,7 +34,7 @@ function itemEffectiveState(array $i,int $session=0,int $round=0):array {
 function itemConditions(string $kind,int $id,int $session=0,int $round=0):array {
  if(!itemEngineReady()){ return []; }$rows=db()->query('SELECT * FROM equipment_conditions WHERE owner_kind=? AND owner_id=? AND ((session_id=? AND expires_round>=? AND session_id>0) OR (session_id=0 AND expires_at>?))',[$kind,$id,$session,$round,time()]);foreach($rows as &$r){ $r['effect']=rpg_decode($r['effect']); }return $rows;
 }
-function itemScoreModifier(array $conditions,string $test,array $stats):float {
+function itemScoreModifier(array $conditions,string $test):float {
  $groups=['attack'=>['strength','dexterity','perception'],'defence'=>['dexterity','constitution','willpower'],'mental'=>['charisma','intelligence','willpower'],'resist'=>['willpower','wisdom','constitution'],'perception'=>['perception']];$families=[];
  foreach($conditions as $r){$e=$r['effect'];if(!in_array($e['type'],['bonus','distraction'],true)||!in_array($e['stat'],$groups[$test]??[],true)){ continue; }if(($e['test']??'')!==''&&$e['test']!==$test){ continue; }$value=($e['type']==='distraction'?-1:1)*(int)$e['amount'];$f=$r['family'];if(!isset($families[$f])||abs($value)>abs($families[$f])){ $families[$f]=$value; }}
  return 1+max(-30,min(25,array_sum($families)))/100;

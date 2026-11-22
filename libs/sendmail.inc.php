@@ -34,7 +34,7 @@ function alphanoMailer(): SMTPMailer
  * @param string $password
  * @return bool
  */
-function sendMail(string $email,string $nome,string $frase,string $password):bool {
+function sendMail(string $email,string $nome):bool {
  try{$replace=['{name}'=>$nome,'{game}'=>(string)alphanoConfig('game_name'),'{url}'=>(string)alphanoConfig('base_url')];$subject=strtr((string)alphanoConfig('welcome_subject'),$replace);$body=strtr((string)alphanoConfig('welcome_body'),$replace);return alphanoMailer()->send((string)alphanoConfig('mail_from'),$email,$subject,$body,alphanoEmailRender($subject,$body,'welcome'));}catch(Throwable $e){error_log('[welcome email] '.$e->getMessage());return false;}
 }
 
@@ -47,7 +47,7 @@ function sendMail(string $email,string $nome,string $frase,string $password):boo
  * @param string $password
  * @return bool
  */
-function sendNewPass(string $email, string $nome, string $frase, string $password): bool
+function sendNewPass(string $email, string $nome): bool
 {
     // Legacy callers now receive a reset link; never send a reusable password.
     $db=connectDB();$user=$db->query('SELECT id FROM utenti WHERE email=? AND nome=?',[$email,$nome])[0]??null;

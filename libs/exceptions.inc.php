@@ -8,8 +8,6 @@ class AlphanoApiException extends \RuntimeException {}
 class AlphanoBachecaException extends \RuntimeException {}
 /** Errori di trasporto e consegna della posta. */
 class AlphanoMailException extends \RuntimeException {}
-/** Errori del sottosistemaquest IA. */
-class AiQuestRuntimeException extends \RuntimeException {}
 /** Errori dei giochi da tavolo. */
 class AlphanoBoardGameException extends \RuntimeException {}
 /** Errori di accesso al database. */

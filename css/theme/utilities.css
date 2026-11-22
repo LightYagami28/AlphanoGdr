@@ -20,29 +20,7 @@
 .u-362b5171e { display: flex; gap: 1rem; margin-top: 2rem; flex-wrap: wrap; }
 .u-36699024f { display: flex; gap: 1rem; }
 .u-3a4ab9e60 { font-size: .8rem; }
-.u-3e06b323c { color: var(--text); ;color: var(--text)/* Dichiarazioni strutturali condivise, rimosse dai template. */
-.u-008a31c6f { margin-bottom: 2rem; }
-.u-0bc69d14b { width: 100%; border-collapse: collapse; }
-.u-0bf5b514b { width: 1.3em; display: inline-block; }
-.u-0c26507b4 { margin-bottom: .5rem; display: flex; align-items: center; justify-content: center; }
-.u-0f939f36b { max-width: 150px; border-radius: 4px; }
-.u-118a0d8c2 { padding: .5rem; margin: .5rem; cursor: pointer; }
-.u-13cbe03b9 { text-align: right; }
-.u-1a96f4c6d { width: 3ch; }
-.u-1ac13a3d3 { list-style: none; padding: 0; margin: 8px 0 0 0; }
-.u-1b08402f4 { max-height: 40px; display: block; margin: .25rem 0; }
-.u-21716f5bd { flex: 80px; align-self: flex-end; }
-.u-254b77fc4 { width: 100%; border: none; }
-.u-26161947e { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
-.u-2824a174a { text-align: center; padding: .5em 0; }
-.u-29ab538dd { vertical-align: top; }
-.u-2dbfafd4c { flex: 1 1 100%; padding: .5rem; border: 1px solid var(--line); }
-.u-30b7e95cf { background: var(--panel-2); }
-.u-34e197701 { max-width: 150px; max-height: 120px; }
-.u-362b5171e { display: flex; gap: 1rem; margin-top: 2rem; flex-wrap: wrap; }
-.u-36699024f { display: flex; gap: 1rem; }
-.u-3a4ab9e60 { font-size: .8rem; }
-.u-3e06b323c { color: var(--text); }
+.u-3e06b323c { color: var(--text); ;color: var(--text)}
 .u-434fc32ec { display: inline; }
 .u-4ae7557d5 { flex: 150px; }
 .u-55475ae7d { flex: 80px; }

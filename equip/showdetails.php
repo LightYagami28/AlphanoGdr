@@ -110,7 +110,7 @@ if (!$oggetto || (int)$oggetto['owner']!==$pgid) {
           $cre = htmlspecialchars(GetPGFromID($oggetto['idcreatore']), ENT_QUOTES);
         ?>
           <li><strong>Creatore:</strong>
-            <a href="#" onclick="openProfileId('<?=$oggetto['idcreatore']?>')"><?=$cre?></a>
+            <button type="button" onclick="openProfileId('<?=$oggetto['idcreatore']?>')"><?=$cre?></button>
           </li>
         <?php endif;?>
         <?php if($oggetto['lavorazione']): ?>
@@ -196,7 +196,7 @@ if (!$oggetto || (int)$oggetto['owner']!==$pgid) {
             <input type="hidden" name="action" value="send">
             <input type="hidden" name="id"     value="<?=$oggetto['id']?>">
             <input type="hidden" name="pgName" value="<?=htmlspecialchars($pgName, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')?>">
-            <input type="text" name="to" placeholder="Nome PG destinatario">
+            <input aria-label="Destinatario" type="text" name="to" placeholder="Nome PG destinatario">
             <button>Dai a...</button>
           </form>
           <form method="POST" action="./equip.php?pgid=<?=$pgid?>" onsubmit="event.preventDefault(); confirmAction('Vuoi cancellare questo oggetto?', this)">
@@ -214,7 +214,7 @@ if (!$oggetto || (int)$oggetto['owner']!==$pgid) {
             <input type="hidden" name="action" value="setnome">
             <input type="hidden" name="id"     value="<?=$oggetto['id']?>">
             <input type="hidden" name="pgName" value="<?=htmlspecialchars($pgName, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')?>">
-            <input type="text" name="nome" placeholder="Nome animale">
+            <input aria-label="Nome" type="text" name="nome" placeholder="Nome animale">
             <button>Assegna nome</button>
           </form>
         <?php endif; ?>

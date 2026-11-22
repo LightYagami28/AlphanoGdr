@@ -7,7 +7,7 @@
     <button id="inbox-reset" type="button" hidden>Togli filtro specifico</button>
     <button id="inbox-refresh" type="button" data-icon="scroll">Aggiorna</button>
   </div>
-  <p id="inbox-status" class="inbox-status" role="status" aria-live="polite">Caricamento delle notifiche…</p>
+  <p id="inbox-status" class="inbox-status" aria-live="polite" aria-live="polite">Caricamento delle notifiche…</p>
   <section id="inbox-message" class="inbox-message" aria-label="Notifica aperta" hidden></section>
   <div class="ui-table-scroll"><table class="ui-data-table inbox-table"><thead><tr><th scope="col">Notifica</th><th scope="col">Sezione</th><th scope="col">Data</th><th scope="col">Azioni</th></tr></thead><tbody id="inbox-rows"></tbody></table></div>
   <nav class="ui-list-footer inbox-pagination" aria-label="Pagine delle notifiche"><button id="inbox-previous" type="button">Precedenti</button><span id="inbox-page"></span><button id="inbox-next" type="button">Successive</button></nav>

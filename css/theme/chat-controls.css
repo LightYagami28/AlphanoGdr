@@ -5,14 +5,7 @@
 :is(body[data-view=chat-index],body.session-replay) .scene-return .scene-control-art{width:20px;height:20px;flex-basis:20px}
 .scene-mobile-links>button{display:flex;align-items:center;justify-content:flex-start;gap:12px;text-align:left;min-height:48px}
 .scene-mobile-links .scene-control-art{width:32px;height:32px;flex-basis:32px}
-body[data-view=chat-index] .scene-controls .scene-actions>#scene-master-control{padding:3px 10px;width:52px;min-width:0;padding:0/* Illustrated scene controls retain semantic buttons and existing chat handlers. */
-:is(body[data-view=chat-index],body.session-replay) .scene-controls .scene-actions .scene-tool{padding:3px;gap:7px}
-.scene-control-art{display:block;width:32px;height:32px;flex:0 0 32px;object-fit:contain;border-radius:50%;pointer-events:none;filter:drop-shadow(0 1px 2px #0007)}
-:is(body[data-view=chat-index],body.session-replay) .scene-tool.active .scene-control-art{filter:drop-shadow(0 0 4px #d0a64c66)}
-:is(body[data-view=chat-index],body.session-replay) .scene-return .scene-control-art{width:20px;height:20px;flex-basis:20px}
-.scene-mobile-links>button{display:flex;align-items:center;justify-content:flex-start;gap:12px;text-align:left;min-height:48px}
-.scene-mobile-links .scene-control-art{width:32px;height:32px;flex-basis:32px}
-body[data-view=chat-index] .scene-controls .scene-actions>#scene-master-control{padding:3px 10px}
+body[data-view=chat-index] .scene-controls .scene-actions>#scene-master-control{padding:3px 10px;width:52px;min-width:0;padding:0}
 @media(max-width:760px){:is(body[data-view=chat-index],body.session-replay) .scene-controls .scene-actions .scene-tool{padding:3px}.scene-control-art{width:30px;height:30px;flex-basis:30px}}
 
 /* The medallion is the control: no surrounding button plate. */

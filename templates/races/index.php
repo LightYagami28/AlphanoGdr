@@ -13,7 +13,7 @@ $race=$races['selected'];
   <button type="button" class="tab" data-tab="race-members" data-icon="users">Famiglie e discendenze</button>
   <button type="button" class="tab" data-tab="race-shop" data-icon="scroll">Tutte le abilità</button>
   <a class="action-btn race-my-abilities" href="/profili/#progressione" data-icon="user">Le mie abilità</a>
- </nav><?php else: ?><nav class="ui-heading-control"><a class="action-btn" href="/profili/#progressione" data-icon="user">Le mie abilità</a></nav><?php endif; ?>
+ </nav><?php else: ?><nav class="ui-heading-control" aria-label="Strumenti della pagina"><a class="action-btn" href="/profili/#progressione" data-icon="user">Le mie abilità</a></nav><?php endif; ?>
 </header>
 <nav class="race-atlas" aria-label="Scegli razza">
  <?php foreach($races['races'] as $r): ?><a class="race-tile" href="/razze/?id=<?=$r['id']?>"<?=$race&&$r['id']===$race['id']?' aria-current="page"':''?>>
@@ -33,11 +33,11 @@ $race=$races['selected'];
  <?php if(!$races['families']): ?><p>Nessuna famiglia documentata.</p><?php endif; ?></div></section><?php endif; ?>
  <div class="race-section-heading"><h2>Personaggi · <?=$h($race['name'])?></h2><span class="race-total"><?=$race['members_count']?> appartenenti</span></div>
  <div class="race-member-grid" data-race-members="<?=$race['id']?>" data-total="<?=$race['members_count']?>"><?php foreach($race['members'] as $member): ?><a class="race-member-card" href="/profili/?Id=<?=$member['id']?>"><img src="<?=$h($member['portrait'])?>" data-default-src="<?=$h($member['portrait_default'])?>" data-privacy-compact width="64" height="64" alt=""><span><strong><?=$h($member['name'])?></strong><?php if($member['human_form']): ?><small>Attualmente in forma umana</small><?php endif; ?></span></a><?php endforeach; ?><?php if(!$race['members']): ?><p>Nessun personaggio appartiene attualmente a questa razza.</p><?php endif; ?></div>
- <?php if($race['members_count']>20): ?><div class="race-load-more"><p data-race-loaded role="status">20 di <?=$race['members_count']?> personaggi</p><button class="action-btn" type="button" data-race-more data-icon="plus">Mostra altri 20</button></div><?php endif; ?>
+ <?php if($race['members_count']>20): ?><div class="race-load-more"><p data-race-loaded aria-live="polite">20 di <?=$race['members_count']?> personaggi</p><button class="action-btn" type="button" data-race-more data-icon="plus">Mostra altri 20</button></div><?php endif; ?>
 </section>
 <section id="race-shop" class="race-pane" hidden>
  <div class="race-section-heading"><h2>Abilità innate e altre discipline</h2><p>Un solo catalogo per tutta la stirpe: innate in ambra, altre discipline in azzurro ed eredità speciali in viola. Scegli quattro innate umane gratuite alla creazione; in seguito puoi acquistare anche quelle non scelte con i PE indicati, rispettando requisiti e compatibilità.</p></div>
- <div class="rpg-learning-toolbar"><span class="rpg-learning-balance" data-rpg-learning-balance role="status">Caricamento dei PE…</span><p data-ability-feedback role="status" aria-live="polite"></p></div>
+ <div class="rpg-learning-toolbar"><span class="rpg-learning-balance" data-rpg-learning-balance aria-live="polite">Caricamento dei PE…</span><p data-ability-feedback aria-live="polite" aria-live="polite"></p></div>
  <?php $abilities=$races['abilities']['all']; $grimoireTitle='Grimorio della stirpe'; if($abilities){ require __DIR__.'/abilities.php'; } ?>
  <?php if(!$abilities): ?><p class="rpg-empty">Non sono previste capacità per questa forma.</p><?php endif; ?>
 </section>

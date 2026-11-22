@@ -205,7 +205,7 @@ DEBUG $_POST:
 <?php endif; ?>
 
 <?php if($msg!==''): ?>
-  <table><tr><td class="Val"><?=h($msg)?></td></tr></table>
+  <table><thead><tr><th scope="col" class="ui-visually-hidden">Dettaglio</th><th scope="col" class="ui-visually-hidden">Valore</th></tr></thead><tr><td class="Val"><?=h($msg)?></td></tr></table>
 <?php endif; ?>
 
 
@@ -219,7 +219,7 @@ DEBUG $_POST:
     <tr><th>Seleziona chat</th><th>Operazioni</th></tr>
     <tr>
       <td>
-        <select name="stanza" onchange="setMain('select_chat')">
+        <select aria-label="Stanza" name="stanza" onchange="setMain('select_chat')">
           <option value=""></option>
           <?php foreach($LISTA_CHAT as $c): ?>
             <option value="<?=h($c)?>" <?=$c===$st?'selected':''?>><?=h($c)?></option>
@@ -273,8 +273,8 @@ function setMain(a){
   <form method="post"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphano_csrf_token(), ENT_QUOTES) . '">' ?>
     <input type="hidden" name="action_main" value="save_avviso">
     <input type="hidden" name="chat" value="<?=h($st)?>">
-    <table>
-      <tr><td>Testo (HTML ok)</td><td><textarea name="txt" rows="3"><?=h($av['testo'] ?? '')?></textarea></td></tr>
+    <table><thead><tr><th scope="col" class="ui-visually-hidden">Dettaglio</th><th scope="col" class="ui-visually-hidden">Valore</th></tr></thead>
+      <tr><td>Testo (HTML ok)</td><td><textarea aria-label="Testo" name="txt" rows="3"><?=h($av['testo'] ?? '')?></textarea></td></tr>
       <tr><td colspan="2" class="u-72a68ac34"><button type="submit">💾 Salva</button></td></tr>
     </table>
   </form>

@@ -69,7 +69,7 @@ if (!$canManageUsers) { $userActions = array_intersect_key($userActions, array_f
       <h2>Menu</h2>
       <ul id="menu-list">
         <?php foreach ($userActions as $action=>$label): ?>
-        <li data-action="<?=$action?>" role="button" tabindex="0"><?=htmlspecialchars($label,ENT_QUOTES)?></li>
+        <li data-action="<?=$action?>" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}" tabindex="0"><?=htmlspecialchars($label,ENT_QUOTES)?></li>
         <?php endforeach; ?>
       </ul>
     </aside>

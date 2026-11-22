@@ -29,7 +29,7 @@
     <details class="mail-filter-more"><summary>Filtri e avvisi</summary><div>
       <fieldset class="mail-type-checks"><legend>Mostra</legend><label><input type="checkbox" data-mail-type="personal" checked>Conversazioni con personaggi</label><label><input type="checkbox" data-mail-type="commerce" checked>Notifiche commerciali</label><label><input type="checkbox" data-mail-type="system" checked>Altri avvisi di gioco</label></fieldset>
       <label>Stato commerciale<select id="mail-state"><option value="all">Tutti gli stati</option><option value="action">Devi rispondere / prendere in carico</option><option value="waiting">In attesa</option><option value="delivery">Da consegnare</option><option value="completed">Conclusi</option><option value="cancelled">Annullati</option></select></label><button type="button" id="mail-filter-reset">Azzera filtri</button>
-    </div></details><span id="mail-filter-count" role="status"></span>
+    </div></details><span id="mail-filter-count" aria-live="polite"></span>
   </section>
   <details class="mail-push-panel"><summary>Avvisi e notifiche della posta</summary><?php require dirname(__DIR__).'/partials/push-controls.php'; ?></details>
   <div id="Lista"></div>

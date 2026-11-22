@@ -285,9 +285,9 @@ $araldiche = $db->query(
             <tr>
               <td>
                 <?php if ($admin): ?>
-                  <input type="text" name="nomepg" placeholder="Nome PG">
+                  <input aria-label="Nome del personaggio" type="text" name="nomepg" placeholder="Nome PG">
                 <?php else: ?>
-                  <select name="pg">
+                  <select aria-label="Nome personaggio" name="pg">
                     <option value="">– seleziona PG –</option>
                     <?php foreach ($pgcity as $pid=>$pn): ?>
                       <option value="<?=$pid?>"><?=htmlspecialchars($pn,ENT_QUOTES)?></option>
@@ -296,7 +296,7 @@ $araldiche = $db->query(
                 <?php endif; ?>
               </td>
               <td>
-                <select name="carica">
+                <select aria-label="Carica" name="carica">
                   <option value="">– seleziona araldica –</option>
                   <?php foreach ($araldiche as $a): ?>
                     <option value="<?=$a['id']?>"><?=htmlspecialchars($a['nome'],ENT_QUOTES)?></option>
@@ -350,13 +350,13 @@ $araldiche = $db->query(
           <input type="hidden" name="azione" value="<?= !empty($modify)?'modifycarica2':'addcarica' ?>">
           <input type="hidden" name="soggetto" value="<?=$m['id']?>">
           <table class="panel-table">
-            <tr><th>Icona</th><td><input type="file" name="immagine"></td></tr>
-            <tr><th>Nome</th><td><input type="text" name="araldica" required value="<?=htmlspecialchars($m['nome'],ENT_QUOTES)?>"></td></tr>
-            <tr><th>Prima</th><td><input type="checkbox" name="prima" <?=$m['prima']?'checked':''?>></td></tr>
+            <tr><th>Icona</th><td><input aria-label="Immagine" type="file" name="immagine"></td></tr>
+            <tr><th>Nome</th><td><input aria-label="Araldica" type="text" name="araldica" required value="<?=htmlspecialchars($m['nome'],ENT_QUOTES)?>"></td></tr>
+            <tr><th>Prima</th><td><input aria-label="Primo ramo" type="checkbox" name="prima" <?=$m['prima']?'checked':''?>></td></tr>
             <tr><th>Città</th>
               <td>
                 <?php if ($admin): ?>
-                  <select name="city">
+                  <select aria-label="Città" name="city">
                     <option value="">–</option>
                     <?php foreach($listacity as $cid=>$cn): ?>
                       <option value="<?=$cid?>" <?=$cid==$m['city']?'selected':''?>><?=htmlspecialchars($cn,ENT_QUOTES)?></option>
@@ -367,10 +367,10 @@ $araldiche = $db->query(
                 <?php endif; ?>
               </td>
             </tr>
-            <tr><th>Descrizione</th><td><textarea name="descrizione" rows="3"><?=htmlspecialchars($m['descrizione'],ENT_QUOTES)?></textarea></td></tr>
+            <tr><th>Descrizione</th><td><textarea aria-label="Descrizione" name="descrizione" rows="3"><?=htmlspecialchars($m['descrizione'],ENT_QUOTES)?></textarea></td></tr>
             <tr><th>Ramo</th>
               <td>
-                <select name="ramo" required>
+                <select aria-label="Ramo" name="ramo" required>
                   <option value="">– seleziona ramo –</option>
                   <?php foreach($rami as $city=>$group): ?>
                     <optgroup label="<?=htmlspecialchars($listacity[$city]??'',ENT_QUOTES)?>">
@@ -384,7 +384,7 @@ $araldiche = $db->query(
                 </select>
               </td>
             </tr>
-            <tr><th>Livello</th><td><input type="number" name="livellocarica" value="<?=$m['livello']?>" required></td></tr>
+            <tr><th>Livello</th><td><input aria-label="Livello carica" type="number" name="livellocarica" value="<?=$m['livello']?>" required></td></tr>
             <tr><td colspan="2" class="u-72a68ac34">
               <button type="submit"><?= !empty($modify)?'Salva Modifiche':'Aggiungi Carica' ?></button>
             </td></tr>
@@ -423,11 +423,11 @@ $araldiche = $db->query(
           <input type="hidden" name="azione" value="<?= !empty($modifyramo)?'modifyramo2':'addramo' ?>">
           <input type="hidden" name="soggetto" value="<?=$r['id']?>">
           <table class="panel-table">
-            <tr><th>Nome</th><td><input type="text" name="nome" required value="<?=htmlspecialchars($r['nome'],ENT_QUOTES)?>"></td></tr>
+            <tr><th>Nome</th><td><input aria-label="Nome" type="text" name="nome" required value="<?=htmlspecialchars($r['nome'],ENT_QUOTES)?>"></td></tr>
             <tr><th>Città</th>
               <td>
                 <?php if ($admin): ?>
-                  <select name="cityramo" required>
+                  <select aria-label="Città del ramo" name="cityramo" required>
                     <option value="">–</option>
                     <?php foreach($listacity as $cid=>$cn): ?>
                       <option value="<?=$cid?>" <?=$cid==$r['city']?'selected':''?>><?=htmlspecialchars($cn,ENT_QUOTES)?></option>
@@ -438,7 +438,7 @@ $araldiche = $db->query(
                 <?php endif; ?>
               </td>
             </tr>
-            <tr><th>Livello</th><td><input type="number" name="livelloramo" value="<?=$r['livello']?>" required></td></tr>
+            <tr><th>Livello</th><td><input aria-label="Livello ramo" type="number" name="livelloramo" value="<?=$r['livello']?>" required></td></tr>
             <tr><td colspan="2" class="u-72a68ac34">
               <button type="submit"><?= !empty($modifyramo)?'Salva Modifiche':'Aggiungi Ramo' ?></button>
             </td></tr>

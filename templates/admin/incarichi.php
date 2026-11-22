@@ -1,10 +1,10 @@
 <section class="governance" id="governance">
  <p>Gestisci incarichi e poteri esistenti del personaggio. Le modifiche vengono validate insieme e registrate con autore, motivo e valori precedenti.</p>
  <form id="governance-search" class="ui-row-actions"><label>Personaggio <input name="name" list="governance-players" autocomplete="off" required></label><datalist id="governance-players"></datalist><button type="submit" data-icon="search">Carica personaggio</button></form>
- <p id="governance-status" role="status" aria-live="polite"></p>
+ <p id="governance-status" aria-live="polite" aria-live="polite"></p>
  <details id="governance-issues"><summary>Controllo coerenza degli incarichi</summary><ul></ul></details>
  <form id="governance-edit" hidden>
-  <h2 id="governance-person"></h2>
+  <h2 id="governance-person" class="ui-visually-hidden">Personaggio</h2>
   <nav id="governance-shortcuts" class="ui-row-actions" aria-label="Amministrazioni collegate"></nav>
   <div class="governance-grid">
    <fieldset><legend>Corporazione</legend><label>Gruppo <select name="corporazione"></select></label><label>Carica <select name="caricacorporazione"></select></label><button type="button" data-grant="corporazione">Delega gestione corporazione</button><p>Concede amministrazione, catalogo e scambi della corporazione selezionata. Scegli la carica dal menu.</p></fieldset>

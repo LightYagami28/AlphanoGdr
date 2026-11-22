@@ -8,11 +8,11 @@
 <div class="manual-library-tools"><a href="<?=$isPublic?'/manuali/':'/regole/'?>?chapter=personaggi-storici" class="action-btn">Personaggi storici</a><?php if($isPublic): ?><a href="/#registrazione" class="action-btn" data-icon="user">Crea il tuo personaggio</a><?php else: ?><a href="/regole/pdf.php" target="_blank" rel="noopener" class="action-btn" data-icon="book">Manuale in PDF</a><?php endif; ?><?php if($manuals['adminAccademia']): ?><button type="button" id="create-group-btn" class="action-btn" data-icon="book">Nuova raccolta</button><?php endif; ?></div>
 <form class="manual-filters" role="search"><label>Cerca nel manuale<input id="manual-search" type="search" placeholder="Es. combattimento, cittadinanza, PE…" autocomplete="off"></label><label>Raccolta<select id="manual-group"><option value="0">Tutti i capitoli</option></select></label><label>Tipo di guida<select id="manual-audience"><option value="all">Tutte le guide disponibili</option><option value="public">Per giocare</option><?php if(!$isPublic): ?><option value="staff">Per il tuo incarico</option><?php endif; ?><option value="legacy">Archivio e approfondimenti</option></select></label><button type="reset" class="action-btn">Azzera filtri</button></form>
 </header>
-<div id="manual-status" class="manual-result-count" role="status">Preparazione della biblioteca…</div>
+<div id="manual-status" class="manual-result-count" aria-live="polite">Preparazione della biblioteca…</div>
 <div id="manual-index"></div>
 <article id="manual-detail" hidden tabindex="-1"></article>
 </section>
-<div id="toast" role="status" aria-live="polite"></div>
-<?php if($manuals['adminAccademia']): ?><div id="modal" class="modal forum-modal" role="dialog" aria-modal="true" aria-label="Redazione manuali"><div class="modal-content"><button type="button" class="close" aria-label="Chiudi">×</button><div id="modal-body"></div></div></div><?php endif; ?>
+<div id="toast" aria-live="polite" aria-live="polite"></div>
+<?php if($manuals['adminAccademia']): ?><div id="modal" class="modal forum-modal" aria-modal="true" aria-label="Redazione manuali"><div class="modal-content"><button type="button" class="close" aria-label="Chiudi">×</button><div id="modal-body"></div></div></div><?php endif; ?>
 <script type="application/json" id="manuals-config"><?=json_encode($manuals,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_UNESCAPED_UNICODE)?></script>
 </body></html>

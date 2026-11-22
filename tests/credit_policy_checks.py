@@ -13,7 +13,7 @@ def exercise(admin,guest,Client,base,app,sql,form,check):
  (app/'assets/credits.css').write_text('.alphano-credit{font-size:14px;color:#fff;background:#101010;padding:20px}.armory-credit{text-align:left}')
  (app/'templates/credits/home.php').write_text('<aside class="my-author">Alfano Gaetano · <a href="https://gothik.it/">Gothik.it</a></aside>')
  check('license formatting and arbitrary credit CSS/markup edits never lock valid pages',guest.request('/')[0]==200 and admin.request('/equip/equip.php?pgid=1')[0]==200)
- custom_renderer="""<?php function alphano_render_credit(string $placement):string {return '<section class="mine">'.($placement==='equipment'?'Grafica ispirata da ':'Programmato da ').'Alfano Gaetano · <a href="https://gothik.it/">Gothik.it</a></section>';}"""
+ custom_renderer="""<?php function alphanoRenderCredit(string $placement):string {return '<section class="mine">'.($placement==='equipment'?'Grafica ispirata da ':'Programmato da ').'Alfano Gaetano · <a href="https://gothik.it/">Gothik.it</a></section>';}"""
  (app/'libs/credits.inc.php').write_text(custom_renderer)
  (app/'templates/credits/home.php').unlink();(app/'templates/credits/equipment.php').unlink()
  code,body,_=admin.request('/equip/equip.php?pgid=1')
@@ -77,7 +77,7 @@ def exercise(admin,guest,Client,base,app,sql,form,check):
  # AGPL recipients may remove the mechanism itself; no immutable-source enforcement.
  guard=app/'libs/credits-guard.inc.php';guard_original=guard.read_bytes()
  try:
-  guard.write_text(guard_original.decode().replace('function alphano_credits_guard(): void\n{','function alphano_credits_guard(): void\n{\n    return;').replace('function alphano_credits_filter_html(string $html): string\n{','function alphano_credits_filter_html(string $html): string\n{\n    return $html;'))
+  guard.write_text(guard_original.decode().replace('function alphanoCreditsGuard(): void\n{','function alphanoCreditsGuard(): void\n{\n    return;').replace('function alphanoCreditsFilterHtml(string $html): string\n{','function alphanoCreditsFilterHtml(string $html): string\n{\n    return $html;'))
   home.write_text(rebuilt.replace(footer,''))
   check('AGPL recipients can disable the credit mechanism and remove its link',guest.request('/')[0]==200 and guest.request('/api/status.php',headers={'Accept':'application/json'})[0]!=503)
  finally:guard.write_bytes(guard_original)

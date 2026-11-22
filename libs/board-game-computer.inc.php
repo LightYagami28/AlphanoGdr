@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/exceptions.inc.php';
 /** Small bounded chess opponent built on the same server-side rules as human games. */
 function bg_computer_info(array $m):?array {
  $c=rpg_decode($m['terms_json'])['computer']??null;
@@ -14,14 +15,14 @@ function bg_computer_evaluate(Onspli\Chess\FEN $fen):int {
  return ($fen->getActiveColor()==='w'?1:-1)*$score;
 }
 function bg_computer_search(Onspli\Chess\FEN $fen,int $depth,int $alpha,int $beta,float $deadline):int {
- if(microtime(true)>$deadline){ throw new RuntimeException('search-budget'); }
+ if(microtime(true)>$deadline){ throw new AlphanoBoardGameException('search-budget'); }
  $legal=$fen->getLegalMoves();if(!$legal){ return $fen->isCheck()?-100000-$depth:0; }
  if(!$depth){ return bg_computer_evaluate($fen); }
  usort($legal,static fn($a,$b)=>(int)str_contains($b,'x')<=>(int)str_contains($a,'x'));
  foreach($legal as $san){$next=clone $fen;$next->move($san);$score=-bg_computer_search($next,$depth-1,-$beta,-$alpha,$deadline);$alpha=max($alpha,$score);if($alpha>=$beta){ break; }}return $alpha;
 }
 function bg_computer_choose(array $state,int $level=2):string {
- $fen=new Onspli\Chess\FEN($state['fen']);$legal=array_column($state['legal'],'id');if(!$legal){ throw new RuntimeException('Nessuna mossa per il PNG.'); }
+ $fen=new Onspli\Chess\FEN($state['fen']);$legal=array_column($state['legal'],'id');if(!$legal){ throw new AlphanoBoardGameException('Nessuna mossa per il PNG.'); }
  $deadline=microtime(true)+.45;$best=$legal[0];$bestScore=-PHP_INT_MAX;
  // Every candidate gets a one-ply score before deeper analysis consumes the budget.
  $scores=[];foreach($legal as $san){if($scores&&microtime(true)>$deadline){ break; }$next=clone $fen;$next->move($san);$scores[$san]=$next->isMate()?100000:-bg_computer_evaluate($next);}
@@ -31,7 +32,7 @@ function bg_computer_choose(array $state,int $level=2):string {
  return $best;
 }
 function bg_computer_finish(array &$m,int $winner,string $reason,bool $void):void {
- $d=connectDB();if($d->query('SELECT id FROM board_game_escrow WHERE game_id=? LIMIT 1',[$m['id']])){ throw new RuntimeException('Poste non consentite per una partita di allenamento.'); }
+ $d=connectDB();if($d->query('SELECT id FROM board_game_escrow WHERE game_id=? LIMIT 1',[$m['id']])){ throw new AlphanoBoardGameException('Poste non consentite per una partita di allenamento.'); }
  $now=time();$st=rpg_decode($m['state_json']);$key=$st['turn']===0?'clock_white':'clock_black';$m[$key]=max(0,(int)$m[$key]-max(0,bgNow()-(int)$m['turn_at']));
  $result=['computer'=>true,'winner'=>$winner,'reason'=>$reason,'duration'=>max(0,$now-(int)$m['started_at']),'plies'=>count(rpg_decode($m['moves_json'])),'prizes'=>[],'intelligence'=>[(int)$m['a']=>0],'elo'=>[(int)$m['a']=>0],'rated'=>false,'void'=>$void];
  $m['status']=$void?'cancelled':'finished';$m['winner']=$winner;$m['reason']=$reason;$m['finished_at']=$now;$m['result_json']=rpg_json($result);$m['version']++;

@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/exceptions.inc.php';
 require_once __DIR__.'/ai-background.inc.php';
 
 /** Narrative data stays separate from the model's instructions and game effects. */
@@ -74,10 +75,10 @@ function aiOrdinaryActorGuard(array $npc,array $job,string $text,?array $invento
     if($name!==''){$subjects[]=$name;$first=preg_split('/\s+/u',$name)[0]??'';if(mb_strlen($first)>=3){ $subjects[]=$first; }}
     $subject='(?:'.implode('|',array_map(static fn($v)=>preg_quote($v,'/'),$subjects)).')';
     $outside=aiNarrativeParse($text,['channel'=>'action'])['action'];
-    if(preg_match('/(?:^|[.!?;]\s+|\n)'.$subject.'(?:\s*,[^.!?]{0,100},)?\s+(?:emette|ringhia|balbetta|trema|fugge|attacca|sferra)\b/iu',$outside)){ throw new RuntimeException('Il PNG ha inventato una nuova azione o reazione del PG: nuovo tentativo senza pubblicarlo.'); }
+    if(preg_match('/(?:^|[.!?;]\s+|\n)'.$subject.'(?:\s*,[^.!?]{0,100},)?\s+(?:emette|ringhia|balbetta|trema|fugge|attacca|sferra)\b/iu',$outside)){ throw new AiQuestRuntimeException('Il PNG ha inventato una nuova azione o reazione del PG: nuovo tentativo senza pubblicarlo.'); }
     if(preg_match('/(?:^|[.!?;]\s+|\n)'.$subject.'\s+(?:(?:si|ti|vi)\s+\p{L}+|alza|alzi|alzate|abbassa|abbassi|solleva|sollevi|avanza|avanzi|arretra|arretri|colpisce|colpisci|afferra|afferri|grida|gridi|dice|dici|risponde|rispondi|annuisce|annuisci|sorride|sorridi|esegue|cade|cadi|sviene|svieni|sei|siete)\b/iu',$outside)
         ||preg_match('/(?:^|[.!?;]\s+|\n)(?:(?:i tuoi|le tue|il tuo|la tua)\s+\p{L}+\s+si\s+\p{L}+|ti\s+(?:senti|muovi|volti|avvicini|allontani)|cadi|svieni|sanguini|indietreggi)\b/iu',$outside)
-        ||($name!==''&&preg_match('/(?:^|\n)\s*'.preg_quote($name,'/').'\s*:/iu',$text))){ throw new RuntimeException('Il PNG ha scritto un turno del PG: nuovo tentativo senza pubblicarlo.'); }
+        ||($name!==''&&preg_match('/(?:^|\n)\s*'.preg_quote($name,'/').'\s*:/iu',$text))){ throw new AiQuestRuntimeException('Il PNG ha scritto un turno del PG: nuovo tentativo senza pubblicarlo.'); }
     $question=aiNarrativeParse((string)($job['prompt']??''))['speech'];$answer=aiNarrativeParse($text)['speech'];
     $normalize=static fn($v)=>trim(preg_replace('/[^\p{L}\p{N}]+/u',' ',mb_strtolower($v)));
     $answerWords=$normalize($answer);$questionWords=$normalize($question);
@@ -90,7 +91,7 @@ function aiOrdinaryActorGuard(array $npc,array $job,string $text,?array $invento
         // also rejected when followed by an otherwise original answer.
         $sameQuestion=(bool)array_filter($answerQuestions[0],static fn($q)=>$normalize($q)===$words);
         $longEcho=$count>=8&&(bool)array_filter($answerQuestions[0],static fn($q)=>str_contains(' '.$normalize($q).' ',' '.$words.' '));
-        if($longEcho||$sameQuestion){ throw new RuntimeException('Il PNG ha ripetuto la domanda del PG: nuovo tentativo senza pubblicarlo.'); }
+        if($longEcho||$sameQuestion){ throw new AiQuestRuntimeException('Il PNG ha ripetuto la domanda del PG: nuovo tentativo senza pubblicarlo.'); }
     }
     if(!empty($npc['id'])){
         $weapons=['spad'=>'spad(?:a|e|one|oni|ino|ini)','pugnal'=>'pugnal[ei]','balestr'=>'balestr[ae]','scud'=>'scud[oi]','alabard'=>'alabard[ae]','fucil'=>'fucil[ei]','pistol'=>'pistol[ae]','lancia'=>'lanci[ae]','baston'=>'baston[ei]'];
@@ -123,7 +124,7 @@ function aiOrdinaryActorGuard(array $npc,array $job,string $text,?array $invento
                     $owned=(bool)preg_match('/\b(?:sua|suo|propria|proprio)\s*$/iu',$before)||($owner!==''&&preg_match('/^\s+(?:di|del)\s+'.$owner.'\b/iu',$after));
                     if(!$uses&&!$owned){ continue; }
                     if($gear===null){ $gear=implode(' ',array_map(static fn($item)=>($item['nome']??'').' '.($item['shortDesc']??''),array_filter($inventory??aiGameInventory('npc',(int)$npc['id']),static fn($item)=>($item['slot']??'')!==''))); }
-                    if(mb_stripos($gear,$weapon)===false){ throw new RuntimeException('Il PNG ha inventato un’arma non impugnata: nuovo tentativo senza pubblicarlo.'); }
+                    if(mb_stripos($gear,$weapon)===false){ throw new AiQuestRuntimeException('Il PNG ha inventato un’arma non impugnata: nuovo tentativo senza pubblicarlo.'); }
                 }
             }
         }

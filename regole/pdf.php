@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once dirname(__DIR__).'/libs/exceptions.inc.php';
 require_once __DIR__ . '/../libs/manuals.inc.php';
 require_once __DIR__ . '/../libs/libpg.inc.php';
 require_once __DIR__ . '/../libs/libtext.inc.php';
@@ -21,10 +22,10 @@ if($chapter!==''){
 $key=hash('sha256',json_encode([$groups,$rules,'dompdf-manuals-v4',hash_file('sha256',__DIR__.'/../css/theme/print.css')],JSON_INVALID_UTF8_SUBSTITUTE));
 $storage=(string)alphanoConfig('storage_root');
 $directory=dirname(__DIR__).'/private/pdf';
-if (!is_dir($directory) && !mkdir($directory,0700,true) && !is_dir($directory)) throw new RuntimeException('Cache PDF non disponibile');
+if (!is_dir($directory) && !mkdir($directory,0700,true) && !is_dir($directory)) throw new AlphanoPdfException('Cache PDF non disponibile');
 $path=$directory.'/manuale-'.$key.'.pdf';
 $lock=fopen($directory.'/manuale.lock','c');
-if (!$lock || !flock($lock,LOCK_EX)) throw new RuntimeException('Generazione PDF occupata');
+if (!$lock || !flock($lock,LOCK_EX)) throw new AlphanoPdfException('Generazione PDF occupata');
 try {
     if (!is_file($path)) {
         $escape=static fn($value)=>htmlspecialchars((string)$value,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
@@ -70,7 +71,7 @@ try {
         $pdf->getCanvas()->page_text(270,815,'{PAGE_NUM} / {PAGE_COUNT}',$pdf->getFontMetrics()->getFont('DejaVu Sans','normal'),8,[0.4,0.3,0.2]);
         $pdf->getCanvas()->get_cpdf()->addInfo('Title','Manuale di Alphano');
         $temporary=tempnam($directory,'manuale-');
-        if (file_put_contents($temporary,$pdf->output())===false || !rename($temporary,$path)) throw new RuntimeException('Salvataggio PDF non riuscito');
+        if (file_put_contents($temporary,$pdf->output())===false || !rename($temporary,$path)) throw new AlphanoPdfException('Salvataggio PDF non riuscito');
         foreach (glob($directory.'/manuale-*.pdf') ?: [] as $old) if ($old!==$path && filemtime($old)<time()-86400) unlink($old);
     }
 } finally { flock($lock,LOCK_UN); fclose($lock); }

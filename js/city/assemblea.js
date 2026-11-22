@@ -160,7 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // altrimenti, fase candidature / votazioni in corso
-    const { startCandidature, startElezioni, endElezioni, electionType } = dataObj;
+    const { startElezioni, endElezioni, electionType } = dataObj;
     const tipo = electionType ? electionType.charAt(0).toUpperCase() + electionType.slice(1) : 'Elezioni';
 
     // date

@@ -43,6 +43,7 @@
       for (let k in filters) {
         const val = filters[k].toLowerCase();
         if (!String(r[k]||'').toLowerCase().includes(val)) {
+          return false;
         }
       }
       return true;

@@ -1,4 +1,82 @@
 /* The final layer uses semantic colours, shared by the shell and every iframe. */
+body[data-palette]{--icon:var(--gold);--icon-nav:var(--gold);--icon-hover:var(--gold-2);--header-ivory:var(--text);--header-bronze:var(--gold);--button-active-line:var(--gold);--modal-header-background:var(--panel-2);--brand-background:var(--panel-2);--scrollbar:var(--gold);--parchment:var(--reading-background);--parchment-ink:var(--reading-ink);--parchment-line:var(--line);--paper-scrollbar:var(--reading-link);--paper-scrollbar-track:var(--reading-background);--composer-ink:var(--text);--composer-line:var(--line);--composer-field:var(--field-background);--composer-accent:var(--gold);--master-title:var(--gold-2);--master-inset:var(--line);--gp-diamond:var(--gold);--speech-good:var(--reading-ink);--speech-neutral:var(--reading-ink);--speech-evil:var(--reading-ink);--reading-line:color-mix(in srgb,var(--reading-ink) 18%,transparent);--reading-shadow:none;--reading-hover:color-mix(in srgb,var(--reading-link) 8%,transparent);background:var(--page-background);color:var(--text)/* The final layer uses semantic colours, shared by the shell and every iframe. */
+body[data-palette]{--icon:var(--gold);--icon-nav:var(--gold);--icon-hover:var(--gold-2);--header-ivory:var(--text);--header-bronze:var(--gold);--button-active-line:var(--gold);--modal-header-background:var(--panel-2);--brand-background:var(--panel-2);--scrollbar:var(--gold);--parchment:var(--reading-background);--parchment-ink:var(--reading-ink);--parchment-line:var(--line);--paper-scrollbar:var(--reading-link);--paper-scrollbar-track:var(--reading-background);--composer-ink:var(--text);--composer-line:var(--line);--composer-field:var(--field-background);--composer-accent:var(--gold);--master-title:var(--gold-2);--master-inset:var(--line);--gp-diamond:var(--gold);--speech-good:var(--reading-ink);--speech-neutral:var(--reading-ink);--speech-evil:var(--reading-ink);--reading-line:color-mix(in srgb,var(--reading-ink) 18%,transparent);--reading-shadow:none;--reading-hover:color-mix(in srgb,var(--reading-link) 8%,transparent)}
+
+body[data-palette] :is(.topbar,.scene-toolbar,.g-composer,.chat-drawer,.chat-drawer-head,.ui-module-toolbar,.ui-tablist,.forum-toolbar,.forum-channels,.panel-header,.manual-workspace,.armory-filters){background:var(--panel);color:var(--text);border-color:var(--line)}
+body[data-palette] :is(.ui-integrated-heading,.scene-toolbar,.rpg-hero){background:var(--heading-background);border-color:var(--line)}
+body[data-palette] :is(.ui-page-heading,.scene-toolbar,.rpg-hero) :is(h1,h2,h3,strong){color:var(--gold-2)}
+body[data-palette] :is(.scene-toolbar,.chat-drawer,.g-composer) :is(p,small,label,.key,.hint){color:var(--muted)}
+body[data-palette] :is(.ui-surface,.panel,.profile-card,.chat-portrait-card,.g-compose-surface,.g-save,.g-setting,.g-tools,.g-tool){background-color:var(--panel);border-color:var(--line);color:var(--text)}
+body[data-palette] :is(.profile-card::before,.profile-card::after){background:transparent}
+body[data-palette] :is(input:not([type=checkbox]):not([type=radio]):not([type=submit]):not([type=button]),select,textarea){background-color:var(--field-background);color:var(--field-ink);border-color:var(--field-line)}
+body[data-palette] :is(.composer textarea,.g-composer textarea){color:var(--field-ink)}
+body[data-palette] :is(.composer select,.g-composer select){color:var(--field-ink);background:var(--field-background)}
+body[data-palette] .g-send{background:var(--gold);color:var(--bg);border-color:var(--gold)}
+body[data-palette] .g-setting-label{color:var(--muted)}
+body[data-palette] .g-setting-choice select{color:var(--text)}
+body[data-palette] :is(.g-tool-image,.g-status,.g-counter){color:var(--muted)}
+body[data-palette] .chat-drawer-body{color:var(--text)}
+body[data-palette] .chat-drawer-body :is(h3,strong){color:var(--gold-2)}
+body[data-palette] #chatbox{background:var(--reading-background);color:var(--reading-ink)}
+body[data-palette].chat-darkpaper #chatbox{background:var(--panel);color:var(--text)}
+body[data-palette] .chat-portrait-card{background:var(--panel);color:var(--text);border-color:var(--gold)}
+body[data-palette] .chat-portrait-card :is(.chat-portrait-name,.chat-portrait-title){color:var(--gold-2)}
+body[data-palette] .chat-message{border-color:var(--reading-line)}
+#chat-connection-status{margin:0;padding:8px 16px;background:var(--panel-2);color:var(--text);font:13px/1.5 var(--font-ui)}
+#chat-connection-status[hidden]{display:none}
+/* A popover escapes the horizontally scrollable navigation and iframe clipping. */
+body[data-palette] .game-navigation .tab-list{background:var(--panel);color:var(--text);border-color:var(--line);margin:0;right:auto;inset-inline-end:auto}
+body[data-palette] .game-navigation .tab-list[popover]{position:fixed;overflow:auto}
+body[data-palette] .game-navigation .tab-list a{color:var(--text)}
+body[data-palette] .game-navigation .tab-list a:hover{background:var(--hover);color:var(--gold-2)}
+body[data-palette] .game-navigation .tab-btn{color:var(--text);flex-shrink:0;min-height:76px}
+body[data-palette] .game-navigation .tab-btn .ui-icon{display:block;color:var(--gold);width:44px;height:44px;flex-shrink:0}
+.nav-item-symbol{flex:0 0 42px;width:42px;height:42px;display:grid;place-items:center;border:1px solid var(--line);background:var(--panel-2);border-radius:12px;color:var(--gold)}
+.nav-item-symbol .ui-icon{width:24px;height:24px;margin:0}
+body[data-header=bottom] .game-navigation .tab-list{top:auto;bottom:var(--menu-bottom,110px);max-height:min(65dvh,calc(100dvh - var(--menu-bottom,110px) - 12px))}
+body[data-header=bottom] .game-navigation .menu-text::after{content:'⌃'}
+.scene-control-art[data-icon]{display:grid;place-items:center;border:1px solid var(--line);border-radius:12px;background:var(--panel-2);color:var(--gold)}
+.scene-control-art[data-icon]>.ui-icon{width:24px!important;height:24px!important;color:var(--gold)!important;margin:0}
+body[data-view=chat-index] .scene-controls .scene-actions>.scene-tool{height:65px;min-width:49px;width:58px;min-width:58px/* The final layer uses semantic colours, shared by the shell and every iframe. */
+body[data-palette]{--icon:var(--gold);--icon-nav:var(--gold);--icon-hover:var(--gold-2);--header-ivory:var(--text);--header-bronze:var(--gold);--button-active-line:var(--gold);--modal-header-background:var(--panel-2);--brand-background:var(--panel-2);--scrollbar:var(--gold);--parchment:var(--reading-background);--parchment-ink:var(--reading-ink);--parchment-line:var(--line);--paper-scrollbar:var(--reading-link);--paper-scrollbar-track:var(--reading-background);--composer-ink:var(--text);--composer-line:var(--line);--composer-field:var(--field-background);--composer-accent:var(--gold);--master-title:var(--gold-2);--master-inset:var(--line);--gp-diamond:var(--gold);--speech-good:var(--reading-ink);--speech-neutral:var(--reading-ink);--speech-evil:var(--reading-ink);--reading-line:color-mix(in srgb,var(--reading-ink) 18%,transparent);--reading-shadow:none;--reading-hover:color-mix(in srgb,var(--reading-link) 8%,transparent)}
+body[data-palette]{background:var(--page-background);color:var(--text)}
+body[data-palette] :is(.topbar,.scene-toolbar,.g-composer,.chat-drawer,.chat-drawer-head,.ui-module-toolbar,.ui-tablist,.forum-toolbar,.forum-channels,.panel-header,.manual-workspace,.armory-filters){background:var(--panel);color:var(--text);border-color:var(--line)}
+body[data-palette] :is(.ui-integrated-heading,.scene-toolbar,.rpg-hero){background:var(--heading-background);border-color:var(--line)}
+body[data-palette] :is(.ui-page-heading,.scene-toolbar,.rpg-hero) :is(h1,h2,h3,strong){color:var(--gold-2)}
+body[data-palette] :is(.scene-toolbar,.chat-drawer,.g-composer) :is(p,small,label,.key,.hint){color:var(--muted)}
+body[data-palette] :is(.ui-surface,.panel,.profile-card,.chat-portrait-card,.g-compose-surface,.g-save,.g-setting,.g-tools,.g-tool){background-color:var(--panel);border-color:var(--line);color:var(--text)}
+body[data-palette] :is(.profile-card::before,.profile-card::after){background:transparent}
+body[data-palette] :is(input:not([type=checkbox]):not([type=radio]):not([type=submit]):not([type=button]),select,textarea){background-color:var(--field-background);color:var(--field-ink);border-color:var(--field-line)}
+body[data-palette] :is(.composer textarea,.g-composer textarea){color:var(--field-ink)}
+body[data-palette] :is(.composer select,.g-composer select){color:var(--field-ink);background:var(--field-background)}
+body[data-palette] .g-send{background:var(--gold);color:var(--bg);border-color:var(--gold)}
+body[data-palette] .g-setting-label{color:var(--muted)}
+body[data-palette] .g-setting-choice select{color:var(--text)}
+body[data-palette] :is(.g-tool-image,.g-status,.g-counter){color:var(--muted)}
+body[data-palette] .chat-drawer-body{color:var(--text)}
+body[data-palette] .chat-drawer-body :is(h3,strong){color:var(--gold-2)}
+body[data-palette] #chatbox{background:var(--reading-background);color:var(--reading-ink)}
+body[data-palette].chat-darkpaper #chatbox{background:var(--panel);color:var(--text)}
+body[data-palette] .chat-portrait-card{background:var(--panel);color:var(--text);border-color:var(--gold)}
+body[data-palette] .chat-portrait-card :is(.chat-portrait-name,.chat-portrait-title){color:var(--gold-2)}
+body[data-palette] .chat-message{border-color:var(--reading-line)}
+#chat-connection-status{margin:0;padding:8px 16px;background:var(--panel-2);color:var(--text);font:13px/1.5 var(--font-ui)}
+#chat-connection-status[hidden]{display:none}
+/* A popover escapes the horizontally scrollable navigation and iframe clipping. */
+body[data-palette] .game-navigation .tab-list{background:var(--panel);color:var(--text);border-color:var(--line);margin:0;right:auto;inset-inline-end:auto}
+body[data-palette] .game-navigation .tab-list[popover]{position:fixed;overflow:auto}
+body[data-palette] .game-navigation .tab-list a{color:var(--text)}
+body[data-palette] .game-navigation .tab-list a:hover{background:var(--hover);color:var(--gold-2)}
+body[data-palette] .game-navigation .tab-btn{color:var(--text);flex-shrink:0;min-height:76px}
+body[data-palette] .game-navigation .tab-btn .ui-icon{display:block;color:var(--gold);width:44px;height:44px;flex-shrink:0}
+.nav-item-symbol{flex:0 0 42px;width:42px;height:42px;display:grid;place-items:center;border:1px solid var(--line);background:var(--panel-2);border-radius:12px;color:var(--gold)}
+.nav-item-symbol .ui-icon{width:24px;height:24px;margin:0}
+body[data-header=bottom] .game-navigation .tab-list{top:auto;bottom:var(--menu-bottom,110px);max-height:min(65dvh,calc(100dvh - var(--menu-bottom,110px) - 12px))}
+body[data-header=bottom] .game-navigation .menu-text::after{content:'⌃'}
+.scene-control-art[data-icon]{display:grid;place-items:center;border:1px solid var(--line);border-radius:12px;background:var(--panel-2);color:var(--gold)}
+.scene-control-art[data-icon]>.ui-icon{width:24px!important;height:24px!important;color:var(--gold)!important;margin:0}
+body[data-view=chat-index] .scene-controls .scene-actions>.scene-tool{height:65px;min-width:49px}
+body[data-view=chat-index] .scene-controls .scene-actions>.scene-tool:after{opacity:1;transform:translate(-50%,0);font-size:10px;max-width:76px;overflow:hidden;text-overflow:ellipsis;max-width:58px;white-space:nowrap;text-align:center/* The final layer uses semantic colours, shared by the shell and every iframe. */
 body[data-palette]{--icon:var(--gold);--icon-nav:var(--gold);--icon-hover:var(--gold-2);--header-ivory:var(--text);--header-bronze:var(--gold);--button-active-line:var(--gold);--modal-header-background:var(--panel-2);--brand-background:var(--panel-2);--scrollbar:var(--gold);--parchment:var(--reading-background);--parchment-ink:var(--reading-ink);--parchment-line:var(--line);--paper-scrollbar:var(--reading-link);--paper-scrollbar-track:var(--reading-background);--composer-ink:var(--text);--composer-line:var(--line);--composer-field:var(--field-background);--composer-accent:var(--gold);--master-title:var(--gold-2);--master-inset:var(--line);--gp-diamond:var(--gold);--speech-good:var(--reading-ink);--speech-neutral:var(--reading-ink);--speech-evil:var(--reading-ink);--reading-line:color-mix(in srgb,var(--reading-ink) 18%,transparent);--reading-shadow:none;--reading-hover:color-mix(in srgb,var(--reading-link) 8%,transparent)}
 body[data-palette]{background:var(--page-background);color:var(--text)}
 body[data-palette] :is(.topbar,.scene-toolbar,.g-composer,.chat-drawer,.chat-drawer-head,.ui-module-toolbar,.ui-tablist,.forum-toolbar,.forum-channels,.panel-header,.manual-workspace,.armory-filters){background:var(--panel);color:var(--text);border-color:var(--line)}
@@ -67,8 +145,8 @@ body.world[data-view=map]{height:auto;min-height:100dvh;overflow:auto;padding:0}
 body[data-view=chat-index] .scene-controls .scene-actions .scene-tool>.scene-control-art[data-icon]{display:grid!important;place-items:center;width:42px;height:42px;flex:0 0 42px}
 body[data-view=chat-index] .scene-controls{min-width:0;flex:1;align-items:stretch}
 body[data-view=chat-index] .scene-controls .scene-actions{max-width:none;justify-content:flex-end;gap:5px}
-body[data-view=chat-index] .scene-controls .scene-actions>.scene-tool{width:58px;min-width:58px}
-body[data-view=chat-index] .scene-controls .scene-actions>.scene-tool:after{max-width:58px;white-space:nowrap;text-align:center}
+
+
 body[data-view=chat-index] .g-composer.g-composer #sendBtn{background:var(--gold);color:var(--bg);border-color:var(--gold)}
 body[data-view=chat-index] .g-composer #composer-save{background:var(--panel-2);color:var(--text);border-color:var(--line)}
 body[data-view=chat-index] .g-composer .g-toolbar :is(#messageType,#ai-chat-npc,#moodSelect,#chat-work-select){color:var(--field-ink)}

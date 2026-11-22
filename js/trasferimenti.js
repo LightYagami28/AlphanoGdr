@@ -160,7 +160,6 @@ function renderTransazioni(rows) {
   const panel=document.getElementById('trasf');
   if (!rows.length) {panel.innerHTML='<p>Nessuna contrattazione in corso.</p>';return;}
   const html=rows.map(d=>{
-    const owner=d.isOwner!==false,state=Number(d.stato);
     const qty=Number(d.qta);
     const price=Number(d.prezzo)+window.AlphanoCurrency.html(' Corone');
     const actions=commerceButton('manageTrade',d.id,'Gestisci trattativa');

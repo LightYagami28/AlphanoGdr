@@ -24,7 +24,7 @@ function Carica(box){
  document.getElementById('mail-filter-count').textContent=groups.length+' di '+all.length+' conversazioni e avvisi';
  document.getElementById('Lista').innerHTML='<div class="mail-contact-list" aria-label="Conversazioni per personaggio">'+(groups.length?groups.map(g=>{
   const item=g.latest,p=g.person,date=new Date(item.data*1000),stamp=new Intl.DateTimeFormat('it',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}).format(date);
-  const missiveWord=n=>n===1?' missiva':' missive',readWord=n=>n===1?'non letto':'non letti';
+  const missiveWord=n=>n===1?' missiva':' missive';
   const portraitHtml=p=>`<img class="mail-contact-portrait" src="${mailEsc(p.portrait)}" data-mail-fallback="${mailEsc(p.fallback)}" alt="" loading="lazy">`;
   const unreadHtml=g=>`<span class="mail-contact-count" aria-label="${g.unread} ${g.unread===1?'non letto':'non letti'}">${g.unread}</span>`;
   return `<button type="button" data-ui-no-icon class="mail-contact ${g.unread?'mail-contact-unread':''}" data-open-mail="${item.id}">${portraitHtml(p)}<span class="mail-contact-copy"><span class="mail-contact-top"><strong>${mailEsc(g.personal?p.name:item.commerce?.label||'Alphano · Avviso')}</strong><time>${mailEsc(stamp)}</time></span><span class="mail-contact-subject">${item.oggetto}</span><span class="mail-contact-preview">${item.from.id===mailViewer?'Tu: ':''}${mailEsc(item.preview||'Apri la missiva')}</span><span class="mail-contact-meta">${g.personal?g.items.length+(missiveWord(g.items.length))+' nella casella':mailEsc(item.commerce?.next||'Comunicazione di gioco')}</span></span>${unreadHtml(g)}</button>`;

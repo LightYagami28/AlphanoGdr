@@ -108,7 +108,7 @@ class GML
     }
 
     /* ---------- tag personalizzati ---------- */
-    private function tagTc(array $m): void
+    public function tagTc(array $m): void
     {
         $this->testo = str_replace(
             $m[0],
@@ -117,7 +117,7 @@ class GML
         );
     }
 
-    private function tagI(array $m): void
+    public function tagI(array $m): void
     {
         // estrai in sicurezza le dimensioni "LxA"
         $parts = explode('x', trim($m[1]));
@@ -140,7 +140,7 @@ class GML
     }
 
 
-    private function tagLnk(array $m): void
+    public function tagLnk(array $m): void
     {
         if (!trim($m[1])) { $m[1] = $m[2]; }
         $this->testo = str_replace(
@@ -150,7 +150,7 @@ class GML
         );
     }
 
-    private function tagBgc(array $m): void
+    public function tagBgc(array $m): void
     {
         $this->testo = str_replace(
             $m[0],
@@ -159,7 +159,7 @@ class GML
         );
     }
 
-    private function tagBgi(array $m): void
+    public function tagBgi(array $m): void
     {
         $this->testo = str_replace(
             $m[0],
@@ -168,7 +168,7 @@ class GML
         );
     }
 
-    private function tagCl(array $m): void
+    public function tagCl(array $m): void
     {
         $this->testo = str_replace(
             $m[0],
@@ -181,7 +181,7 @@ class GML
         );
     }
 
-    private function tagTbl(array $m): void
+    public function tagTbl(array $m): void
     {
         [$w,$h] = explode('x', trim($m[1]));
         $this->testo = str_replace(
@@ -191,7 +191,7 @@ class GML
         );
     }
 
-    private function tagQ(array $m): void
+    public function tagQ(array $m): void
     {
         $this->testo = str_replace(
             $m[0],

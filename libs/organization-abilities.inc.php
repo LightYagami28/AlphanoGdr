@@ -2,7 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__.'/rpg.inc.php';
 require_once __DIR__.'/activity.inc.php';
-function orgAbilitiesReady():bool {static $v;return $v??=(bool)connectDB()->query("SHOW TABLES LIKE 'org_ability_proposals'");}
+function orgAbilitiesReady():bool {static $v = null;return $v??=(bool)connectDB()->query("SHOW TABLES LIKE 'org_ability_proposals'");}
 function orgAbilityReviewer(array $u):bool {return !empty($u['admin'])||!empty($u['adminaccademia']);}
 function orgAbilityManager(array $u,int $org):bool {return !empty($u['admin'])||((int)($u['organizzazione']??0)===$org&&!empty($u['adminorganizzazione']));}
 function orgAbilityGroup(int $org):array {$r=connectDB()->query('SELECT id,nome,approvato FROM organizzazioni WHERE id=?',[$org])[0]??null;if(!$r||!$r['approvato']){ throw new DomainException('Organizzazione approvata non disponibile.',422); }return $r;}

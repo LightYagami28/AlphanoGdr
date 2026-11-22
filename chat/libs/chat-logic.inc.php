@@ -33,7 +33,7 @@ function buildChatMessage(
     }
 
     // 1) aggiorno posizione
-    setChatPosizione($position !== '' ? $position : $chat, $idpg, $chat);
+    setPosizione($position !== '' ? $position : $chat, $idpg, $chat);
 
     // 2) dati PG
     $pg = $db->query("SELECT * FROM utenti WHERE id = ?", [$idpg])[0] ?? null;

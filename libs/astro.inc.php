@@ -9,7 +9,7 @@ function sorgeCala(): array
     $giorno      = (int)date("z");
     $latitudine  = 45.0 * M_PI/180;
     $longitudine = 25.0 / 15.0; // in ore
-    $h           = -50/60 * M_PI/180;
+    $hour           = -50/60 * M_PI/180;
     $zone        = (int)date("I") + 1;
 
     // declinazione solare
@@ -17,15 +17,15 @@ function sorgeCala(): array
     // fuso e correzione
     $corr = -(-0.1752*sin(0.03343*$giorno+0.5474) - 0.1340*sin(0.018234*$giorno-0.1939));
     // ore di alba e tramonto
-    $acosArg = (sin($h) - sin($latitudine)*sin($dk)) / (cos($latitudine)*cos($dk));
+    $acosArg = (sin($hour) - sin($latitudine)*sin($dk)) / (cos($latitudine)*cos($dk));
     $omega   = acos(max(-1, min(1, $acosArg))) / M_PI * 12;
     $albaH   = 12 - $omega + $corr - $longitudine + $zone;
     $traH    = 12 + $omega + $corr - $longitudine + $zone;
 
     // ───────── helper per creare un timestamp ─────────
-    $make = fn(float $h): int => mktime(
-        (int) floor($h),                               // ora intera
-        (int) floor(($h - floor($h)) * 60),            // minuti
+    $make = fn(float $hour): int => mktime(
+        (int) floor($hour),                               // ora intera
+        (int) floor(($hour - floor($hour)) * 60),            // minuti
         0,                                             // secondi
         (int) date('n'),
         (int) date('j'),
@@ -51,12 +51,12 @@ function licanTime(): bool
 function getFaseLunare(?int $at = null): int
 {
     $at ??= time();
-    $Y  = (int)date('Y', $at);
-    $C  = (int)($Y / 100);
-    $go = ($Y % 19) + 1;
-    $e  = 30 - ((((int)(($C-15)*3/4 - (($C-15)/25) /3)) % 30) - ((11*$go-10)%30));
+    $year  = (int)date('Y', $at);
+    $century  = (int)($year / 100);
+    $go = ($year % 19) + 1;
+    $e  = 30 - ((((int)(($century-15)*3/4 - (($century-15)/25) /3)) % 30) - ((11*$go-10)%30));
 
-    $Lmonth = match((int)date('n', $at)) {
+    $lunarMonth = match((int)date('n', $at)) {
         1 => 0,
         2 => 1,
         3 => date('L', $at) ? 1 : 0,
@@ -72,7 +72,7 @@ function getFaseLunare(?int $at = null): int
         default => 0,
     };
 
-    $fase = $e + $Lmonth + (int)date('j', $at);
+    $fase = $e + $lunarMonth + (int)date('j', $at);
     while ($fase > 30) {
         $fase -= 30;
     }

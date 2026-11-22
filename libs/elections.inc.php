@@ -12,7 +12,7 @@ const ALPHANO_ELECTION_VOTING=432000;
 const ALPHANO_ELECTION_RUNOFF=172800;
 /** Storage uses UTC, independent of CLI/FPM timezone and daylight-saving changes. */
 function alphanoElectionsDeadlineLabel(string $utc):string {return (new DateTimeImmutable($utc,new DateTimeZone('UTC')))->setTimezone(new DateTimeZone('Europe/Rome'))->format('d/m/Y H:i').' (ora italiana)';}
-function alphanoElectionsReady():bool {static $r;return $r??=(bool)connectDB()->query("SHOW TABLES LIKE 'civic_election_votes'");}
+function alphanoElectionsReady():bool {static $r = null;return $r??=(bool)connectDB()->query("SHOW TABLES LIKE 'civic_election_votes'");}
 function alphanoElectionsCity(int $player):int {return (int)(connectDB()->query('SELECT a.city FROM utenti u JOIN araldiche a ON a.id=u.araldica WHERE u.id=? AND u.bloccato=0 AND u.puntif>0',[$player])[0]['city']??0);}
 function alphanoElectionsRound(int $city):?array {if(!alphanoElectionsReady()){ return null; }return connectDB()->query("SELECT * FROM storicoelezioni WHERE city_id=? AND civic_state IN('candidacy','voting','runoff') ORDER BY id DESC LIMIT 1",[$city])[0]??null;}
 /** One public query for all cards; never exposes ballots, vote totals or private programs. */

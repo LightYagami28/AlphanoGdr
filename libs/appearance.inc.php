@@ -7,10 +7,11 @@ require_once __DIR__.'/default-art.inc.php';
 
 /** Presentation settings contain no credentials and never change module permissions. */
 function alphanoAppearance(): array {
-    static $settings;
-    if ($settings !== null) { return $settings; }
-    $file=dirname(__DIR__).'/private/appearance.json';
-    $settings=is_file($file)?json_decode(file_get_contents($file),true,32,JSON_THROW_ON_ERROR):[];
+    static $settings = null;
+    if ($settings === null) {
+        $file = dirname(__DIR__) . '/private/appearance.json';
+        $settings = is_file($file) ? json_decode(file_get_contents($file), true, 32, JSON_THROW_ON_ERROR) : [];
+    }
     return $settings;
 }
 function alphanoAppearanceRevision(): string {

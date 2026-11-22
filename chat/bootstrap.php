@@ -55,7 +55,7 @@ $imgs = [
 ];
 $datides = $config['descrizione'] ?? '';
 
-setChatPosizione($posizione, $idpg, $chat);
+setPosizione($posizione, $idpg, $chat);
 if ($isChat) {
     require_once __DIR__.'/../libs/navigation-context.inc.php';
     alphanoNavigationRememberScene($idpg, $chat);

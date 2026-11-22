@@ -2,7 +2,7 @@
 declare(strict_types=1);
 /** Original, replaceable artwork shipped with every installation. */
 function alphanoDefaultArtCatalog(): array {
-    static $catalog;
+    static $catalog = null;
     return $catalog??=array_merge(
         json_decode(file_get_contents(dirname(__DIR__).'/config/default-art.json'),true,32,JSON_THROW_ON_ERROR)['assets'],
         json_decode(file_get_contents(dirname(__DIR__).'/config/header-art.json'),true,32,JSON_THROW_ON_ERROR)['assets']
@@ -18,7 +18,7 @@ function alphanoIsDefaultArt(string $path): bool {
 
 /** Pure URL lookup: public artwork never needs to expose game catalogues. */
 function alphanoDefaultHeader(string $url): string {
-    static $manifest;
+    static $manifest = null;
     $manifest??=json_decode(file_get_contents(dirname(__DIR__).'/config/header-art.json'),true,32,JSON_THROW_ON_ERROR);
     $key=alphanoAppearancePageKey($url);
     $base=alphanoAppearancePageKey(parse_url($url,PHP_URL_PATH)?:'/');

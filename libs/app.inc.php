@@ -24,7 +24,7 @@ const ALPHANO_RACE_LEGACY_SPIRIT = 8;
 
 function alphanoConfig(string $key): mixed
 {
-    static $config;
+    static $config = null;
     $config ??= (static function (): array { return require_once dirname(__DIR__) . '/config/app.php'; })();
     if (!array_key_exists($key, $config)) { throw new InvalidArgumentException('Configurazione sconosciuta: ' . $key); }
     return $config[$key];
@@ -100,7 +100,7 @@ function alphanoCsrfToken(): string
 
 function alphanoRequestJson(): array
 {
-    static $decoded;
+    static $decoded = null;
     if ($decoded === null) {
         $raw = file_get_contents('php://input');
         $decoded = $raw === '' ? [] : json_decode($raw, true, 64, JSON_THROW_ON_ERROR);

@@ -17,7 +17,7 @@ function alphanoTreasuryScope(string $scope):array {
     };
 }
 function alphanoTreasuryReady():bool {
-    static $ready;return $ready??=(bool)connectDB()->query("SHOW TABLES LIKE 'treasury_policies'");
+    static $ready = null;return $ready??=(bool)connectDB()->query("SHOW TABLES LIKE 'treasury_policies'");
 }
 /** A nested failed payment must not leave writes for its caller to commit. */
 function alphanoTreasuryAtomic(callable $operation):mixed {

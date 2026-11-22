@@ -30,7 +30,7 @@ const SECS_KEEP_CHAT = 86400;      // prune dopo 24 h
 if (!function_exists('db')) {
     function db()
     {
-        static $db;
+        static $db = null;
         return $db ??= connectDB();   // ← resta compatibile col vecchio codice
     }
 }
@@ -247,13 +247,3 @@ function showmessaggiotemp(string $chat): string
     return $row ? (string)$row[0]['testo'] : '';
 }
 
-/* --------------------------------------------------------------------------
- *  Alias setChatPosizione()  (retro-compatibilità: alcuni script lo chiamano
- *  senza il namespace ed è definito originariamente in libpg.inc.php)
- * ------------------------------------------------------------------------ */
-if (!function_exists('setChatPosizione')) {
-    function setChatPosizione(string $posizione, int $idpg, string $chat = ''): void
-    {
-        \setPosizione($posizione, $idpg, $chat);
-    }
-}

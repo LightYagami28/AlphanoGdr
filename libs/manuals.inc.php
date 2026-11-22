@@ -25,10 +25,10 @@ function alphanoManualPublicPayload(array $payload):array {
 
 /** One policy for the index, direct chapters, screenshots, exports and editors. */
 function alphanoManualCatalog():array {
-    static $data;return $data??=json_decode(file_get_contents(__DIR__.'/../config/manuals-guide.json'),true,64,JSON_THROW_ON_ERROR);
+    static $data = null;return $data??=json_decode(file_get_contents(__DIR__.'/../config/manuals-guide.json'),true,64,JSON_THROW_ON_ERROR);
 }
 function alphanoManualReady():bool {
-    static $ready;return $ready??=(bool)connectDB()->query("SHOW COLUMNS FROM regole LIKE 'manual_key'");
+    static $ready = null;return $ready??=(bool)connectDB()->query("SHOW COLUMNS FROM regole LIKE 'manual_key'");
 }
 function alphanoManualUser(int $id):array {
     $u=connectDB()->query('SELECT * FROM utenti WHERE id=?',[$id])[0]??[];
@@ -52,7 +52,7 @@ function alphanoManualRole(string $role,array $u):bool {
     };
 }
 function alphanoManualDefinition(string $key):?array {
-    static $map;if($map===null){ $map=array_column(alphanoManualCatalog()['chapters'],null,'key'); }return $map[$key]??null;
+    static $map = null;if($map===null){ $map=array_column(alphanoManualCatalog()['chapters'],null,'key'); }return $map[$key]??null;
 }
 function alphanoManualCanRead(array $rule,array $u):bool {
     $definition=alphanoManualDefinition((string)($rule['manual_key']??''));

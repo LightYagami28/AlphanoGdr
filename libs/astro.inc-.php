@@ -7,12 +7,12 @@ const ASTRO_INC__LUNA_PIENA = 'Luna Piena';
 function julianDayUtc(int $ts): float
 {
     $dt = gmdate('Y-m-d H:i:s', $ts);
-    [$Y, $M, $D, $h, $m, $s] = preg_split('/[ \-:]/', $dt);
-    if ($M <= 2) { $Y--; $M += 12; }
-    $A = floor($Y / 100);
-    $B = 2 - $A + floor($A / 4);
-    $day = $D + ($h / 24) + ($m / 1440) + ($s / 86400);
-    return floor(365.25 * ($Y + 4716)) + floor(30.6001 * ($M + 1)) + $day + $B - 1524.5;
+    [$year, $month, $dayNum, $hour, $minute, $second] = preg_split('/[ \-:]/', $dt);
+    if ($month <= 2) { $year--; $month += 12; }
+    $century = floor($year / 100);
+    $yearShift = 2 - $century + floor($century / 4);
+    $day = $dayNum + ($hour / 24) + ($minute / 1440) + ($second / 86400);
+    return floor(365.25 * ($year + 4716)) + floor(30.6001 * ($month + 1)) + $day + $yearShift - 1524.5;
 }
 
 /**
@@ -20,11 +20,11 @@ function julianDayUtc(int $ts): float
  */
 function nextFullMoon(int $ts): int
 {
-    $JD = julianDayUtc($ts);
+    $julianDay = julianDayUtc($ts);
     // riferimento: 2451550.1 = plenilunio maggio 2000
-    $k   = floor(($JD - 2451550.1) / 29.530588861) + 1;
-    $JDE = 2451550.1 + 29.530588861 * $k;
-    return (int)round(($JDE - 2440587.5) * 86400);
+    $k   = floor(($julianDay - 2451550.1) / 29.530588861) + 1;
+    $julianEphemeris = 2451550.1 + 29.530588861 * $k;
+    return (int)round(($julianEphemeris - 2440587.5) * 86400);
 }
 
 /**
@@ -32,11 +32,11 @@ function nextFullMoon(int $ts): int
  */
 function prevFullMoon(int $ts): int
 {
-    $JD  = julianDayUtc($ts);
+    $julianDay  = julianDayUtc($ts);
     $syn = 29.530588861;
-    $k = floor(($JD - 2451550.1) / $syn);
-    $JDE = 2451550.1 + $syn * $k;
-    return (int)round(($JDE - 2440587.5) * 86400);
+    $k = floor(($julianDay - 2451550.1) / $syn);
+    $julianEphemeris = 2451550.1 + $syn * $k;
+    return (int)round(($julianEphemeris - 2440587.5) * 86400);
 }
 
 /**

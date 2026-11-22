@@ -4,12 +4,12 @@ declare(strict_types=1);
 /** One catalogue for names, registration guidance, handbook and illustrations. */
 function alphanoAlignmentCatalog():array
 {
-    static $catalog;
+    static $catalog = null;
     return $catalog??=json_decode(file_get_contents(dirname(__DIR__).'/config/alignments.json'),true,32,JSON_THROW_ON_ERROR);
 }
 function alphanoAlignment(string $code):?array
 {
-    static $byCode;
+    static $byCode = null;
     $byCode??=array_column(alphanoAlignmentCatalog()['alignments'],null,'code');
     return $byCode[strtoupper(trim($code))]??null;
 }

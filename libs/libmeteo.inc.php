@@ -62,14 +62,14 @@ function getNewMeteo(array $dati): array
     $t = $dati["temperatura"] > 0 ? 1 : -1;
     $minAdd  = $temperature[$stagione][$t]["less"];
     $maxAdd  = $temperature[$stagione][$t]["add"];
-    $dati["temperatura"] += rand($minAdd, $maxAdd);
+    $dati["temperatura"] += random_int($minAdd, $maxAdd);
     $dati["temperatura"] = max($dati["temperatura"], $temperature[$stagione]["min"]);
     $dati["temperatura"] = min($dati["temperatura"], $temperature[$stagione]["max"]);
 
     // drift tempo, cielo, vento
-    $dati["tempo"]  = max(-2, min(2, $dati["tempo"]  + rand(-1,1)));
-    $dati["cielo"]  = max(-2, min(2, $dati["cielo"]  + rand(-1,1)));
-    $dati["vento"]  = max(-4, min(4, $dati["vento"]  + rand(-1,1)));
+    $dati["tempo"]  = max(-2, min(2, $dati["tempo"]  + random_int(-1,1)));
+    $dati["cielo"]  = max(-2, min(2, $dati["cielo"]  + random_int(-1,1)));
+    $dati["vento"]  = max(-4, min(4, $dati["vento"]  + random_int(-1,1)));
 
     return $dati;
 }
@@ -112,10 +112,10 @@ function getMeteo(): array
     } elseif ($count === 0) {
         // tabella vuota: inserisco un nuovo record
         $dati = [
-            "temperatura" => rand($temperature[$stagione]["min"], $temperature[$stagione]["max"]),
-            "tempo"       => rand(-2,2),
-            "cielo"       => rand(-2,2),
-            "vento"       => rand(-3,3),
+            "temperatura" => random_int($temperature[$stagione]["min"], $temperature[$stagione]["max"]),
+            "tempo"       => random_int(-2,2),
+            "cielo"       => random_int(-2,2),
+            "vento"       => random_int(-3,3),
             "ora"         => $ora
         ];
         $db->execute(
@@ -174,4 +174,3 @@ function getDescrTempo(int $meteo, int $temperatura): string
     global $tempo, $cold;
     return ($temperatura > 0) ? $tempo[$meteo] : $cold[$meteo];
 }
-?>

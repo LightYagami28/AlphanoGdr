@@ -75,7 +75,7 @@ define('ADMIN_PASSWD', '');
  */
 function connectDB(): \Alphano\Database\PDOMySQLDriver
 {
-    static $connection;
+    static $connection = null;
     if ($connection === null) {
         require_once __DIR__ . '/mysql.php';
         $connection = new \Alphano\Database\PDOMySQLDriver(

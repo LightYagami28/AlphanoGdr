@@ -6,7 +6,7 @@ declare(strict_types=1);
 // ────────────────────────────────────────
 require_once __DIR__ . '/../../libs/kernel.inc.php';      // connectDB(), costanti…
 require_once __DIR__ . '/../../libs/libchat.inc.php';    // getChatImages(), MAX_RIGHE_CHAT, SECS_KEEP_CHAT
-require_once __DIR__ . '/../../libs/libpg.inc.php';      // setChatPosizione(), GetIDPG(), GetUmore(), lockUser()
+require_once __DIR__ . '/../../libs/libpg.inc.php';      // setPosizione(), GetIDPG(), GetUmore(), lockUser()
 require_once __DIR__ . '/../../libs/libtext.inc.php';    // processText(), gnl2br(), …
 require_once __DIR__ . '/../../libs/libmeteo.inc.php';   // getMeteo()
 require_once __DIR__ . '/../../libs/libequip.inc.php';   // consuma()
@@ -28,7 +28,7 @@ $GLOBALS['vampiredamage'] = $GLOBALS['vampiredamage'] ?? false;
 if (! function_exists('db')) {
     function db(): PDOMySQLDriver
     {
-        static $db;
+        static $db = null;
         return $db ??= connectDB();
     }
 }

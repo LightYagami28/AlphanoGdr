@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-function rpgOrgReady():bool {static $v;return $v??=(bool)connectDB()->query("SHOW TABLES LIKE 'org_ability_publications'");}
+function rpgOrgReady():bool {static $v = null;return $v??=(bool)connectDB()->query("SHOW TABLES LIKE 'org_ability_publications'");}
 function rpgOrgPublications():array {
  if(!rpgOrgReady()){ return []; }$out=[];
  foreach(connectDB()->query('SELECT p.*,o.nome,o.approvato FROM org_ability_publications p JOIN organizzazioni o ON o.id=p.org_id') as $r){$s=rpg_decode($r['spec']);$out[(int)$r['ability_id']]=['id'=>(int)$r['org_id'],'name'=>$r['nome'],'enabled'=>(bool)$r['approvato'],'minimum_rank'=>(int)$s['minimum_rank'],'form'=>$s['form'],'revision'=>(int)$r['revision']];}return $out;

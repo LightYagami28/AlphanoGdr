@@ -7,6 +7,6 @@ function alphanoThemeFiles(): array {
     return [...array_map(static fn($name)=>$root.'/css/theme/'.$name,$matches[1]),$root.'/assets/engine.css',$root.'/assets/appearance.css',$root.'/assets/portal.css',$root.'/assets/credits.css',$root.'/assets/management.css'];
 }
 function alphanoThemeVersion(): string {
-    static $version;
+    static $version = null;
     return $version??=substr(hash('sha256',implode('',array_map(static fn($file)=>hash_file('sha256',$file),alphanoThemeFiles()))),0,20);
 }

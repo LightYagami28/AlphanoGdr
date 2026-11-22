@@ -76,7 +76,7 @@ if (!defined('MAX_POINT_VALUE')) {  // viene usata nei calcoli del PV
 if (!function_exists('db')) {
     function db(): PDOMySQLDriver
     {
-        static $db;
+        static $db = null;
         return $db ??= connectDB();
     }
 }

@@ -103,7 +103,9 @@ function alphanoGovernanceApply(int $actor,int $target,array $changes,string $re
    if($group!==$before[$field]){foreach($field==='corporazione'?[$admin,'admincatalogo','admintrasfcorp']:[$admin] as $flag){ if(!array_key_exists($flag,$changes)){ $next[$flag]=0; } }if(!array_key_exists($rank,$changes)){ $next[$rank]=0; }}
    if(!$group){$next[$rank]=0;$next[$branch]=0;foreach($field==='corporazione'?[$admin,'admincatalogo','admintrasfcorp']:[$admin] as $flag){if(!empty($changes[$flag])){ throw new DomainException('Seleziona prima una '.$field.' per concederne i poteri.',422); }$next[$flag]=0;}}
    else {
-    if(!$db->query("SELECT id FROM {$table} WHERE id=?",[$group]))throw new DomainException('Gruppo non disponibile.',422);
+    if (!$db->query("SELECT id FROM {$table} WHERE id=?", [$group])) {
+   throw new DomainException('Gruppo non disponibile.', 422);
+  }
     if(!$next[$rank]&&array_key_exists($rank,$changes)){ throw new DomainException('Seleziona una carica valida per la '.$field.'.',422); }
     if(!$next[$rank]){ $next[$rank]=(int)($db->query("SELECT id FROM cariche{$table} WHERE {$field}=? AND prima=1 ORDER BY id LIMIT 1",[$group])[0]['id']??0); }
     $role=$db->query("SELECT id,ramo FROM cariche{$table} WHERE id=? AND {$field}=?",[$next[$rank],$group])[0]??null;

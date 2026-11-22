@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
 /** Character creation v2: one server authority shared by registration and existing characters. */
-function rpgHumanManual():array {static $v;return $v??=json_decode(file_get_contents(__DIR__.'/../config/human-rules-v2.json'),true,64,JSON_THROW_ON_ERROR);}
-function rpgCreationReady():bool {static $v;return $v??=(bool)connectDB()->query("SHOW TABLES LIKE 'rpg_creation'");}
+function rpgHumanManual():array {static $v = null;return $v??=json_decode(file_get_contents(__DIR__.'/../config/human-rules-v2.json'),true,64,JSON_THROW_ON_ERROR);}
+function rpgCreationReady():bool {static $v = null;return $v??=(bool)connectDB()->query("SHOW TABLES LIKE 'rpg_creation'");}
 function rpgHumanRule(string $key):?array {foreach(rpgHumanManual()['abilities'] as $a){ if($a['key']===$key){ return $a; } }return null;}
 /** Initial human talents stay innate in nature, but extra choices can be learned for PE. */
 function rpgAbilityLearnable(array $a):bool {

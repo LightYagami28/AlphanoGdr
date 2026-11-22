@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 /** Narrative dates never replace real timestamps used for accounts, combat or deadlines. */
 function alphanoWorldCalendar(?int $at=null):array {
-    static $config;$config??=json_decode(file_get_contents(__DIR__.'/../config/world-chronology.json'),true,32,JSON_THROW_ON_ERROR);
+    static $config = null;$config??=json_decode(file_get_contents(__DIR__.'/../config/world-chronology.json'),true,32,JSON_THROW_ON_ERROR);
     $zone=new DateTimeZone($config['timezone']);
     $real=(new DateTimeImmutable('@'.($at??time())))->setTimezone($zone)->setTime(0,0);
     $anchor=new DateTimeImmutable($config['real_anchor'],$zone);

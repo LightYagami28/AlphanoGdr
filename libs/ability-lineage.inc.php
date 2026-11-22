@@ -1,10 +1,10 @@
 <?php
 declare(strict_types=1);
 /** One authority for acquisition, inherited ownership and current-form use. */
-function rpgLineagePolicy():array {static $v;return $v??=json_decode(file_get_contents(__DIR__.'/../config/ability-lineages.json'),true,64,JSON_THROW_ON_ERROR);}
+function rpgLineagePolicy():array {static $v = null;return $v??=json_decode(file_get_contents(__DIR__.'/../config/ability-lineages.json'),true,64,JSON_THROW_ON_ERROR);}
 function rpgAbilityOrigin(array $a):array {
  // Authored powers cannot be opened to a foreign lineage by widening race_ids.
- static $origins;if($origins===null){$origins=[];foreach(['rpg-seed.json','racial-abilities-20261026.json'] as $file){ foreach(json_decode(file_get_contents(__DIR__.'/../config/'.$file),true)['abilities'] as $entry){ $origins[$entry['key']]=$entry['race_ids']; } }}
+ static $origins = null;if($origins===null){$origins=[];foreach(['rpg-seed.json','racial-abilities-20261026.json'] as $file){ foreach(json_decode(file_get_contents(__DIR__.'/../config/'.$file),true)['abilities'] as $entry){ $origins[$entry['key']]=$entry['race_ids']; } }}
  $key=$a['key']??$a['ability_key']??'';if(rpgHumanRule($key)){ return [alphanoHumanRaceId()]; }
  return array_map('intval',$origins[$key]??$a['race_ids']);
 }

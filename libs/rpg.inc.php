@@ -17,7 +17,7 @@ function rpg_kind(string $kind):string { if($kind==='player'){ $kind='pg'; }if(!
 function rpg_int(mixed $value,int $min,int $max,string $label='Valore'):int { if(filter_var($value,FILTER_VALIDATE_INT)===false||$value<$min||$value>$max){ throw new DomainException($label.' non valido.',422); }return (int)$value; }
 function rpg_text(mixed $value,int $max,bool $required=false):string { if(!is_string($value)||mb_strlen($value)>$max||($required&&trim($value)==='')){ throw new DomainException('Testo non valido.',422); }return trim($value); }
 function rpg_bool(mixed $value):bool { if(!in_array($value,[true,false,0,1,'0','1'],true)){ throw new DomainException('Opzione non valida.',422); }return (bool)$value; }
-function rpg_ready():bool { static $ready; if($ready===null){ $ready=(bool)connectDB()->query("SHOW TABLES LIKE 'rpg_progress'"); }return $ready; }
+function rpg_ready():bool { static $ready = null; if($ready===null){ $ready=(bool)connectDB()->query("SHOW TABLES LIKE 'rpg_progress'"); }return $ready; }
 /** Only the static catalogue is cached per request; player balances are always current reads. */
 function rpg_catalog(bool $refresh=false):array {
  static $cache,$cachedAt=0;if($refresh||microtime(true)-$cachedAt>2){ $cache=null; }if($cache!==null){ return $cache; }$cachedAt=microtime(true);

@@ -4,7 +4,7 @@ const ITEM_ENGINE_INC_FOR_UPDATE = ' FOR UPDATE';
 const ITEM_ENGINE_INC_DELETE_FROM_EQUIPPG_WHERE_ID = 'DELETE FROM equippg WHERE id=?';
 require_once __DIR__.'/libequip.inc.php';
 require_once __DIR__.'/rpg.inc.php';
-function itemEngineReady():bool {static $r;return $r??=(bool)db()->query("SHOW TABLES LIKE 'equipment_state'");}
+function itemEngineReady():bool {static $r = null;return $r??=(bool)db()->query("SHOW TABLES LIKE 'equipment_state'");}
 /** A bounded, allowlisted specification travels through the existing model approval workflow. */
 function itemSpec(mixed $raw):array {
  $s=is_array($raw)?$raw:rpg_decode($raw);if(!$s){ return []; }

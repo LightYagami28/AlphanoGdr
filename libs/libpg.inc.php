@@ -32,7 +32,7 @@ function initSession(): void
  */
 function getDB(): PDOMySQLDriver
 {
-    static $db;
+    static $db = null;
     if (!$db) {
         $db = connectDB();
     }

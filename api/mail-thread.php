@@ -47,7 +47,7 @@ function alphanoMailPostDispatch(int $uid,$d,array $in,string $action):array {
  }
  return alphanoMailSend($uid,$d,$in,$other,$subject,$message,$parent);
 }
-function alphanoMailConversation($d,int $uid,array $in):array {
+function alphanoMailThreadConversation($d,int $uid,array $in):array {
  $other=(int)($in['person']??0);$letter=(int)($in['id']??0);$before=max(0,(int)($in['before']??0));$r=null;
  if($letter){
   $r=$d->query('SELECT * FROM mail WHERE id=? AND ((idmittente=? AND delmitt=0) OR(iddestinatario=? AND deldest=0))',[$letter,$uid,$uid])[0]??null;
@@ -69,7 +69,7 @@ function alphanoMailTradeIds(array $conversation):array {
  return $trade;
 }
 function alphanoMailThreadRead(int $uid,$d,array $in,callable $h):array {
- [$other,$conversation]=alphanoMailConversation($d,$uid,$in);
+ [$other,$conversation]=alphanoMailThreadConversation($d,$uid,$in);
  $more=count($conversation)>80;
  if($more){ array_shift($conversation); }
  $read=[];

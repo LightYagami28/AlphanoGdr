@@ -246,7 +246,8 @@ function aiEpisodeFallback(array $npc,array $job):string {
             'skeptical'=>$role.', conosco il vostro incarico. Vi ascolto, ma voglio capire la richiesta prima di accettare.',
             default=>$role.', vi riconosco. Vi ascolto: ditemi come posso esservi utile.'
         }
-        ; }
+        ;
+    }
     }
     $affectiveQuestion=(bool)aiRegexAny(['/\b(?:mi\s+(?:ami|amate))\b/iu','/\b(?:(?:provi|provate)\s+per\s+me)\b/iu','/\b(?:sentimenti)\b/iu','/\b(?:innamorat[oa])\b/iu'],aiNarrativeParse((string)($job['prompt']??''))['speech']);
     if(!aiRecognitionAnonymous($npc,$job)&&empty($job['episode']['observer'])&&empty($job['episode']['declined'])&&($category==='corteggiamento'||(in_array($category,['dialogo','cordialita'],true)&&$affectiveQuestion))&&aiRelationFeelings(aiRelation((int)$npc['id'],(int)$job['user_id']))['close']&&aiRomanceAllowed($npc,aiPlayerIdentity((int)$job['user_id']),aiSocialRules((int)$npc['id']))){

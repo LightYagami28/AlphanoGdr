@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-require_once __DIR__ . '/regex-any.inc.php';
+require_once __DIR__.'/exceptions.inc.php';
 require_once __DIR__.'/ai-background.inc.php';
 
 /** Narrative data stays separate from the model's instructions and game effects. */
@@ -35,7 +35,7 @@ function aiPromptRelevantText(string $text,string $question,int $limit=400,bool 
         if($next!==''&&preg_match('/^(?:non\b|ignora\b|tuttavia\b|però\b|ma\b|resta\b|restano\b)/iu',trim($next))&&mb_strlen($unit.' '.$next)<=$limit){ $unit.=' '.trim($next); }
         $normalized=mb_strtolower($unit);$score=0;
         foreach($terms as $term=>$_){ if(preg_match('/(?<!\p{L})'.preg_quote($term,'/').'\p{L}*/u',$normalized)){ $score+=5; } }
-        if($constraints&&aiRegexAny(['/\b(?:non)\b/iu','/\b(?:mai)\b/iu','/\b(?:vietat\p{L}*)\b/iu','/\b(?:segreto)\b/iu','/\b(?:segreti)\b/iu','/\b(?:riservat\p{L}*)\b/iu','/\b(?:solo\s+se)\b/iu','/\b(?:soltanto\s+se)\b/iu','/\b(?:fiducia)\b/iu','/\b(?:limiti)\b/iu'],$unit)){ $score+=3; }
+        if($constraints&&preg_match('/\b(?:non|mai|vietat\p{L}*|segreto|segreti|riservat\p{L}*|solo\s+se|soltanto\s+se|fiducia|limiti)\b/iu',$unit)){ $score+=3; }
         $ranked[]=['index'=>$index,'text'=>$unit,'score'=>$score];
     }
     usort($ranked,static fn($a,$b)=>[$b['score'],-$b['index']]<=>[$a['score'],-$a['index']]);
@@ -62,7 +62,7 @@ function aiVoiceRegister(string $example):string {
     $sentences=preg_split('/[.!?]+/u',$speech,-1,PREG_SPLIT_NO_EMPTY)?:[$speech];
     $words=preg_match_all('/\p{L}+/u',$speech);
     $style=[$words/max(1,count($sentences))<=12?'battute brevi, con frasi complete':'frasi articolate'];
-    if(aiRegexAny(['/\b(?:voi)\b/iu','/\b(?:vi)\b/iu','/\b(?:vostro)\b/iu','/\b(?:vostra)\b/iu','/\b(?:signore)\b/iu','/\b(?:signora)\b/iu','/\b(?:volete)\b/iu','/\b(?:potete)\b/iu','/\b(?:desiderate)\b/iu','/\b(?:ditemi)\b/iu','/\b(?:accomodatevi)\b/iu','/\b(?:darvi)\b/iu','/\b(?:farvi)\b/iu','/\b(?:aiutarvi)\b/iu','/\b(?:guardate)\b/iu','/\b(?:entrate)\b/iu'],$speech)){ $style[]='trattamento formale con voi'; }
+    if(preg_match('/\b(?:voi|vi|vostro|vostra|signore|signora|volete|potete|desiderate|ditemi|accomodatevi|darvi|farvi|aiutarvi|guardate|entrate)\b/iu',$speech)){ $style[]='trattamento formale con voi'; }
     elseif(preg_match('/\b(?:tu|ti|tuo|tua|vuoi|puoi|senti|ascolta)\b/iu',$speech)){ $style[]='trattamento diretto con tu'; }
     if(preg_match('/\b(?:beh|ehi|eh|oh|mah|mica)\b/iu',$speech)){ $style[]='cadenza colloquiale'; }
     return implode('; ',$style).'. Il contenuto e i gesti dell’esempio non sono fatti attuali.';
@@ -75,13 +75,12 @@ function aiOrdinaryActorGuard(array $npc,array $job,string $text,?array $invento
     if($name!==''){$subjects[]=$name;$first=preg_split('/\s+/u',$name)[0]??'';if(mb_strlen($first)>=3){ $subjects[]=$first; }}
     $subject='(?:'.implode('|',array_map(static fn($v)=>preg_quote($v,'/'),$subjects)).')';
     $outside=aiNarrativeParse($text,['channel'=>'action'])['action'];
-    if(preg_match('/(?:^|[.!?;]\s+|\n)'.$subject.'(?:\s*,[^.!?]{0,100},)?\s+(?:emette|ringhia|balbetta|trema|fugge|attacca|sferra)\b/iu',$outside)){ throw new RuntimeException('Il PNG ha inventato una nuova azione o reazione del PG: nuovo tentativo senza pubblicarlo.'); }
+    if(preg_match('/(?:^|[.!?;]\s+|\n)'.$subject.'(?:\s*,[^.!?]{0,100},)?\s+(?:emette|ringhia|balbetta|trema|fugge|attacca|sferra)\b/iu',$outside)){ throw new AiQuestRuntimeException('Il PNG ha inventato una nuova azione o reazione del PG: nuovo tentativo senza pubblicarlo.'); }
     if(preg_match('/(?:^|[.!?;]\s+|\n)'.$subject.'\s+(?:(?:si|ti|vi)\s+\p{L}+|alza|alzi|alzate|abbassa|abbassi|solleva|sollevi|avanza|avanzi|arretra|arretri|colpisce|colpisci|afferra|afferri|grida|gridi|dice|dici|risponde|rispondi|annuisce|annuisci|sorride|sorridi|esegue|cade|cadi|sviene|svieni|sei|siete)\b/iu',$outside)
-        ||aiRegexAny(['/(?:^)(?:(?:i tuoi|le tue|il tuo|la tua)\s+\p{L}+\s+si\s+\p{L}+)\b/iu','/(?:^)(?:ti\s+(?:senti|muovi|volti|avvicini|allontani))\b/iu','/(?:^)(?:cadi)\b/iu','/(?:^)(?:svieni)\b/iu','/(?:^)(?:sanguini)\b/iu','/(?:^)(?:indietreggi)\b/iu','/(?:[.!?;]\s+)(?:(?:i tuoi)\s+\p{L}+\s+si\s+\p{L}+)\b/iu','/(?:[.!?;]\s+)(?:(?:le tue)\s+\p{L}+\s+si\s+\p{L}+)\b/iu','/(?:[.!?;]\s+)(?:(?:il tuo)\s+\p{L}+\s+si\s+\p{L}+)\b/iu','/(?:[.!?;]\s+)(?:(?:la tua)\s+\p{L}+\s+si\s+\p{L}+)\b/iu','/(?:[.!?;]\s+)(?:ti\s+(?:senti|muovi|volti|avvicini|allontani))\b/iu','/(?:[.!?;]\s+)(?:cadi)\b/iu','/(?:[.!?;]\s+)(?:svieni)\b/iu','/(?:[.!?;]\s+)(?:sanguini)\b/iu','/(?:[.!?;]\s+)(?:indietreggi)\b/iu','/(?:\n)(?:(?:i tuoi|le tue|il tuo|la tua)\s+\p{L}+\s+si\s+\p{L}+)\b/iu','/(?:\n)(?:ti\s+(?:senti|muovi|volti|avvicini|allontani))\b/iu','/(?:\n)(?:cadi)\b/iu','/(?:\n)(?:svieni)\b/iu','/(?:\n)(?:sanguini)\b/iu','/(?:\n)(?:indietreggi)\b/iu'],$outside)
-        ||($name!==''&&preg_match('/(?:^|\n)\s*'.preg_quote($name,'/').'\s*:/iu',$text))){ throw new RuntimeException('Il PNG ha scritto un turno del PG: nuovo tentativo senza pubblicarlo.'); }
+        ||preg_match('/(?:^|[.!?;]\s+|\n)(?:(?:i tuoi|le tue|il tuo|la tua)\s+\p{L}+\s+si\s+\p{L}+|ti\s+(?:senti|muovi|volti|avvicini|allontani)|cadi|svieni|sanguini|indietreggi)\b/iu',$outside)
+        ||($name!==''&&preg_match('/(?:^|\n)\s*'.preg_quote($name,'/').'\s*:/iu',$text))){ throw new AiQuestRuntimeException('Il PNG ha scritto un turno del PG: nuovo tentativo senza pubblicarlo.'); }
     $question=aiNarrativeParse((string)($job['prompt']??''))['speech'];$answer=aiNarrativeParse($text)['speech'];
     $normalize=static fn($v)=>trim(preg_replace('/[^\p{L}\p{N}]+/u',' ',mb_strtolower($v)));
-    $answerWords=$normalize($answer);$questionWords=$normalize($question);
     preg_match_all('/[^.!?]*\?/u',$question,$questions);
     preg_match_all('/[^.!?]*\?/u',$answer,$answerQuestions);
     foreach($questions[0] as $unit){
@@ -91,7 +90,7 @@ function aiOrdinaryActorGuard(array $npc,array $job,string $text,?array $invento
         // also rejected when followed by an otherwise original answer.
         $sameQuestion=(bool)array_filter($answerQuestions[0],static fn($q)=>$normalize($q)===$words);
         $longEcho=$count>=8&&(bool)array_filter($answerQuestions[0],static fn($q)=>str_contains(' '.$normalize($q).' ',' '.$words.' '));
-        if($longEcho||$sameQuestion){ throw new RuntimeException('Il PNG ha ripetuto la domanda del PG: nuovo tentativo senza pubblicarlo.'); }
+        if($longEcho||$sameQuestion){ throw new AiQuestRuntimeException('Il PNG ha ripetuto la domanda del PG: nuovo tentativo senza pubblicarlo.'); }
     }
     if(!empty($npc['id'])){
         $weapons=['spad'=>'spad(?:a|e|one|oni|ino|ini)','pugnal'=>'pugnal[ei]','balestr'=>'balestr[ae]','scud'=>'scud[oi]','alabard'=>'alabard[ae]','fucil'=>'fucil[ei]','pistol'=>'pistol[ae]','lancia'=>'lanci[ae]','baston'=>'baston[ei]'];
@@ -108,23 +107,23 @@ function aiOrdinaryActorGuard(array $npc,array $job,string $text,?array $invento
                     if($weapon==='lancia'&&!preg_match('/\b(?:la|una|sua|propria|questa|quella|con|di)\s*$/iu',$before)){ continue; }
                     // Looking at the visitor's blade, or describing being unarmed,
                     // does not give the NPC an item. Keep these mentions valid.
-                    if(aiRegexAny(['/\b(?:senza)\s+(?:(?:la)\s+){0,3}$/iu','/\b(?:senza)\s+(?:(?:lo)\s+){0,3}$/iu','/\b(?:senza)\s+(?:(?:gli)\s+){0,3}$/iu','/\b(?:senza)\s+(?:(?:le)\s+){0,3}$/iu','/\b(?:senza)\s+(?:(?:i)\s+){0,3}$/iu','/\b(?:senza)\s+(?:(?:un[ao]?)\s+){0,3}$/iu','/\b(?:senza)\s+(?:(?:sua)\s+){0,3}$/iu','/\b(?:senza)\s+(?:(?:propria)\s+){0,3}$/iu','/\b(?:senza)\s+(?:(?:di)\s+){0,3}$/iu','/\b(?:né)\s+(?:(?:la)\s+){0,3}$/iu','/\b(?:né)\s+(?:(?:lo)\s+){0,3}$/iu','/\b(?:né)\s+(?:(?:gli)\s+){0,3}$/iu','/\b(?:né)\s+(?:(?:le)\s+){0,3}$/iu','/\b(?:né)\s+(?:(?:i)\s+){0,3}$/iu','/\b(?:né)\s+(?:(?:un[ao]?)\s+){0,3}$/iu','/\b(?:né)\s+(?:(?:sua)\s+){0,3}$/iu','/\b(?:né)\s+(?:(?:propria)\s+){0,3}$/iu','/\b(?:né)\s+(?:(?:di)\s+){0,3}$/iu','/\b(?:nessun[oa]?)\s+(?:(?:la)\s+){0,3}$/iu','/\b(?:nessun[oa]?)\s+(?:(?:lo)\s+){0,3}$/iu','/\b(?:nessun[oa]?)\s+(?:(?:gli)\s+){0,3}$/iu','/\b(?:nessun[oa]?)\s+(?:(?:le)\s+){0,3}$/iu','/\b(?:nessun[oa]?)\s+(?:(?:i)\s+){0,3}$/iu','/\b(?:nessun[oa]?)\s+(?:(?:un[ao]?)\s+){0,3}$/iu','/\b(?:nessun[oa]?)\s+(?:(?:sua)\s+){0,3}$/iu','/\b(?:nessun[oa]?)\s+(?:(?:propria)\s+){0,3}$/iu','/\b(?:nessun[oa]?)\s+(?:(?:di)\s+){0,3}$/iu','/\b(?:alcun[oa]?)\s+(?:(?:la)\s+){0,3}$/iu','/\b(?:alcun[oa]?)\s+(?:(?:lo)\s+){0,3}$/iu','/\b(?:alcun[oa]?)\s+(?:(?:gli)\s+){0,3}$/iu','/\b(?:alcun[oa]?)\s+(?:(?:le)\s+){0,3}$/iu','/\b(?:alcun[oa]?)\s+(?:(?:i)\s+){0,3}$/iu','/\b(?:alcun[oa]?)\s+(?:(?:un[ao]?)\s+){0,3}$/iu','/\b(?:alcun[oa]?)\s+(?:(?:sua)\s+){0,3}$/iu','/\b(?:alcun[oa]?)\s+(?:(?:propria)\s+){0,3}$/iu','/\b(?:alcun[oa]?)\s+(?:(?:di)\s+){0,3}$/iu'],$before)){ continue; }
+                    if(preg_match('/\b(?:senza|né|nessun[oa]?|alcun[oa]?)\s+(?:(?:la|lo|gli|le|i|un[ao]?|sua|propria|di)\s+){0,3}$/iu',$before)){ continue; }
                     $uses=(bool)preg_match('/'.$use.'\b(?<bridge>[^.!?;]{0,70})$/iu',$before,$act,PREG_OFFSET_CAPTURE);
                     if($uses){
                         $lead=substr($before,0,$act[0][1]);
-                        if(aiRegexAny(['/\b(?:non)\s+(?:(?:vuole|intende|tenta|cerca|di)\s+){0,3}$/iu','/\b(?:mai)\s+(?:(?:vuole|intende|tenta|cerca|di)\s+){0,3}$/iu','/\b(?:senza)\s+(?:(?:vuole|intende|tenta|cerca|di)\s+){0,3}$/iu','/\b(?:evita\s+di)\s+(?:(?:vuole|intende|tenta|cerca|di)\s+){0,3}$/iu','/\b(?:rinuncia\s+a)\s+(?:(?:vuole|intende|tenta|cerca|di)\s+){0,3}$/iu'],$lead)){ continue; }
+                        if(preg_match('/\b(?:non|mai|senza|evita\s+di|rinuncia\s+a)\s+(?:(?:vuole|intende|tenta|cerca|di)\s+){0,3}$/iu',$lead)){ continue; }
                         if(preg_match('/'.$subject.'\s+(?:(?:che|mentre|ora|poi)\s+){0,2}$/iu',$lead)){ continue; }
                         // "Ha osservato la spada" is not possession; "la porta"
                         // and "la punta" are nouns, not equipping verbs.
                         $verb=trim(substr($act[0][0],0,strlen($act[0][0])-strlen($act['bridge'][0])));
-                        if(mb_strtolower($verb)==='ha'&&!aiRegexAny(['/^\s+(?:(?:in\s+mano)\s+)*$/iu','/^\s+(?:(?:tra\s+le\s+mani)\s+)*$/iu','/^\s+(?:(?:un[ao]?)\s+)*$/iu','/^\s+(?:(?:il)\s+)*$/iu','/^\s+(?:(?:lo)\s+)*$/iu','/^\s+(?:(?:la)\s+)*$/iu','/^\s+(?:(?:gli)\s+)*$/iu','/^\s+(?:(?:le)\s+)*$/iu','/^\s+(?:(?:i)\s+)*$/iu','/^\s+(?:(?:suo)\s+)*$/iu','/^\s+(?:(?:sua)\s+)*$/iu','/^\s+(?:(?:proprio)\s+)*$/iu','/^\s+(?:(?:propria)\s+)*$/iu','/^\s+(?:(?:lung[ao])\s+)*$/iu','/^\s+(?:(?:cort[ao])\s+)*$/iu','/^\s+(?:(?:pesante)\s+)*$/iu','/^\s+(?:(?:vecchi[ao])\s+)*$/iu','/^\s+(?:(?:lucid[ao])\s+)*$/iu','/^\s+(?:(?:dorata?)\s+)*$/iu'],$act['bridge'][0])){ $uses=false; }
-                        if(aiRegexAny(['/\b(?:per)\b/iu','/\b(?:mentre)\b/iu','/\b(?:che)\b/iu','/\b(?:come)\b/iu','/\b(?:non)\b/iu','/\b(?:senza)\b/iu','/\b(?:lontan\p{L}*)\b/iu','/\b(?:accanto)\b/iu','/\b(?:vicino)\b/iu','/\b(?:davanti)\b/iu','/\b(?:dietro)\b/iu','/\b(?:sguardo)\b/iu','/\b(?:occhi)\b/iu'],$act['bridge'][0])){ $uses=false; }
+                        if(mb_strtolower($verb)==='ha'&&!preg_match('/^\s+(?:(?:in\s+mano|tra\s+le\s+mani|un[ao]?|il|lo|la|gli|le|i|suo|sua|proprio|propria|lung[ao]|cort[ao]|pesante|vecchi[ao]|lucid[ao]|dorata?)\s+)*$/iu',$act['bridge'][0])){ $uses=false; }
+                        if(preg_match('/\b(?:per|mentre|che|come|non|senza|lontan\p{L}*|accanto|vicino|davanti|dietro|sguardo|occhi)\b/iu',$act['bridge'][0])){ $uses=false; }
                         if(preg_match('/\b(?:la|una|il|un|della|dell[’\x{27}])\s*$/iu',$lead)){ $uses=false; }
                     }
                     $owned=(bool)preg_match('/\b(?:sua|suo|propria|proprio)\s*$/iu',$before)||($owner!==''&&preg_match('/^\s+(?:di|del)\s+'.$owner.'\b/iu',$after));
                     if(!$uses&&!$owned){ continue; }
                     if($gear===null){ $gear=implode(' ',array_map(static fn($item)=>($item['nome']??'').' '.($item['shortDesc']??''),array_filter($inventory??aiGameInventory('npc',(int)$npc['id']),static fn($item)=>($item['slot']??'')!==''))); }
-                    if(mb_stripos($gear,$weapon)===false){ throw new RuntimeException('Il PNG ha inventato un’arma non impugnata: nuovo tentativo senza pubblicarlo.'); }
+                    if(mb_stripos($gear,$weapon)===false){ throw new AiQuestRuntimeException('Il PNG ha inventato un’arma non impugnata: nuovo tentativo senza pubblicarlo.'); }
                 }
             }
         }

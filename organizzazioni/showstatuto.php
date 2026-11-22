@@ -27,7 +27,7 @@ require_once __DIR__ . '/../libs/libposta.inc.php';      // eventualmente per no
 
 
 initSession();
-$idpg = GetIDPG(false, true);
+$idpg = GetIDPG(false);
 if (!$idpg) {
     header('Location: /login.php');
     exit;
@@ -65,10 +65,9 @@ if ($admin) {
 }
 
 // Salvataggio statuto
-if ($modify && ($admin || $adminorg) && strlen($stat) > 0) {
-    if (alphanoGroupStatuteProposal('organizzazioni',$org,$idpg,$stat,$_POST['_request_key'] ?? null)) {
-        $msg = 'Statuto inviato all\'accademia';
-    }
+if ($modify && ($admin || $adminorg) && strlen($stat) > 0
+    && alphanoGroupStatuteProposal('organizzazioni',$org,$idpg,$stat,$_POST['_request_key'] ?? null)) {
+    $msg = 'Statuto inviato all\'accademia';
 }
 
 // Carico il testo (in visualizzazione o per modifica)

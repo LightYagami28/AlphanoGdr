@@ -4,6 +4,24 @@ import {presencePlaceHeading,presenceShowsNpcs,presenceSaveNpcs,presenceGameActi
 import {initFortuneSidebar} from './fortune-sidebar.js?v=20261031-configured-catalog';
 import {presentCivicInvitation} from './civic-invitation.js?v=20261027-offices';
 import {presentWelcome} from './welcome-message.js?v=20261026';
+
+  function compactMoonText(s,now,albaOggi,tramontoOggi){
+    if(s.lunaPhase!=='Luna Piena'){
+      const gg=Number(s.daysToFull);
+      return `Luna Piena tra ${gg} ${gg===1?'giorno':'giorni'}`;
+    }
+    return now>=albaOggi&&now<tramontoOggi?`Luna Piena · sorge alle ${s.tramonto}`:`Luna Piena · alba alle ${s.alba}`;
+  }
+  function healthClass(percent){
+    if(percent>=80){return 'green';}
+    if(percent>=50){return 'orange';}
+    if(percent>=20){return 'yellow';}
+    return percent>0?'red':'gray';
+  }
+  function closeTabMenus(tabs){
+    tabs.querySelectorAll('.tab-list.show').forEach(u=>{u.hidePopover?.();u.removeAttribute('popover');u.classList.remove('show');});
+    tabs.querySelectorAll('.tab-btn.active').forEach(b=>{b.classList.remove('active');b.setAttribute('aria-expanded','false');});
+  }
 // js/app.js — SPA light con grouping dinamico, panning immagini oversize,
 // aggiorna solo header tabs senza ricaricare la mappa e usa iframe per la mappa
 /* global fetch, document, window */
@@ -125,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
         pane.classList.toggle('is-visual-map',visualMap);
         const heading = pane.querySelector('h1');
         if (heading && frame.contentDocument?.title) {
-          const fullTitle=frame.contentDocument.title,separator=/\s+-\s+/.exec(fullTitle);
+          const fullTitle=frame.contentDocument.title,separator=/ + - +/.exec(fullTitle);
           const cleanTitle=separator&&fullTitle.slice(separator.index).toLowerCase().includes('alphano')?fullTitle.slice(0,separator.index):fullTitle;
           heading.textContent = frame.contentDocument.querySelector('.ui-page-heading h1')?.textContent || cleanTitle;
         }
@@ -197,19 +215,6 @@ document.addEventListener('DOMContentLoaded', () => {
     link.setAttribute('aria-label','Torna a '+label+(scene.session_active?'. Quest in corso: '+scene.session_title:''));
   }
   window.addEventListener('alphano:appearance-updated',()=>loadStatus());
-  function compactMoonText(s,now,albaOggi,tramontoOggi){
-    if(s.lunaPhase!=='Luna Piena'){
-      const gg=Number(s.daysToFull);
-      return `Luna Piena tra ${gg} ${gg===1?'giorno':'giorni'}`;
-    }
-    return now>=albaOggi&&now<tramontoOggi?`Luna Piena · sorge alle ${s.tramonto}`:`Luna Piena · alba alle ${s.alba}`;
-  }
-  function healthClass(percent){
-    if(percent>=80){return 'green';}
-    if(percent>=50){return 'orange';}
-    if(percent>=20){return 'yellow';}
-    return percent>0?'red':'gray';
-  }
   function menuTabLabel(title){
     const label=document.createElement('span');label.className='menu-text';
     const menuName=document.createElement('span');menuName.className='menu-label';menuName.textContent=title;
@@ -243,10 +248,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if(window.alphanoUI){li.querySelectorAll('[data-icon]').forEach(mark=>mark.append(window.alphanoUI.icon(mark.dataset.icon)));}
     if(it.url==='/mappa.php'){const recent=document.createElement('div');recent.dataset.navigationRecentScene='';recent.hidden=true;li.append(recent);}
     return li;
-  }
-  function closeTabMenus(tabs){
-    tabs.querySelectorAll('.tab-list.show').forEach(u=>{u.hidePopover?.();u.removeAttribute('popover');u.classList.remove('show');});
-    tabs.querySelectorAll('.tab-btn.active').forEach(b=>{b.classList.remove('active');b.setAttribute('aria-expanded','false');});
   }
   function openTabMenu(btn,list,key,tabs){
     const isOpen=btn.classList.contains('active');
@@ -470,10 +471,10 @@ document.addEventListener('DOMContentLoaded', () => {
       presentiCount.textContent = showNpcs?data.total:data.players;
       const summary=document.getElementById('presenti-summary');
       if(summary){summary.textContent=`${data.players} ${data.players===1?'giocatore':'giocatori'} · ${showNpcs?data.npcs+' PNG nei luoghi':'PNG nascosti'}`;}
-      patchLiveList(presentiList,data.places.map(place=>({...place,members:place.members.filter(person=>showNpcs||person.kind==='player')})).filter(place=>place.members.length||place.session_active).map(place=>`
+      patchLiveList(presentiList,data.places.map(place=>({...place,members:place.members.filter(person=>showNpcs||person.kind==='player').map(person=>({...person,raceSex:person.race+' · '+person.sex}))})).filter(place=>place.members.length||place.session_active).map(place=>`
         <li class="presence-sidebar-place" data-live-key="place:${esc(place.key)}">${presencePlaceHeading(place)}</li>
         ${place.members.map(person=>`<li class="presence-sidebar-person" data-live-key="person:${esc(place.key)}:${esc(person.kind)}:${person.id}" data-kind="${esc(person.kind)}">
-          <img src="${esc(person.icon)}" width="16" height="16" alt="${esc(person.race+' · '+person.sex)}" title="${esc(person.race+' · '+person.sex)}" class="razza-icon">
+          <img src="${esc(person.icon)}" width="16" height="16" alt="${esc(person.race+' · '+person.sex)}" title="${esc(person.raceSex)}" class="razza-icon">
           <a class="presenti-name presence-link" href="${esc(person.profile_url)}" data-url="${esc(person.profile_url)}" data-title="Profilo di ${esc(person.name)}">${esc(person.name)}</a>
           <span class="presence-kind">${person.kind==='npc'?'PNG':'PG'}</span>
           ${presenceGameAction(person)}          ${presenceMailButton(person)}

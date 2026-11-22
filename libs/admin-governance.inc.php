@@ -127,7 +127,7 @@ function alphanoGovernanceApply(int $actor,int $target,array $changes,string $re
     alphanoGovernanceRetireMayors($actor,$target,$city,$reason);
    }
   }
-  if($before['admin']&&!$before['bloccato']&&(!$next['admin']||$next['bloccato'])){if(!array_filter($admins,static fn($a)=>(int)$a['id']!==$target&&empty($a['bloccato']))){ throw new DomainException('Deve rimanere almeno un amministratore generale non bloccato.',409); }}
+  if($before['admin']&&!$before['bloccato']&&(!$next['admin']||$next['bloccato'])&&!array_filter($admins,static fn($a)=>(int)$a['id']!==$target&&empty($a['bloccato']))){ throw new DomainException('Deve rimanere almeno un amministratore generale non bloccato.',409); }
   $delta=array_filter($next,static fn($v,$k)=>$v!==$before[$k],ARRAY_FILTER_USE_BOTH);
   if($delta){$sets=implode(',',array_map(static fn($k)=>$k.'=?',array_keys($delta)));$db->execute('UPDATE utenti SET '.$sets.' WHERE id=?',[...array_values($delta),$target]);alphanoGovernanceAudit($actor,$target,$before,$next,$reason,$scope===null);
    if($next['corporazione']!==$before['corporazione']||($before['admincorporazione']&&!$next['admincorporazione'])||($before['admintrasfcorp']&&!$next['admintrasfcorp'])||($before['admin']&&!$next['admin'])){

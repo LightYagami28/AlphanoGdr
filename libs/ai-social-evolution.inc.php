@@ -1,6 +1,5 @@
 <?php
 declare(strict_types=1);
-require_once __DIR__ . '/regex-any.inc.php';
 
 /** These are NPC policy settings; the existing relationship/memory ledgers remain authoritative. */
 const AI_SOCIAL_CATEGORIES=['dialogo','cordialita','rassicurazione','minaccia','promessa','favore','offesa','tradimento','confidenza','riconoscenza','rifiuto','corteggiamento','separazione','riconciliazione','scambio'];
@@ -32,7 +31,7 @@ function aiSocialEpisodeCategory(string $category,string $player,string $npc,arr
     if(!in_array($category,AI_SOCIAL_CATEGORIES,true)){ return 'dialogo'; }
     $plain=aiSocialEvidenceKey($player);
     // Greetings and purchased praise cannot become a meaningful favour just because a model says so.
-    if(aiRegexAny(['/^(?:salve)(?:\s+(?:a voi|a te|signore|signora|mio signore|mia signora|mille))?$/u','/^(?:ciao)(?:\s+(?:a voi|a te|signore|signora|mio signore|mia signora|mille))?$/u','/^(?:buon ?giorno)(?:\s+(?:a voi))?$/u','/^(?:buon ?giorno)(?:\s+(?:a te))?$/u','/^(?:buon ?giorno)(?:\s+(?:signore))?$/u','/^(?:buon ?giorno)(?:\s+(?:signora))?$/u','/^(?:buon ?giorno)(?:\s+(?:mio signore))?$/u','/^(?:buon ?giorno)(?:\s+(?:mia signora))?$/u','/^(?:buon ?giorno)(?:\s+(?:mille))?$/u','/^(?:buona ?sera)(?:\s+(?:a voi))?$/u','/^(?:buona ?sera)(?:\s+(?:a te))?$/u','/^(?:buona ?sera)(?:\s+(?:signore))?$/u','/^(?:buona ?sera)(?:\s+(?:signora))?$/u','/^(?:buona ?sera)(?:\s+(?:mio signore))?$/u','/^(?:buona ?sera)(?:\s+(?:mia signora))?$/u','/^(?:buona ?sera)(?:\s+(?:mille))?$/u','/^(?:buona notte)(?:\s+(?:a voi|a te|signore|signora|mio signore|mia signora|mille))?$/u','/^(?:grazie)(?:\s+(?:a voi|a te|signore|signora|mio signore|mia signora|mille))?$/u','/^(?:prego)(?:\s+(?:a voi|a te|signore|signora|mio signore|mia signora|mille))?$/u','/^(?:piacere)(?:\s+(?:a voi|a te|signore|signora|mio signore|mia signora|mille))?$/u','/^(?:come stai)(?:\s+(?:a voi|a te|signore|signora|mio signore|mia signora|mille))?$/u','/^(?:come state)(?:\s+(?:a voi|a te|signore|signora|mio signore|mia signora|mille))?$/u'],$plain)){ return 'dialogo'; }
+    if(preg_match('/^(?:salve|ciao|buon ?giorno|buona ?sera|buona notte|grazie|prego|piacere|come stai|come state)(?:\s+(?:a voi|a te|signore|signora|mio signore|mia signora|mille))?$/u',$plain)){ return 'dialogo'; }
     // Some small models recognise relief in deltas but label it ordinary dialogue.
     // Reconcile only that explicit proposal and accepted observable reassurance; no score is guessed.
     if($category==='dialogo'&&is_int($deltas['fear']??null)&&$deltas['fear']<0&&aiSocialReassurance($player,$npc)){ $category='rassicurazione'; }
@@ -43,23 +42,23 @@ function aiSocialEpisodeCategory(string $category,string $player,string $npc,arr
 }
 /** Apologies open a possibility; only an NPC's own acceptance starts recovery. */
 function aiSocialReconciliation(string $player,string $npc):bool {
-    $offer=aiRegexAny(['/\b(?:chiedo\s+scusa)\b/iu','/\b(?:chiedo\s+perdono)\b/iu','/\b(?:mi\s+dispiace)\b/iu','/\b(?:ho\s+sbagliato)\b/iu','/\b(?:sono\s+pentit[oa])\b/iu'],$player);
-    if(!$offer||aiRegexAny(['/non\s+(?:vi\s+|ti\s+)?(?:chiedo\s+scusa|chiedo\s+perdono)/iu','/non\s+mi\s+dispiace/iu','/colpa\s+(?:tua|vostra)/iu','/(?:devi|dovete)\s+perdonar/iu'],$player)){ return false; }
+    $offer=preg_match('/\b(?:chiedo\s+scusa|chiedo\s+perdono|mi\s+dispiace|ho\s+sbagliato|sono\s+pentit[oa])\b/iu',$player);
+    if(!$offer||preg_match('/non\s+(?:vi\s+|ti\s+)?(?:chiedo\s+scusa|chiedo\s+perdono)|non\s+mi\s+dispiace|colpa\s+(?:tua|vostra)|(?:devi|dovete)\s+perdonar/iu',$player)){ return false; }
     $speech=aiNarrativeParse($npc)['speech'];
-    if(aiRegexAny(['/non\b.{0,25}(?:accetto|perdono|credo|fido|pront[oa]|ascoltar)/iu','/troppo\s+tardi/iu','/vattene/iu','/andatevene/iu'],$speech)){ return false; }
-    return (bool)aiRegexAny(['/accetto\b.{0,20}(?:scuse|scusa)/iu','/apprezzo\b.{0,30}(?:scuse|scusa|gesto)/iu','/(?:posso|voglio|proviamo\s+a)\s+(?:ascoltar|riparlar)/iu','/vi\s+ascolto/iu','/ti\s+ascolto/iu','/dar(?:ti|vi)\s+(?:una\s+)?possibilità/iu','/riproviamo/iu','/ricominciamo/iu','/ti\s+perdono/iu','/vi\s+perdono/iu'],$speech);
+    if(preg_match('/non\b.{0,25}(?:accetto|perdono|credo|fido|pront[oa]|ascoltar)|troppo\s+tardi|vattene|andatevene/iu',$speech)){ return false; }
+    return (bool)preg_match('/accetto\b.{0,20}(?:scuse|scusa)|apprezzo\b.{0,30}(?:scuse|scusa|gesto)|(?:posso|voglio|proviamo\s+a)\s+(?:ascoltar|riparlar)|vi\s+ascolto|ti\s+ascolto|dar(?:ti|vi)\s+(?:una\s+)?possibilità|riproviamo|ricominciamo|ti\s+perdono|vi\s+perdono/iu',$speech);
 }
 /** A player cannot order away fear: the published NPC must visibly accept the reassurance. */
 function aiSocialReassurance(string $player,string $npc):bool {
-    $offer=aiRegexAny(['/non\s+(?:ti).{0,35}(?:mal[ei]|ferir|farvi|farti|nuocer|aggredir)/iu','/non\s+(?:vi).{0,35}(?:mal[ei]|ferir|farvi|farti|nuocer|aggredir)/iu','/non\s+(?:voglio).{0,35}(?:mal[ei]|ferir|farvi|farti|nuocer|aggredir)/iu','/non\s+(?:intendo).{0,35}(?:mal[ei]|ferir|farvi|farti|nuocer|aggredir)/iu','/non\s+(?:desidero).{0,35}(?:mal[ei]|ferir|farvi|farti|nuocer|aggredir)/iu','/(?:puoi|potete).{0,20}(?:allontanar|andare|tranquill)/iu','/rispett.{0,25}(?:paura|distanza|scelta)/iu','/non\s+(?:sei|siete).{0,18}pericolo/iu'],$player);
-    $refusal=aiRegexAny(['/non.{0,16}(?:mi fido|ti credo|vi credo|si fida|si calma|si rilassa|riesce a calmarsi)/iu','/non.{0,12}(?:tranquill|rassicurat)/iu','/(?:ancora|continu[oa] a).{0,20}(?:tremare|paura|terrore)/iu','/non.{0,12}(?:mi calmo|si calma|riesco a calmarmi|riesce a calmarsi)/iu'],$npc);
-    $accept=aiRegexAny(['/(?:si|mi)\s+(?:calm|rilass)/iu','/(?:respiro|respira).{0,25}(?:regolar|lent|calm)/iu','/(?:abbassa|allenta).{0,25}(?:spalle|guardia|presa)/iu','/(?:mi fido|ti credo|vi credo|meno paura|smette di tremare)/iu'],$npc);
+    $offer=preg_match('/non\s+(?:ti|vi|voglio|intendo|desidero).{0,35}(?:mal[ei]|ferir|farvi|farti|nuocer|aggredir)|(?:puoi|potete).{0,20}(?:allontanar|andare|tranquill)|rispett.{0,25}(?:paura|distanza|scelta)|non\s+(?:sei|siete).{0,18}pericolo/iu',$player);
+    $refusal=preg_match('/non.{0,16}(?:mi fido|ti credo|vi credo|si fida|si calma|si rilassa|riesce a calmarsi)|non.{0,12}(?:tranquill|rassicurat)|(?:ancora|continu[oa] a).{0,20}(?:tremare|paura|terrore)|non.{0,12}(?:mi calmo|si calma|riesco a calmarmi|riesce a calmarsi)/iu',$npc);
+    $accept=preg_match('/(?:si|mi)\s+(?:calm|rilass)|(?:respiro|respira).{0,25}(?:regolar|lent|calm)|(?:abbassa|allenta).{0,25}(?:spalle|guardia|presa)|(?:mi fido|ti credo|vi credo|meno paura|smette di tremare)/iu',$npc);
     return (bool)($offer&&$accept&&!$refusal);
 }
 function aiSocialReciprocalInterest(string $npc):bool {
     if(preg_match('/restiamo\s+amic|preferisco.{0,35}(?:amic|distan)|non\s+ricambio/iu',$npc)){ return false; }
-    if(aiRegexAny(['/non.{0,20}(?:mi piaci|ti amo|vi amo|provo.{0,12}(?:amore|attrazione|sentiment)|sono interessat)/iu','/non.{0,20}(?:sono|mi sento).{0,12}(?:attratt|innamorat)/iu','/solo.{0,10}(?:amicizia|amici)/iu','/come\s+(?:un[ao]\s+)?amic[oa]/iu','/affetto\s+fratern[oa]/iu','/non.{0,15}(?:desidero|voglio).{0,20}(?:relazione|corteggi)/iu'],$npc)){ return false; }
-    return (bool)aiRegexAny(['/mi piaci\b/iu','/mi piacete\b/iu','/mi piace\s+stare con (?:te|voi)/iu','/ti amo/iu','/vi amo/iu','/(?:sono|mi sento).{0,14}(?:attratt|innamorat)/iu','/(?:provo|sento).{0,25}(?:sentiment|amore|attrazione)/iu','/(?:vorrei|desidero).{0,18}(?:rivederti|rivedervi|conoscerti|conoscervi|stare con te|stare con voi)/iu','/(?:ti|vi).{0,15}(?:bac[io]|abbracc)/iu'],$npc);
+    if(preg_match('/non.{0,20}(?:mi piaci|ti amo|vi amo|provo.{0,12}(?:amore|attrazione|sentiment)|sono interessat)|non.{0,20}(?:sono|mi sento).{0,12}(?:attratt|innamorat)|solo.{0,10}(?:amicizia|amici)|come\s+(?:un[ao]\s+)?amic[oa]|affetto\s+fratern[oa]|non.{0,15}(?:desidero|voglio).{0,20}(?:relazione|corteggi)/iu',$npc)){ return false; }
+    return (bool)preg_match('/mi piaci\b|mi piacete\b|mi piace\s+stare con (?:te|voi)|ti amo|vi amo|(?:sono|mi sento).{0,14}(?:attratt|innamorat)|(?:provo|sento).{0,25}(?:sentiment|amore|attrazione)|(?:vorrei|desidero).{0,18}(?:rivederti|rivedervi|conoscerti|conoscervi|stare con te|stare con voi)|(?:ti|vi).{0,15}(?:bac[io]|abbracc)/iu',$npc);
 }
 /** A later accepted reassurance can end a temporary panic posture, without erasing witnessed knowledge. */
 function aiSocialEmotionDeclared(string $key,string $reply):bool {
@@ -90,7 +89,7 @@ function aiSocialManifestedEmotions(array $npc,string $reply,bool $physical=true
         if(!in_array($kind,['speech','action'],true)){ continue; }
         foreach(preg_split('/(?<=[.!?;])\\s+/u',$text,-1,PREG_SPLIT_NO_EMPTY)?:[] as $sentence){
             if($kind==='speech'){
-                if(aiRegexAny(['/\\b(?:se|forse|ipoteticamente|diceva|ha\\s+detto|ripeti|ripetete)\\b/iu','/\\?$/iu'],$sentence)){ continue; }
+                if(preg_match('/(?:\\b(?:se|forse|ipoteticamente|diceva|ha\\s+detto|ripeti|ripetete)\\b|\\?$)/iu',$sentence)){ continue; }
                 foreach($speechPatterns as $key=>$pattern){ if(preg_match('/(?:'.$pattern.')/iu',$sentence)){
                     // A negated feeling can be stated, but it is not proof of the opposite
                     // score. Trust's explicit refusal is itself a public stance.
@@ -102,11 +101,11 @@ function aiSocialManifestedEmotions(array $npc,string $reply,bool $physical=true
             }
             if(!$physical){ continue; }
             if($first!==''&&preg_match('/^(?:'.preg_quote($name,'/').'|'.preg_quote($first,'/').')\\b/iu',trim($sentence))){ $ownAction=true; }
-            elseif(aiRegexAny(['/^\\s*([\\p{L}\\p{M}]+)(?:\\s+\\p{Lu}[\\p{L}\\p{M}]+){0,2}\\s+(?:trema)\\b/u','/^\\s*([\\p{L}\\p{M}]+)(?:\\s+\\p{Lu}[\\p{L}\\p{M}]+){0,2}\\s+(?:piange)\\b/u','/^\\s*([\\p{L}\\p{M}]+)(?:\\s+\\p{Lu}[\\p{L}\\p{M}]+){0,2}\\s+(?:ha)\\b/u','/^\\s*([\\p{L}\\p{M}]+)(?:\\s+\\p{Lu}[\\p{L}\\p{M}]+){0,2}\\s+(?:si)\\b/u','/^\\s*([\\p{L}\\p{M}]+)(?:\\s+\\p{Lu}[\\p{L}\\p{M}]+){0,2}\\s+(?:fugge)\\b/u','/^\\s*([\\p{L}\\p{M}]+)(?:\\s+\\p{Lu}[\\p{L}\\p{M}]+){0,2}\\s+(?:scappa)\\b/u','/^\\s*([\\p{L}\\p{M}]+)(?:\\s+\\p{Lu}[\\p{L}\\p{M}]+){0,2}\\s+(?:rimane)\\b/u','/^\\s*([\\p{L}\\p{M}]+)(?:\\s+\\p{Lu}[\\p{L}\\p{M}]+){0,2}\\s+(?:resta)\\b/u','/^\\s*([\\p{L}\\p{M}]+)(?:\\s+\\p{Lu}[\\p{L}\\p{M}]+){0,2}\\s+(?:sente)\\b/u','/^\\s*([\\p{L}\\p{M}]+)(?:\\s+\\p{Lu}[\\p{L}\\p{M}]+){0,2}\\s+(?:respira)\\b/u','/^\\s*([\\p{L}\\p{M}]+)(?:\\s+\\p{Lu}[\\p{L}\\p{M}]+){0,2}\\s+(?:guarda)\\b/u','/^\\s*([\\p{L}\\p{M}]+)(?:\\s+\\p{Lu}[\\p{L}\\p{M}]+){0,2}\\s+(?:osserva)\\b/u','/^\\s*([\\p{L}\\p{M}]+)(?:\\s+\\p{Lu}[\\p{L}\\p{M}]+){0,2}\\s+(?:nota)\\b/u','/^\\s*([\\p{L}\\p{M}]+)(?:\\s+\\p{Lu}[\\p{L}\\p{M}]+){0,2}\\s+(?:cerca)\\b/u','/^\\s*([\\p{L}\\p{M}]+)(?:\\s+\\p{Lu}[\\p{L}\\p{M}]+){0,2}\\s+(?:è)\\b/u','/^\\s*([\\p{L}\\p{M}]+)(?:\\s+\\p{Lu}[\\p{L}\\p{M}]+){0,2}\\s+(?:era)\\b/u','/^\\s*([\\p{L}\\p{M}]+)(?:\\s+\\p{Lu}[\\p{L}\\p{M}]+){0,2}\\s+(?:diventa)\\b/u'],$sentence,$subject)
+            elseif(preg_match('/^\\s*([\\p{L}\\p{M}]+)(?:\\s+\\p{Lu}[\\p{L}\\p{M}]+){0,2}\\s+(?:trema|piange|ha|si|fugge|scappa|rimane|resta|sente|respira|guarda|osserva|nota|cerca|è|era|diventa)\\b/u',$sentence,$subject)
                 &&!in_array(mb_strtolower($subject[1]),['il','lo','la','gli','le','un','una','uno','lui','lei','egli','ella','poi','quindi','allora','intanto','infine','tuttavia','mani','dita','gambe','braccia','voce','respiro','fiato','sguardo'],true)){ $ownAction=false; }
             if(!$ownAction){ continue; }
             // Merely observing someone else's panic never reveals this NPC's emotions.
-            if(aiRegexAny(['/\\b(?:osserva)\\b/iu','/\\b(?:guarda)\\b/iu','/\\b(?:nota)\\b/iu','/\\b(?:vede)\\b/iu','/\\b(?:scorge)\\b/iu','/\\b(?:racconta)\\b/iu','/\\b(?:immagina)\\b/iu','/\\b(?:finge)\\b/iu','/\\b(?:freddo)\\b/iu','/\\b(?:febbre)\\b/iu','/\\b(?:fatica)\\b/iu','/\\b(?:malattia)\\b/iu','/\\b(?:dolore)\\b/iu'],$sentence)){ continue; }
+            if(preg_match('/\\b(?:osserva|guarda|nota|vede|scorge|racconta|immagina|finge|freddo|febbre|fatica|malattia|dolore)\\b/iu',$sentence)){ continue; }
             $panic='(?:trem(?:a|ano|ore|ito)|fiato\\s+mozzo|respiro\\s+(?:si\\s+spezza|spezzato)|(?:paura|terrore|spavento).{0,35}(?:blocca|ferma|immobil|pietrific|scapp|fugg)|(?:fugge|scappa|cerca\\s+riparo).{0,45}(?:paura|terrore)|(?:terrorizzat|pietrificat|spaventat)[oa])';
             if(preg_match('/'.$panic.'/iu',$sentence)&&!preg_match('/\\b(?:non|senza|smette\\s+di)\\b.{0,18}'.$panic.'/iu',$sentence)){ $shown['fear']=true; }
         }

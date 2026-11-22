@@ -114,8 +114,8 @@ function alphanoRevelationsProfile(string $kind,int $id,int $viewer):array {
     foreach($rows as $r){
         $direction=$kind==='npc'||(int)$r['subject_id']===$id?'known_by':'discovered';
         $other=$direction==='known_by'?(int)$r['observer_id']:(int)$r['subject_id'];
-        if($r['observer_kind']==='npc'){$p=json_decode($r['npc_profile'],true)?:[];$name=$r['name'];$portrait=$p['portrait']??'/assets/placeholder.svg';$url='/profili/png.php?Id='.$other;$sex=$p['sex']??'Maschio';$race=(int)($p['race_id']??1);}
-        else{$u=$people[$other]??null;if(!$u){ continue; }$name=$u['nome'];$portrait=alphanoProfilePortrait($u)['url'];$url='/profili/?Id='.$other;$sex=$u['sesso'];$race=alphanoVisibleRace($u);}
+        if($r['observer_kind']==='npc'){$p=json_decode($r['npc_profile'],true)?:[];$name=$r['name'];$portrait=$p['portrait']??'/assets/placeholder.svg';$url='/profili/png.php?Id='.$other;$sex=$p['sex']??'Maschio';}
+        else{$u=$people[$other]??null;if(!$u){ continue; }$name=$u['nome'];$portrait=alphanoProfilePortrait($u)['url'];$url='/profili/?Id='.$other;$sex=$u['sesso'];}
         $out['items'][]=['direction'=>$direction,'observer_kind'=>$r['observer_kind'],'observer_id'=>(int)$r['observer_id'],'subject_id'=>(int)$r['subject_id'],'name'=>$name,'portrait'=>$portrait?:'/assets/placeholder.svg','profile_url'=>$url,'sex'=>$sex,'race_icon'=>alphanoRaceIcon(),'race_label'=>aiPerceptionRaceFamily((int)$r['race_id'])===2?'vampiro':'licantropo','first_seen'=>(int)$r['first_seen'],'last_seen'=>(int)$r['last_seen'],'place'=>$r['place']?:$r['chat_key'],'chat_key'=>$r['chat_key'],'evidence'=>alphanoRevelationExcerpt($r['evidence'])];
     }
     $out['allowed']=true;$out['count']=count($out['items']);return $out;

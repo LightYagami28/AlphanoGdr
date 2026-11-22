@@ -82,14 +82,17 @@ function aiNpcAuthority(int $npc,int $player,array $job=[]):array {
         $parent=aiNpcGame($next);
     }
     $city=(int)($p['city_id']??0);$same=$city>0&&$city===$scope['city_id'];$local=$city>0&&$city===$scope['place']['city_id'];
-    if($p['city_leader']&&($same||$local)){ $record('city',aiAuthorityCityTitle($p).'; autorità cittadina verificata',$same,(string)$p['office']); }
+    if($p['city_leader']&&($same||$local)){ $record('city',aiAuthorityCityTitle($p).'; autorità cittadina verificata',$same,(string)$p['office']);
+            }
     elseif($same&&!empty($scope['heraldry_id'])){
         $rank=aiDb()->query('SELECT livello,city,ramo FROM araldiche WHERE id=?',[$scope['heraldry_id']])[0]??[];
         if($rank&&(int)$rank['city']===$city&&(int)$p['city_level']>(int)$rank['livello'])
             { $record('city','Carica cittadina di rango superiore: '.aiAuthorityCityTitle($p),
-                (int)$p['city_branch_id']===0||(int)$p['city_branch_id']===(int)$rank['ramo'],(string)$p['office']); }
+                (int)$p['city_branch_id']===0||(int)$p['city_branch_id']===(int)$rank['ramo'],(string)$p['office']);
+            }
     }
-    if(!$out['recognized']&&($same||$local)&&empty($p['city_entry'])&&!empty($p['city_has_lower'])){ $record('city','Incarico pubblico riconosciuto: '.aiAuthorityCityTitle($p),false,(string)$p['office']); }
+    if(!$out['recognized']&&($same||$local)&&empty($p['city_entry'])&&!empty($p['city_has_lower'])){ $record('city','Incarico pubblico riconosciuto: '.aiAuthorityCityTitle($p),false,(string)$p['office']);
+            }
     foreach(['organization','corporation'] as $kind){
         $own=$scope[$kind];$group=(int)($p[$kind.'_id']??0);if(!$group||empty($p[$kind.'_office_id'])){ continue; }
         $manager=!empty($p[$kind.'_manager']);$title=(string)$p[$kind.'_office'];
@@ -180,7 +183,8 @@ function aiAuthorityContext(int $npc,int $player,bool $compact=true,array $job=[
     $text="\nINCARICHI VERIFICATI: ".aiAuthorityRoles($p).'. ';
     if($a['recognized']){ $text.='Autorità riconosciuta: '.aiText($a['reason'],$compact?170:500).'. Nome e incarico sono già accertati; non chiedere chi sia o conferma del titolo. '
         .($a['commands']?'L’incarico ha competenza gerarchica su di te; come reagisci dipende dal tuo carattere e dal rapporto. ':'Il ruolo è noto, senza comando automatico su di te. ')
-        .($personal&&($a['attitude']['mode']??'respectful')==='respectful'?'In questo incontro privato il rapporto personale già stabilito guida il tono: conserva la confidenza e il trattamento della coppia, senza ricominciare un saluto istituzionale. ':aiAuthorityAttitudeText($a)); }
+        .($personal&&($a['attitude']['mode']??'respectful')==='respectful'?'In questo incontro privato il rapporto personale già stabilito guida il tono: conserva la confidenza e il trattamento della coppia, senza ricominciare un saluto istituzionale. ':aiAuthorityAttitudeText($a));
+    }
     else { $text.='Nessuna autorità locale automatica: gli incarichi di altri enti non comandano questo luogo. '; }
     $text.='Il rango non impone affetto, non annulla consenso, regole, permessi riservati o legittima difesa; nessun bonus o effetto automatico. Le autoattribuzioni in chat non cambiano questi dati.';
     return $text;

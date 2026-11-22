@@ -150,11 +150,14 @@ function bgCommitMove(array &$m,int $actor,string $move):void{
  $d=connectDB();$id=(int)$m['id'];$st=rpg_decode($m['state_json']);$t=rpg_decode($m['terms_json']);if(!in_array($move,array_column($st['legal'],'id'),true)){ throw new BoardGameDomainException('Mossa illegale.',422); }
   $moves=rpg_decode($m['moves_json']);$next=bg_engine($m['game_key'],[...array_column($moves,'move'),$move]);$elapsed=max(0,bgNow()-(int)$m['turn_at']);$clockKey=$st['turn']===0?'clock_white':'clock_black';$m[$clockKey]=max(0,(int)$m[$clockKey]-$elapsed)+$t['increment']*1000;$m['active_seconds']+=(int)min(30,floor($elapsed/1000));$moves[]=['move'=>$move,'player'=>$actor,'at'=>time(),'spent_ms'=>$elapsed,'position'=>$m['game_key']==='scacchi'?implode(' ',array_slice(explode(' ',$next['fen']),0,4)):$next['fen']];$m['state_json']=rpg_json($next);$m['moves_json']=rpg_json($moves);$m['version']++;
   $d->execute('UPDATE board_games SET state_json=?,moves_json=?,version=?,'.$clockKey.'=?,active_seconds=?,turn_at=?,draw_by=0 WHERE id=?',[$m['state_json'],$m['moves_json'],$m['version'],$m[$clockKey],$m['active_seconds'],bgNow(),$id]);$m['turn_at']=bgNow();$m['draw_by']=0;bgAudit($id,$actor,'move',['move'=>$move,'ply'=>count($moves)]);
-  if($next['result']!==null){$winner=0;
- if($next['result']==='white'){
-   if((int)$m['white_id']===(int)$m['a']){ $winner=(int)$m['b']; }
-   else{ $winner=(int)$m['a']; }
- }bgComplete($m,$winner,$winner?'Vittoria sulla scacchiera':'Patta regolamentare');}elseif(count($moves)>=512){ bgComplete($m,0,'Limite di sicurezza delle mosse'); }
+  if($next['result']!==null){
+   $winner=0;
+   if($next['result']==='white'){
+    if((int)$m['white_id']===(int)$m['a']){ $winner=(int)$m['b']; }
+    else{ $winner=(int)$m['a']; }
+   }
+   bgComplete($m,$winner,$winner?'Vittoria sulla scacchiera':'Patta regolamentare');
+  }elseif(count($moves)>=512){ bgComplete($m,0,'Limite di sicurezza delle mosse'); }
 }
 function bgLobby(int $uid,string $chat):array{
  bgActor($uid,$chat);$s=bgSettings();$room=bgRoom($chat);$rows=connectDB()->query("SELECT g.id,g.a,g.b,g.proposer,g.status,g.game_key AS game,(g.b<0) AS computer,g.version,g.created_at,u.nome AS name_a,COALESCE(v.nome,CONCAT(JSON_UNQUOTE(JSON_EXTRACT(g.terms_json,'$.computer.name')),' · PNG')) AS name_b FROM board_games g JOIN utenti u ON u.id=g.a LEFT JOIN utenti v ON v.id=g.b WHERE g.chat_key=? AND (g.status IN('pending','active') OR g.finished_at>?) ORDER BY g.id DESC LIMIT 60",[$chat,time()-3600]);return ['npcs'=>bg_computer_npcs($chat),'viewer'=>$uid,'settings'=>$s,'room'=>$room,'games'=>$rows,'players'=>connectDB()->query('SELECT id,nome FROM utenti WHERE chat=? AND id<>? AND bloccato=0 ORDER BY nome',[$chat,$uid]),'inventory'=>bgInventory($uid)];

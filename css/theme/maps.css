@@ -18,6 +18,7 @@ body .pan-wrapper.grabbed {cursor: -webkit-grabbing;}
 body .pan-wrapper img {pointer-events: none;-webkit-user-drag: none;-webkit-touch-callout: none;will-change: transform;}
 body .pan-ctrl {position: absolute;top: .5rem;right: .5rem;z-index: 15;display: flex;flex-direction: column;gap: .3rem;filter: drop-shadow(0 0 3px rgba(0,0,0,.65));}
 body .pan-ctrl button {width: 36px;height: 36px;font: 700 20px/32px monospace;color: var(--text);background: var(--panel);border: 2px solid var(--line);border-radius: 4px;padding: 0;cursor: pointer;transition: background .2s,transform .1s;}
+@media(prefers-reduced-motion:reduce) { body .pan-ctrl button{transition:none;} body .pan-ctrl button:hover,body .pan-ctrl button:active{transform:none;} }
 body .pan-ctrl button:hover {background: var(--panel);transform: scale(1.08);}
 body .pan-ctrl button:active {transform: scale(.9);}
 body[data-view=map] .map-label {fill: var(--text);stroke: var(--bg);}

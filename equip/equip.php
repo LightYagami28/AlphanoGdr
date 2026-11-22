@@ -173,9 +173,13 @@ $can = 0;
 $equipmentCreatorName = '';
 if ($o) {
     if ($o['slot'] === '' && ($isSame || $admin || $fatepower)) {
-        $can = in_array(strtolower($o['tipoG']), ['arma','armasx','armadx'], true)
-            ? checkSlotWeapon($pgid, (int)$o['mani'])
-            : ($o['equipaggiabile'] ? checkSlot($o['tipoG'], $pgid) : 0);
+        if (in_array(strtolower($o['tipoG']), ['arma','armasx','armadx'], true)) {
+            $can = checkSlotWeapon($pgid, (int)$o['mani']);
+        } elseif ($o['equipaggiabile']) {
+            $can = checkSlot($o['tipoG'], $pgid);
+        } else {
+            $can = 0;
+        }
     }
     if ($o['idcreatore']) { $equipmentCreatorName = GetPGFromID($o['idcreatore']); }
 }

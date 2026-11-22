@@ -163,7 +163,7 @@ try {
     if (session_status() === PHP_SESSION_ACTIVE) {
         session_write_close();
     }
-    $status = $e instanceof DomainException ? $e->getCode() : ($e instanceof JsonException ? 400 : 500);
+    if ($e instanceof DomainException) { $status=$e->getCode(); } elseif ($e instanceof JsonException) { $status=400; } else { $status=500; }
     if($status<400||$status>599){ $status=500; }
     http_response_code($status);
     if ($status === 500) {

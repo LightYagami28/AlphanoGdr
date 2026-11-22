@@ -40,7 +40,9 @@ try{
             $clean[]=['kind'=>$kind,'id'=>$id];
         }
         $encoded=json_encode($clean,JSON_THROW_ON_ERROR);$changed=$encoded!==$g['turn_order'];
-        $db->execute('INSERT INTO ai_session_guidance(session_id,notes,phase,paused,turn_order,turn_index,round_number,version,updated_by,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE notes=VALUES(notes),phase=VALUES(phase),paused=VALUES(paused),turn_order=VALUES(turn_order),turn_index=VALUES(turn_index),round_number=VALUES(round_number),version=VALUES(version),updated_by=VALUES(updated_by),updated_at=VALUES(updated_at)',[$sid,$notes,$phase,$paused,$encoded,$changed?0:(int)$g['turn_index'],$changed&&aiQuestRow($s['chat'])?(int)$g['round_number']+1:($changed?1:(int)$g['round_number']),(int)$g['version']+1,$uid,time()]);
+        $turnIndex=$changed?0:(int)$g['turn_index'];
+        if($changed){ $roundNumber=aiQuestRow($s['chat']) ? (int)$g['round_number']+1 : 1; }else{ $roundNumber=(int)$g['round_number']; }
+        $db->execute('INSERT INTO ai_session_guidance(session_id,notes,phase,paused,turn_order,turn_index,round_number,version,updated_by,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE notes=VALUES(notes),phase=VALUES(phase),paused=VALUES(paused),turn_order=VALUES(turn_order),turn_index=VALUES(turn_index),round_number=VALUES(round_number),version=VALUES(version),updated_by=VALUES(updated_by),updated_at=VALUES(updated_at)',[$sid,$notes,$phase,$paused,$encoded,$turnIndex,$roundNumber,(int)$g['version']+1,$uid,time()]);
         if($changed&&($q??null)){$db->execute('UPDATE ai_quest_cast SET active=0 WHERE session_id=?',[$sid]);foreach($clean as $member){ $db->execute("INSERT INTO ai_quest_cast(session_id,kind,actor_id,active,state) VALUES(?,?,?,1,'{}') ON DUPLICATE KEY UPDATE active=1",[$sid,$member['kind'],(int)$member['id']]); }$db->execute("UPDATE ai_quests SET status='active',version=version+1 WHERE session_id=?",[$sid]);}
     }elseif($action==='advance'){
         $order=json_decode($g['turn_order'],true)?:[];if(!$order){ throw new DomainException('Configura prima un ordine di turno.',422); }

@@ -90,7 +90,7 @@
                                 <LI>
                                     <A href="javascript:openProfileId('<?=(int)$id3?>')"><?=htmlentities($dati3["nome"])?></A>
 <?PHP
-                    if(($dati3["soldi"] ?? 0)) {
+                    if($dati3["soldi"] ?? 0) {
 ?>
                                     (<?=($dati3["soldi"] ?? 0)?> <?=alphanoCurrencyHtml()?>)
 <?PHP

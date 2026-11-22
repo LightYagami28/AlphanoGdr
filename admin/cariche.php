@@ -21,7 +21,7 @@ require_once __DIR__ . '/../libs/activity.inc.php';
 // ─── Inizializzazione ────────────────────────────────────────────────
 $db      = connectDB();
 
-$pgid    = GetIDPG(0, 1);
+$pgid    = GetIDPG(0);
 
 // Prendo flag admin / sindaco
 $row     = $db->query("SELECT admin,sindaco FROM utenti WHERE id=?", [$pgid])[0] ?? [];

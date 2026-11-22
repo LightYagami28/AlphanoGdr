@@ -28,7 +28,7 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 }
 
 // --- AUTENTICAZIONE & PERMESSI ---
-$pgId = GetIDPG(false, true);
+$pgId = GetIDPG(false);
 if ($pgId === null) {
     header('Location: /login.php');
     exit;

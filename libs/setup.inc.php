@@ -20,7 +20,7 @@ function alphanoSetupSave(string $step,array $in,int $actor):void {
  $db=connectDB();$pdo=$db->getConnection();$insert=static fn($table,$values)=>alphanoSeedInsert($pdo,$table,$values);
  if($step==='races'){
   $input=$in;$input['name']=$in['name']??'';foreach(['special','enabled','human_default','transformation_enabled','loses_human_language'] as $k){ $input[$k]=!empty($in[$k]); }
-  $r=rpg_admin_save_race($input,$actor);$default=alphanoHumanRaceId(true);alphanoSetupSettings(['initial_race'=>$default]);
+  rpg_admin_save_race($input,$actor);$default=alphanoHumanRaceId(true);alphanoSetupSettings(['initial_race'=>$default]);
   if($default){ $db->execute('UPDATE utenti SET razza=? WHERE razza=0',[$default]); }return;
  }
  if($step==='appearance'){

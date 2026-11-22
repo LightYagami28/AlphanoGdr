@@ -99,7 +99,8 @@ function aiPersonalityContext(array $npc,array $job,float $scale,array $relation
         'jealousy'=>'insicurezza del legame, senza possesso o controllo',
         default=>$value>=40?'affetto consolidato':'affetto crescente'
     }
-    ; }
+    ;
+}
     if($tone){ $out.=' Tono: '.implode(', ',$tone).($compact?'.':' ; mostralo in gesti e parole, senza nominare punteggi.'); }
     $out.=aiRelationFeelingsContext($npc,$job,$relation);
     $memories=aiPersonalityRecall((int)$npc['id'],(int)$job['user_id'],$job,$compact?2:3);

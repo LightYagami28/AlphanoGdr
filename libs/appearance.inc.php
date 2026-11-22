@@ -85,14 +85,15 @@ function alphanoAppearancePage(?string $url=null): array {
     if($key==='homepage'&&!empty($a['home']['background'])){ $page['background']=$a['home']['background']; }
     return $page;
 }
-function alphanoAppearanceSave(array $input,array $files): void {
+/** @param array<string, array<string, mixed>> $groups */
+function alphanoAppearanceSave(array $input,array $files,array $groups): void {
     $dir=dirname(__DIR__).'/private';$lock=fopen($dir.'/appearance.lock','c');
     if(!$lock||!flock($lock,LOCK_EX)){ throw new AlphanoStorageException('Impossibile acquisire la configurazione.'); }
     $newFiles=[];
     try{
         if(!hash_equals(alphanoAppearanceRevision(),(string)($input['revision']??''))){ throw new AlphanoDomainException('Le impostazioni sono cambiate in un’altra pagina. Ricarica prima di salvare.'); }
         $file=$dir.'/appearance.json';$a=is_file($file)?json_decode(file_get_contents($file),true,32,JSON_THROW_ON_ERROR):[];
-        $section=$input['section']??'';$target=$input['target']??'';$catalog=alphanoAppearanceCatalog();$groups=require_once dirname(__DIR__).'/config/navigation.php';
+        $section=$input['section']??'';$target=$input['target']??'';$catalog=alphanoAppearanceCatalog();
         if(!is_string($target)){ throw new AlphanoDomainException('Voce non valida.'); }
         $valid=match($section){'defaults','home'=>$target==='','groups'=>isset($groups[$target]),'items'=>isset(alphanoAppearanceMenuCatalog()[$target]),'pages'=>isset($catalog[$target]),default=>false};
         if(!$valid){ throw new AlphanoDomainException('Seleziona una voce del catalogo.'); }

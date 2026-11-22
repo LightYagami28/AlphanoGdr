@@ -49,7 +49,7 @@ def exercise(env,admin,player,guest,room_key,check):
  check('image traversal is rejected',save('groups','gioco',image='/uploads/../private/settings.json')[0]==422)
  check('SVG upload is rejected',multipart('groups','image',b'<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>','icon.svg','image/svg+xml','gioco')[0]==422)
  png=base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6xN8AAAAASUVORK5CYII=')
- _st,_bd=multipart('groups','image',png,'pretend.php','image/png','gioco');print('DEBUG_UPLOAD',_st,_bd[:900]);check('bitmap image upload works without GD',_st==200)
+ check('bitmap image upload works without GD',multipart('groups','image',png,'pretend.php','image/png','gioco')[0]==200)
  appearance=json.loads((app/'private/appearance.json').read_text());image=appearance['groups']['gioco']['image']
  check('upload receives a generated bitmap extension',image.startswith('/uploads/appearance/') and image.endswith('.png') and (app/image.lstrip('/')).read_bytes()==png)
  status=json.loads(admin.request('/api/status.php')[1]);check('main menu image is delivered by status API',status['menuGroups']['gioco']['image']==image)

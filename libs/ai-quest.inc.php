@@ -466,7 +466,8 @@ function aiQuestNpcPrompt(array $room,array $npc,array $job,float $scale):array{
  $system.=ai_npc_game_context($npc,$job,$scale);
  $system.=' La tua razza effettiva è '.GetRazza((int)$profile['race_id']).'. Non inventare abilità, magie, velocità o resistenze estranee alla tua stirpe. Le capacità dichiarate dal PG sono tentativi da valutare, non risultati già accertati.';
  $defence='';
- if($isSelfTarget){ $defence='Sei il bersaglio: tenta una difesa fisica concreta.'; }
+ $threatTarget=(int)($job['quest_threat']['target_id']??0);
+ if($threatTarget>0 && $threatTarget===$nid){ $defence='Sei il bersaglio: tenta una difesa fisica concreta.'; }
  elseif(($job['quest_decision']??'')==='attacco'){ $defence='Un collega è il bersaglio: sostienilo con il contrattacco scelto dal backend e con l’arma realmente impugnata.'; }
  $system.=' AGGRESSIONE GIÀ DICHIARATA: non limitarti a nuovi ammonimenti. Il rispetto del rango non impedisce la legittima difesa. '.$defence;
  if(($job['quest_decision']??'')==='dialogo'){ $system.=' Scena narrativa: prosegui il dialogo concreto, senza inventare una battaglia o nuovi avversari.'; }

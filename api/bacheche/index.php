@@ -18,21 +18,31 @@ function alphanoBoardCities($db,array $user):array {
  }
  return ['success'=>true,'cities'=>array_values($cities)];
 }
+function alphanoBoardLastPosts($db,array $boards):array {
+ $lastIds=array_values(array_filter(array_column($boards,'last_id')));
+ if(!$lastIds){ return []; }
+ $marks=implode(',',array_fill(0,count($lastIds),'?'));
+ $last=[];
+ foreach($db->query('SELECT b.id,b.replyid,b.idpg,b.data,b.oggetto,COALESCE(t.id,b.id) AS thread_id,COALESCE(t.oggetto,b.oggetto) AS subject FROM bacheche b LEFT JOIN bacheche t ON t.id=b.replyid AND t.bacheca=b.bacheca AND t.replyid=0 WHERE b.id IN ('.$marks.')',$lastIds) as $post){ $last[(int)$post['id']]=$post; }
+ return $last;
+}
+function alphanoBoardUnread($db,int $idpg):array {
+ $unread=[];
+ foreach($db->query("SELECT DISTINCT p.bacheca FROM bacheche p LEFT JOIN activity_notification_reads nr ON nr.recipient=? AND nr.notice_key=CONCAT('board:',p.id) WHERE p.idpg<>? AND nr.notice_key IS NULL",[$idpg,$idpg]) as $row){ $unread[(int)$row['bacheca']]=true; }
+ return $unread;
+}
+function alphanoBoardIndexEnrich($db,array $board,array $user,array $last,array $unread):array {
+ $board['id']=(int)$board['id'];$board+=playerBoardPermissions($db,$board['id'],$user);$board['image']=alphanoBoardImage($board);$post=$last[(int)$board['last_id']]??null;unset($board['last_id']);
+ $board['threadsCount']=$board['allowed']?(int)$board['threadsCount']:0;$board['postsCount']=$board['allowed']?(int)$board['postsCount']:0;$board['unread']=$board['allowed']&&isset($unread[$board['id']]);
+ $board['lastPostId']=$board['allowed']&&$post?(int)$post['thread_id']:null;$board['lastPostPg']=$board['allowed']&&$post?(int)$post['idpg']:null;$board['lastPostDate']=$board['allowed']&&$post?(int)$post['data']:null;$board['lastPostSubject']=$board['allowed']&&$post?$post['subject']:null;
+ return $board;
+}
 function alphanoBoardIndex($db,int $idpg,array $user,array $input,string $action):array {
  $location=$action==='getBoards'?playerText($input,'location',255,true):'';
  $boards=$db->query("SELECT l.*,(SELECT COUNT(*) FROM bacheche b WHERE b.bacheca=l.id AND b.replyid=0) AS threadsCount,(SELECT COUNT(*) FROM bacheche b WHERE b.bacheca=l.id AND b.replyid<>0) AS postsCount,(SELECT MAX(b.id) FROM bacheche b WHERE b.bacheca=l.id) AS last_id FROM luoghi l".($location!==''?' WHERE l.location=?':'').' ORDER BY l.nome,l.id',$location!==''?[$location]:[]);
- $lastIds=array_values(array_filter(array_column($boards,'last_id')));$last=[];
- if($lastIds){
-  $marks=implode(',',array_fill(0,count($lastIds),'?'));
-  foreach($db->query('SELECT b.id,b.replyid,b.idpg,b.data,b.oggetto,COALESCE(t.id,b.id) AS thread_id,COALESCE(t.oggetto,b.oggetto) AS subject FROM bacheche b LEFT JOIN bacheche t ON t.id=b.replyid AND t.bacheca=b.bacheca AND t.replyid=0 WHERE b.id IN ('.$marks.')',$lastIds) as $post){ $last[(int)$post['id']]=$post; }
- }
- $unread=[];
- foreach($db->query("SELECT DISTINCT p.bacheca FROM bacheche p LEFT JOIN activity_notification_reads nr ON nr.recipient=? AND nr.notice_key=CONCAT('board:',p.id) WHERE p.idpg<>? AND nr.notice_key IS NULL",[$idpg,$idpg]) as $row){ $unread[(int)$row['bacheca']]=true; }
- foreach($boards as &$board){
-  $board['id']=(int)$board['id'];$board+=playerBoardPermissions($db,$board['id'],$user);$board['image']=alphanoBoardImage($board);$post=$last[(int)$board['last_id']]??null;unset($board['last_id']);
-  $board['threadsCount']=$board['allowed']?(int)$board['threadsCount']:0;$board['postsCount']=$board['allowed']?(int)$board['postsCount']:0;$board['unread']=$board['allowed']&&isset($unread[$board['id']]);
-  $board['lastPostId']=$board['allowed']&&$post?(int)$post['thread_id']:null;$board['lastPostPg']=$board['allowed']&&$post?(int)$post['idpg']:null;$board['lastPostDate']=$board['allowed']&&$post?(int)$post['data']:null;$board['lastPostSubject']=$board['allowed']&&$post?$post['subject']:null;
- }
+ $last=alphanoBoardLastPosts($db,$boards);
+ $unread=alphanoBoardUnread($db,$idpg);
+ foreach($boards as &$board){ $board=alphanoBoardIndexEnrich($db,$board,$user,$last,$unread); }
  unset($board);
  return ['success'=>true,'boards'=>$boards,'sections'=>alphanoBoardSections($boards)];
 }
@@ -104,6 +114,12 @@ function alphanoBoardDelete($db,int $messageId):array {
  $db->execute('DELETE FROM bacheche WHERE id=? OR replyid=?',[$messageId,$messageId]);
  return ['success'=>true,'message'=>'Cancellazione eseguita'];
 }
+function alphanoBoardOwnerAction($db,int $idpg,bool $admin,array $original,int $messageId,array $input,string $action):array {
+ if((int)$original['idpg'] !== $idpg && !$admin){ throw new RuntimeException('Permesso negato',403); }
+ if($action==='modify'){ return alphanoBoardModify($db,$idpg,$messageId,$input); }
+ if($action==='delete'){ return alphanoBoardDelete($db,$messageId); }
+ throw new RuntimeException('Azione sconosciuta',400);
+}
 function alphanoBoardMessageDispatch($db,int $idpg,array $user,bool $admin,array $input,string $action):array {
  $messageId=(int)($input['id'] ?? 0);
  $original=$db->query('SELECT * FROM bacheche WHERE id=?',[$messageId])[0] ?? null;
@@ -115,24 +131,25 @@ function alphanoBoardMessageDispatch($db,int $idpg,array $user,bool $admin,array
   if((int)$original['replyid'] !== 0){ throw new RuntimeException('Non è un thread',400); }
   return alphanoBoardClose($db,$messageId,$original,$action);
  }
- if((int)$original['idpg'] !== $idpg && !$admin){ throw new RuntimeException('Permesso negato',403); }
- if($action==='modify'){ return alphanoBoardModify($db,$idpg,$messageId,$input); }
- if($action==='delete'){ return alphanoBoardDelete($db,$messageId); }
- throw new RuntimeException('Azione sconosciuta',400);
+ return alphanoBoardOwnerAction($db,$idpg,$admin,$original,$messageId,$input,$action);
+}
+function alphanoBoardRead($db,int $idpg,array $user,array $input,string $action):array {
+ if($action==='getCities'){ return alphanoBoardCities($db,$user); }
+ return alphanoBoardIndex($db,$idpg,$user,$input,$action);
+}
+function alphanoBoardThreadAction($db,int $idpg,array $user,array $input,string $action):array {
+ $board=(int)($input['board'] ?? 0);
+ playerRequireBoard($db,$board,$user);
+ if($action==='getThreads'){ return alphanoBoardThreads($db,$idpg,$board); }
+ $threadId=(int)($input['thread'] ?? 0);
+ $thread=$db->query('SELECT * FROM bacheche WHERE id=? AND bacheca=? AND replyid=0', [$threadId,$board])[0] ?? null;
+ if(!$thread){ throw new RuntimeException('Thread non trovato',404); }
+ if($action==='getPosts'){ return alphanoBoardPosts($db,$board,$threadId); }
+ return alphanoBoardWrite($db,$idpg,$board,$threadId,$input,$action);
 }
 function alphanoBoardDispatch($db,int $idpg,array $user,bool $admin,array $input,string $action):array {
- if($action==='getCities'){ return alphanoBoardCities($db,$user); }
- if(in_array($action,['getIndex','getBoards'],true)){ return alphanoBoardIndex($db,$idpg,$user,$input,$action); }
- if(in_array($action,['getThreads','getPosts','postThread','postReply'],true)){
-  $board=(int)($input['board'] ?? 0);
-  playerRequireBoard($db,$board,$user);
-  if($action==='getThreads'){ return alphanoBoardThreads($db,$idpg,$board); }
-  $threadId=(int)($input['thread'] ?? 0);
-  $thread=$db->query('SELECT * FROM bacheche WHERE id=? AND bacheca=? AND replyid=0', [$threadId,$board])[0] ?? null;
-  if(!$thread){ throw new RuntimeException('Thread non trovato',404); }
-  if($action==='getPosts'){ return alphanoBoardPosts($db,$board,$threadId); }
-  return alphanoBoardWrite($db,$idpg,$board,$threadId,$input,$action);
- }
+ if(in_array($action,['getCities','getIndex','getBoards'],true)){ return alphanoBoardRead($db,$idpg,$user,$input,$action); }
+ if(in_array($action,['getThreads','getPosts','postThread','postReply'],true)){ return alphanoBoardThreadAction($db,$idpg,$user,$input,$action); }
  return alphanoBoardMessageDispatch($db,$idpg,$user,$admin,$input,$action);
 }
 playerApi(function (): array {

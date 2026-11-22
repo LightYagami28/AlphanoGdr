@@ -5,86 +5,85 @@ use Alphano\Database\PDOMySQLDriver;
 require_once __DIR__.'/../../libs/chat-format.inc.php';
 
 function alphanoChatEarlyResult(PDOMySQLDriver $db,int $idpg,string $chat,string $rawMsg,string $location,string $position):?array {
- $str=trim($rawMsg);
- if($str===''){ return ['',0,$location,'0']; }
- setPosizione($position!==''?$position:$chat,$idpg,$chat);
- $pg=$db->query("SELECT * FROM utenti WHERE id = ?",[$idpg])[0]??null;
- if(!$pg||(int)$pg['bloccato']===1){ return ['',0,$location,'0']; }
- if($pg['imprigionato']){
-  $prig=$db->query("SELECT prigione FROM city WHERE id = ?",[(int)$pg['imprigionato']])[0]['prigione']??'';
-  if(strcasecmp($prig,$chat)!==0){ return ['',0,$location,'0']; }
+ $str=trim($rawMsg);$blocked=$str==='';
+ if(!$blocked){
+  setPosizione($position!==''?$position:$chat,$idpg,$chat);
+  $pg=$db->query("SELECT * FROM utenti WHERE id = ?",[$idpg])[0]??null;
+  if(!$pg||(int)$pg['bloccato']===1){ $blocked=true; }
+  elseif($pg['imprigionato']){
+   $prig=$db->query("SELECT prigione FROM city WHERE id = ?",[(int)$pg['imprigionato']])[0]['prigione']??'';
+   $blocked=strcasecmp($prig,$chat)!==0;
+  }
+  if(!$blocked){
+   $run=$db->query("SELECT id,run,dadi,partecipanti,`lock` FROM sessioni WHERE chat = ? AND run = 1",[$chat])[0]??[];
+   $blocked=!empty($run['lock'])&&empty($pg['fatepower']);
+  }
  }
- $run=$db->query("SELECT id,run,dadi,partecipanti,`lock` FROM sessioni WHERE chat = ? AND run = 1",[$chat])[0]??[];
- if(!empty($run['lock'])&&empty($pg['fatepower'])){ return ['',0,$location,'0']; }
- return null;
+ return $blocked?['',0,$location,'0']:null;
+}
+function alphanoChatCommandSpeech(string $str,string $ora,string $razImg,string $name,string $fPar,string $fAzo,callable $render,bool $SessionIsRunning,bool $NeedsDadi,array $pg,string &$newLoc,string &$location):string {
+ $out='';
+ if(str_starts_with($str,'//')){ return '<span class="String">'.$ora.'</span> '.$razImg.$fPar.$name.'</B></SPAN> <span class="chat-ooc-text">'.htmlspecialchars(substr($str,2),ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8').'</span>'; }
+ if(str_starts_with($str,'+')){
+  $azione=substr($str,1);
+  if($pg['imprigionato']){ $location='prigione'; $azione='[Prigione]'.$azione; }
+  elseif(preg_match('/^\s*(\[[^\]]+\])/',$azione,$m)){ $newLoc=strtolower(trim($m[1])); }
+  $out=$fAzo.$ora.'</SPAN>'.$fAzo.$razImg.$name.' '.$render($azione,true).'</SPAN>';
+  if($SessionIsRunning&&$NeedsDadi){ $out.='&nbsp;<img height="10" width="10" src="/chatimg/dadod20.gif">&nbsp;'.rand(1,20); }
+  return $out.'</SPAN>';
+ }
+ return '<span class="String">'.$ora.'</span> '.$razImg.$name.' '.$render(substr($str,1));
+}
+function alphanoChatCommandMaster(string $str,array $pg,bool $SessionIsRunning,string $location):array|string {
+ $first=$str[0]??'';
+ $out='';
+ if($first==='#'){
+  if(($pg['fatepower']||$pg['admin'])&&($SessionIsRunning||$pg['admin'])){
+   $cmd=htmlentities(substr($str,1));
+   return "<TABLE class=\"column-width-100\"><TR><TD class=\"MasterKey\">{$cmd}</TD></TR></TABLE>";
+  }
+  return $out;
+ }
+ if(!($pg['fatepower']||!empty($GLOBALS['private_chat']))){ return $out; }
+ if($first==='%'){
+  $txt=htmlentities(substr($str,1));
+  return "<TABLE class=\"column-width-100\"><TR><TD class=\"DescrKey\">{$txt}</TD></TR></TABLE>";
+ }
+ $url=substr($str,1);
+ if(!preg_match('~^(https?://|/(?!/))~i',$url)){ return ['',0,$location,'0']; }
+ return "<DIV class=\"align-center\"><img src=\"".htmlspecialchars($url)."\" /></DIV>";
+}
+function alphanoChatCommandSocial(string $str,array $pg,PDOMySQLDriver $db,int $idpg,string $ora,string $razImg,string $name,string $fPar,string $fAzo,string $araldica,callable $render,bool $incog,int &$dest,string &$newLoc):string {
+ $first=$str[0]??'';
+ if($first==='$'){
+  if(!str_contains($str,';')){ return ''; }
+  [$dst,$msg2]=explode(';',substr($str,1),2);
+  $dest=GetPGID(trim($dst))?:0;
+  return $dest?'<EM>'.$razImg.$araldica.$fPar.$name.'</B></SPAN><SPAN class="String"><U>'.$render($msg2).'</U></SPAN></EM>':'';
+ }
+ if($first==='&'){
+  if(!str_contains($str,';')){ return ''; }
+  [$anim,$act]=explode(';',substr($str,1),2);
+  $row=$db->query("SELECT ea.shortDesc,epg.nome,epgm.id FROM equip ea JOIN equippg epg ON epg.uid=ea.id JOIN equippg epgm ON epgm.idpg=epg.idpg WHERE epg.idpg=? AND epg.nome=? LIMIT 1",[$idpg,$anim])[0]??null;
+  if(!$row){ return ''; }
+  consuma($idpg,(int)$row['id']);
+  return $fAzo.$ora.'&nbsp;'.htmlentities($row['nome']).', '.htmlentities($row['shortDesc']).' di '.$name.', '.htmlentities($act).'</SPAN>';
+ }
+ if($first==='|'){ return $incog?'<span class="StringN">'.$ora.' <strong>PNG</strong> '.htmlentities(substr($str,1),ENT_QUOTES|ENT_SUBSTITUTE).'</span>':''; }
+ if(preg_match('/^\s*(\[[^\]]+\])/',$str,$m)){ $newLoc=strtolower(trim($m[1])); }
+ return '<SPAN class="String">'.$ora.'</SPAN>'.$razImg.$araldica.$fPar.$name.'</B></SPAN> <SPAN class="String">'.$render($str).'</SPAN>';
 }
 function alphanoChatCommandOutput(
  string $str,array $pg,PDOMySQLDriver $db,int $idpg,string $ora,string $razImg,string $name,string $fPar,string $fAzo,string $araldica,
  callable $render,bool $SessionIsRunning,bool $NeedsDadi,bool $incog,int &$dest,string &$newLoc,string &$location,string &$l,bool &$OnGame
 ): array|string {
  $first=$str[0]??'';
- $out='';
- switch($first){
-  case '/':
-   if(str_starts_with($str,'//')){ $out='<span class="String">'.$ora.'</span> '.$razImg.$fPar.$name.'</B></SPAN> <span class="chat-ooc-text">'.htmlspecialchars(substr($str,2),ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8').'</span>'; break; }
-   $out='<span class="String">'.$ora.'</span> '.$razImg.$name.' '.$render(substr($str,1));break;
-  case '+': {
-   $azione=substr($str,1);
-   if($pg['imprigionato']){ $location='prigione'; $azione='[Prigione]'.$azione; }
-   elseif(preg_match('/^\s*(\[[^\]]+\])/',$azione,$m)){ $newLoc=strtolower(trim($m[1])); }
-   $out=$fAzo.$ora.'</SPAN>'.$fAzo.$razImg.$name.' '.$render($azione,true).'</SPAN>';
-   if($SessionIsRunning&&$NeedsDadi){ $out.='&nbsp;<img height="10" width="10" src="/chatimg/dadod20.gif">&nbsp;'.rand(1,20); }
-   $out.='</SPAN>';
-   break;
-  }
-  case '#':
-   if(($pg['fatepower']||$pg['admin'])&&($SessionIsRunning||$pg['admin'])){
-    $cmd=htmlentities(substr($str,1));
-    $out="<TABLE class=\"column-width-100\"><TR><TD class=\"MasterKey\">{$cmd}</TD></TR></TABLE>";
-    $OnGame=false;
-   }
-   break;
-  case '%':
-   if($pg['fatepower']||!empty($GLOBALS['private_chat'])){
-    $txt=htmlentities(substr($str,1));
-    $out="<TABLE class=\"column-width-100\"><TR><TD class=\"DescrKey\">{$txt}</TD></TR></TABLE>";
-    $OnGame=false;
-   }
-   break;
-  case '@':
-   if($pg['fatepower']||!empty($GLOBALS['private_chat'])){
-    $url=substr($str,1);
-    if(!preg_match('~^(https?://|/(?!/))~i',$url)){ return ['',0,$location,'0']; }
-    $out="<DIV class=\"align-center\"><img src=\"".htmlspecialchars($url)."\" /></DIV>";
-    $OnGame=false;
-   }
-   break;
-  case '$':
-   if(str_contains($str,';')){
-    [$dst,$msg2]=explode(';',substr($str,1),2);
-    $dest=GetPGID(trim($dst))?:0;
-    if($dest){ $out='<EM>'.$razImg.$araldica.$fPar.$name.'</B></SPAN><SPAN class="String"><U>'.$render($msg2).'</U></SPAN></EM>'; }
-   }
-   break;
-  case '&':
-   if(str_contains($str,';')){
-    [$anim,$act]=explode(';',substr($str,1),2);
-    $row=$db->query("SELECT ea.shortDesc,epg.nome,epgm.id FROM equip ea JOIN equippg epg ON epg.uid=ea.id JOIN equippg epgm ON epgm.idpg=epg.idpg WHERE epg.idpg=? AND epg.nome=? LIMIT 1",[$idpg,$anim])[0]??null;
-    if($row){
-     consuma($idpg,(int)$row['id']);
-     $out=$fAzo.$ora.'&nbsp;'.htmlentities($row['nome']).', '.htmlentities($row['shortDesc']).' di '.$name.', '.htmlentities($act).'</SPAN>';
-    }
-   }
-   break;
-  case '|':
-   if($incog){ $out='<span class="StringN">'.$ora.' <strong>PNG</strong> '.htmlentities(substr($str,1),ENT_QUOTES|ENT_SUBSTITUTE).'</span>'; }
-   break;
-  default:
-   if(preg_match('/^\s*(\[[^\]]+\])/',$str,$m)){ $newLoc=strtolower(trim($m[1])); }
-   $out='<SPAN class="String">'.$ora.'</SPAN>'.$razImg.$araldica.$fPar.$name.'</B></SPAN> <SPAN class="String">'.$render($str).'</SPAN>';
-   break;
- }
- return $out;
+ if(in_array($first,['/','+'],true)){ return alphanoChatCommandSpeech($str,$ora,$razImg,$name,$fPar,$fAzo,$render,$SessionIsRunning,$NeedsDadi,$pg,$newLoc,$location); }
+ if(in_array($first,['#','%','@'],true)){ $result=alphanoChatCommandMaster($str,$pg,$SessionIsRunning,$location); }
+ else{ $result=alphanoChatCommandSocial($str,$pg,$db,$idpg,$ora,$razImg,$name,$fPar,$fAzo,$araldica,$render,$incog,$dest,$newLoc); }
+ if(is_array($result)){ return $result; }
+ if($result!==''&&in_array($first,['#','%','@'],true)){ $OnGame=false; }
+ return $result;
 }
 function alphanoChatVampireDamage(PDOMySQLDriver $db,int $idpg,array $pg,string $chat,string $sesso,string $ferite,int $razza,int $meteo,string $out,bool $vampiredamage):void {
  if((!function_exists('rpgCreationReady')||!rpgCreationReady())&&$vampiredamage&&$out!==''&&$razza===2&&!licanTime()&&$meteo===0){

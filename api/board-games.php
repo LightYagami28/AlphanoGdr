@@ -25,11 +25,14 @@ function bgApiView(int $uid,array $in):array {
     return bgView($m,$uid);
   });
 }
+function bgApiPrivileged(int $uid,array $in,string $action):array {
+  if($action==='admin'){ return bgApiAdmin(); }
+  return bgApiView($uid,$in);
+}
 function bgApiGet(int $uid,array $in):array {
   $action=(string)($in['action']??'lobby');
   if(in_array($action,['invite_options','history','ranking'],true)){ return bgApiPublic($uid,$in,$action); }
-  if($action==='admin'){ return bgApiAdmin(); }
-  if($action==='view'){ return bgApiView($uid,$in); }
+  if(in_array($action,['admin','view'],true)){ return bgApiPrivileged($uid,$in,$action); }
   return bgLobby($uid,playerText($in,'chat',100,true));
 }
 playerApi(static function(){

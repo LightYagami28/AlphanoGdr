@@ -30,7 +30,7 @@ final class CanonicalInsideTest extends \PHPUnit\Framework\TestCase
 	public function testFileDentroLaBase(): void
 	{
 		$base = dirname(__DIR__, 2);
-		self::assertSame(realpath($base.'/composer.json'), alphano_canonical_inside($base, $base.'/composer.json'));
+		self::assertSame(realpath($base.'/composer.json'), alphanoCanonicalInside($base, $base.'/composer.json'));
 	}
 
 	/**
@@ -39,8 +39,8 @@ final class CanonicalInsideTest extends \PHPUnit\Framework\TestCase
 	public function testTraversalVieneRifiutato(): void
 	{
 		$base = dirname(__DIR__, 2);
-		self::assertNull(alphano_canonical_inside($base, $base.'/../windows/win.ini'));
-		self::assertNull(alphano_canonical_inside($base.'/tests', $base.'/tests/../composer.json'));
+		self::assertNull(alphanoCanonicalInside($base, $base.'/../windows/win.ini'));
+		self::assertNull(alphanoCanonicalInside($base.'/tests', $base.'/tests/../composer.json'));
 	}
 
 	/**
@@ -49,8 +49,8 @@ final class CanonicalInsideTest extends \PHPUnit\Framework\TestCase
 	public function testPercorsiInesistenti(): void
 	{
 		$base = dirname(__DIR__, 2);
-		self::assertNull(alphano_canonical_inside($base, $base.'/file-inesistente.txt'));
-		self::assertNull(alphano_canonical_inside($base.'/cartella-inesistente', $base.'/composer.json'));
+		self::assertNull(alphanoCanonicalInside($base, $base.'/file-inesistente.txt'));
+		self::assertNull(alphanoCanonicalInside($base.'/cartella-inesistente', $base.'/composer.json'));
 	}
 }
 

@@ -40,7 +40,7 @@ final class HttpContextTest extends \PHPUnit\Framework\TestCase
 			['', ['HTTP_HOST' => 'example.altervista.org'], false],
 		];
 		foreach ($casi as [$url, $server, $atteso]) {
-			self::assertSame($atteso, alphano_https_context($url, $server));
+			self::assertSame($atteso, alphanoHttpsContext($url, $server));
 		}
 	}
 
@@ -49,9 +49,9 @@ final class HttpContextTest extends \PHPUnit\Framework\TestCase
 	 */
 	public function testNormalizzaOrigine(): void
 	{
-		self::assertSame('https://game.example', alphano_canonical_origin('https://GAME.example:443/'));
-		self::assertSame('http://game.example', alphano_canonical_origin('http://GAME.example:80/'));
-		self::assertSame('http://localhost:8000', alphano_canonical_origin('http://localhost:8000/'));
+		self::assertSame('https://game.example', alphanoCanonicalOrigin('https://GAME.example:443/'));
+		self::assertSame('http://game.example', alphanoCanonicalOrigin('http://GAME.example:80/'));
+		self::assertSame('http://localhost:8000', alphanoCanonicalOrigin('http://localhost:8000/'));
 	}
 
 	/**
@@ -60,7 +60,7 @@ final class HttpContextTest extends \PHPUnit\Framework\TestCase
 	public function testRifiutaSchemaNonValido(): void
 	{
 		$this->expectException(\InvalidArgumentException::class);
-		alphano_canonical_origin('ftp://game.example');
+		alphanoCanonicalOrigin('ftp://game.example');
 	}
 }
 

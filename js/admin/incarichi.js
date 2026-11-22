@@ -2,7 +2,7 @@
 document.addEventListener('DOMContentLoaded',()=>{
  const root=document.getElementById('governance');if(!root)return;
  const search=document.getElementById('governance-search'),form=document.getElementById('governance-edit'),status=document.getElementById('governance-status'),flags=document.getElementById('governance-flags');let catalog,person,busy=false,appoint=0;
- const field=n=>form.elements.namedItem(n),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const field=n=>form.elements.namedItem(n),esc=v=>String(v??'').replace(/[&<>"']/gu,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const labels={organizzazione:'Organizzazione',caricaorganizzazione:'Carica organizzazione',corporazione:'Corporazione',caricacorporazione:'Carica corporazione',araldica:'Carica cittadina',ramoorganizzazione:'Ramo organizzazione',ramocorporazione:'Ramo corporazione'};
  async function api(body){const options={cache:'no-store'};let url=window.apiUrl;if(body.azione==='incarichi')url+='?'+new URLSearchParams(body);else{options.method='POST';options.headers={'Content-Type':'application/json','X-CSRF-Token':window.csrfToken};options.body=JSON.stringify(body);}const r=await fetch(url,options),data=await r.json();if(!r.ok||!data.success)throw new Error(data.response?.message||data.message||'Operazione non disponibile');return data.response.data;}
  function select(el,rows,value,empty='Nessuna'){el.replaceChildren(new Option(empty,0));for(const r of rows)el.add(new Option(r.nome??r.city,r.id));el.value=String(value||0);if(el.selectedIndex<0)el.selectedIndex=0;}

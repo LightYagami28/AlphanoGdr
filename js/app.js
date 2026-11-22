@@ -470,10 +470,10 @@ document.addEventListener('DOMContentLoaded', () => {
       presentiCount.textContent = showNpcs?data.total:data.players;
       const summary=document.getElementById('presenti-summary');
       if(summary){summary.textContent=`${data.players} ${data.players===1?'giocatore':'giocatori'} · ${showNpcs?data.npcs+' PNG nei luoghi':'PNG nascosti'}`;}
-      patchLiveList(presentiList,data.places.map(place=>({...place,members:place.members.filter(person=>showNpcs||person.kind==='player')})).filter(place=>place.members.length||place.session_active).map(place=>`
+      patchLiveList(presentiList,data.places.map(place=>({...place,members:place.members.filter(person=>showNpcs||person.kind==='player').map(person=>({...person,raceSex:person.race+' · '+person.sex}))})).filter(place=>place.members.length||place.session_active).map(place=>`
         <li class="presence-sidebar-place" data-live-key="place:${esc(place.key)}">${presencePlaceHeading(place)}</li>
         ${place.members.map(person=>`<li class="presence-sidebar-person" data-live-key="person:${esc(place.key)}:${esc(person.kind)}:${person.id}" data-kind="${esc(person.kind)}">
-          <img src="${esc(person.icon)}" width="16" height="16" alt="${esc(person.race+' · '+person.sex)}" title="${esc(person.race+' · '+person.sex)}" class="razza-icon">
+          <img src="${esc(person.icon)}" width="16" height="16" alt="${esc(person.race+' · '+person.sex)}" title="${esc(person.raceSex)}" class="razza-icon">
           <a class="presenti-name presence-link" href="${esc(person.profile_url)}" data-url="${esc(person.profile_url)}" data-title="Profilo di ${esc(person.name)}">${esc(person.name)}</a>
           <span class="presence-kind">${person.kind==='npc'?'PNG':'PG'}</span>
           ${presenceGameAction(person)}          ${presenceMailButton(person)}

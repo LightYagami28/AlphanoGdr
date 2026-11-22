@@ -235,11 +235,12 @@
       tab.classList.toggle('active',active);section.classList.toggle('active',active);section.hidden=!active;
     });
   }
+  function tabPanelId(control){ if(control.id.startsWith('tab-')){return control.id.replace(/-btn$/,'');} return control.id.startsWith('m')?control.id.slice(1):''; }
   function nativeTabs(body){
     body.querySelectorAll('.tabs').forEach(nav=>{
       const controls=Array.from(nav.querySelectorAll(':scope > button, :scope > .tab:not(:has(button)), :scope > li > a'));
       const pairs=controls.map(control=>{
-        const id=control.dataset.tab || control.getAttribute('aria-controls') || (control.getAttribute('href')||'').replace(/^#/,'') || (control.id.startsWith('tab-')?control.id.replace(/-btn$/,''):control.id.startsWith('m')?control.id.slice(1):'');
+        const id=control.dataset.tab || control.getAttribute('aria-controls') || (control.getAttribute('href')||'').replace(/^#/,'') || tabPanelId(control);
         return [control,document.getElementById(id)];
       });
       if(!pairs.length||pairs.some(([,panel])=>!panel)){return;}
@@ -262,7 +263,7 @@
   }
   function panelTitle(panel){return panel.dataset.section||panel.querySelector('header,h2,h3,h4,.title')?.textContent.trim()||'';}
   function groupPanels(panels,groups){
-    const parent=panels[0].parentElement,marker=document.createComment('schede raggruppate');
+    const marker=document.createComment('schede raggruppate');
     panels[0].before(marker);
     const result=[],used=new Set();
     Object.entries(groups).forEach(([title,names])=>{

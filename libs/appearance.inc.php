@@ -20,7 +20,7 @@ function alphanoAppearanceRevision(): string {
 }
 function alphanoAppearancePageKey(string $url): string {
     $parts=parse_url($url);$path=$parts['path']??'/';
-    $path=match($path){'/api/mappa.php'=>'/mappa.php','/profili/modifyprofile.php'=>'/profili/modifyuser.php',default=>$path};
+    $path=match($path){'/api/mappa.php'=>'/mappa.php','/profili/modifyprofile.php'=>'/profili/modifyuser.php','/recuperopasswd.php'=>'/recuperopassword.php',default=>$path};
     $path=preg_replace('~/index\.php$~','/',$path);
     $key=trim(preg_replace('~[^a-z0-9]+~i','-',preg_replace('~\.php$~','',$path)),'-')?:'homepage';
     parse_str($parts['query']??'',$q);

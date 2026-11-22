@@ -131,7 +131,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 7) Elezioni + Candidature + Grafico + Banner vincitore
   function renderElezioni() {
-    window.location.href='/citta/elezioni.php?city='+encodeURIComponent(dataObj.cityId);return;
     const {
       yourCandidature,
       candidacyOpen,

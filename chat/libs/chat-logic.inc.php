@@ -57,7 +57,7 @@ function alphanoChatBasicOutput(array &$ctx,callable $render): void
         }
         default: break;
     }
-    $ctx=compact('out','location','newLoc','on_game');
+    $ctx['out']=$out;$ctx['location']=$location;$ctx['newLoc']=$newLoc;$ctx['on_game']=$on_game;
 }
 
 /** Renders master/private/URL commands; an early return carries an immediate reply. */
@@ -96,7 +96,7 @@ function alphanoChatStaffCommands(array &$ctx): ?array
             break;
         default: break;
     }
-    $ctx=compact('out','on_game');
+    $ctx['out']=$out;$ctx['on_game']=$on_game;
     return null;
 }
 
@@ -141,7 +141,7 @@ function alphanoChatWhisperCommands($db,int $idpg,array &$ctx,callable $render):
             break;
         default: break;
     }
-    $ctx=compact('dest','out');
+    $ctx['dest']=$dest;$ctx['out']=$out;
 }
 
 /** Renders incognito and plain speech commands. */
@@ -163,7 +163,7 @@ function alphanoChatPlainCommands(array &$ctx,callable $render): void
              .$fPar.$name.'</B></SPAN> '
              .'<SPAN class="String">'.$render($str).'</SPAN>';
     }
-    $ctx=compact('newLoc','out');
+    $ctx['newLoc']=$newLoc;$ctx['out']=$out;
 }
 
 /** Applies sunlight damage for a vampire character. */
@@ -371,7 +371,7 @@ function buildChatMessage(
     alphanoChatRecordings($db,$chat,$out);
 
     // 11) Log sessione in HTML
-    alphanoChatSessionLog($db,compact('chat','sessionName','out','scriviPart','partecipanti','idpg','SessionIsRunning'));
+    alphanoChatSessionLog($db,compact('chat','sessionName','out','scriviPart','partecipanti','idpg','session_is_running'));
 
     return [$out, $dest, $newLoc, $l];
 }

@@ -104,7 +104,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header('Location: /equip/equip.php?pgid='.$pgid.($embedded?'&embedded=1':'').($detail?'&detail_id='.$detail:'').'#equipment-detail',true,303);
             exit;
 
-
+        default:
+            break;
     }
 
     // Redirect per evitare resubmit

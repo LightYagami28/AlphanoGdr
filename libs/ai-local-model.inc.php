@@ -23,7 +23,7 @@ function aiLocalModelConfig():?array {
 function aiLocalModelPin(bool $reset=false):?array {
     static $read=false,$pin=null;
     if($reset){$read=false;$pin=null;}
-    if($read)return $pin;$read=true;
+    if($read){ return $pin; }$read=true;
     $config=aiLocalModelConfig();if(!$config||!is_file($config['state_file']))return null;
     $value=json_decode((string)file_get_contents($config['state_file']),true);
     if(!is_array($value)||!preg_match('~^http://127\.0\.0\.1:\d{2,5}$~D',$value['url']??'')||!preg_match('/^[a-zA-Z0-9_.-]{1,100}$/D',$value['model']??''))return null;

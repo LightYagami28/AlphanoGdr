@@ -67,7 +67,7 @@
             else $numero+=0;
         }
         if($numpar) $media=$somma/$numpar;
-        else $media=0;
+        else { $media=0; }
 ?>
             master[<?=$i?>]["media"] = <?=(float)round($media,2)?>;
             master[<?=$i?>]["somma"] = <?=(int)$somma?>;

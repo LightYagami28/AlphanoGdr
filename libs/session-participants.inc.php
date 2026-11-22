@@ -78,45 +78,51 @@ function alphanoParticipantsInput(array $input):array {
     else{if(count($ids)!==1){throw new ParticipantsDomainException('Gli oggetti si gestiscono per un personaggio alla volta.',422);}$values['instance']=alphanoParticipantsInt($input,'instance',1,PHP_INT_MAX);if($action==='consume'){$values['quantity']=alphanoParticipantsInt($input,'quantity',1,2147483647);}}
     return [$action,$reason,$key,$ids,$expectedSession,$values];
 }
+function alphanoParticipantsCheckTargets(array $ids,string $action,array $session,array $members,array $values,array $users,string $chat,int $actor):void {
+ foreach($ids as $id){
+  $target=$users[$id]??null;
+  if(!$target||$target['chat']!==$chat||$target['posizione']==='off'||!empty($target['bloccato'])){throw new ParticipantsDomainException('Un personaggio selezionato non è più presente.',409);}
+  if(in_array($action,['crowns','item'],true)&&($id===$actor||!$session||!in_array($id,$members,true))){throw new ParticipantsDomainException('I premi richiedono un partecipante della sessione diverso dal Master.',422);}
+  if($action==='health'){$old=$values['expected'][(string)$id]??null;if(!is_array($old)||(int)($old['hp']??-1)!==(int)$target['puntif']||($old['wounds']??null)!==$target['ferite']){throw new ParticipantsDomainException('Le condizioni di '.$target['nome'].' sono cambiate. Aggiorna prima di intervenire.',409);}}
+ }
+}
+function alphanoParticipantsApplyTargets(array $ids,string $action,array $values,int $actor,string $chat,string $key,string $reason):void {
+ foreach($ids as $id){
+  $subKey='participants:'.substr(hash('sha256',$key.':'.$id),0,64);$replayed=false;
+  $ok=match($action){
+   'health'=>setFerite($id,$values['hp'],$values['wounds'],$actor,$chat,$subKey,$replayed,$reason,true),
+   'note'=>notaMaster($id,$actor,$chat,$values['note'],$subKey,$replayed,$reason,true),
+   'crowns'=>ricompensa($id,$values['amount'],$actor,$chat,$subKey,$replayed,$reason,true),
+   'item'=>daiOggetto($id,$values['item_id'],$actor,$chat,$subKey,$replayed,$values['quantity'],$reason,true),
+   'remove'=>rimuoviOggettoMaster($id,$values['instance'],$actor,$chat,$subKey,$replayed,$reason,true),
+   'break'=>rompiOggettoMaster($id,$values['instance'],$actor,$chat,$subKey,$replayed,$reason,true),
+   'consume'=>alphanoParticipantsConsume($id,$actor,$chat,$values,$subKey,$reason),
+  };
+  if(!$ok){throw new ParticipantsDomainException('L’intervento non è applicabile alla scheda selezionata.',422);}
+ }
+}
 function alphanoParticipantsMutate(int $actor,string $chat,array $input):array {
-    alphanoParticipantsActor($actor,$chat);
-    [$action,$reason,$key,$ids,$expectedSession,$values]=alphanoParticipantsInput($input);
-    $db=connectDB();$guard=alphanoSessionGuard($chat);
-    if(!(int)($db->query('SELECT GET_LOCK(?,5) locked',[$guard])[0]['locked']??0)){throw new ParticipantsDomainException('La regia sta aggiornando la scena. Riprova.',409);}
-    $db->beginTransaction();
-    try{
-        $db->query('SELECT chat_key FROM ai_rooms WHERE chat_key=? FOR UPDATE',[$chat]);
-        alphanoSessionCurrent($chat,true);
-        if(!alphanoOperationOnce('master-participants',$actor,$key,[$chat,$expectedSession,$action,$ids,$reason,$values])){
-            $db->commit();return ['success'=>true,'replayed'=>true,'message'=>'Intervento già registrato: nessun effetto ripetuto.','state'=>alphanoParticipantsState($actor,$chat)];
-        }
-        $session=alphanoSessionRequireManager($actor,$chat);
-        if((int)($session['id']??0)!==$expectedSession){throw new ParticipantsDomainException('La sessione è cambiata. Ricarica il pannello.',409);}
-        $members=array_map('intval',array_filter(explode(';',(string)($session['partecipanti']??''))));
-        $lockIds=array_values(array_unique([...$ids,$actor]));sort($lockIds);
-        $users=array_column($db->query('SELECT id,nome,chat,posizione,bloccato,puntif,ferite FROM utenti WHERE id IN('.implode(',',array_fill(0,count($lockIds),'?')).') ORDER BY id FOR UPDATE',$lockIds),null,'id');
-        foreach($ids as $id){
-            $target=$users[$id]??null;
-            if(!$target||$target['chat']!==$chat||$target['posizione']==='off'||!empty($target['bloccato'])){throw new ParticipantsDomainException('Un personaggio selezionato non è più presente.',409);}
-            if(in_array($action,['crowns','item'],true)&&($id===$actor||!$session||!in_array($id,$members,true))){throw new ParticipantsDomainException('I premi richiedono un partecipante della sessione diverso dal Master.',422);}
-            if($action==='health'){$old=$values['expected'][(string)$id]??null;if(!is_array($old)||(int)($old['hp']??-1)!==(int)$target['puntif']||($old['wounds']??null)!==$target['ferite']){throw new ParticipantsDomainException('Le condizioni di '.$target['nome'].' sono cambiate. Aggiorna prima di intervenire.',409);}}
-        }
-        foreach($ids as $id){
-            $subKey='participants:'.substr(hash('sha256',$key.':'.$id),0,64);$replayed=false;
-            $ok=match($action){
-                'health'=>setFerite($id,$values['hp'],$values['wounds'],$actor,$chat,$subKey,$replayed,$reason,true),
-                'note'=>notaMaster($id,$actor,$chat,$values['note'],$subKey,$replayed,$reason,true),
-                'crowns'=>ricompensa($id,$values['amount'],$actor,$chat,$subKey,$replayed,$reason,true),
-                'item'=>daiOggetto($id,$values['item_id'],$actor,$chat,$subKey,$replayed,$values['quantity'],$reason,true),
-                'remove'=>rimuoviOggettoMaster($id,$values['instance'],$actor,$chat,$subKey,$replayed,$reason,true),
-                'break'=>rompiOggettoMaster($id,$values['instance'],$actor,$chat,$subKey,$replayed,$reason,true),
-                'consume'=>alphanoParticipantsConsume($id,$actor,$chat,$values,$subKey,$reason),
-            };
-            if(!$ok){throw new ParticipantsDomainException('L’intervento non è applicabile alla scheda selezionata.',422);}
-        }
-        $db->commit();aiQuestSyncLogs();return ['success'=>true,'replayed'=>false,'message'=>'Intervento registrato per '.count($ids).' '.(count($ids)===1?'personaggio.':'personaggi.'),'state'=>alphanoParticipantsState($actor,$chat)];
-    }catch(Throwable $e){if($db->inTransaction()){$db->rollBack();}throw $e;}
-    finally{$db->query('SELECT RELEASE_LOCK(?)',[$guard]);}
+ alphanoParticipantsActor($actor,$chat);
+ [$action,$reason,$key,$ids,$expectedSession,$values]=alphanoParticipantsInput($input);
+ $db=connectDB();$guard=alphanoSessionGuard($chat);
+ if(!(int)($db->query('SELECT GET_LOCK(?,5) locked',[$guard])[0]['locked']??0)){throw new ParticipantsDomainException('La regia sta aggiornando la scena. Riprova.',409);}
+ $db->beginTransaction();
+ try{
+  $db->query('SELECT chat_key FROM ai_rooms WHERE chat_key=? FOR UPDATE',[$chat]);
+  alphanoSessionCurrent($chat,true);
+  if(!alphanoOperationOnce('master-participants',$actor,$key,[$chat,$expectedSession,$action,$ids,$reason,$values])){
+   $db->commit();return ['success'=>true,'replayed'=>true,'message'=>'Intervento già registrato: nessun effetto ripetuto.','state'=>alphanoParticipantsState($actor,$chat)];
+  }
+  $session=alphanoSessionRequireManager($actor,$chat);
+  if((int)($session['id']??0)!==$expectedSession){throw new ParticipantsDomainException('La sessione è cambiata. Ricarica il pannello.',409);}
+  $members=array_map('intval',array_filter(explode(';',(string)($session['partecipanti']??''))));
+  $lockIds=array_values(array_unique([...$ids,$actor]));sort($lockIds);
+  $users=array_column($db->query('SELECT id,nome,chat,posizione,bloccato,puntif,ferite FROM utenti WHERE id IN('.implode(',',array_fill(0,count($lockIds),'?')).') ORDER BY id FOR UPDATE',$lockIds),null,'id');
+  alphanoParticipantsCheckTargets($ids,$action,$session,$members,$values,$users,$chat,$actor);
+  alphanoParticipantsApplyTargets($ids,$action,$values,$actor,$chat,$key,$reason);
+  $db->commit();aiQuestSyncLogs();return ['success'=>true,'replayed'=>false,'message'=>'Intervento registrato per '.count($ids).' '.(count($ids)===1?'personaggio.':'personaggi.'),'state'=>alphanoParticipantsState($actor,$chat)];
+ }catch(Throwable $e){if($db->inTransaction()){$db->rollBack();}throw $e;}
+ finally{$db->query('SELECT RELEASE_LOCK(?)',[$guard]);}
 }
 function alphanoParticipantsConsume(int $target,int $actor,string $chat,array $values,string $key,string $reason):bool {
     $item=connectDB()->query('SELECT p.consumo,e.durata FROM equippg p JOIN equip e ON e.id=p.uid WHERE p.id=? AND p.idpg=? FOR UPDATE',[$values['instance'],$target])[0]??null;

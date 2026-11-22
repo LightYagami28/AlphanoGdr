@@ -59,9 +59,9 @@ try {
     function buildJsArray(iterable $rows): array {
         $out = [];$stocks=array_column(connectDB()->query('SELECT model_id,available FROM equipment_breeding'),'available','model_id');
         foreach ($rows as $i => $row) {
-            $materie = function_exists('getMateriePrime')
-                     ? getMateriePrime($row)
-                     : (isset($row['materie']) && is_array($row['materie']) ? $row['materie'] : []);
+            if(function_exists('getMateriePrime')){ $materie=getMateriePrime($row); }
+            elseif(isset($row['materie'])&&is_array($row['materie'])){ $materie=$row['materie']; }
+            else{ $materie=[]; }
             $out[] = [
                 'pos'          => $i,
                 'id'           => (int)    ($row['id']           ?? 0),

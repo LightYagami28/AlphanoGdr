@@ -106,7 +106,7 @@ function aiReactionStyleCompose(array $npc,array $profile,array $reaction,array 
     $panic=in_array($mode,['flee','freeze'],true);$modifiers=[];
     // Insight identifies only what is visible: never a hidden rank, power or intention.
     if((int)($stats['perception']??10)>=20){
-        $detail=($event['form']??'native')==='human'?'il ritorno dei lineamenti umani':(in_array((int)($event['native_race_id']??0),[2,5],true)?'gli occhi alterati e i canini affilati':'gli artigli e i lineamenti lupini');
+        if(($event['form']??'native')==='human'){ $detail='il ritorno dei lineamenti umani'; }elseif(in_array((int)($event['native_race_id']??0),[2,5],true)){ $detail='gli occhi alterati e i canini affilati'; }else{ $detail='gli artigli e i lineamenti lupini'; }
         $modifiers[]='Lo sguardo coglie subito '.$detail.($panic?', senza che riconoscerli attenui il terrore.':', e ne segue con precisione il cambiamento.');
     }elseif((int)($stats['perception']??10)<=8){ $modifiers[]='Sbattendo le palpebre, cerca di mettere a fuoco i particolari di ciò che vede.'; }
     $occupation=mb_strtolower((string)($profile['occupation']??''));

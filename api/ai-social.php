@@ -1,5 +1,7 @@
 <?php
 declare(strict_types=1);
+
+if (!defined('S1192_API_AI_SOCIAL_PHP_414BE2_GIOCATORE_NON_DISPONIBILE')) { define('S1192_API_AI_SOCIAL_PHP_414BE2_GIOCATORE_NON_DISPONIBILE', 'Giocatore non disponibile.'); }
 require_once __DIR__.'/../libs/ai.inc.php';
 require_once __DIR__.'/../libs/revelations.inc.php';
 header('Content-Type: application/json; charset=utf-8');header('Cache-Control: private, no-store');
@@ -42,7 +44,7 @@ try{
     if($action==='admin_load'&&$method==='GET'){
         if(!$admin){ throw new DomainException('Accesso riservato.',403); }
         $player=isset($in['player_id'])?aiInteger($in,'player_id',1,PHP_INT_MAX):$uid;
-        $identity=aiPlayerIdentity($player);if(!$identity){ throw new DomainException('Giocatore non disponibile.',404); }
+        $identity=aiPlayerIdentity($player);if(!$identity){ throw new DomainException(S1192_API_AI_SOCIAL_PHP_414BE2_GIOCATORE_NON_DISPONIBILE,404); }
         echo json_encode(['npc'=>['id'=>$nid,'name'=>$npc['name']],'rules'=>aiSocialRules($nid),'balance'=>aiNpcBalance($nid),'relation'=>aiRelation($nid,$player),
             'bond'=>aiRelationSummary(aiRelation($nid,$player),aiRomanceAllowed($npc,$identity,aiSocialRules($nid))),'current_context'=>aiRelationContextCurrent($nid,$player),
             'overview'=>aiPersonalityOverview($nid),'history'=>aiPersonalityHistory($nid),
@@ -61,7 +63,7 @@ try{
         // Rules belong to the NPC, not the entire room. Existing public turns
         // keep their source; publication snapshots regenerate stale prose.
     }elseif($action==='admin_relation'){
-        $player=aiInteger($in,'player_id',1,PHP_INT_MAX);$identity=aiPlayerIdentity($player);if(!$identity){ throw new DomainException('Giocatore non disponibile.',404); }
+        $player=aiInteger($in,'player_id',1,PHP_INT_MAX);$identity=aiPlayerIdentity($player);if(!$identity){ throw new DomainException(S1192_API_AI_SOCIAL_PHP_414BE2_GIOCATORE_NON_DISPONIBILE,404); }
 
         $reason=aiField($in,'reason',500,true);$description=aiField($in,'context_description',AI_RELATION_CONTEXT_MAX);$db->execute('INSERT IGNORE INTO ai_relationships(npc_id,player_id,created_at,updated_at) VALUES(?,?,?,?)',[$nid,$player,time(),time()]);
         $before=$db->query('SELECT * FROM ai_relationships WHERE npc_id=? AND player_id=? FOR UPDATE',[$nid,$player])[0];$after=$before;
@@ -75,7 +77,7 @@ try{
         if($description!==''){ $after['_context']=aiRelationContextCapture($description); }
         aiRelationEvent($nid,$player,$before,$after,$reason,['chat_key'=>$npc['chat_key']],0,$uid);
     }elseif($action==='admin_memory'){
-        $player=aiInteger($in,'player_id',1,PHP_INT_MAX);if(!aiPlayerIdentity($player)){ throw new DomainException('Giocatore non disponibile.',404); }
+        $player=aiInteger($in,'player_id',1,PHP_INT_MAX);if(!aiPlayerIdentity($player)){ throw new DomainException(S1192_API_AI_SOCIAL_PHP_414BE2_GIOCATORE_NON_DISPONIBILE,404); }
         // Match relationship corrections: pair, queued work, then memories.
         $db->execute('INSERT IGNORE INTO ai_relationships(npc_id,player_id,created_at,updated_at) VALUES(?,?,?,?)',[$nid,$player,time(),time()]);
         $db->query('SELECT npc_id FROM ai_relationships WHERE npc_id=? AND player_id=? FOR UPDATE',[$nid,$player]);

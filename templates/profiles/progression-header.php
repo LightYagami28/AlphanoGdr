@@ -7,7 +7,7 @@ $progressIdentity=rpg_identity($progressKind,$progressId);
 $progressState=rpg_progress($progressKind,$progressId);
 $progressStats=rpg_characteristics($progressIdentity,$progressState);
 $progressSex=($sheet['design']['sex']??'Maschio')==='Femmina'?'female':'male';
-$progressSeal=$sheet['seal']??alphanoProfileRaceSeal($progressIdentity['race_id'],$progressSex==='female'?'Femmina':'Maschio');
+$progressSeal=$sheet['seal']??alphanoProfileRaceSeal();
 $progressSealLabel=$sheet['seal_label']??rpg_race($progressIdentity['race_id'])['name'];
 $progressEscape=static fn($value)=>htmlspecialchars((string)$value,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
 ?>

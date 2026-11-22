@@ -68,7 +68,7 @@ function alphanoManualImage(string $image):string {
     if(!preg_match('~^/uploads/(?:manuals/covers|forum/boards)/[a-z0-9-]+\.webp$~D',$image)||!is_file(dirname(__DIR__).$image)){ throw new DomainException('Scegli un’illustrazione della biblioteca.',422); }
     return $image;
 }
-function alphanoManualDefaultImage(array $rule):string {
+function alphanoManualDefaultImage():string {
     return alphanoDefaultArt('manual');
 }
 function alphanoManualRevision(array $rule):string {
@@ -166,8 +166,8 @@ function alphanoManualFind(string $key,int $id,array $u):array {
 }
 function alphanoManualPayload(array $rule,array $u,bool $content=true):array {
     $excerpt=processText($rule['spiegazione']);$excerpt=preg_replace('~</(?:p|div|h[1-6]|li|tr)>|<br\s*/?>~i',' ',$excerpt);$plain=trim(preg_replace('/\s+/u',' ',html_entity_decode(strip_tags($excerpt),ENT_QUOTES|ENT_HTML5,'UTF-8')));$definition=alphanoManualDefinition((string)($rule['manual_key']??''));
-    $image=($rule['image']??'')?:alphanoManualDefaultImage($rule);
-    try{$image=alphanoManualImage($image);}catch(DomainException $e){$image=alphanoManualDefaultImage($rule);}
+    $image=($rule['image']??'')?:alphanoManualDefaultImage();
+    try{$image=alphanoManualImage($image);}catch(DomainException $e){$image=alphanoManualDefaultImage();}
     $out=['id'=>(int)$rule['id'],'sezione'=>(int)$rule['sezione'],'pos'=>(int)$rule['pos'],'key'=>$rule['manual_key']??'','oggetto'=>$rule['oggetto'],'summary'=>($rule['summary']??'')?:mb_substr($plain,0,210),'image'=>$image,'audience'=>$rule['audience']??'public','audience_label'=>alphanoManualAudiences()[$rule['audience']??'public']??'Riservato','ultimamodifica'=>(int)$rule['ultimamodifica'],'revision'=>alphanoManualRevision($rule),'can_edit'=>alphanoManualCanEdit($rule,$u),'managed'=>$definition!==null,'screens'=>alphanoManualScreens($rule),'links'=>$definition['links']??[]];
     if($content){ $out['spiegazione']=alphanoManualContent($rule); }
     if($content&&$out['can_edit']){ $out['source']=$rule['spiegazione']; }return $out;

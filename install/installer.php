@@ -137,7 +137,7 @@ function alphanoInstallSeed(PDO $pdo,string $root,array $context):array
     }
     if(($in['sample_data']??'')==='1'){
         require_once __DIR__.'/demo-data.php';
-        $demoMap=alphano_install_demo_data($pdo,$id,$settings);
+        $demoMap=alphanoInstallDemoData($pdo,$id,$settings);
         $previousMap=is_file($root.ALPHANO_WORLD_MAP)?file_get_contents($root.ALPHANO_WORLD_MAP):null;
         alphanoManagedSave('world-map',$demoMap,alphanoManagedRevision('world-map'));
         $mapWritten=true;

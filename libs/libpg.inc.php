@@ -3,15 +3,15 @@ declare(strict_types=1);
 const ALPHANO_REGEX_JS_VAR = '/^[a-zA-Z_$][a-zA-Z0-9_$]*(?:\[\d+\])?$/D';
 
 use Alphano\Database\PDOMySQLDriver;
+use Alphano\Legacy\BadgeSaveException;
+
+require_once __DIR__ . '/autoload.php';
 const ALPHANO_MSG_INVALID_CARICA = 'Dati della carica non validi';
 const ALPHANO_MSG_BADGE_SAVE = 'Impossibile salvare immagine';
 const ALPHANO_MSG_CARICA_SAVE = 'Impossibile salvare la carica';
 const ALPHANO_MSG_CARICA_NOT_FOUND = 'Carica non trovata';
 const ALPHANO_BADGE_PATH_ORG = '/uploads/badges/organizzazioni/';
 const ALPHANO_BADGE_PATH_CORP = '/uploads/badges/corporazioni/';
-
-/** Errore durante il salvataggio di uno stemma di carica. */
-class BadgeSaveException extends RuntimeException {}
 
 require_once __DIR__ . '/kernel.inc.php';
 require_once __DIR__ . '/astro.inc.php';

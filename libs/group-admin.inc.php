@@ -9,10 +9,9 @@ require_once __DIR__.'/libelezioni.inc.php';
 /** Extracted branch of alphanoGroupAdminAction. */
 function alphanoGroupAdminDelegation($db,string $scope,int $group,int $actor,array $input,array $groupRow,array &$state): void
 {
-        $action=$state['action'] ?? null;$field=$state['field'] ?? '';
+        $field=$state['field'] ?? '';
         $section=$state['section'] ?? null;$target=$state['target'] ?? null;$before=$state['before'] ?? null;$after=$state['after'] ?? null;
         $changed=$state['changed'] ?? null;$personal=$state['personal'] ?? null;$title=$state['title'] ?? null;$detail=$state['detail'] ?? null;
-            if ($action==='setflag') {
                 $section='flag';$target=economiaIntero($input['nome'] ?? '',1) ?? 0;
                 $flags=$scope==='organizzazioni'?['adminorganizzazione'=>'adminorg']:['admincorporazione'=>'admincorporazione','admintrasfcorp'=>'admintrasfcorp','admincatalogo'=>'admincatalogo'];
                 if($scope==='organizzazioni'){ foreach(['resurgo'=>'adminmorti','cerimonia'=>'adminstatosociale','ferite'=>'adminferite'] as $capability=>$flag){ if(!empty($groupRow[$capability])){ $flags[$flag]=$capability; } } }
@@ -24,14 +23,13 @@ function alphanoGroupAdminDelegation($db,string $scope,int $group,int $actor,arr
                 alphanoGovernanceApply($actor,$target,$updates,'Delega dal pannello '.$groupRow['nome'],null,$scope,$group);
                 $after=$db->query("SELECT id,nome,{$columns} FROM utenti WHERE id=?",[$target])[0];
                 $changed=$before!==$after;$personal=true;$title='Privilegi nel gruppo aggiornati';$detail="Aggiornati i privilegi di {$before['nome']} in {$groupRow['nome']}.";
-        }
         $state=compact('section','target','before','after','changed','personal','title','detail');
 }
 
 /** Extracted branch of alphanoGroupAdminAction. */
 function alphanoGroupAdminPrivateRoom($db,string $scope,int $group,array $input,array $groupRow,array &$state): void
 {
-        $action=$state['action'] ?? null;$field=$state['field'] ?? '';
+        $action=$state['action'] ?? null;
         $section=$state['section'] ?? null;$target=$state['target'] ?? null;$before=$state['before'] ?? null;$after=$state['after'] ?? null;
         $changed=$state['changed'] ?? null;$personal=$state['personal'] ?? null;$title=$state['title'] ?? null;$detail=$state['detail'] ?? null;
             if ($action==='modifypvt') {
@@ -51,7 +49,7 @@ function alphanoGroupAdminPrivateRoom($db,string $scope,int $group,array $input,
 /** Extracted branch of alphanoGroupAdminAction. */
 function alphanoGroupAdminProposal($db,int $group,array $input,array $groupRow,array &$state): void
 {
-        $action=$state['action'] ?? null;$field=$state['field'] ?? '';
+        $action=$state['action'] ?? null;
         $section=$state['section'] ?? null;$target=$state['target'] ?? null;$before=$state['before'] ?? null;$after=$state['after'] ?? null;
         $changed=$state['changed'] ?? null;$personal=$state['personal'] ?? null;$title=$state['title'] ?? null;$detail=$state['detail'] ?? null;
             if ($action==='proponi') {

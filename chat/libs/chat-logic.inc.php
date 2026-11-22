@@ -149,23 +149,19 @@ function alphanoChatPlainCommands(array &$ctx,callable $render): void
 {
     $str=$ctx['str'] ?? null;$ora=$ctx['ora'] ?? null;$incog=$ctx['incog'] ?? null;$newLoc=$ctx['newLoc'] ?? null;$out=$ctx['out'] ?? null;
     $razImg=$ctx['razImg'] ?? null;$araldica=$ctx['araldica'] ?? null;$fPar=$ctx['fPar'] ?? null;$name=$ctx['name'] ?? null;
-    switch($ctx['first'] ?? null){
-        case '|':
-            if ($incog) {
-                $out = '<span class="StringN">'.$ora.' <strong>PNG</strong> '.htmlentities(substr($str,1),ENT_QUOTES|ENT_SUBSTITUTE).'</span>';
-            }
-            break;
-
-        default:
-            // parlato normale
-            if (preg_match('/^\s*(\[[^\]]+\])/',$str,$m)) {
-                $newLoc = strtolower(trim($m[1]));
-            }
-            $out = '<SPAN class="String">'.$ora.'</SPAN>'
-                 .$razImg.$araldica
-                 .$fPar.$name.'</B></SPAN> '
-                 .'<SPAN class="String">'.$render($str).'</SPAN>';
-            break;
+    if(($ctx['first'] ?? null)==='|'){
+        if ($incog) {
+            $out = '<span class="StringN">'.$ora.' <strong>PNG</strong> '.htmlentities(substr($str,1),ENT_QUOTES|ENT_SUBSTITUTE).'</span>';
+        }
+    } else {
+        // parlato normale
+        if (preg_match('/^\s*(\[[^\]]+\])/',$str,$m)) {
+            $newLoc = strtolower(trim($m[1]));
+        }
+        $out = '<SPAN class="String">'.$ora.'</SPAN>'
+             .$razImg.$araldica
+             .$fPar.$name.'</B></SPAN> '
+             .'<SPAN class="String">'.$render($str).'</SPAN>';
     }
     $ctx=compact('newLoc','out');
 }
@@ -173,7 +169,7 @@ function alphanoChatPlainCommands(array &$ctx,callable $render): void
 /** Applies sunlight damage for a vampire character. */
 function alphanoChatSunlight($db,int $idpg,array $ctx): void
 {
-    $chat=$ctx['chat'] ?? null;$out=$ctx['out'] ?? null;$sesso=$ctx['sesso'] ?? null;$ferite=$ctx['ferite'] ?? null;
+    $chat=$ctx['chat'] ?? null;$out=$ctx['out'] ?? null;$pg=$ctx['pg'] ?? [];$sesso=$ctx['sesso'] ?? null;$ferite=$ctx['ferite'] ?? null;
     $razza=$ctx['razza'] ?? null;$meteo=$ctx['meteo'] ?? null;$vampiredamage=$ctx['vampiredamage'] ?? null;
     if ((!function_exists('rpgCreationReady')||!rpgCreationReady()) && $vampiredamage && $out && $razza===2 && !licanTime() && $meteo===0) {
         if (!str_contains($ferite,'Bruciature solari')) {

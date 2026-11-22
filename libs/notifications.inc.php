@@ -82,7 +82,7 @@ function alphanoElectionPhaseNotice($db,int $homeId,array $homeCity,int $recipie
         }
 
 /** Announces an open civic round without mutating election state. */
-function alphanoCivicElectionNotice($db,int $homeId,array $homeCity,int $recipient,string $assemblyUrl,callable $add): void
+function alphanoCivicElectionNotice(int $homeId,array $homeCity,int $recipient,string $assemblyUrl,callable $add): void
 {
         // Announce actual rounds. Merely polling notifications must never create
         // elections, send mail, reset votes or run the assembly's maintenance.
@@ -171,7 +171,7 @@ function alphanoActivityNotifications(int $recipient): array
             $key=alphanoActivityKey('city-statute',$homeId,[$homeCity['statuto'],$homeCity['newstatuto']]);
             $add($key,'citta','Nuova proposta di statuto',$homeCity['city'].' · Assemblea cittadina',$assemblyUrl,0,1);
         }
-    alphanoCivicElectionNotice($db,$homeId,$homeCity,$recipient,$assemblyUrl,$add);
+    alphanoCivicElectionNotice($homeId,$homeCity,$recipient,$assemblyUrl,$add);
     }
     $requests=$db->query('SELECT r.*,u.nome FROM richieste r JOIN utenti u ON u.id=r.idpg
         WHERE (r.organizzazione=? AND r.organizzazione>0) OR (r.corporazione=? AND r.corporazione>0) OR (r.city=? AND r.city>0) OR (?=1 AND r.city>0)',[$org,$corp,$city,(int)!empty($user['admin'])]);

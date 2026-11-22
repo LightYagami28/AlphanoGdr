@@ -12,6 +12,6 @@
 <div id="panel-container" class="forum-content" aria-live="polite"><p class="ui-empty">Caricamento…</p></div>
 </section>
 <div id="modal" class="modal forum-modal" aria-modal="true" aria-label="Finestra del forum"><div class="modal-content"><button type="button" class="close-modal" aria-label="Chiudi">×</button><h2 class="modal-title ui-visually-hidden" id="forum-modal-title">Titolo della finestra</h2><form class="modal-form"></form></div></div>
-<div id="toast" aria-live="polite" aria-live="polite"></div>
+<div id="toast" aria-live="polite"></div>
 <script type="application/json" id="forum-config"><?=json_encode($forum,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_UNESCAPED_UNICODE)?></script>
 </body></html>

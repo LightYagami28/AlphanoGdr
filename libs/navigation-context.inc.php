@@ -27,7 +27,7 @@ function alphano_navigation_recent_scene(array $user): ?array
 
     // Reuse the territory resolver used by the game, including private room hosts.
     require_once __DIR__.'/ai.inc.php';
-    $territory = ai_authority_place((string)($room['rental_host'] ?? $chat));
+    $territory = aiAuthorityPlace((string)($room['rental_host'] ?? $chat));
     $city = (string)$territory['city'];
     if ($city === '' && isset($room['private_slug'])) { $city = alphano_private_city($room['private_slug'])['city']; }
     $title = trim((string)$room['title']);

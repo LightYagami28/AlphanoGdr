@@ -10,12 +10,12 @@ function bg_computer_npcs(string $chat):array {
 }
 function bg_computer_evaluate(Onspli\Chess\FEN $fen):int {
  $score=0;$values=['p'=>100,'n'=>320,'b'=>330,'r'=>500,'q'=>900,'k'=>0];
- for($r=1;$r<=8;$r++){ foreach(range('a','h') as $f){$p=$fen->get_square($f.$r);if($p===''){ continue; }$type=strtolower($p);$center=(int)(7-abs(ord($f)-100.5)-abs($r-4.5));$bonus=in_array($type,['n','b','p'],true)?$center*3:0;$score+=(ctype_upper($p)?1:-1)*($values[$type]+$bonus);} }
- return ($fen->get_active_color()==='w'?1:-1)*$score;
+ for($r=1;$r<=8;$r++){ foreach(range('a','h') as $f){$p=$fen->getSquare($f.$r);if($p===''){ continue; }$type=strtolower($p);$center=(int)(7-abs(ord($f)-100.5)-abs($r-4.5));$bonus=in_array($type,['n','b','p'],true)?$center*3:0;$score+=(ctype_upper($p)?1:-1)*($values[$type]+$bonus);} }
+ return ($fen->getActiveColor()==='w'?1:-1)*$score;
 }
 function bg_computer_search(Onspli\Chess\FEN $fen,int $depth,int $alpha,int $beta,float $deadline):int {
  if(microtime(true)>$deadline){ throw new RuntimeException('search-budget'); }
- $legal=$fen->get_legal_moves();if(!$legal){ return $fen->is_check()?-100000-$depth:0; }
+ $legal=$fen->getLegalMoves();if(!$legal){ return $fen->isCheck()?-100000-$depth:0; }
  if(!$depth){ return bg_computer_evaluate($fen); }
  usort($legal,static fn($a,$b)=>(int)str_contains($b,'x')<=>(int)str_contains($a,'x'));
  foreach($legal as $san){$next=clone $fen;$next->move($san);$score=-bg_computer_search($next,$depth-1,-$beta,-$alpha,$deadline);$alpha=max($alpha,$score);if($alpha>=$beta){ break; }}return $alpha;
@@ -24,7 +24,7 @@ function bg_computer_choose(array $state,int $level=2):string {
  $fen=new Onspli\Chess\FEN($state['fen']);$legal=array_column($state['legal'],'id');if(!$legal){ throw new RuntimeException('Nessuna mossa per il PNG.'); }
  $deadline=microtime(true)+.45;$best=$legal[0];$bestScore=-PHP_INT_MAX;
  // Every candidate gets a one-ply score before deeper analysis consumes the budget.
- $scores=[];foreach($legal as $san){if($scores&&microtime(true)>$deadline){ break; }$next=clone $fen;$next->move($san);$scores[$san]=$next->is_mate()?100000:-bg_computer_evaluate($next);}
+ $scores=[];foreach($legal as $san){if($scores&&microtime(true)>$deadline){ break; }$next=clone $fen;$next->move($san);$scores[$san]=$next->isMate()?100000:-bg_computer_evaluate($next);}
  arsort($scores);$best=(string)array_key_first($scores);if(reset($scores)>=100000){ return $best; }
  if($level===1){ return $best; }
  foreach($scores as $san=>$initial){try{$next=clone $fen;$next->move($san);$score=-bg_computer_search($next,1,-200000,200000,$deadline);}catch(RuntimeException $e){if($e->getMessage()!=='search-budget'){ throw $e; }break;}if($score>$bestScore){$bestScore=$score;$best=$san;}}

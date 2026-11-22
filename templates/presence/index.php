@@ -6,11 +6,11 @@
    <label>Cerca personaggio o luogo<input id="presence-search" type="search" placeholder="Nome, luogo o razza…" autocomplete="off"></label>
    <label>Mostra<select id="presence-kind"><option value="all">Tutti i personaggi</option><option value="player">Solo giocatori</option><option value="npc">Solo PNG</option></select></label>
    <div class="presence-filter-actions"><label class="presence-npc-toggle"><span>Includi PNG</span><input id="presence-show-npcs" type="checkbox" aria-label="Mostra i PNG" aria-describedby="presence-npc-help" checked><span class="presence-switch-track" aria-hidden="true"></span></label><button id="presence-refresh" type="button" data-icon="refresh">Aggiorna</button></div>
-   <span id="presence-refresh-status" aria-live="polite" aria-live="polite"></span>
+   <span id="presence-refresh-status" aria-live="polite"></span>
   </form>
  </header>
  <div class="presence-summary"><div><strong><?=$presence['players']?></strong> <?=$presence['players']===1?'giocatore':'giocatori'?></div><div><strong><?=$presence['npcs']?></strong> PNG nei luoghi</div><p id="presence-npc-help">I PNG sono personaggi della scena; la loro presenza non indica giocatori connessi.</p></div>
- <p id="presence-results" class="presence-results" aria-live="polite" aria-live="polite"></p>
+ <p id="presence-results" class="presence-results" aria-live="polite"></p>
  <div class="presence-places">
  <?php foreach ($presence['places'] as $place): ?><section class="presence-place" data-place="<?=presence_h($place['title'])?>" data-session-active="<?=$place['session_active']?'1':'0'?>">
   <header><div><div class="ui-eyebrow">Luogo di gioco</div><h2><?=alphano_presence_heading_html($place)?></h2></div><span class="presence-place-count"><?=$place['players']?> PG · <?=$place['npcs']?> PNG</span></header>

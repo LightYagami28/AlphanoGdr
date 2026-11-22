@@ -2,22 +2,22 @@
 declare(strict_types=1);
 
 /** Administrative configuration only. Availability and consent are decided by the game. */
-function ai_adult_admin_settings(int $npc): array {
+function aiAdultAdminSettings(int $npc): array {
     $defaults=['sexuality_enabled'=>0,'companion_enabled'=>0,'workplace_key'=>'','exclusive_player_id'=>0];
     if($npc<1){ return $defaults; }
     $settings=array_replace($defaults,aiDb()->query('SELECT sexuality_enabled,companion_enabled,workplace_key,exclusive_player_id FROM ai_npc_adult WHERE npc_id=?',[$npc])[0]??[]);
     $settings['workplace_key']=(string)($settings['workplace_key']??'');return $settings;
 }
-function ai_adult_admin_workplaces(): array {
+function aiAdultAdminWorkplaces(): array {
     $rooms=aiDb()->query('SELECT chat_key,title,position,companion_enabled FROM mappe WHERE chat=1 AND rental_enabled=1 ORDER BY position,title');
     $cities=aiDb()->query('SELECT city FROM city ORDER BY city');
     $normalize=static fn(string $v)=>strtolower(preg_replace('/[^a-z0-9]+/i','',iconv('UTF-8','ASCII//TRANSLIT',$v)?:$v));
     foreach($rooms as &$room){$room['city']='Altri luoghi';foreach($cities as $city){$key=$normalize($city['city']);if($key!==''&&(str_starts_with($normalize($room['chat_key']),$key)||str_contains($normalize($room['position']),$key))){$room['city']=$city['city'];break;}}}unset($room);
     usort($rooms,static fn($a,$b)=>strnatcasecmp($a['city'].' '.$a['title'],$b['city'].' '.$b['title']));return $rooms;
 }
-function ai_adult_admin_validate(array $input,array $profile,string $chat): array {
+function aiAdultAdminValidate(array $input,array $profile,string $chat): array {
     if(array_diff(array_keys($input),['sexuality_enabled','companion_enabled','workplace_key','exclusive_player_id'])){ throw new DomainException('Impostazione adulta del PNG non riconosciuta.',422); }
-    $v=array_replace(ai_adult_admin_settings(0),$input);
+    $v=array_replace(aiAdultAdminSettings(0),$input);
     foreach(['sexuality_enabled','companion_enabled'] as $field){ $v[$field]=aiInteger($v,$field,0,1); }
     $v['exclusive_player_id']=aiInteger($v,'exclusive_player_id',0,PHP_INT_MAX);
     $v['workplace_key']=aiField($v,'workplace_key',100);
@@ -31,7 +31,7 @@ function ai_adult_admin_validate(array $input,array $profile,string $chat): arra
     if($v['exclusive_player_id']&&!aiDb()->query('SELECT u.id FROM utenti u JOIN ai_player_preferences p ON p.player_id=u.id WHERE u.id=? AND p.character_age>=18',[$v['exclusive_player_id']])){ throw new DomainException('Il vincolo di fedeltà deve riferirsi a un personaggio giocante con età adulta dichiarata.',422); }
     return $v;
 }
-function ai_adult_admin_save(int $npc,array $values): void {
+function aiAdultAdminSave(int $npc,array $values): void {
     $db=aiDb();if(!$db->inTransaction()){ throw new LogicException('La configurazione adulta richiede la transazione del PNG.'); }
     $db->execute('INSERT INTO ai_npc_adult(npc_id,sexuality_enabled,companion_enabled,workplace_key,exclusive_player_id,updated_at) VALUES(?,?,?,?,?,?) ON DUPLICATE KEY UPDATE sexuality_enabled=VALUES(sexuality_enabled),companion_enabled=VALUES(companion_enabled),workplace_key=VALUES(workplace_key),exclusive_player_id=VALUES(exclusive_player_id),updated_at=VALUES(updated_at)',[$npc,$values['sexuality_enabled'],$values['companion_enabled'],$values['workplace_key']!==''?$values['workplace_key']:null,$values['exclusive_player_id'],time()]);
 }

@@ -15,7 +15,7 @@ try {
     $action=aiField($in,'action',30,true);$db=aiDb();
     if ($action==='portrait' && $method==='GET') {
         $name=aiField($in,'file',40,true);
-        $portraitDir=ai_portrait_directory();
+        $portraitDir=aiPortraitDirectory();
         $root=realpath($portraitDir);
         $file=($root!==false && preg_match('/^[a-f0-9]{32}\.png$/D',$name)===1) ? realpath($portraitDir.'/'.$name) : false;
         if ($file===false || !str_starts_with($file, rtrim($root, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR) || !is_file($file)) { throw new DomainException('Ritratto non disponibile.',404); }
@@ -26,16 +26,16 @@ try {
         $job=$db->query('SELECT id,chat_key,user_id,kind,status,result,error FROM ai_jobs WHERE id=?',[aiInteger($in,'id',1,PHP_INT_MAX)])[0]??null;
         if (!$job || (!$admin && ((int)$job['user_id']!==$user || $job['kind']==='preview'))) { throw new DomainException('Richiesta non disponibile.',404); }
         if (!$admin) {
-            ai_dialogue_room($job['chat_key'],$user);
+            aiDialogueRoom($job['chat_key'],$user);
             if ((alphano_user()['chat']??'')!==$job['chat_key']) { throw new DomainException('Rientra nel luogo della richiesta.',403); }
         }
         echo json_encode(['job'=>['id'=>(int)$job['id'],'status'=>$job['status'],'result'=>$job['result']?json_decode($job['result'],true):null,'error'=>$job['error']]],JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);exit;
     }
     if ($action==='public' && $method==='GET') {
-        $chat=aiField($in,'chat',100,true);ai_dialogue_room($chat,$user);$room=aiRoom($chat);
+        $chat=aiField($in,'chat',100,true);aiDialogueRoom($chat,$user);$room=aiRoom($chat);
         $enabled=$room && (int)$room['enabled'];
-        echo json_encode(['private'=>str_starts_with($chat,'rent_'),'enabled'=>(bool)$enabled,'mode'=>'request','npcs'=>$enabled?array_map('ai_public_npc',ai_dialogue_npcs($chat,$user)):[],
-            'scene'=>$room['public_setting']??'','typing'=>$enabled?ai_pending_public($chat):[]],JSON_UNESCAPED_UNICODE);exit;
+        echo json_encode(['private'=>str_starts_with($chat,'rent_'),'enabled'=>(bool)$enabled,'mode'=>'request','npcs'=>$enabled?array_map('aiPublicNpc',aiDialogueNpcs($chat,$user)):[],
+            'scene'=>$room['public_setting']??'','typing'=>$enabled?aiPendingPublic($chat):[]],JSON_UNESCAPED_UNICODE);exit;
     }
     aiAdmin();
     if ($action==='overview' && $method==='GET') {
@@ -43,23 +43,23 @@ try {
         try { $ready=(aiRuntime('/health')['status']??'')==='ok'; } catch (Throwable $e) { $ready=false; }
         $worker=$db->query('SELECT heartbeat,state,last_error FROM ai_worker WHERE id=1')[0]??null;
         $alive=$worker && $worker['state']!=='stopped' && time()-(int)$worker['heartbeat']<($worker['state']==='generating'?aiDeadline()+30:10);
-        echo json_encode(['model'=>ai_model_name(),'model_ready'=>$ready,'worker_alive'=>(bool)$alive,'rooms'=>$db->query('SELECT m.chat_key,m.title,COALESCE(a.enabled,0) enabled FROM mappe m LEFT JOIN ai_rooms a ON a.chat_key COLLATE utf8mb4_unicode_ci=m.chat_key WHERE m.chat=1 ORDER BY m.title'), 'worker'=>$worker,'queue'=>$db->query('SELECT status,COUNT(*) total FROM ai_jobs GROUP BY status')],JSON_UNESCAPED_UNICODE);exit;
+        echo json_encode(['model'=>aiModelName(),'model_ready'=>$ready,'worker_alive'=>(bool)$alive,'rooms'=>$db->query('SELECT m.chat_key,m.title,COALESCE(a.enabled,0) enabled FROM mappe m LEFT JOIN ai_rooms a ON a.chat_key COLLATE utf8mb4_unicode_ci=m.chat_key WHERE m.chat=1 ORDER BY m.title'), 'worker'=>$worker,'queue'=>$db->query('SELECT status,COUNT(*) total FROM ai_jobs GROUP BY status')],JSON_UNESCAPED_UNICODE);exit;
     }
     $chat=aiField($in,'chat',100,true);aiPublicRoom($chat);
     if($action==='controls'&&$method==='GET'){
         $nid=aiInteger($in,'npc_id',1,PHP_INT_MAX);$npc=$db->query('SELECT * FROM ai_npcs WHERE id=? AND chat_key=?',[$nid,$chat])[0]??null;if(!$npc){ throw new DomainException('PNG non disponibile.',404); }
-        echo aiQuestJson(['rules'=>aiSocialRules($nid),'game'=>ai_npc_game($nid),'revision'=>ai_npc_controls_revision($nid),'schema'=>ai_npc_controls_schema()]);exit;
+        echo aiQuestJson(['rules'=>aiSocialRules($nid),'game'=>aiNpcGame($nid),'revision'=>aiNpcControlsRevision($nid),'schema'=>aiNpcControlsSchema()]);exit;
     }
     if($action==='inspect'&&$method==='GET'){
         $nid=aiInteger($in,'npc_id',1,PHP_INT_MAX);$npc=$db->query('SELECT * FROM ai_npcs WHERE id=? AND chat_key=?',[$nid,$chat])[0]??null;if(!$npc){ throw new DomainException('PNG non disponibile.',404); }
         $job=['id'=>0,'npc_id'=>$nid,'kind'=>'preview','user_id'=>$user,'chat_key'=>$chat,'source_id'=>PHP_INT_MAX,'created_at'=>time(),'prompt'=>aiField($in,'prompt',1200)?:'Buonasera, come state?'];
-        echo aiQuestJson(['messages'=>aiPrompt(aiRoom($chat),$npc,$job,.5),'model'=>ai_model_name(),'context_limit'=>ai_model_context(),'note'=>'Anteprima amministrativa con il tuo personaggio; la chat usa anche il turno, il rapporto e i fatti verificati della giocata.']);exit;
+        echo aiQuestJson(['messages'=>aiPrompt(aiRoom($chat),$npc,$job,.5),'model'=>aiModelName(),'context_limit'=>aiModelContext(),'note'=>'Anteprima amministrativa con il tuo personaggio; la chat usa anche il turno, il rapporto e i fatti verificati della giocata.']);exit;
     }
     if ($action==='upload_portrait' && $method==='POST') {
-        echo json_encode(['url'=>ai_upload_portrait($_FILES['portrait']??[])],JSON_UNESCAPED_UNICODE);exit;
+        echo json_encode(['url'=>aiUploadPortrait($_FILES['portrait']??[])],JSON_UNESCAPED_UNICODE);exit;
     }
     if ($action==='load' && $method==='GET') {
-        echo json_encode(['room'=>aiRoom($chat),'npcs'=>array_map(static fn($n)=>[...$n,'adult'=>ai_adult_admin_settings((int)$n['id'])],$db->query('SELECT * FROM ai_npcs WHERE chat_key=? ORDER BY id',[$chat])),'memory'=>$db->query('SELECT npc_id,summary,canonical,updated_at FROM ai_memory WHERE chat_key=?',[$chat]),'jobs'=>$db->query('SELECT id,npc_id,kind,status,created_at,error FROM ai_jobs WHERE chat_key=? ORDER BY id DESC LIMIT 25',[$chat])],JSON_UNESCAPED_UNICODE);exit;
+        echo json_encode(['room'=>aiRoom($chat),'npcs'=>array_map(static fn($n)=>[...$n,'adult'=>aiAdultAdminSettings((int)$n['id'])],$db->query('SELECT * FROM ai_npcs WHERE chat_key=? ORDER BY id',[$chat])),'memory'=>$db->query('SELECT npc_id,summary,canonical,updated_at FROM ai_memory WHERE chat_key=?',[$chat]),'jobs'=>$db->query('SELECT id,npc_id,kind,status,created_at,error FROM ai_jobs WHERE chat_key=? ORDER BY id DESC LIMIT 25',[$chat])],JSON_UNESCAPED_UNICODE);exit;
     }
     if ($method!=='POST') { throw new DomainException('Azione non consentita.',405); }
     $db->beginTransaction();
@@ -79,12 +79,12 @@ try {
     } elseif (!$room) { throw new DomainException('Salva prima l’ambientazione del luogo.',422); }
     elseif($action==='save_controls'){
         $nid=aiInteger($in,'npc_id',1,PHP_INT_MAX);if(!$db->query('SELECT id FROM ai_npcs WHERE id=? AND chat_key=? FOR UPDATE',[$nid,$chat])){ throw new DomainException('PNG non disponibile.',404); }
-        $db->query('SELECT npc_id FROM ai_npc_rules WHERE npc_id=? FOR UPDATE',[$nid]);$db->query('SELECT npc_id FROM ai_npc_game WHERE npc_id=? FOR UPDATE',[$nid]);
-        if(!hash_equals(ai_npc_controls_revision($nid),aiField($in,'revision',64,true))){ throw new DomainException('Regole modificate altrove: ricarica prima di salvare.',409); }
+        $db->query('SELECT npc_id FROM ai_npc_rules WHERE npc_id=? FOR UPDATE',[$nid]);$db->query('SELECT npc_id FROM aiNpcGame WHERE npc_id=? FOR UPDATE',[$nid]);
+        if(!hash_equals(aiNpcControlsRevision($nid),aiField($in,'revision',64,true))){ throw new DomainException('Regole modificate altrove: ricarica prima di salvare.',409); }
         if(!is_array($in['rules']??null)||!is_array($in['game']??null)){ throw new DomainException('Configurazione non valida.',422); }
-        $reason=aiField($in,'reason',500,true);$before=['rules'=>aiSocialRules($nid),'game'=>ai_npc_game($nid)];$rules=aiSocialValidate($in['rules']);$game=ai_npc_game_validate($in['game'],$nid);
+        $reason=aiField($in,'reason',500,true);$before=['rules'=>aiSocialRules($nid),'game'=>aiNpcGame($nid)];$rules=aiSocialValidate($in['rules']);$game=aiNpcGameValidate($in['game'],$nid);
         $db->execute('INSERT INTO ai_npc_rules(npc_id,settings,updated_by,updated_at) VALUES(?,?,?,?) ON DUPLICATE KEY UPDATE settings=VALUES(settings),updated_by=VALUES(updated_by),updated_at=VALUES(updated_at)',[$nid,aiQuestJson($rules),$user,time()]);
-        $db->execute('INSERT INTO ai_npc_game(npc_id,settings,updated_by,updated_at) VALUES(?,?,?,?) ON DUPLICATE KEY UPDATE settings=VALUES(settings),version=version+1,updated_by=VALUES(updated_by),updated_at=VALUES(updated_at)',[$nid,aiQuestJson($game),$user,time()]);
+        $db->execute('INSERT INTO aiNpcGame(npc_id,settings,updated_by,updated_at) VALUES(?,?,?,?) ON DUPLICATE KEY UPDATE settings=VALUES(settings),version=version+1,updated_by=VALUES(updated_by),updated_at=VALUES(updated_at)',[$nid,aiQuestJson($game),$user,time()]);
         $db->execute("UPDATE ai_social_jobs s JOIN ai_jobs j ON j.id=s.job_id SET s.status='cancelled',s.error='Regole del PNG aggiornate dallo staff.' WHERE j.npc_id=? AND s.status IN('queued','running')",[$nid]);
         aiQuestAudit(0,'npc_controls_updated',['npc'=>$nid,'before'=>$before,'rules'=>$rules,'game'=>$game,'reason'=>$reason],$user);
     }
@@ -105,7 +105,7 @@ try {
         foreach (['character_text','personality','history','knowledge','behavior'] as $field) { $values[]=aiField($in,$field,700); }
         $previous=$id?($db->query('SELECT profile FROM ai_npcs WHERE id=? AND chat_key=?',[$id,$chat])[0]??[]):[];
         if (isset($in['profile']) && (!is_array($in['profile']) || ($in['profile']!==[] && array_is_list($in['profile'])))) { throw new DomainException('Profilo non valido.',422); }
-        $profile=ai_validate_profile($in['profile']??[],ai_npc_profile($previous));
+        $profile=aiValidateProfile($in['profile']??[],aiNpcProfile($previous));
         require_once __DIR__.'/../libs/npc-mortality.inc.php';
         if($id){ alphano_npc_assert_profile_edit($id,$profile,(int)$values[1]); }
         if((int)$profile['hit_points']<=0){ $values[1]=0; }
@@ -113,14 +113,14 @@ try {
         // retain their history without consuming one of the two public places.
         if((int)$values[1]===1&&(int)$db->query('SELECT COUNT(*) total FROM ai_npcs WHERE chat_key=? AND active=1 AND id<>?',[$chat,$id])[0]['total']>=AI_MAX_ACTIVE_NPCS){ throw new DomainException('Massimo '.AI_MAX_ACTIVE_NPCS.' PNG attivi per luogo. Disattiva prima un altro personaggio.',422); }
         if(isset($in['adult'])&&(!is_array($in['adult'])||($in['adult']!==[]&&array_is_list($in['adult'])))){ throw new DomainException('Configurazione adulta del PNG non valida.',422); }
-        $adult=ai_adult_admin_validate($in['adult']??ai_adult_admin_settings($id),$profile,$chat);
+        $adult=aiAdultAdminValidate($in['adult']??aiAdultAdminSettings($id),$profile,$chat);
         if((int)$profile['money']!==($id?aiNpcBalance($id):0)){ throw new DomainException(alphano_currency_text('Le Corone si trasferiscono dalla sezione Cassa del PNG, con un movimento registrato.'),422); }
         if ($id) { $db->execute('UPDATE ai_npcs SET name=?,active=?,character_text=?,personality=?,history=?,knowledge=?,behavior=? WHERE id=? AND chat_key=?',[...$values,$id,$chat]); }
         else { $db->execute('INSERT INTO ai_npcs(name,active,character_text,personality,history,knowledge,behavior,chat_key) VALUES(?,?,?,?,?,?,?,?)',[...$values,$chat]); }
         $savedId=$id?:((int)$db->lastInsertId());
         $db->execute('UPDATE ai_npcs SET profile=? WHERE id=? AND chat_key=?',[json_encode($profile,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR),$savedId,$chat]);
         if((int)$profile['hit_points']<=0){ alphano_npc_record_admin_death($savedId,$user); }
-        ai_adult_admin_save($savedId,$adult);
+        aiAdultAdminSave($savedId,$adult);
         // Keep the saved player turn: active profile edits are re-read before
         // generation and fenced again before publication, including previews.
         if(!(int)$values[1]){ $db->execute("UPDATE ai_jobs SET status='cancelled',finished_at=?,error='PNG disattivato.' WHERE npc_id=? AND status IN('queued','running')",[time(),$savedId]); }

@@ -12,7 +12,7 @@
 <div id="manual-index"></div>
 <article id="manual-detail" hidden tabindex="-1"></article>
 </section>
-<div id="toast" aria-live="polite" aria-live="polite"></div>
+<div id="toast" aria-live="polite"></div>
 <?php if($manuals['adminAccademia']): ?><div id="modal" class="modal forum-modal" aria-modal="true" aria-label="Redazione manuali"><div class="modal-content"><button type="button" class="close" aria-label="Chiudi">×</button><div id="modal-body"></div></div></div><?php endif; ?>
 <script type="application/json" id="manuals-config"><?=json_encode($manuals,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_UNESCAPED_UNICODE)?></script>
 </body></html>

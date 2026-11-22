@@ -5,8 +5,8 @@ class AIQuestTurnException extends DomainException {
 }
 
 /** One authoritative description for chat status and rejected actions. No model decides the queue. */
-function ai_quest_turn_state(array $quest, ?array $guidance=null): array {
-    $guidance??=ai_game_guidance((int)$quest['session_id']);
+function aiQuestTurnState(array $quest, ?array $guidance=null): array {
+    $guidance??=aiGameGuidance((int)$quest['session_id']);
     $order=json_decode($guidance['turn_order'],true)?:[];
     $cast=aiDb()->query('SELECT kind,actor_id,active,state FROM ai_quest_cast WHERE session_id=?',[(int)$quest['session_id']]);
     $active=[];$joining=[];
@@ -38,8 +38,8 @@ function ai_quest_turn_state(array $quest, ?array $guidance=null): array {
     return ['turn'=>$turn,'phase_label'=>$label,'queue'=>$queue,'remaining'=>$status==='active'?$remaining:[],'next_queue'=>$next];
 }
 
-function ai_quest_wait_message(array $quest,array $guidance,int $viewer=0): string {
-    $state=ai_quest_turn_state($quest,$guidance);
+function aiQuestWaitMessage(array $quest,array $guidance,int $viewer=0): string {
+    $state=aiQuestTurnState($quest,$guidance);
     $names=static fn(array $queue)=>implode(' → ',array_column($queue,'name'));
     if($guidance['paused']){ $message='La regia è sospesa dal Master.'; }
     elseif($quest['status']==='review'){ $message='Il giro '.(int)$guidance['round_number'].' è completato. Si attende la convalida del Master: in questa fase non tocca a nessun partecipante.'; }

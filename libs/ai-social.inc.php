@@ -33,7 +33,7 @@ function aiInvalidatePairWork(int $player,int $npc,string $reason,bool $reflecti
 function aiSocialDefaults(): array {
     return ['duty'=>'','voice_example'=>'','goals'=>'','honor_code'=>'','boundaries'=>'','narrative_rules'=>'','scene_context'=>'','allegiance'=>'','recognize_vampires'=>0,
         'orientation'=>'hetero','availability'=>'unavailable','hidden_emotions'=>0,'authority_attitude'=>'contextual',
-        'economy_enabled'=>0,'max_amount'=>50,'daily_limit'=>100,'allow_loans'=>0,'accept_gifts'=>1,...ai_social_policy_defaults()];
+        'economy_enabled'=>0,'max_amount'=>50,'daily_limit'=>100,'allow_loans'=>0,'accept_gifts'=>1,...aiSocialPolicyDefaults()];
 }
 function aiSocialRules(int $npc): array {
     $row=aiDb()->query('SELECT settings FROM ai_npc_rules WHERE npc_id=?',[$npc])[0]??[];
@@ -93,22 +93,22 @@ function aiSocialCapturePerception(array $npc,array $job):void {
     $nid=(int)$npc['id'];$actor=(int)($event['actor_id']??0);$source=(int)($event['source_id']??0);
     $family=aiPerceptionRaceFamily((int)($event['native_race_id']??0));
     if($actor<1||$source<1||!in_array($family,[2,3],true)){ return; }
-    if(!ai_recognition_view($nid,$actor,['chat_key'=>$job['chat_key'],'source_id'=>$source])['identified']){ return; }
+    if(!aiRecognitionView($nid,$actor,['chat_key'=>$job['chat_key'],'source_id'=>$source])['identified']){ return; }
     $db=aiDb();$now=time();
     $db->execute(AI_SOCIAL_REL_INSERT_SQL,[$nid,$actor,$now,$now]);
     $before=$db->query(AI_SOCIAL_REL_LOCK_SQL,[$nid,$actor])[0];
-    $present=ai_relation_context_current($nid,$actor);
+    $present=aiRelationContextCurrent($nid,$actor);
     if($present&&$source<=$present['chat_id']){ return; }
     // The same family cannot be farmed by repeatedly switching forms. The
     // ledger remains the receipt; no parallel emotion table is introduced.
     if($db->query("SELECT id FROM ai_relationship_events WHERE npc_id=? AND player_id=? AND actor_id=0 AND JSON_UNQUOTE(JSON_EXTRACT(after_state,'$._perception.family'))=? LIMIT 1",[$nid,$actor,(string)$family])){ return; }
-    $reaction['self_control']=(int)(ai_npc_game($nid)['traits']['self_control']??50);
-    $after=$before;$after['fear']=max((int)$before['fear'],ai_social_shock_fear($reaction,$event));
-    $authority=ai_npc_authority($nid,$actor,$job);if($authority['recognized']&&($authority['attitude']['mode']??'respectful')==='respectful'){ $after['respect']=min(100,(int)$before['respect']+2); }
+    $reaction['self_control']=(int)(aiNpcGame($nid)['traits']['self_control']??50);
+    $after=$before;$after['fear']=max((int)$before['fear'],aiSocialShockFear($reaction,$event));
+    $authority=aiNpcAuthority($nid,$actor,$job);if($authority['recognized']&&($authority['attitude']['mode']??'respectful')==='respectful'){ $after['respect']=min(100,(int)$before['respect']+2); }
     $after['updated_at']=$now;
     $db->execute('UPDATE ai_relationships SET fear=?,respect=?,updated_at=? WHERE npc_id=? AND player_id=?',[$after['fear'],$after['respect'],$now,$nid,$actor]);
     $after['_perception']=['source_id'=>$source,'family'=>$family,'actor_id'=>$actor,'mode'=>$reaction['mode'],'intensity'=>'panic_floor'];
-    ai_relation_event($nid,$actor,$before,$after,'Prima reazione a rivelazione pubblica verificata #'.$source.': intensità del terrore coerente con coraggio e autocontrollo; nessun affetto automatico.',['chat_key'=>$job['chat_key'],'source_id'=>$source]);
+    aiRelationEvent($nid,$actor,$before,$after,'Prima reazione a rivelazione pubblica verificata #'.$source.': intensità del terrore coerente con coraggio e autocontrollo; nessun affetto automatico.',['chat_key'=>$job['chat_key'],'source_id'=>$source]);
     $evidence=aiText((string)($event['content']??''),450);
     $db->execute("INSERT INTO ai_personal_memories(npc_id,player_id,chat_key,category,summary,evidence,source,epistemic,created_at,updated_at) VALUES(?,?,?,'rivelazione',?,?,'system','verified',?,?)",[$nid,$actor,(string)$job['chat_key'],'Ha osservato una natura '.($family===2?'vampirica':'lupina').' manifestarsi ed è rimasto scosso. La propria paura non impone emozioni o gesti al visitatore.',$evidence,$now,$now]);
 }
@@ -117,7 +117,7 @@ function aiSocialCapturePerception(array $npc,array $job):void {
  * The separate NULL-job receipt leaves the async reflection's unique job_id available.
  */
 function aiSocialPairManifestations(array $npc,array $job,string $reply):array {
-    $keys=ai_social_manifested_emotions($npc,$reply);$publishedPanic=false;
+    $keys=aiSocialManifestedEmotions($npc,$reply);$publishedPanic=false;
     if(($job['kind']??'')==='reaction'&&(int)($job['id']??0)>0){
         $published=aiDb()->query('SELECT result,message_id FROM ai_jobs WHERE id=? AND npc_id=? AND user_id=?',[(int)$job['id'],(int)$npc['id'],(int)$job['user_id']])[0]??[];
         $result=json_decode((string)($published['result']??''),true)?:[];$receipt=$result['scene_reaction']??[];
@@ -127,12 +127,12 @@ function aiSocialPairManifestations(array $npc,array $job,string $reply):array {
             &&(int)($receipt['actor_id']??0)===(int)$job['user_id']&&(int)($receipt['source_id']??0)===(int)($job['source_id']??0)
             &&in_array($reply,[(string)($result['testo']??''),(string)($receipt['immediate_text']??'')],true)){$keys[]='fear';$publishedPanic=true;}
     }
-    $episode=$job['episode']??ai_episode_previous($job,(int)$npc['id']);
-    if(!empty($episode['observer'])){ $keys=array_values(array_intersect($keys,array_keys(ai_social_observer_deltas(['fear'=>1,'hostility'=>1,'trust'=>-1],$reply)))); }
+    $episode=$job['episode']??aiEpisodePrevious($job,(int)$npc['id']);
+    if(!empty($episode['observer'])){ $keys=array_values(array_intersect($keys,array_keys(aiSocialObserverDeltas(['fear'=>1,'hostility'=>1,'trust'=>-1],$reply)))); }
     // A character's current interlocutor and remembered scene can differ.
     // The reaction receipt owns that fear; a normal reply cannot silently reassign it.
     if(in_array('fear',$keys,true)){
-        $spoken=in_array('fear',ai_social_manifested_emotions($npc,$reply,false),true);
+        $spoken=in_array('fear',aiSocialManifestedEmotions($npc,$reply,false),true);
         $threat=!empty($episode['known'])&&empty($episode['observer'])&&($episode['category']??'')==='minaccia';
         $otherBody=false;$ownBody=false;
         if(($job['kind']??'')!=='reaction'&&function_exists('aiPerceptionSceneState')){ foreach(aiPerceptionSceneState($npc,$job)['visible'] as $body){
@@ -141,20 +141,20 @@ function aiSocialPairManifestations(array $npc,array $job,string $reply):array {
         }
         // A shiver/broken breath alone can mean cold, fatigue or pain. It discloses
         // fear only beside an actual threat/body or the published server panic receipt.
-        if((!$spoken&&!$threat&&!$ownBody&&!$publishedPanic)||($otherBody&&!$ownBody&&!isset(ai_social_observer_deltas(['fear'=>1],$reply)['fear']))){ $keys=array_values(array_diff($keys,['fear'])); }
+        if((!$spoken&&!$threat&&!$ownBody&&!$publishedPanic)||($otherBody&&!$ownBody&&!isset(aiSocialObserverDeltas(['fear'=>1],$reply)['fear']))){ $keys=array_values(array_diff($keys,['fear'])); }
     }
     return array_values(array_unique($keys));
 }
 function aiSocialRecordManifestation(array $npc,array $job,string $reply):void {
-    if(!ai_relation_context_job_current($job)){ return; }
+    if(!aiRelationContextJobCurrent($job)){ return; }
     $nid=(int)($npc['id']??0);$uid=(int)($job['user_id']??0);
-    if($nid<1||$uid<1||ai_recognition_anonymous($npc,$job)){ return; }
+    if($nid<1||$uid<1||aiRecognitionAnonymous($npc,$job)){ return; }
     $keys=aiSocialPairManifestations($npc,$job,$reply);if(!$keys){ return; }
     $db=aiDb();$owned=!$db->inTransaction();if($owned){ $db->beginTransaction(); }
     try{
         $now=time();$db->execute(AI_SOCIAL_REL_INSERT_SQL,[$nid,$uid,$now,$now]);
         $before=$db->query(AI_SOCIAL_REL_LOCK_SQL,[$nid,$uid])[0];
-        if(!ai_relation_context_job_current($job)){if($owned){ $db->commit(); }return;}
+        if(!aiRelationContextJobCurrent($job)){if($owned){ $db->commit(); }return;}
         $revealed=json_decode($before['revealed'],true)?:[];$new=array_values(array_diff($keys,$revealed));
         if($new){
             $after=$before;$after['revealed']=json_encode(array_values(array_unique([...$revealed,...$new])));$after['updated_at']=$now;
@@ -166,25 +166,25 @@ function aiSocialRecordManifestation(array $npc,array $job,string $reply):void {
     }catch(Throwable $e){if($owned&&$db->inTransaction()){ $db->rollBack(); }throw $e;}
 }
 function aiRomanceAllowed(array $npc,array $player,array $rules): bool {
-    $p=ai_npc_profile($npc);
+    $p=aiNpcProfile($npc);
     $consent=aiDb()->query('SELECT character_age,romance_enabled,intimacy_enabled FROM ai_player_preferences WHERE player_id=?',[(int)$player['id']])[0]??[];
-    $partner=ai_adult_partner((int)$npc['id']);if($partner&&$partner!==(int)$player['id']){ return false; }
+    $partner=aiAdultPartner((int)$npc['id']);if($partner&&$partner!==(int)$player['id']){ return false; }
     return (int)$p['age']>=18 && (int)($consent['character_age']??0)>=18 && !empty($consent['romance_enabled'])
         && $rules['availability']==='available' && ($rules['orientation']==='all'||($rules['orientation']==='hetero'&&$p['sex']!==$player['sesso'])||($rules['orientation']==='homo'&&$p['sex']===$player['sesso'])||($rules['orientation']==='men'&&$player['sesso']==='Maschio')||($rules['orientation']==='women'&&$player['sesso']==='Femmina'));
 }
 function aiSocialContext(array $npc,array $job,float $scale): string {
     if((int)($job['user_id']??0)<1){ return ''; }
-    $player=ai_player_identity((int)$job['user_id']);if(!$player){ return ''; }
-    if(ai_recognition_anonymous($npc,$job)){ return "\nINTERLOCUTORE NON IDENTIFICATO: percepisci parole e gesti di questa figura dal volto coperto. I rapporti con persone note non appartengono automaticamente a questo incontro. Nessun nome, incarico, segreto o familiarità precedenti sono accertati."; }
-    $rules=aiSocialRules((int)$npc['id']);$rel=aiRelation((int)$npc['id'],(int)$player['id']);$romance=aiRomanceAllowed($npc,$player,$rules);$feelings=ai_relation_feelings($rel);
-    $present=ai_relation_context_current((int)$npc['id'],(int)$player['id']);
+    $player=aiPlayerIdentity((int)$job['user_id']);if(!$player){ return ''; }
+    if(aiRecognitionAnonymous($npc,$job)){ return "\nINTERLOCUTORE NON IDENTIFICATO: percepisci parole e gesti di questa figura dal volto coperto. I rapporti con persone note non appartengono automaticamente a questo incontro. Nessun nome, incarico, segreto o familiarità precedenti sono accertati."; }
+    $rules=aiSocialRules((int)$npc['id']);$rel=aiRelation((int)$npc['id'],(int)$player['id']);$romance=aiRomanceAllowed($npc,$player,$rules);$feelings=aiRelationFeelings($rel);
+    $present=aiRelationContextCurrent((int)$npc['id'],(int)$player['id']);
     $city=(string)($player['city']??'');$office=(string)($player['office']??'');
-    $authority=ai_npc_authority((int)$npc['id'],(int)$player['id'],$job);
+    $authority=aiNpcAuthority((int)$npc['id'],(int)$player['id'],$job);
     $vampire=in_array(aiPerceptionKnownRace((int)$npc['id'],(int)$player['id'],(int)($job['source_id']??0)),[ALPHANO_RACE_VAMPIRE,ALPHANO_RACE_ORIGINAL],true);
-    $knownName=ai_identity_known_name($npc,$job,$player,$authority,$rel);
+    $knownName=aiIdentityKnownName($npc,$job,$player,$authority,$rel);
     if($scale<=.5){
         $out="\nINTERLOCUTORE: ".($knownName!==''?'nome proprio di persona: '.$knownName:'nome non appreso: non usarlo').'; carica '.($office?:'nessuna').' / '.($city?:'nessuna città').'. ';
-        $out.=ai_authority_context((int)$npc['id'],(int)$player['id'],true,$job);
+        $out.=aiAuthorityContext((int)$npc['id'],(int)$player['id'],true,$job);
         $out.=$rules['recognize_vampires']&&$vampire?'Vampiro riconosciuto dal presidio: deferenza. ':'Non dedurre razze o lignaggi segreti. ';
         $out.='Rapporto '.$rel['state'].($present?', contesto attuale ridefinito dallo staff. ':', '.(int)$rel['encounters'].' incontri. ');
         if($romance){ $_ternaryValue=$feelings['romantic']?'Il legame romantico è già stabilito: conserva il sentimento attuale, senza ricominciare ogni volta il corteggiamento. ':'Corteggiamento solo consensuale e graduale; rispetto di ogni rifiuto. '; }
@@ -194,10 +194,10 @@ function aiSocialContext(array $npc,array $job,float $scale): string {
             $debt=aiDb()->query(AI_SOCIAL_DEBT_BALANCES_SQL,[(int)$npc['id'],(int)$player['id']])[0]??[];
             $out.='Cassa '.aiNpcBalance((int)$npc['id']).'; max proposta '.$rules['max_amount'].', max/giorno '.$rules['daily_limit'].alphano_currency_text(' Corone; debiti PG/PNG ').(int)($debt['player_owes']??0).'/'.(int)($debt['npc_owes']??0).'. '.($rules['allow_loans']?'Prestiti abilitati. ':'Niente prestiti. ').'Solo proposte, mai trasferimenti già avvenuti. ';
         }else { $out.='Niente scambi monetari. '; }
-        return $out.ai_personality_context($npc,$job,$scale,$rel).ai_social_development_context($npc,$job,$rules,$scale);
+        return $out.aiPersonalityContext($npc,$job,$scale,$rel).aiSocialDevelopmentContext($npc,$job,$rules,$scale);
     }
     $out="\nINTERLOCUTORE VERIFICATO DAL GIOCO: ".($knownName!==''?'Nome noto: '.$knownName:'Nome non ancora appreso: non chiamarlo per nome finché non si presenta').'.';
-    $out.=ai_authority_context((int)$npc['id'],(int)$player['id'],false,$job);
+    $out.=aiAuthorityContext((int)$npc['id'],(int)$player['id'],false,$job);
     if($rules['recognize_vampires']&&$vampire){ $out.=' La natura pubblica del personaggio è riconosciuta dal PNG. Usa solo rapporti e incarichi verificati, senza inventare appartenenze.'; }
     else { $out.=' Non dedurre razze segrete, poteri o lignaggi dall’aspetto o dalla carica; non inventare credenziali.'; }
     $out.="\nDOVERE DEL PNG: ".aiText($rules['duty'],160)."\nOBIETTIVI: ".aiText($rules['goals'],160)."\nCODICE E LIMITI: ".aiText($rules['honor_code'],200).' '.aiText($rules['boundaries'],250);
@@ -206,7 +206,7 @@ function aiSocialContext(array $npc,array $job,float $scale): string {
     if($romance){ $_ternaryValue=$feelings['romantic']?'Il sentimento romantico è già stabilito e va rappresentato coerentemente con i valori attuali; non tornare a un primo corteggiamento. Rispetta i limiti del momento.':'Corteggiamento possibile ma mai dovuto: rispetta preferenze e rifiuti; i doni non comprano affetto.'; }
     else{ $_ternaryValue='Nessun corteggiamento o proposta romantica: età, consenso o disponibilità non lo consentono. Puoi parlare di amicizia e rifiutare con rispetto.'; }
     $out.=$_ternaryValue;
-    $out.=ai_personality_context($npc,$job,$scale,$rel).ai_social_development_context($npc,$job,$rules,$scale);
+    $out.=aiPersonalityContext($npc,$job,$scale,$rel).aiSocialDevelopmentContext($npc,$job,$rules,$scale);
     if($rules['economy_enabled']){
         $debt=aiDb()->query(AI_SOCIAL_DEBT_BALANCES_SQL,[(int)$npc['id'],(int)$player['id']])[0]??[];
         $out.=' Cassa effettiva del PNG: '.aiNpcBalance((int)$npc['id']).alphano_currency_text(' Corone; massimo per proposta ').$rules['max_amount'].'. Debito del PG verso di te '.(int)($debt['player_owes']??0).'; tuo debito verso il PG '.(int)($debt['npc_owes']??0).'. Non promettere somme che non possiedi. Formula prezzo, importo e causale chiaramente: il trasferimento avviene solo dopo conferma nel profilo. Non offrire prestiti se non abilitati.';
@@ -216,20 +216,20 @@ function aiSocialContext(array $npc,array $job,float $scale): string {
 }
 /** An encountered dialogue is durable evidence; no score is inferred from keywords. */
 function aiSocialRecord(array $npc,array $job,array $result): void {
-    if(ai_recognition_anonymous($npc,$job)||!ai_relation_context_job_current($job)){ return; }
+    if(aiRecognitionAnonymous($npc,$job)||!aiRelationContextJobCurrent($job)){ return; }
     $db=aiDb();$id=(int)$job['id'];$player=(int)$job['user_id'];$now=time();
     if($player<1||$id<1){ return; }
     aiSocialRecordManifestation($npc,$job,(string)$result['testo']);
     if($db->query('SELECT id FROM ai_relationship_events WHERE job_id=?',[$id])){ return; }
     $db->execute(AI_SOCIAL_REL_INSERT_SQL,[(int)$npc['id'],$player,$now,$now]);
     $rel=$db->query(AI_SOCIAL_REL_LOCK_SQL,[(int)$npc['id'],$player])[0];
-    if(!ai_relation_context_job_current($job)){ return; }
+    if(!aiRelationContextJobCurrent($job)){ return; }
     // A published job may be retried before asynchronous reflection has written an event.
     if($db->query("SELECT id FROM ai_personal_memories WHERE job_id=? AND category='incontro'",[$id])){ return; }
     // Consecutive messages are one encounter, preventing message spam from building bonds.
-    $name=ai_player_identity($player)['nome']??'';
-    $observed=ai_personality_observable((string)$job['prompt']);
-    if(ai_identity_introduction($name,(string)$job['prompt'])){ $db->execute('UPDATE ai_relationships SET known_name=? WHERE npc_id=? AND player_id=?',[$name,(int)$npc['id'],$player]); }
+    $name=aiPlayerIdentity($player)['nome']??'';
+    $observed=aiPersonalityObservable((string)$job['prompt']);
+    if(aiIdentityIntroduction($name,(string)$job['prompt'])){ $db->execute('UPDATE ai_relationships SET known_name=? WHERE npc_id=? AND player_id=?',[$name,(int)$npc['id'],$player]); }
     $encounter=(int)$rel['last_encounter']<$now-1800?1:0;
     $db->execute('UPDATE ai_relationships SET encounters=encounters+?,interactions=interactions+1,last_encounter=?,updated_at=? WHERE npc_id=? AND player_id=?',[$encounter,$now,$now,(int)$npc['id'],$player]);
     $summary='Turno osservabile del PG (parole e tentativi, non esiti accertati): '.aiText($observed,450).'. '.$npc['name'].' ha risposto: '.aiText($result['testo'],650);
@@ -274,23 +274,23 @@ function aiSocialRecordQuestScene(array $npc,array $job,array $result,array $act
         $public=$db->query('SELECT pg,chat,dest'.(alphano_chat_has_archive()?',history_only':'').' FROM chat WHERE id=?',[$source])[0]??null;
         if(!$public||(int)$public['pg']!==$uid||(int)$public['dest']!==0||$public['chat']!==$chat||!empty($public['history_only'])){ continue; }
         $copy=[...$job,'kind'=>'npc-turn','user_id'=>$uid,'source_id'=>$source,'prompt'=>(string)$action['content']];
-        if(!ai_relation_context_job_current($copy)){ continue; }
+        if(!aiRelationContextJobCurrent($copy)){ continue; }
         if($uid===$primary&&$replyIsPrimary){aiSocialRecord($npc,$copy,$result);$primaryRecorded=true;continue;}
         unset($copy['episode']);
-        if(ai_recognition_anonymous($npc,$copy)){ continue; }
+        if(aiRecognitionAnonymous($npc,$copy)){ continue; }
         $now=time();$db->execute(AI_SOCIAL_REL_INSERT_SQL,[$nid,$uid,$now,$now]);
         $db->query('SELECT npc_id FROM ai_relationships WHERE npc_id=? AND player_id=? FOR UPDATE',[$nid,$uid]);
-        if(!ai_relation_context_job_current($copy)){ continue; }
+        if(!aiRelationContextJobCurrent($copy)){ continue; }
         if($db->query("SELECT id FROM ai_relationship_events WHERE npc_id=? AND player_id=? AND JSON_EXTRACT(after_state,'$._quest_observation.source_id')=? LIMIT 1",[$nid,$uid,$source])){ continue; }
         if($db->query("SELECT m.id FROM ai_personal_memories m JOIN ai_jobs j ON j.id=m.job_id WHERE m.npc_id=? AND m.player_id=? AND m.category='incontro' AND j.source_id=? LIMIT 1",[$nid,$uid,$source])){ continue; }
         // A targeted action can have immediate bounded consequences, even if another
         // PG is the technical focus of this NPC turn. Unaddressed witnessing is memory.
         $details=is_array($action['details']??null)?$action['details']:(json_decode((string)($action['details']??'{}'),true)?:[]);
         $direct=($details['target_kind']??'')==='npc'&&(int)($details['target_id']??0)===$nid;
-        if($direct||aiNarrativeMentions((string)$action['content'],(string)$npc['name'])){ ai_episode_prepare($npc,[...$copy,'id'=>0]); }
+        if($direct||aiNarrativeMentions((string)$action['content'],(string)$npc['name'])){ aiEpisodePrepare($npc,[...$copy,'id'=>0]); }
         $before=aiRelation($nid,$uid);$after=$before;$after['encounters']+=(int)((int)$before['last_encounter']<$now-1800);$after['interactions']++;$after['last_encounter']=$now;$after['updated_at']=$now;
-        $observed=ai_personality_observable((string)$action['content']);$name=ai_player_identity($uid)['nome']??'';
-        if(ai_identity_introduction($name,(string)$action['content'])){ $after['known_name']=$name; }
+        $observed=aiPersonalityObservable((string)$action['content']);$name=aiPlayerIdentity($uid)['nome']??'';
+        if(aiIdentityIntroduction($name,(string)$action['content'])){ $after['known_name']=$name; }
         $db->execute('UPDATE ai_relationships SET encounters=?,interactions=?,last_encounter=?,updated_at=?,known_name=? WHERE npc_id=? AND player_id=?',[$after['encounters'],$after['interactions'],$now,$now,$after['known_name'],$nid,$uid]);
         $summary='Ha assistito al turno pubblico di questo personaggio nella scena: '.aiText($observed,600).'. È un ricordo osservato: tentativi e parole non provano colpi riusciti, intenzioni o sentimenti. La replica del PNG nella scena non è automaticamente rivolta a questo personaggio.';
         $db->execute("INSERT INTO ai_personal_memories(npc_id,player_id,chat_key,category,summary,evidence,source,epistemic,visible,created_at,updated_at) VALUES(?,?,?,'incontro',?,?,'dialogue','dialogue',1,?,?)",[$nid,$uid,$chat,$summary,$observed,$now,$now]);
@@ -301,21 +301,21 @@ function aiSocialRecordQuestScene(array $npc,array $job,array $result,array $act
 }
 /** Safe, evidence-linked and rate-limited application of model proposals. Caller holds transaction. */
 function aiSocialApply(array $npc,array $job,array $proposal): void {
-    if(ai_recognition_anonymous($npc,$job)){ return; }
+    if(aiRecognitionAnonymous($npc,$job)){ return; }
     $db=aiDb();$id=(int)$job['id'];$nid=(int)$npc['id'];$uid=(int)$job['user_id'];$now=time();
     if($db->query('SELECT id FROM ai_relationship_events WHERE job_id=?',[$id])){ return; }
     $before=$db->query(AI_SOCIAL_REL_LOCK_SQL,[$nid,$uid])[0]??null;if(!$before){ return; }
-    if(!ai_relation_context_job_current($job)){ return; }
-    $rules=aiSocialRules($nid);$player=ai_player_identity($uid);$romance=aiRomanceAllowed($npc,$player,$rules);
+    if(!aiRelationContextJobCurrent($job)){ return; }
+    $rules=aiSocialRules($nid);$player=aiPlayerIdentity($uid);$romance=aiRomanceAllowed($npc,$player,$rules);
     $reply=json_decode($job['result'],true)['testo']??'';
     $pe=aiText((string)($proposal['player_evidence']??''),250);$ne=aiText((string)($proposal['npc_evidence']??''),250);
-    $episode=ai_episode_previous($job,$nid);
-    $grounded=mb_strlen($pe)>=(!empty($episode['known'])?3:8)&&mb_strlen($ne)>=(ai_social_reciprocal_interest($ne)?5:8)&&aiSocialEvidenceMatches($pe,(string)$job['prompt'])&&aiSocialEvidenceMatches($ne,$reply);
+    $episode=aiEpisodePrevious($job,$nid);
+    $grounded=mb_strlen($pe)>=(!empty($episode['known'])?3:8)&&mb_strlen($ne)>=(aiSocialReciprocalInterest($ne)?5:8)&&aiSocialEvidenceMatches($pe,(string)$job['prompt'])&&aiSocialEvidenceMatches($ne,$reply);
     $deltas=is_array($proposal['deltas']??null)?$proposal['deltas']:[];
-    if(!empty($episode['observer'])){ $deltas=ai_social_observer_deltas($deltas,$reply); }
-    $category=ai_social_episode_category(is_string($proposal['category']??null)?$proposal['category']:'dialogo',$pe,$ne,$deltas);
+    if(!empty($episode['observer'])){ $deltas=aiSocialObserverDeltas($deltas,$reply); }
+    $category=aiSocialEpisodeCategory(is_string($proposal['category']??null)?$proposal['category']:'dialogo',$pe,$ne,$deltas);
     if(!empty($episode['observer'])&&!$deltas){ $category='dialogo'; }
-    $day=$db->query('SELECT before_state,after_state,created_at FROM ai_relationship_events WHERE npc_id=? AND player_id=? AND actor_id=0 AND created_at>?'.ai_relation_context_event_scope($nid,$uid).' ORDER BY id DESC LIMIT 500',[$nid,$uid,$now-86400]);
+    $day=$db->query('SELECT before_state,after_state,created_at FROM ai_relationship_events WHERE npc_id=? AND player_id=? AND actor_id=0 AND created_at>?'.aiRelationContextEventScope($nid,$uid).' ORDER BY id DESC LIMIT 500',[$nid,$uid,$now-86400]);
     $recent=0;
     foreach($day as &$event){
         $a=json_decode($event['after_state'],true)?:[];$b=json_decode($event['before_state'],true)?:[];$event['_decoded_after']=$a;$event['_decoded_before']=$b;
@@ -328,7 +328,7 @@ function aiSocialApply(array $npc,array $job,array $proposal): void {
     $after=$before;
     foreach(AI_RELATION_METRICS as $key=>$_){
         $raw=isset($episode['changes'][$key])?0:($deltas[$key]??0);
-        $delta=ai_social_bounded_delta($key,is_int($raw)?$raw:0,$category,$before,$rules,$significant,$meaningful,$romance,$ne,$day);
+        $delta=aiSocialBoundedDelta($key,is_int($raw)?$raw:0,$category,$before,$rules,$significant,$meaningful,$romance,$ne,$day);
         $min=in_array($key,['sympathy','trust','respect','honor'],true)?-100:0;
         $after[$key]=max($min,min(100,(int)$before[$key]+$delta));
     }
@@ -339,8 +339,8 @@ function aiSocialApply(array $npc,array $job,array $proposal): void {
     if(!in_array($state,$edges[$before['state']]??[],true)){ $stateAllowed=false; }
     if($state==='amicizia'&&($after['meaningful']<2||(int)$before['encounters']<1||(int)$after['trust']<4||(int)$after['hostility']>=20)){ $stateAllowed=false; }
     if($state==='amicizia'&&!in_array($category,['cordialita','rassicurazione','favore','confidenza','riconoscenza','promessa','riconciliazione'],true)){ $stateAllowed=false; }
-    $reciprocal=$meaningful&&$romance&&(int)$before['fear']<(int)$rules['romance_fear_limit']&&(int)$before['hostility']<20&&in_array($category,['corteggiamento','riconciliazione'],true)&&ai_social_reciprocal_interest($ne);
-    $romanticEpisodes=$reciprocal?(int)$db->query("SELECT COUNT(*) AS n FROM ai_relationship_events WHERE npc_id=? AND player_id=? AND actor_id=0 AND JSON_EXTRACT(after_state,'$._evolution.romantic')=true".ai_relation_context_event_scope($nid,$uid),[$nid,$uid])[0]['n']+1:0;
+    $reciprocal=$meaningful&&$romance&&(int)$before['fear']<(int)$rules['romance_fear_limit']&&(int)$before['hostility']<20&&in_array($category,['corteggiamento','riconciliazione'],true)&&aiSocialReciprocalInterest($ne);
+    $romanticEpisodes=$reciprocal?(int)$db->query("SELECT COUNT(*) AS n FROM ai_relationship_events WHERE npc_id=? AND player_id=? AND actor_id=0 AND JSON_EXTRACT(after_state,'$._evolution.romantic')=true".aiRelationContextEventScope($nid,$uid),[$nid,$uid])[0]['n']+1:0;
     $episodes=(int)$after['meaningful'];
     if(in_array($state,['interesse','corteggiamento','innamoramento','relazione','riconciliazione'],true)&&(!$romance||$episodes<2||(int)$before['encounters']<1)){ $stateAllowed=false; }
     if(in_array($state,['interesse','corteggiamento','innamoramento','relazione'],true)&&!$reciprocal){ $stateAllowed=false; }
@@ -363,9 +363,9 @@ function aiSocialApply(array $npc,array $job,array $proposal): void {
     elseif($significant){ $prefix='Storia conservata, limite di crescita della scena · '; }
     $reason=$grounded?$prefix.$category.': '.$pe.' / '.$ne:'Nessun cambiamento: proposta priva di riscontro testuale osservabile.';
     $eventAfter=$after;$eventAfter['_evolution']=['category'=>$category,'evidence'=>$grounded?aiSocialEvidenceKey($pe):'','meaningful'=>$meaningful&&empty($episode['counted']),'romantic'=>$reciprocal,'source_id'=>(int)($job['source_id']??0)];
-    ai_relation_event($nid,$uid,$before,$eventAfter,$reason,$job,$id);
+    aiRelationEvent($nid,$uid,$before,$eventAfter,$reason,$job,$id);
     if($significant){ $db->execute('INSERT IGNORE INTO ai_personal_memories(npc_id,player_id,chat_key,job_id,category,summary,evidence,source,epistemic,created_at,updated_at) VALUES(?,?,?,?,?,?,?,\'interpreted\',\'interpretation\',?,?)',[$nid,$uid,$job['chat_key'],$id,$category,'Percezione maturata da parole/tentativi del PG: «'.$pe.'». Risposta di '.$npc['name'].': «'.$ne.'». Non certifica esiti o veridicità dei racconti.',$pe.' / '.$ne,$now,$now]); }
-    ai_social_development_record($npc,$job,$before,$after,$rules,$significant,$pe,$ne,$grounded,$category);
+    aiSocialDevelopmentRecord($npc,$job,$before,$after,$rules,$significant,$pe,$ne,$grounded,$category);
     $money=$proposal['money']??[];
     if($grounded&&is_array($money)&&isset($money['kind'],$money['amount'])&&is_int($money['amount'])&&$money['amount']>0&&preg_match('/(?<![0-9])'.$money['amount'].'\\s+coron[ae]\\b/iu',$reply)){
         try{aiMoneyOffer($npc,$uid,(string)$money['kind'],$money['amount'],aiText((string)($money['reason']??'Proposta del PNG'),400),'job:'.$id);}catch(DomainException){/* A rejected proposal never turns into a transfer. */}
@@ -426,7 +426,7 @@ function aiSocialWorkOnce(): bool {
     if(!$task){ return false; }
     $task=aiSocialObservationJob($task);
     $id=(int)$task['job_id'];
-    if(!ai_relation_context_job_current([...$task,'id'=>$id])){$db->execute("UPDATE ai_social_jobs SET status='cancelled',error='Il contesto della coppia è stato ridefinito dallo staff.' WHERE job_id=? AND status='queued'",[$id]);return true;}
+    if(!aiRelationContextJobCurrent([...$task,'id'=>$id])){$db->execute("UPDATE ai_social_jobs SET status='cancelled',error='Il contesto della coppia è stato ridefinito dallo staff.' WHERE job_id=? AND status='queued'",[$id]);return true;}
     $db->beginTransaction();
     try{
         $state=$db->query('SELECT status FROM ai_social_jobs WHERE job_id=? FOR UPDATE',[$id])[0]['status']??'';
@@ -439,16 +439,16 @@ function aiSocialWorkOnce(): bool {
         $rel=aiRelation((int)$npc['id'],(int)$task['user_id']);$rules=aiSocialRules((int)$npc['id']);
         $text=json_decode($task['result'],true)['testo']??'';
         $playerParts=aiSocialSegments($task['prompt']);$npcParts=aiSocialSegments($text);
-        $messages=ai_social_reflection_messages($npc,$rel,$rules,$playerParts,$npcParts,aiRomanceAllowed($npc,ai_player_identity((int)$task['user_id']),$rules));
-        ai_heartbeat('generating');
-        $response=aiRuntime('/v1/chat/completions',['model'=>ai_model_name(),'messages'=>$messages,'temperature'=>0.1,'max_tokens'=>512,'stream'=>false,'cache_prompt'=>false,'grammar'=>ai_social_proposal_grammar(count($playerParts),count($npcParts)),'chat_template_kwargs'=>['enable_thinking'=>false]]);
-        $proposal=ai_social_proposal_decode($response);
+        $messages=aiSocialReflectionMessages($npc,$rel,$rules,$playerParts,$npcParts,aiRomanceAllowed($npc,aiPlayerIdentity((int)$task['user_id']),$rules));
+        aiHeartbeat('generating');
+        $response=aiRuntime('/v1/chat/completions',['model'=>aiModelName(),'messages'=>$messages,'temperature'=>0.1,'max_tokens'=>512,'stream'=>false,'cache_prompt'=>false,'grammar'=>aiSocialProposalGrammar(count($playerParts),count($npcParts)),'chat_template_kwargs'=>['enable_thinking'=>false]]);
+        $proposal=aiSocialProposalDecode($response);
         $pi=$proposal['player_evidence_id']??0;$ni=$proposal['npc_evidence_id']??0;
         $proposal['player_evidence']=is_int($pi)?($playerParts[$pi]??''):'';
         $proposal['npc_evidence']=is_int($ni)?($npcParts[$ni]??''):'';
         $db->beginTransaction();
         $state=$db->query('SELECT status FROM ai_social_jobs WHERE job_id=? FOR UPDATE',[$id])[0]['status']??'';
-        if($state!=='running'){$db->commit();ai_heartbeat('idle');return true;}
+        if($state!=='running'){$db->commit();aiHeartbeat('idle');return true;}
         // Use the current profile too: an age/identity edit during inference takes effect now.
         $npc=$db->query(AI_SOCIAL_NPC_BY_ID_SQL,[(int)$task['npc_id']])[0]??null;
         if(!$npc){ throw new AiSocialDomainException('PNG non più disponibile.'); }
@@ -461,7 +461,7 @@ function aiSocialWorkOnce(): bool {
         $db->execute("UPDATE ai_social_jobs SET status=?,available_at=?,error=? WHERE job_id=? AND status='running'",[$last?'failed':'queued',time()+30,'Riflessione non applicata; dialogo e memoria letterale conservati.',$id]);
         error_log('[PNG riflessione '.$id.'] '.$error->getMessage());
     }
-    ai_heartbeat('idle');return true;
+    aiHeartbeat('idle');return true;
 }
 
 /** A quest reflection reads the published player's action, never internal Master instructions. */
@@ -477,14 +477,14 @@ function aiSocialObservationJob(array $task): array {
 }
 function aiSocialPrivateView(int $npc,int $viewer): array {
     $rules=aiSocialRules($npc);$r=aiRelation($npc,$viewer);
-    $character=aiDb()->query(AI_SOCIAL_NPC_BY_ID_SQL,[$npc])[0]??null;$player=ai_player_identity($viewer);
+    $character=aiDb()->query(AI_SOCIAL_NPC_BY_ID_SQL,[$npc])[0]??null;$player=aiPlayerIdentity($viewer);
     $romance=$character&&$player&&aiRomanceAllowed($character,$player,$rules);
     // This authenticated view is the player's own scorecard. Hidden thoughts and
     // private memories stay gated separately; an untouched pair really starts at 0.
     $metrics=[];foreach(AI_RELATION_METRICS as $key=>$label){ $metrics[$key]=['label'=>$label,'value'=>(int)$r[$key],'min'=>in_array($key,['sympathy','trust','respect','honor'],true)?-100:0]; }
     return ['metrics'=>$metrics,'state'=>$r['state'],'encounters'=>(int)$r['encounters'],
         'interactions'=>(int)$r['interactions'],'meaningful'=>(int)$r['meaningful'],'bond'=>aiRelationSummary($r,$romance),
-        'development'=>ai_social_development_view($npc,$viewer),
+        'development'=>aiSocialDevelopmentView($npc,$viewer),
         'memories'=>aiDb()->query('SELECT id,category,summary,source,created_at FROM ai_personal_memories WHERE npc_id=? AND player_id=? AND visible=1 AND active=1 ORDER BY id DESC LIMIT 30',[$npc,$viewer]),
         'offers'=>aiDb()->query("SELECT id,kind,amount,reason,expires_at FROM ai_npc_offers WHERE npc_id=? AND player_id=? AND status='pending' AND expires_at>? ORDER BY id DESC",[$npc,$viewer,time()]),
         'debts'=>aiDb()->query(AI_SOCIAL_DEBT_BALANCES_SQL,[$npc,$viewer])[0]??['player_owes'=>0,'npc_owes'=>0],
@@ -494,8 +494,8 @@ function aiSocialPrivateView(int $npc,int $viewer): array {
 
 /** Institutions and duties follow only the configured game state. */
 function aiGuardRespects(array $npc,int $playerId,int $before=0): bool {
-    $rules=aiSocialRules((int)$npc['id']);$p=ai_player_identity($playerId);
-    $authority=ai_npc_authority((int)$npc['id'],$playerId,['chat_key'=>$npc['chat_key']??'','source_id'=>$before]);
+    $rules=aiSocialRules((int)$npc['id']);$p=aiPlayerIdentity($playerId);
+    $authority=aiNpcAuthority((int)$npc['id'],$playerId,['chat_key'=>$npc['chat_key']??'','source_id'=>$before]);
     if($authority['recognized']){ return ($authority['attitude']['mode']??'respectful')==='respectful'; }
     if(!$p||trim($rules['allegiance'])===''||!preg_match('/guardia|presidio|sergente/iu',$rules['duty'])){ return false; }
     return !empty($rules['recognize_vampires'])&&in_array(aiPerceptionKnownRace((int)$npc['id'],$playerId,$before),[ALPHANO_RACE_VAMPIRE,ALPHANO_RACE_ORIGINAL],true);
@@ -507,7 +507,7 @@ function aiGuardValidateText(array $npc,array $job,string $text): string {
     // Civic rank never grants automatic entry into archives, private rooms or other restricted spaces.
     if(preg_match('/archiv|riservat|privat|segreto|permesso scritto/iu',$raw)){ return $text; }
     if(preg_match('/accesso (?:negato|vietato)|non (?:potete|puoi|può)\s+(?:entrar|passar|acceder)|non (?:posso lasciar|vi lascer|ti lascer|passer)|(?:vieto|nego|negare|negato|impedisco).{0,35}(?:accesso|ingresso|passaggio)|(?:devi|dovete) (?:restare fuori|attendere|aspettare)|(?:tornate|torna) indietro|(?:chi sei|chi siete|identificati|identificatevi)|(?:ditemi|mi dia|dimmi|dichiara|fornisci|favorite|mostrate|dimostrate|presentati).{0,45}(?:nome|provenienza|document|permess)|non ho tempo per|cosa vi porta qui/iu',$text)) {
-        $scope=ai_authority_npc_scope($npc);
+        $scope=aiAuthorityNpcScope($npc);
         if(trim((string)$scope['city'])===''){ throw new AiSocialRuntimeException('Manca il territorio dell’incarico verificato.'); }
         if(isset($job['prompt'])&&!preg_match('/\b(?:entrar\w*|acced\w*|accesso|ingresso|passaggio|castello|corte|salve|saluto|buonasera|buongiorno)\b/iu',$job['prompt'])){ throw new AiSocialRuntimeException('Il presidio deve rispondere alla richiesta attuale rispettando il rango: nuovo tentativo.'); }
         return $npc['name'].' riconosce il rango dell’interlocutore e si scosta dal varco, mantenendo un contegno rispettoso. «Il passaggio è libero. Desiderate che annunci il vostro arrivo alla corte?» La guardia resta al proprio posto, in attesa della risposta.';
@@ -523,7 +523,7 @@ function aiSocialSegments(string $text): array {
     $result=[];
     foreach($observable as $chunk){
         $parts=preg_split('/(?<=[.!?])\\s+|[«»]/u',$chunk,-1,PREG_SPLIT_NO_EMPTY);
-        foreach($parts as $part){$part=trim($part);if(mb_strlen($part)<8&&!ai_social_reciprocal_interest($part)){ continue; }$result[count($result)+1]=mb_substr($part,0,240);if(count($result)>=8){ break 2; }}
+        foreach($parts as $part){$part=trim($part);if(mb_strlen($part)<8&&!aiSocialReciprocalInterest($part)){ continue; }$result[count($result)+1]=mb_substr($part,0,240);if(count($result)>=8){ break 2; }}
     }
     return $result;
 }

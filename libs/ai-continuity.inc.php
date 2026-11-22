@@ -2,13 +2,13 @@
 declare(strict_types=1);
 require_once __DIR__.'/ai-verdict-presentation.inc.php';
 /** Public receipts derive from committed effects, never from a model's proposed numbers. */
-function ai_verdict_receipts(int $vid):array {
+function aiVerdictReceipts(int $vid):array {
  $rows=[];
  foreach(aiDb()->query("SELECT * FROM ai_quest_effects WHERE verdict_id=? AND status='applied' ORDER BY id",[$vid]) as $e){
   $before=json_decode($e['before_state'],true)?:[];$after=json_decode($e['after_state'],true)?:[];$npc=$e['target_kind']==='npc';
   $hp0=$npc?($before['profile']['hit_points']??null):($before['puntif']??null);$hp1=$npc?($after['profile']['hit_points']??null):($after['puntif']??null);
   $w0=(string)($npc?($before['profile']['wounds']??''):($before['ferite']??''));$w1=(string)($npc?($after['profile']['wounds']??''):($after['ferite']??''));
-  $changes=[];$add=static function(string $key,string $label,string $value,?int $delta=null)use(&$changes):void{$changes[]=['key'=>$key,'label'=>$label,'value'=>$value,'delta'=>$delta,'icon'=>ai_scene_effect_icon($key)];};
+  $changes=[];$add=static function(string $key,string $label,string $value,?int $delta=null)use(&$changes):void{$changes[]=['key'=>$key,'label'=>$label,'value'=>$value,'delta'=>$delta,'icon'=>aiSceneEffectIcon($key)];};
   $parts=[];if($hp0!==null&&$hp1!==null&&(int)$hp0!==(int)$hp1){$delta=(int)$hp1-(int)$hp0;$parts[]='Punti vita '.(int)$hp0.' → '.(int)$hp1.' ('.($delta>0?'+':'').$delta.')';$add('health','Punti vita',(int)$hp0.' → '.(int)$hp1.' ('.($delta>0?'+':'').$delta.')',$delta);}
   if($w0!==$w1){$value=$w1!==''?aiText(ltrim($w1,'; '),500):'Nessuna ferita';$parts[]='Ferite: '.$value;$add('wound','Ferite registrate',$value);}
   if($e['effect_type']==='death'){$parts[]='Morte accertata';$add('death','Condizione','Morte accertata');}
@@ -28,25 +28,25 @@ function ai_verdict_receipts(int $vid):array {
    $name=$name!==''?$name:'Oggetto';
    $from=(int)($before['item']['idpg']??0);$to=(int)($after['item']['idpg']??0);
    $value=($from===$to?'Aggiornato: ':'Ricevuto: ').aiText($name,140);$parts[]=$value;$add('item','Equipaggiamento',$value,$from===$to?0:1);
-   if($from&&$from!==$to){$fromKind=$from<0?'npc':'pg';$fromId=abs($from);$rows[]=['kind'=>$fromKind,'id'=>$fromId,'name'=>aiQuestName($fromKind,$fromId),'text'=>'Ceduto: '.aiText($name,140),'changes'=>[['key'=>'item','label'=>'Equipaggiamento','value'=>'Ceduto: '.aiText($name,140),'delta'=>-1,'icon'=>ai_scene_effect_icon('item')]]];}
+   if($from&&$from!==$to){$fromKind=$from<0?'npc':'pg';$fromId=abs($from);$rows[]=['kind'=>$fromKind,'id'=>$fromId,'name'=>aiQuestName($fromKind,$fromId),'text'=>'Ceduto: '.aiText($name,140),'changes'=>[['key'=>'item','label'=>'Equipaggiamento','value'=>'Ceduto: '.aiText($name,140),'delta'=>-1,'icon'=>aiSceneEffectIcon('item')]]];}
   }
   if(in_array($e['effect_type'],['ammunition','reload','item-use'],true)){$value=$e['effect_type']==='reload'?'Ricarica registrata':($e['effect_type']==='ammunition'?'Munizione consumata':'Utilizzo oggetto registrato');$parts[]=$value;$add('ammunition','Equipaggiamento',$value);}
   if($parts){ $rows[]=['kind'=>$e['target_kind'],'id'=>(int)$e['target_id'],'name'=>aiQuestName($e['target_kind'],(int)$e['target_id']),'text'=>implode(' · ',$parts),'changes'=>$changes]; }
  }
  return $rows;
 }
-function ai_verdict_public_text(array $v):string {
- $rows=ai_verdict_receipts((int)$v['id']);$situation=ai_tactical_situation((int)$v['session_id']);return $v['narrative'].($rows?"\n\nConseguenze registrate\n".implode("\n",array_map(static fn($r)=>$r['name'].' — '.$r['text'],$rows)):'').($situation?"\n\nSituazione al termine del giro\n".implode("\n",$situation):'');
+function aiVerdictPublicText(array $v):string {
+ $rows=aiVerdictReceipts((int)$v['id']);$situation=aiTacticalSituation((int)$v['session_id']);return $v['narrative'].($rows?"\n\nConseguenze registrate\n".implode("\n",array_map(static fn($r)=>$r['name'].' — '.$r['text'],$rows)):'').($situation?"\n\nSituazione al termine del giro\n".implode("\n",$situation):'');
 }
 /** An NPC receives their own result even when it was at the end of a long verdict. */
-function ai_npc_continuity(int $sid,int $nid):array {
+function aiNpcContinuity(int $sid,int $nid):array {
  $db=aiDb();$v=$db->query("SELECT * FROM ai_quest_verdicts WHERE session_id=? AND status IN('applied','human') ORDER BY round_number DESC LIMIT 1",[$sid])[0]??null;
  $own=[];$world=[];$verdict='';
  if($v){$technical=json_decode($v['technical'],true)?:[];
   foreach($technical['results']??[] as $r){$line=($r['actor']??'').(!empty($r['target'])?' contro '.$r['target']:'').' · '.($r['outcome']??'').'. '.($r['reason']??'');
    if(($r['actor']??'')===aiQuestName('npc',$nid)||($r['target']??'')===aiQuestName('npc',$nid)){ $own[]=aiText($line,600); }else { $world[]=aiText($line,350); }
   }
-  foreach(ai_verdict_receipts((int)$v['id']) as $r){$line=$r['name'].' · '.$r['text'];if($r['kind']==='npc'&&$r['id']===$nid){ $own[]= $line; }else { $world[]=$line; }}
+  foreach(aiVerdictReceipts((int)$v['id']) as $r){$line=$r['name'].' · '.$r['text'];if($r['kind']==='npc'&&$r['id']===$nid){ $own[]= $line; }else { $world[]=$line; }}
   $verdict=aiText($v['narrative'],900);
  }
  $sheet=aiQuestActor('npc',$nid);$state=json_decode($db->query("SELECT state FROM ai_quest_cast WHERE session_id=? AND kind='npc' AND actor_id=?",[$sid,$nid])[0]['state']??'{}',true)?:[];
@@ -72,40 +72,40 @@ function ai_npc_continuity(int $sid,int $nid):array {
    $directions[]=aiText($entry['text'],600);if(count($directions)===2){ break; }
   }
  }
- return ['own'=>$own,'scene'=>array_slice($world,0,8),'situation'=>ai_tactical_situation($sid),'verdict'=>$verdict,'human_directions'=>array_reverse($directions),'hp'=>(int)($sheet['puntif']??0),'wounds'=>$sheet['ferite']??'','state'=>$state];
+ return ['own'=>$own,'scene'=>array_slice($world,0,8),'situation'=>aiTacticalSituation($sid),'verdict'=>$verdict,'human_directions'=>array_reverse($directions),'hp'=>(int)($sheet['puntif']??0),'wounds'=>$sheet['ferite']??'','state'=>$state];
 }
-function ai_npc_continuity_compact(array $c):array {
+function aiNpcContinuityCompact(array $c):array {
  $clip=static fn($items,$length,$count)=>array_map(static fn($v)=>aiText((string)$v,$length),array_slice($items,-$count));
  return ['hp'=>$c['hp'],'wounds'=>aiText($c['wounds'],180),
   'state'=>array_intersect_key($c['state'],array_flip(['restrained_by','restrained_until','restrained_kind','position','relative_to','dead','last_stand','distance'])),
   'situation'=>array_slice($c['situation']??[],0,8),
   'own'=>$clip($c['own'],180,2),'human_directions'=>$clip($c['human_directions'],180,2),'scene'=>$clip($c['scene'],100,2)];
 }
-function ai_npc_continuity_prompt(int $sid,int $nid,bool $compact=false):string {
- $c=ai_npc_continuity($sid,$nid);if($compact){ $c=ai_npc_continuity_compact($c); }
+function aiNpcContinuityPrompt(int $sid,int $nid,bool $compact=false):string {
+ $c=aiNpcContinuity($sid,$nid);if($compact){ $c=aiNpcContinuityCompact($c); }
  return "\nBASE VINCOLANTE DELLA SCENA, STABILITA DAL MASTER: ".aiQuestJson($c)."\nQuesti esiti sono già accaduti: non sono tentativi da ripetere o annullare. Adatta gesti e intenzioni alle ferite, alle prese e alle perdite accertate. Non ricominciare la scena. Non usare un arto dichiarato inutilizzabile, non liberarti da una presa accertata senza tentarlo; un personaggio morto non può tornare a combattere. Le nuove azioni sono tentativi, gli esiti precedenti sono fatti.";
 }
 /** A verified death gets one final character action, atomically after the verdict.
  * No further inference is needed: an unavailable model must never resurrect or delay a dead NPC.
  */
-function ai_npc_last_actions(array $v):void {
+function aiNpcLastActions(array $v):void {
  $db=aiDb();$sid=(int)$v['session_id'];
  foreach($db->query("SELECT * FROM ai_quest_effects WHERE verdict_id=? AND target_kind='npc' AND effect_type='death' AND status='applied' ORDER BY id",[(int)$v['id']]) as $e){
   $prior=json_decode($e['before_state'],true)?:[];if((int)($prior['profile']['hit_points']??0)<=0){ continue; }
-  $nid=(int)$e['target_id'];$n=$db->query('SELECT * FROM ai_npcs WHERE id=?',[$nid])[0]??null;if(!$n||(int)ai_npc_profile($n)['hit_points']>0){ continue; }
+  $nid=(int)$e['target_id'];$n=$db->query('SELECT * FROM ai_npcs WHERE id=?',[$nid])[0]??null;if(!$n||(int)aiNpcProfile($n)['hit_points']>0){ continue; }
   $key='verdict:'.$v['id'].':last-action:'.$nid;if($db->query('SELECT id FROM ai_quest_outbox WHERE event_key=?',[$key])){ continue; }
-  $name=$n['name'];$p=ai_npc_profile($n);$injury=aiText(preg_replace('/;?\s*Esito fatale.*$/u','',$p['wounds']),300);
+  $name=$n['name'];$p=aiNpcProfile($n);$injury=aiText(preg_replace('/;?\s*Esito fatale.*$/u','',$p['wounds']),300);
   $text=$name.' non riesce più a sostenersi. '.($injury!==''?'Le ferite — '.$injury.' — accompagnano gli ultimi istanti. ':'').'Il respiro si spezza; le dita si allentano, il corpo si abbandona al suolo. L’ultimo sguardo resta rivolto al luogo della sua ultima scena, poi si spegne. '.$name.' muore.';
-  $html='<div class="ai-narration scene-note" data-npc-id="'.$nid.'" data-message-type="action"><div class="chat-character-header"><time>'.date('H:i').'</time> '.ai_profile_link($n).'</div><div class="chat-character-text">'.alphano_chat_text($text,$p['sex'],true).'</div></div>';
+  $html='<div class="ai-narration scene-note" data-npc-id="'.$nid.'" data-message-type="action"><div class="chat-character-header"><time>'.date('H:i').'</time> '.aiProfileLink($n).'</div><div class="chat-character-text">'.alphano_chat_text($text,$p['sex'],true).'</div></div>';
   aiQuestPublish($sid,$key,'',$html);
   $db->execute("UPDATE ai_quest_cast SET active=0,state=JSON_SET(state,'$.dead',true) WHERE session_id=? AND kind='npc' AND actor_id=?",[$sid,$nid]);
   aiAppendMemory($n['chat_key'],0,$text);aiQuestAudit($sid,'npc_last_action',['npc'=>$nid,'verdict'=>(int)$v['id']]);
  }
 }
 /** Choose an actual threat to this NPC or a living ally, rather than any attack by any PG. */
-function ai_npc_quest_threat(array $q,int $nid,int $round):?array {
- $db=aiDb();$faction=ai_npc_game($nid)['faction'];$allies=[$nid];
- if($faction!==''){ foreach($db->query("SELECT actor_id FROM ai_quest_cast WHERE session_id=? AND kind='npc' AND active=1",[(int)$q['session_id']]) as $a){ if(ai_npc_game((int)$a['actor_id'])['faction']===$faction){ $allies[]=(int)$a['actor_id']; } } }
+function aiNpcQuestThreat(array $q,int $nid,int $round):?array {
+ $db=aiDb();$faction=aiNpcGame($nid)['faction'];$allies=[$nid];
+ if($faction!==''){ foreach($db->query("SELECT actor_id FROM ai_quest_cast WHERE session_id=? AND kind='npc' AND active=1",[(int)$q['session_id']]) as $a){ if(aiNpcGame((int)$a['actor_id'])['faction']===$faction){ $allies[]=(int)$a['actor_id']; } } }
  foreach($db->query("SELECT actor_id,details,content FROM ai_quest_actions WHERE session_id=? AND round_number=? AND kind='pg' ORDER BY id DESC",[(int)$q['session_id'],$round]) as $r){$d=json_decode($r['details'],true)?:[];if((in_array($d['intent']??'',['assalto','attacco','potere','arresto','furto'],true)||($d['social_category']??'')==='minaccia')&&($d['target_kind']??'')==='npc'&&in_array((int)($d['target_id']??0),$allies,true)){ return $r; }}
  return null;
 }

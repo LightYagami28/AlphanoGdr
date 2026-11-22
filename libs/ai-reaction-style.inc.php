@@ -4,7 +4,7 @@ declare(strict_types=1);
 /** Immediate bodily reactions, without inference, new equipment or resolved movement.
  * The game still owns fear, flight, combat and memories; this module only words them.
  */
-function ai_reaction_style_variants(string $mode):array {
+function aiReactionStyleVariants(string $mode):array {
     return match($mode){
         'flee'=>[
             ' arretra di scatto, {sopraffatto} dal terrore; cerca con gli occhi un riparo, ma la voce non esce.',
@@ -84,7 +84,7 @@ function ai_reaction_style_variants(string $mode):array {
 /** Event rotation + immutable witness ordinal: no collisions for the first 16 witnesses.
  * No process-local randomness: a retry/parallel publisher produces the same choice.
  */
-function ai_reaction_style_variant(array $event,int $npc,array $witnesses,int $count=16):int {
+function aiReactionStyleVariant(array $event,int $npc,array $witnesses,int $count=16):int {
     $ids=array_values(array_unique(array_map('intval',$witnesses)));sort($ids,SORT_NUMERIC);
     $ordinal=array_search($npc,$ids,true);
     if($ordinal===false){ $ordinal=max(0,$npc); }
@@ -93,9 +93,9 @@ function ai_reaction_style_variant(array $event,int $npc,array $witnesses,int $c
 }
 
 /** Pure composition: profile data changes expression, never the authoritative mode. */
-function ai_reaction_style_compose(array $npc,array $profile,array $reaction,array $event,array $context,array $witnesses):array {
-    $mode=(string)($reaction['mode']??'observe');$variants=ai_reaction_style_variants($mode);
-    $index=ai_reaction_style_variant($event,(int)$npc['id'],$witnesses,count($variants));
+function aiReactionStyleCompose(array $npc,array $profile,array $reaction,array $event,array $context,array $witnesses):array {
+    $mode=(string)($reaction['mode']??'observe');$variants=aiReactionStyleVariants($mode);
+    $index=aiReactionStyleVariant($event,(int)$npc['id'],$witnesses,count($variants));
     $female=($profile['sex']??'Maschio')==='Femmina';
     $words=['sopraffatto','inchiodato','sconvolto','pietrificato','bloccato','impietrito','scosso','pronto','attento'];$replace=[];
     foreach($words as $word){ $replace['{'.$word.'}']=$female?substr($word,0,-1).'a':$word; }
@@ -128,7 +128,7 @@ function ai_reaction_style_compose(array $npc,array $profile,array $reaction,arr
 }
 
 /** Read existing sheets and witnessed event membership; no new schema or write. */
-function ai_reaction_style_preface(array $npc,array $profile,array $reaction,array $event):array {
+function aiReactionStylePreface(array $npc,array $profile,array $reaction,array $event):array {
     $db=aiDb();$nid=(int)$npc['id'];$actor=(int)($event['actor_id']??0);
     static $cachedEvent='', $witnesses=[];
     $key=(string)($event['chat_key']??$npc['chat_key']??'').':'.(int)($event['source_id']??0);
@@ -136,16 +136,16 @@ function ai_reaction_style_preface(array $npc,array $profile,array $reaction,arr
         $witnesses=array_map('intval',array_column($db->query('SELECT w.npc_id FROM ai_scene_witnesses w JOIN ai_scene_events e ON e.id=w.event_id WHERE e.source_id=? AND BINARY e.chat_key=BINARY ? ORDER BY w.npc_id',[(int)($event['source_id']??0),(string)($event['chat_key']??$npc['chat_key']??'')]),'npc_id'));
         $cachedEvent=$key;
     }
-    $game=ai_npc_game($nid);
+    $game=aiNpcGame($nid);
     // Reuse RPG formulas without the full sheet's ability/equipment/history queries.
     $race=(int)$profile['race_id'];if($race===ALPHANO_RACE_LEGACY_SPIRIT){ $race=ALPHANO_RACE_SPIRIT; }
     $stats=rpg_stat_values(['race_id'=>$race],rpg_progress('npc',$nid));
     $relation=$actor>0?aiRelation($nid,$actor):[];$rules=aiSocialRules($nid);
-    return ai_reaction_style_compose($npc,$profile,$reaction,$event,['traits'=>$game['traits'],'stats'=>$stats,'relation'=>$relation,'hidden_emotions'=>!empty($rules['hidden_emotions'])],$witnesses);
+    return aiReactionStyleCompose($npc,$profile,$reaction,$event,['traits'=>$game['traits'],'stats'=>$stats,'relation'=>$relation,'hidden_emotions'=>!empty($rules['hidden_emotions'])],$witnesses);
 }
 
 /** The immediate preface already owns the first physical shock, not a draft to copy. */
-function ai_reaction_style_continuation(string $preface,string $mode):string {
+function aiReactionStyleContinuation(string $preface,string $mode):string {
     return "\nCONTINUA DAL GESTO GIÀ COMPIUTO: ".$preface."\nQuesto testo è già comparso nella chat. Non riscriverlo, non parafrasarne la sequenza di gesti e non ricominciare con lo stesso primo spavento. Scrivi al massimo 25–50 parole nuove: una battuta personale o un tentativo di voce e un solo dettaglio successivo. "
         .match($mode){
             'flee'=>'Il PNG sta cercando riparo: può troncare una supplica o cercare di chiedere distanza, senza avere già raggiunto un luogo nuovo e senza riprendere domande di presentazione.',

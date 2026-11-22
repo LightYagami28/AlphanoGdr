@@ -790,10 +790,15 @@ function finalizeTransf(int $id, int $pg): string
             $db->execute('UPDATE corporazioni SET budget=budget-? WHERE id=?',[$price,$corp]);
             $db->execute(ECON_CREDIT_SQL,[$price,$seller]);
             $materia=(string)($item['materiaprima'] ?? '');
-            if ($materia!=='') {economiaVerifica(inserisciMateria($materia,$corp,$qta),'Materia prima non valida');}
-            else foreach (getMateriePrime($item) ?: [] as $mat=>$units) {
-                economiaVerifica((int)$units>=0,'Materie prime non valide');
-                if ((int)$units>0) {economiaVerifica(inserisciMateria($mat,$corp,(int)$units*$qta),'Magazzino non aggiornabile');}
+            if ($materia!=='') {
+                economiaVerifica(inserisciMateria($materia,$corp,$qta),'Materia prima non valida');
+            } else {
+                foreach (getMateriePrime($item) ?: [] as $mat=>$units) {
+                    economiaVerifica((int)$units>=0,'Materie prime non valide');
+                    if ((int)$units>0) {
+                        economiaVerifica(inserisciMateria($mat,$corp,(int)$units*$qta),'Magazzino non aggiornabile');
+                    }
+                }
             }
             $others=$db->query('SELECT t.* FROM trasferimenti t JOIN equippg e ON e.id=t.obj WHERE t.verso=1 AND t.stato<5 AND t.pg=? AND e.uid=? AND t.id<>? FOR UPDATE',[$seller,$uid,$id]);
             $deleted=array_slice(array_column($stock,'id'),0,$qta);

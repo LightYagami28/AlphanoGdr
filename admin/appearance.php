@@ -1,8 +1,6 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/libs/config-loader.inc.php';
-require_once __DIR__.'/libs/config-loader.inc.php';
-require_once __DIR__.'/libs/config-loader.inc.php';
 require_once dirname(__DIR__).'/libs/kernel.inc.php';
 $uid=alphanoRequireLogin();if(!alphanoCan('admin')){alphanoFail('Accesso riservato agli amministratori completi.',403);}
 $sections=['defaults'=>'Colori e disposizione','home'=>'Homepage e manuali','groups'=>'Immagini dei menu','items'=>'Immagini dei sottomenu','pages'=>'Sfondi di tutte le pagine'];

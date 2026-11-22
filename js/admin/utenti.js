@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
         document.getElementById('profile-etnia')
                 .append(new Option(e.nome, e.id));
       });
-    });
+    }).catch(error=>console.error('Caricamento etnie non riuscito',error));
 
   if (window.canManageUsers !== false) fetch(`${apiUrl}?azione=listarazze`)
     .then(r=>r.json())
@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
                 .append(new Option(rz.nome, rz.id));
       });
       document.getElementById('profile-razza').prepend(new Option('Mantieni la razza attuale','',true,true));
-    });
+    }).catch(error=>console.error('Caricamento razze non riuscito',error));
 
   const raceChoice=document.getElementById('profile-razza'),nameChoice=document.getElementById('profile-nome');
   const lineageBox=document.getElementById('profile-lineage'),lineageMessage=document.getElementById('profile-lineage-message'),creatorChoice=document.getElementById('profile-creator');
@@ -67,7 +67,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     try{
       const query=new URLSearchParams({azione:'stirpe',nome:nameChoice.value.trim(),razza:raceChoice.value});
       const response=await fetch(apiUrl+'?'+query,{signal:lineageController.signal});const json=await response.json();
-      if(!response.ok||!json.success)throw Error(json.response?.message||'Verifica non riuscita');
+      if(!response.ok||!json.success)throw new Error(json.response?.message||'Verifica non riuscita');
       const plan=json.response.plan;lineageMessage.textContent=plan.message;
       creatorChoice.hidden=!plan.requires_creator;lineageBox.querySelector('label').hidden=!plan.requires_creator;
       for(const person of plan.creators)creatorChoice.append(new Option(person.name+(person.primordial?' · capostipite':''),person.id));

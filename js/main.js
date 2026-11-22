@@ -64,7 +64,7 @@ function Nascondi(id){
 
 function CambiaMenu(){
   const d=document.getElementById(nomeobj);
-  d && d.style.visibility==='visible' ? Nascondi(nomeobj) : MostraMenu();
+  d?.style.visibility==='visible' ? Nascondi(nomeobj) : MostraMenu();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -222,6 +222,6 @@ function SetupMapAutoReload(intervalMs=15000){
   const container=document.getElementById('map');
   if(!container) return;
   const reload=()=>fetch('/mappa.php').then(r=>r.text()).then(html=>container.innerHTML=html);
-  reload();
+  void reload();
   setInterval(reload,intervalMs);
 }

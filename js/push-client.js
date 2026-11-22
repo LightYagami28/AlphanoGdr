@@ -1,6 +1,13 @@
 /* Explicit per-browser opt-in. Never request notification permission during page load. */
 (() => {
  'use strict';
+  function statusMessage(supported,config,enabled){
+   if(!supported){return 'Questo browser non supporta le notifiche push. La posta e gli avvisi nel gioco restano disponibili.';}
+   if(!config?.configured){return 'Le notifiche del browser saranno disponibili dopo la configurazione del server.';}
+   if(enabled){return 'Attive su questo browser. Anche a gioco chiuso, se il browser consente le attività in background.';}
+   if(Notification.permission==='denied'){return 'Notifiche bloccate nelle impostazioni del browser. Puoi riabilitarle da lì.';}
+   return 'Disattivate. Premi «Attiva notifiche» per scegliere se consentirle al browser.';
+  }
  const supported=!!(window.isSecureContext&&'Notification' in window&&'PushManager' in window&&navigator.serviceWorker);
  const controls=()=>Array.from(document.querySelectorAll('[data-push-controls]'));
  let config=null,subscription=null,enabled=false,busy=false,feedback='';
@@ -8,14 +15,14 @@
   if(message!==undefined){feedback=message;}
   controls().forEach(box=>{
    const status=box.querySelector('[data-push-status]'),on=box.querySelector('[data-push-enable]'),off=box.querySelector('[data-push-disable]');
-   if(status){status.textContent=feedback||(!supported?'Questo browser non supporta le notifiche push. La posta e gli avvisi nel gioco restano disponibili.':!config?.configured?'Le notifiche del browser saranno disponibili dopo la configurazione del server.':enabled?'Attive su questo browser. Anche a gioco chiuso, se il browser consente le attività in background.':Notification.permission==='denied'?'Notifiche bloccate nelle impostazioni del browser. Puoi riabilitarle da lì.':'Disattivate. Premi «Attiva notifiche» per scegliere se consentirle al browser.');}
+   if(status){status.textContent=feedback||statusMessage(supported,config,enabled);}
    if(on){on.disabled=busy||!supported||!config?.configured||Notification.permission==='denied';on.hidden=enabled;}
    if(off){off.disabled=busy;off.hidden=!enabled;}
   });
  }
  async function request(action,extra){
   const response=await fetch('/api/push.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':config.csrfToken},body:JSON.stringify({action,...extra})});
-  const result=await response.json();if(!response.ok){throw Error(result.error||'Notifiche non disponibili. Riprova più tardi.');}return result;
+  const result=await response.json();if(!response.ok){throw new Error(result.error||'Notifiche non disponibili. Riprova più tardi.');}return result;
  }
  function keyBytes(value){const raw=atob(value.replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from(raw,c=>c.charCodeAt(0));}
  function sameKey(sub,key){const stored=sub.options?.applicationServerKey;if(!stored){return true;}const bytes=new Uint8Array(stored),expected=keyBytes(key);return bytes.length===expected.length&&bytes.every((b,i)=>b===expected[i]);}
@@ -52,7 +59,7 @@
  function bind(){controls().forEach(box=>{box.querySelector('[data-push-enable]')?.addEventListener('click',enable);box.querySelector('[data-push-disable]')?.addEventListener('click',disable);});render();}
  async function start(){
   bind();if(!controls().length&&!document.getElementById?.('app-script')){return;}
-  try{const response=await fetch('/api/push.php',{cache:'no-store',credentials:'same-origin'});if(!response.ok){return;}config=await response.json();await inspect();render();}catch(_){render('Impossibile verificare le notifiche. Riprova più tardi.');}
+  try{const response=await fetch('/api/push.php',{cache:'no-store',credentials:'same-origin'});if(!response.ok){return;}config=await response.json();await inspect();render();}catch(error){console.error('Verifica notifiche non riuscita',error);render('Impossibile verificare le notifiche. Riprova più tardi.');}
  }
  // SW uses one visible top-level client, while polling uses the same event key.
  if(supported){navigator.serviceWorker.addEventListener('message',event=>{
@@ -61,5 +68,5 @@
   window.alphanoExperience?.ready().then(()=>window.alphanoExperience.notifyOnce(event.data.event)).catch(()=>{});
  });}
  document.addEventListener?.('visibilitychange',()=>{if(!document.hidden&&config){feedback='';inspect().then(()=>render()).catch(()=>{});}});
- if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',start,{once:true});}else {start();}
+ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',start,{once:true});}else {void start();}
 })();

@@ -3,7 +3,7 @@ import {createAbilityGrimoire} from './ability-grimoire.js?v=innate-learning-202
 const roots=[...document.querySelectorAll('[data-race-grimoire]')],shop=document.querySelector('#race-shop');
 if(roots.length){
  let sheet=null,busy=false;const feedback=shop?.querySelector('[data-ability-feedback]');
- async function api(action,payload){const response=await fetch('/api/rpg.php?'+new URLSearchParams({action}),{credentials:'same-origin',cache:'no-store',...(payload?{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':document.querySelector('meta[name="csrf-token"]')?.content||await window.alphanoRuntime.csrfToken()},body:JSON.stringify({action,...payload})}:{})});const data=await response.json();if(!response.ok){throw Error(data.error||'Operazione non disponibile.');}return data;}
+ async function api(action,payload){const response=await fetch('/api/rpg.php?'+new URLSearchParams({action}),{credentials:'same-origin',cache:'no-store',...(payload?{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':document.querySelector('meta[name="csrf-token"]')?.content||await window.alphanoRuntime.csrfToken()},body:JSON.stringify({action,...payload})}:{})});const data=await response.json();if(!response.ok){throw new Error(data.error||'Operazione non disponibile.');}return data;}
  const views=roots.map(root=>({catalog:JSON.parse(root.querySelector('[data-grimoire-catalog]').textContent),view:createAbilityGrimoire(root.querySelector('[data-grimoire-mount]'),{title:root.dataset.grimoireTitle,onLearn:learn})}));
  function paint(){
   if(sheet){renderLearningBalance(shop?.querySelector('[data-rpg-learning-balance]'),sheet);}

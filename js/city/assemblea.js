@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showPanel(item.dataset.panel);
       });
       item.addEventListener('keydown', event => {
-        let next=index;
+        let next;
         if(event.key==='ArrowRight')next=(index+1)%items.length;
         else if(event.key==='ArrowLeft')next=(index+items.length-1)%items.length;
         else if(event.key==='Home')next=0;
@@ -160,28 +160,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // altrimenti, fase candidature / votazioni in corso
-    const { candidacyDeadline, startCandidature, startElezioni, endElezioni, electionType } = dataObj;
+    const { startCandidature, startElezioni, endElezioni, electionType } = dataObj;
     const tipo = electionType ? electionType.charAt(0).toUpperCase() + electionType.slice(1) : 'Elezioni';
 
     // date
-    const dtC = new Date(startCandidature?.replace(' ', 'T') || ''),
-          dtE = new Date(startElezioni?.replace(' ', 'T')   || ''),
+    const dtE = new Date(startElezioni?.replace(' ', 'T')   || ''),
           dtX = new Date(endElezioni?.replace(' ', 'T')     || '');
 
+    let phaseHtml;
+    if (candidacyOpen) { phaseHtml = `<p>✏️ Candidature aperte fino al ${formatDate(dtE)}</p>`; }
+    else if (inProgress) { phaseHtml = `<p>🔔 Votazioni in corso (fino al ${formatDate(dtX)})</p>`; }
+    else { phaseHtml = `<p>⌛ In attesa di tornata</p>`; }
+    let candidatureHtml;
+    if (candidacyOpen) { candidatureHtml = `<form id="form-candidati">
+               <textarea name="programma" rows="3" placeholder="Il tuo programma..." required>${escapeHtml(yourCandidature)}</textarea><br>
+               <button type="submit" class="action-btn">${yourCandidature ? 'Aggiorna programma' : '✏️ Candidati'}</button>
+             </form>`; }
+    else if (yourCandidature) { candidatureHtml = `<p>📝 Il tuo programma:<br>${escapeHtml(yourCandidature)}</p>`; }
+    else { candidatureHtml = ''; }
     let html = `
       <div class="api-output">
         <h4>🗳️ ${tipo}</h4>
-        ${candidacyOpen
-          ? `<p>✏️ Candidature aperte fino al ${formatDate(dtE)}</p>`
-          : inProgress
-            ? `<p>🔔 Votazioni in corso (fino al ${formatDate(dtX)})</p>`
-            : `<p>⌛ In attesa di tornata</p>`}
-        ${candidacyOpen
-          ? `<form id="form-candidati">
-               <textarea name="programma" rows="3" placeholder="Il tuo programma..." required>${escapeHtml(yourCandidature)}</textarea><br>
-               <button type="submit" class="action-btn">${yourCandidature ? 'Aggiorna programma' : '✏️ Candidati'}</button>
-             </form>`
-          : yourCandidature ? `<p>📝 Il tuo programma:<br>${escapeHtml(yourCandidature)}</p>` : ''}
+        ${phaseHtml}
+        ${candidatureHtml}
       </div>
 
       <div class="api-output">

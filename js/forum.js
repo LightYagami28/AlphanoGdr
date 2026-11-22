@@ -4,6 +4,11 @@
   const config = JSON.parse(document.getElementById('forum-config')?.textContent || '{}');
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const profiles = new Map();
+  const ethniaHtml=person=>`<small class="ui-cell-meta">${esc(person.etnia)}</small>`;
+  const titleHtml=(id,title)=>`<h3 class="forum-post-title" id="post-${Number(id)}">${esc(title)}</h3>`;
+  const anchorHtml=id=>`<span id="post-${Number(id)}"></span>`;
+  const thHtml=h=>`<th scope="col">${esc(h)}</th>`;
+
   const date = timestamp => new Date(Number(timestamp)*1000).toLocaleString('it-IT');
   async function profile(id) {
     const key=Number(id);
@@ -15,13 +20,13 @@
   }
   function author(id,person,name='',large=false) {
     const fallback=person.avatar_default_url||'/assets/placeholder.svg';
-    return `<div class="forum-person${large?' forum-person-large':''}"><a href="/profili/?Id=${Number(id)}" data-character-markers="off" class="forum-portrait-link" aria-label="Profilo di ${esc(name||person.nome)}"><img class="forum-avatar" data-avatar-fallback data-fallback="${esc(fallback)}" src="${esc(person.avatar_url?.trim()||fallback)}" alt=""></a><div class="forum-person-info"><a class="forum-person-name" href="/profili/?Id=${Number(id)}">${esc(name||person.nome||'Personaggio')}</a>${person.etnia?`<small class="ui-cell-meta">${esc(person.etnia)}</small>`:''}</div></div>`;
+    return `<div class="forum-person${large?' forum-person-large':''}"><a href="/profili/?Id=${Number(id)}" data-character-markers="off" class="forum-portrait-link" aria-label="Profilo di ${esc(name||person.nome)}"><img class="forum-avatar" data-avatar-fallback data-fallback="${esc(fallback)}" src="${esc(person.avatar_url?.trim()||fallback)}" alt=""></a><div class="forum-person-info"><a class="forum-person-name" href="/profili/?Id=${Number(id)}">${esc(name||person.nome||'Personaggio')}</a>${person.etnia?ethniaHtml(person):''}</div></div>`;
   }
   function post({id,userId,name,profile:person,message,title='',timestamp,actions=''}) {
-    return `<article class="forum-post" data-post-id="${Number(id)}"><aside class="forum-post-author" aria-label="Autore del messaggio">${author(userId,person,name,true)}</aside><div class="forum-post-content"><header class="forum-post-header"><time datetime="${new Date(Number(timestamp)*1000).toISOString()}">${date(timestamp)}</time><a class="forum-post-permalink" href="#post-${Number(id)}" aria-label="Messaggio ${Number(id)}">#${Number(id)}</a></header>${title?`<h3 class="forum-post-title" id="post-${Number(id)}">${esc(title)}</h3>`:`<span id="post-${Number(id)}"></span>`}<div class="post-body forum-post-body">${message}</div><footer class="forum-post-actions ui-row-actions">${actions}</footer></div></article>`;
+    return `<article class="forum-post" data-post-id="${Number(id)}"><aside class="forum-post-author" aria-label="Autore del messaggio">${author(userId,person,name,true)}</aside><div class="forum-post-content"><header class="forum-post-header"><time datetime="${new Date(Number(timestamp)*1000).toISOString()}">${date(timestamp)}</time><a class="forum-post-permalink" href="#post-${Number(id)}" aria-label="Messaggio ${Number(id)}">#${Number(id)}</a></header>${title?titleHtml(id,title):anchorHtml(id)}<div class="post-body forum-post-body">${message}</div><footer class="forum-post-actions ui-row-actions">${actions}</footer></div></article>`;
   }
   function notice(message,error=false) { return `<p class="ui-empty${error?' error':''}" role="${error?'alert':'status'}">${esc(message)}</p>`; }
-  function table(headers,rows,label,kind='topics') { return `<div class="ui-table-scroll" tabindex="0" role="region" aria-label="${esc(label)}"><table class="ui-data-table forum-table forum-table-${esc(kind)}"><thead><tr>${headers.map(h=>`<th scope="col">${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`; }
+  function table(headers,rows,label,kind='topics') { return `<div class="ui-table-scroll" tabindex="0" role="region" aria-label="${esc(label)}"><table class="ui-data-table forum-table forum-table-${esc(kind)}"><thead><tr>${headers.map(thHtml).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`; }
   function button(label,action,extra='',icon='messages') {return `<button type="button" class="action-btn" data-action="${esc(action)}" data-icon="${icon}" ${extra}>${esc(label)}</button>`;}
   const newBadge = unread => unread ? '<span class="ui-new-badge" aria-label="Nuovi messaggi"><span aria-hidden="true">✦</span> NEW</span>' : '';
   function markRead(source,thread,scope,posts) {

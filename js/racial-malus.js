@@ -46,7 +46,7 @@ export function renderRacialMalus(host,sheet){
   try{
    const conditions=Object.fromEntries(Object.keys(malus.fields).map(k=>[k,Number(form.elements[k].value)]));
    const response=await fetch('/api/rpg.php',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':await window.alphanoRuntime.csrfToken()},body:JSON.stringify({action:'save_malus',kind:sheet.identity.kind,id:sheet.identity.id,conditions,reason:reason.value})});
-   const result=await response.json();if(!response.ok){throw Error(result.error||'Condizioni non salvate.');}renderRacialMalus(host,result);
+   const result=await response.json();if(!response.ok){throw new Error(result.error||'Condizioni non salvate.');}renderRacialMalus(host,result);
   }catch(error){feedback.textContent=error.message;}finally{save.disabled=false;}
  });
 }

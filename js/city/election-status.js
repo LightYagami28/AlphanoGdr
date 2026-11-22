@@ -14,8 +14,9 @@
  }
  function countdown(){for(const [card,{state,offset}] of states){const el=card.querySelector('[data-city-election-countdown]');el.hidden=!state.deadline;if(!state.deadline){continue;}
   const seconds=Math.max(0,Math.floor((state.deadline*1000-Date.now()-offset)/1000));const days=Math.floor(seconds/86400),hours=Math.floor(seconds%86400/3600),minutes=Math.floor(seconds%3600/60);
-  el.textContent=seconds?'Mancano '+(days?days+'g ':'')+hours+'h '+minutes+'m':'Scadenza raggiunta · aggiornamento della tornata in corso';
+  const dayPrefix=days?days+'g ':'';
+  el.textContent=seconds?'Mancano '+(dayPrefix)+hours+'h '+minutes+'m':'Scadenza raggiunta · aggiornamento della tornata in corso';
  }}
  async function refresh(){if(busy||document.hidden){return;}busy=true;try{const r=await fetch('/api/citta/elezioni.php?summary=1',{cache:'no-store'});if(!r.ok){return;}const data=await r.json();for(const card of cards){const state=data.summaries.find(s=>s.city_id===Number(card.dataset.cityElection));if(state){render(card,state);}}countdown();document.querySelectorAll('[data-registry]').forEach(root=>root.dispatchEvent(new Event('registry:update')));}catch{}finally{busy=false;}}
- for(const card of cards){render(card,JSON.parse(card.dataset.electionState));}countdown();setInterval(countdown,1000);setInterval(refresh,30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden){refresh();}});
+ for(const card of cards){render(card,JSON.parse(card.dataset.electionState));}countdown();setInterval(countdown,1000);setInterval(refresh,30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden){void refresh();}});
 })();

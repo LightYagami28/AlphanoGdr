@@ -10,7 +10,7 @@
     if(pendingToken){return pendingToken;}
     pendingToken=nativeFetch('/api/session.php',{credentials:'same-origin',cache:'no-store'})
       .then(r=>r.ok?r.json():Promise.reject(new Error('Sessione non disponibile')))
-      .then(data=>{if(typeof data.csrfToken!=='string'||!data.csrfToken){throw Error('Sessione non disponibile');}token=data.csrfToken;const meta=document.querySelector('meta[name="csrf-token"]');if(meta){meta.content=token;}protectForms();return token;})
+      .then(data=>{if(typeof data.csrfToken!=='string'||!data.csrfToken){throw new Error('Sessione non disponibile');}token=data.csrfToken;const meta=document.querySelector('meta[name="csrf-token"]');if(meta){meta.content=token;}protectForms();return token;})
       .finally(()=>{pendingToken=null;});
     return pendingToken;
   }

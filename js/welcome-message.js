@@ -3,7 +3,9 @@ const presented=new Set();
 let latest=null,running=null;
 
 async function showLatest(){
-  while(latest&&latest.enabled&&latest.pending&&!presented.has(latest.revision)){
+async function showLatest(){
+  if(!(latest?.enabled&&latest.pending&&!presented.has(latest.revision)))return;
+  if(!window.alphanoDialog?.notice)return;
     if(!window.alphanoDialog?.notice)return;
     const message=latest;
     presented.add(message.revision);
@@ -29,7 +31,8 @@ async function showLatest(){
       console.error('Benvenuto di Alphano:',error);
     }
     // Se è arrivata una revisione nuova mentre il dialogo era aperto, mostra solo l’ultima.
-  }
+  return showLatest();
+}
 }
 
 export function presentWelcome(message,csrfToken){

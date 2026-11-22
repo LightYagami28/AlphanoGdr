@@ -7,7 +7,7 @@
  async function load(){
   try{
    const response=await fetch('/api/manuali.php?public=1',{cache:'no-store'});
-   if(!response.ok){throw Error();}const data=await response.json();if(!data.success){throw Error();}
+   if(!response.ok){throw new Error("Richiesta non riuscita.");}const data=await response.json();if(!data.success){throw new Error("Richiesta non riuscita.");}
    for(const key of keys){
     const chapter=data.rules.find(r=>r.key===key);if(!chapter){continue;}
     const card=node('a','home-manual-card');card.href='/manuali/?chapter='+encodeURIComponent(key);
@@ -15,7 +15,7 @@
     const copy=node('div','home-manual-copy');copy.append(node('span','eyebrow','Guida al gioco'),node('h3','',chapter.oggetto),node('p','',chapter.summary),node('span','home-manual-read','Leggi il capitolo →'));
     card.append(image,copy);list.append(card);
    }
-  }catch(_){list.replaceChildren(node('p','home-manual-fallback','Tutti i capitoli sono disponibili nella biblioteca: aprila con il pulsante qui sotto.'));}
+  }catch(error){console.error('Caricamento manuali non riuscito',error);list.replaceChildren(node('p','home-manual-fallback','Tutti i capitoli sono disponibili nella biblioteca: aprila con il pulsante qui sotto.'));}
  }
- load();
+ void load();
 })();

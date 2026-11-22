@@ -16,5 +16,5 @@
   form.addEventListener('input',()=>{editing=true;});form.addEventListener('change',()=>{editing=true;});
   async function poll(){if(disposed){return;}try{render(await api());}catch(error){phase.textContent=error.message+' Il modello già attivo non viene fermato.';button.disabled=true;}finally{if(!disposed){timer=setTimeout(poll,snapshot?.busy?1000:5000);}}}
   form.addEventListener('submit',async event=>{event.preventDefault();if(!snapshot){return;}button.disabled=true;clearTimeout(timer);try{const settings=Object.fromEntries(keys.map(key=>[key,Number(form.elements[key].value)]));const result=await api({id:form.elements.id.value,settings,revision:snapshot.active.revision});submitted=result.operation?.id;render(result);}catch(error){phase.textContent=error.message;button.disabled=false;}finally{timer=setTimeout(poll,1000);}});
-  window.addEventListener('pagehide',()=>{disposed=true;clearTimeout(timer);});poll();
+  window.addEventListener('pagehide',()=>{disposed=true;clearTimeout(timer);});void poll();
 })();

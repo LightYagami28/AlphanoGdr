@@ -1,7 +1,6 @@
 (() => {
   // leggiamo i dati inseriti da PHP
   let dati    = window.ricerca    || [];
-  let posizioni = window.posizioni || [];
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
   let orderby   = 'nome';
@@ -43,8 +42,7 @@
     let subset = dati.filter(r => {
       for (let k in filters) {
         const val = filters[k].toLowerCase();
-        if (String(r[k]||'').toLowerCase().indexOf(val)===-1) {
-          return false;
+        if (!String(r[k]||'').toLowerCase().includes(val)) {
         }
       }
       return true;

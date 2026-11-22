@@ -9,7 +9,7 @@
   document.querySelectorAll('[data-notification-group]').forEach(el=>setBadge(el,Number(counts[el.dataset.notificationGroup])||0));
   document.querySelectorAll('[data-notification-link]').forEach(el=>{
    const url=new URL(el.dataset.notificationLink,location.origin),key=canonical(url.href);
-   const n=url.pathname==='/notifiche/'?(url.searchParams.get('group')?counts[url.searchParams.get('group')]:state.activity_total):links[key];setBadge(el,Number(n)||0);
+   const group=url.searchParams.get('group');let n=links[key];if(url.pathname==='/notifiche/'){n=group?counts[group]:state.activity_total;}setBadge(el,Number(n)||0);
   });
   const route=canonical(location.pathname+location.search),base=route.split('#')[0];
   document.querySelectorAll('[role=tab],.ui-tab-btn').forEach(button=>{
@@ -32,7 +32,7 @@
   queue();new MutationObserver(changes=>{if(changes.some(change=>[...change.addedNodes].some(node=>node.nodeType===1&&!node.matches?.('.notification-badge,.activity-section-link')))){queue();}}).observe(document.body,{subtree:true,childList:true});
   if(!shared&&!document.getElementById('game-sidebar')){
    const fetchState=async()=>{if(document.hidden){return;}try{const response=await fetch('/api/notifications.php',{cache:'no-store'});if(response.ok){state=await response.json();queue();}}catch{}};
-   fetchState();setInterval(fetchState,30000);
+   void fetchState();setInterval(()=>{void fetchState();},30000);
   }
  });
 })();

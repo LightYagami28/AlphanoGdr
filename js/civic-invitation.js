@@ -6,6 +6,6 @@ export async function presentCivicInvitation(invitation,csrfToken){
  try{
   await window.alphanoDialog.notice({title:invitation.title,eyebrow:'Alphano · Vita pubblica',message:invitation.message,detail:'La prima candidatura apre 48 ore di candidature. Con più candidati seguono cinque giorni di voto; con un solo candidato la proclamazione avviene allo scadere delle 48 ore.',buttonLabel:'Candidature e programmi',cancelLabel:'Deciderò più tardi',actionUrl:invitation.url});
   const response=await fetch('/api/citta/elezioni.php',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':csrfToken},body:JSON.stringify({action:'acknowledge',city:Number(invitation.city_id)})});
-  if(!response.ok){throw Error('Invito non registrato.');}
+  if(!response.ok){throw new Error('Invito non registrato.');}
  }catch(error){console.error('Invito civico:',error);}
 }

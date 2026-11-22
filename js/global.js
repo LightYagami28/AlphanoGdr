@@ -13,8 +13,8 @@
   // tracking posizione mouse (in sostituzione di captureEvents)
   let mouseX = 0, mouseY = 0;
   document.addEventListener('mousemove', e => {
-    mouseX = e.pageX >= 0 ? e.pageX : 0;
-    mouseY = e.pageY >= 0 ? e.pageY : 0;
+    mouseX = Math.max(0, e.pageX);
+    mouseY = Math.max(0, e.pageY);
   });
 
   /* ----------------------------------------------------------
@@ -35,7 +35,9 @@
     const n1  = Number(v1), n2 = Number(v2);
     if (!Number.isNaN(n1) && !Number.isNaN(n2)) {return n1 - n2;}
     const t1 = String(v1).toUpperCase(), t2 = String(v2).toUpperCase();
-    return t1 < t2 ? -1 : (t1 > t2 ? 1 : 0);
+    if (t1 < t2) {return -1;}
+    if (t1 > t2) {return 1;}
+    return 0;
   };
 
   /* ----------------------------------------------------------

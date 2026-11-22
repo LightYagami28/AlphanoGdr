@@ -1,6 +1,5 @@
 function checkQuality(pass) {
-	var q = new String("");
-	var score = 0;
+  var score = 0;
 	var punctuations = '!@#$%^&*()~`_-+={}[];:"<>,./?\\\''.split('');
 	var uppercases = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 	var lowercases = 'abcdefghijklmnopqrstuvwxyz'.split('');
@@ -53,11 +52,10 @@ function checkQuality(pass) {
 	if (hasUppercase) score++;
 	if (hasLowercase) score++;
 	
-	if (score > 8) q = 'Ottima';
-	else if (score > 7) q = 'Molto Buona';
-	else if (score > 6) q = 'Buona';
-	else if (score > 5) q = 'Discreta';
-	else if (score > 4) q = 'Decente';
-	else  q = 'Inutile';
-	return (q + ' (' + score + ')');
+  if (score > 8) return 'Ottima (' + score + ')';
+  if (score > 7) return 'Molto Buona (' + score + ')';
+  if (score > 6) return 'Buona (' + score + ')';
+  if (score > 5) return 'Discreta (' + score + ')';
+  if (score > 4) return 'Decente (' + score + ')';
+  return 'Inutile (' + score + ')';
 }

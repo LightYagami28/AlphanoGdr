@@ -13,7 +13,7 @@
    const key=JSON.stringify([action,data]);if(!receipts.has(key)){receipts.set(key,crypto.randomUUID());}data.request_id=receipts.get(key);
   }
   feedback.textContent='Operazione in corso…';
-  try{const response=await fetch('/api/treasury.php',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':document.querySelector('meta[name="csrf-token"]').content},body:JSON.stringify({action,scope,id,...data})});const value=await response.json();if(!response.ok){throw Error(value.error||'Operazione non completata.');}
+  try{const response=await fetch('/api/treasury.php',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':document.querySelector('meta[name="csrf-token"]').content},body:JSON.stringify({action,scope,id,...data})});const value=await response.json();if(!response.ok){throw new Error(value.error||'Operazione non completata.');}
    feedback.textContent='Operazione registrata. Bilancio aggiornato.';root.querySelector('[data-treasury-balance]').textContent=value.entity.budget+window.AlphanoCurrency.text(' Corone');root.querySelector('[data-payroll-total]').textContent=value.payroll_total+window.AlphanoCurrency.text(' Corone');root.querySelector('[data-payroll-deadline]').textContent=Number(value.policy.enabled)?new Date(value.policy.next_run*1000).toLocaleString('it-IT'):'Non attiva';
    const save=root.querySelector('[data-treasury-action="save"]');if(save){save.elements.revision.value=value.policy.revision;}
    const mandate=root.querySelector('[data-treasury-action="mandate"]');mandate.elements.revision.value=value.donation?.revision||0;

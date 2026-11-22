@@ -128,7 +128,7 @@ function aiNarrativeParse(string $raw,array $options=[]): array {
     };
     foreach($tokens as $tokenIndex=>$token) {
         if(str_starts_with($token,'>')&&str_ends_with($token,'<')){
-            $protected=$stack[count($stack)-1]['kind']??'';$flush();$body=preg_replace('/(?:^>+|<+$)/u','',$token)??$token;
+            $protected=$stack[count($stack)-1]['kind']??'';$flush();$body=preg_replace('/(?:^>+)|(?:<+$)/u','',$token)??$token;
             if(in_array($protected,['thought','ooc'],true)){ $segments[]=['kind'=>$protected,'text'=>$body,'source'=>'gdr-angle-inverse','confidence'=>.98]; }
             else { foreach(aiNarrativeParse($body)['segments'] as $s){$s['source']='gdr-angle-inverse';$segments[]=$s;} }continue;
         }
@@ -144,7 +144,7 @@ function aiNarrativeParse(string $raw,array $options=[]): array {
             }
             // <osserva l'uomo> and <grazie> are both used in real logs.
             $protected=$stack[count($stack)-1]['kind']??'';$flush();
-            $body=preg_replace('/(?:^<+|>+$)/u','',$token)??$token;
+            $body=preg_replace('/(?:^<+)|(?:>+$)/u','',$token)??$token;
             if(in_array($protected,['thought','ooc'],true)){ $segments[]=['kind'=>$protected,'text'=>$body,'source'=>'gdr-angle','confidence'=>.98]; }
             else { foreach(aiNarrativeParse($body)['segments'] as $s){$s['source']='gdr-angle';$segments[]=$s;} }continue;
         }

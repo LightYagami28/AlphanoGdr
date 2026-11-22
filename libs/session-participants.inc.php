@@ -49,7 +49,8 @@ function alphanoParticipantsInventory(int $actor,string $chat,int $target):array
     $items=[];foreach($db->query('SELECT p.id,p.uid,p.nome,p.slot,p.idpadre,p.consumo,e.shortDesc,e.immagine,e.durata,e.materiaprima FROM equippg p JOIN equip e ON e.id=p.uid WHERE p.idpg=? ORDER BY e.shortDesc,p.id',[$target]) as $item)
         {$items[]=['id'=>(int)$item['id'],'model'=>(int)$item['uid'],'name'=>$item['nome']?:$item['shortDesc'],'image'=>alphano_equipment_image($item['immagine']),
             'slot'=>$item['slot'],'container'=>(int)$item['idpadre'],'used'=>(int)$item['consumo'],'durability'=>(int)$item['durata'],'remaining'=>max(0,(int)$item['durata']-(int)$item['consumo']),
-            'broken'=>(int)$item['consumo']>=(int)$item['durata'],'material'=>in_array(mb_strtolower($item['materiaprima']),MATERIE_PRIME,true)];}
+            'broken'=>(int)$item['consumo']>=(int)$item['durata'],'material'=>in_array(mb_strtolower($item['materiaprima']),MATERIE_PRIME,true)];
+    }
     return ['target'=>$target,'items'=>$items];
 }
 function alphanoParticipantsInt(array $input,string $name,int $min,int $max):int {

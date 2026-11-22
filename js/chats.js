@@ -51,6 +51,7 @@ function ImpostaUmore(id)
 }
 function ImpostaTastiRegistrazione(hasrecord)
 {
+	let out;
 	if(hasrecord)
 	{
 		out = "<IMG src=\"/assets/placeholder.svg\" alt=\"Avvia Registrazione Giocata\" title=\"Avvia Registrazione Giocata\" border=\"0\"><A href=\"javascript:EventoRegistrazione('salva')\"><IMG src=\"/assets/placeholder.svg\" alt=\"Salva Registrazione Giocata\" title=\"Salva Registrazione Giocata\" border=\"0\"></A>";

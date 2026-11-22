@@ -35,7 +35,10 @@
   window.openProfile = name => window.alphanoOpenView('/profili/index.php?Nome=' + encodeURIComponent(name), 'Profilo');
   window.fetch = async (input, init = {}) => {
     const request = input instanceof Request ? input : null;
-    const url = request ? request.url : (typeof input === 'string' ? input : input?.url ?? '');
+    let url;
+    if (request) {url = request.url;}
+    else if (typeof input === 'string') {url = input;}
+    else {url = input?.url ?? '';}
     // Public pages start several GETs at once: share the established session cookie.
     if(local(url)){await csrfToken();}
     if (local(url) && unsafe(init.method || request?.method || 'GET')) {

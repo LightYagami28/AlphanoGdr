@@ -132,7 +132,7 @@ function PlaySound(mailNonLette){
 // 6) UPDATE DA control.php + MODAL LUNA
 //////////////////////////////////////////////////////////////////////////
 function UpdateMTop(data){
-  const {sorgecala,cielo,descrCielo,tempoCode,descrTempo,ventoCode,descrVento,temperatura,lunaPhase,daysToFull,postaNonLette,weatherIcons={}}=data;
+  const {sorgecala,descrCielo,descrTempo,descrVento,temperatura,lunaPhase,daysToFull,postaNonLette,weatherIcons={}}=data;
   // alba/tramonto
   document.getElementById('sorgecala').textContent=sorgecala;
   // icone

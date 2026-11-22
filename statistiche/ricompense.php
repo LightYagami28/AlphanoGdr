@@ -122,17 +122,14 @@
 ?>
             <DIV class="align-center">
 <?PHP
-        switch(TRUE) {
-            case isset($_GET["master"]):
+        if (isset($_GET["master"])) {
 ?>
                 Nessuna ricompensa trovata per il master selezionato.
 <?PHP
-                break;
-            case isset($_GET["sessione"]):
+        } elseif (isset($_GET["sessione"])) {
 ?>
                 Nessuna ricompensa trovata per la sessione selezionata.
 <?PHP
-                break;
         }
 ?>
             </DIV>
@@ -142,17 +139,14 @@
         </DIV>
         <DIV class="align-center">
 <?PHP
-    switch(TRUE) {
-        case isset($_GET["master"]):
+    if (isset($_GET["master"])) {
 ?>
             <INPUT type="button" value="Torna alle statistiche Master" onclick="javascript:window.location.href = 'master.php'">
 <?PHP
-            break;
-        case isset($_GET["sessione"]):
+    } elseif (isset($_GET["sessione"])) {
 ?>
             <INPUT type="button" value="Torna alla lista Sessioni" onclick="javascript:window.location.href = '../sessione/viewlog.php'">
 <?PHP
-            break;
     }
 ?>
         </DIV>

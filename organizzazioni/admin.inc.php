@@ -81,6 +81,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         case 'modifypvt':
             $activeTab = 'pvt';
             break;
+
+        default:
+            break;
     }
 }
 
@@ -460,6 +463,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $activeTab = 'iscritti';
                 break;
+
+        default:
+            break;
     }
     }
 

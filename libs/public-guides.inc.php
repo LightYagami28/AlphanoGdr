@@ -14,7 +14,7 @@ function alphanoGuideText(string $html): string
 }
 
 /** The public territory presentation is shared by registration and the handbook. */
-function alphanoCityArtwork(string $city): string
+function alphanoCityArtwork(): string
 {
     return '/assets/placeholder.svg';
 }
@@ -23,7 +23,7 @@ function alphanoCityGuides(): array
     $rows=connectDB()->query('SELECT c.id,c.city,c.statuto,a.nome AS entry_role FROM city c LEFT JOIN araldiche a ON a.id=(SELECT x.id FROM araldiche x WHERE x.city=c.id AND x.prima=1 ORDER BY x.livello,x.id LIMIT 1) ORDER BY c.city');
     foreach($rows as &$city){
         $city['id']=(int)$city['id'];
-        $city['image']=alphanoCityArtwork($city['city']);
+        $city['image']=alphanoCityArtwork();
         $city['description']=alphanoGuideText($city['statuto']);
         $city['statute_html']=processText($city['statuto']);
         unset($city['statuto']);

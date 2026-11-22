@@ -140,7 +140,7 @@ if($isOwner&&lineageVampireCanInfect($row)){ $sheet['actions'][]=['title'=>'Mord
 require_once __DIR__.'/../libs/metamorphosis.inc.php';
 $sheet['metamorphosis']=alphanoMetamorphosis($row);
 $sheet['art']=alphanoProfileBanner($row);
-$sheet['seal']=alphanoProfileRaceSeal(alphanoProfileLineageRace($row),(string)$row['sesso']);
+$sheet['seal']=alphanoProfileRaceSeal();
 $sheet['seal_label']=GetRazza(alphanoProfileLineageRace($row)).' · '.$row['sesso'];
 $sheet['equipment_url']='/equip/equip.php?pgid='.$cid.'&embedded=1';
 $sheet['sections'][]=['id'=>'equipment','title'=>'Equipaggiamento','icon'=>'shield','template'=>'equipment','rows'=>[]];

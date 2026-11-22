@@ -30,7 +30,7 @@ if (!empty($_GET['id']) && str_contains($_GET['id'],'@')) {
     if ($bugId && $hash) {
         $r    = $db->query("SELECT descrizione FROM bug WHERE id=? AND attivato=0", [$bugId]);
         $desc = $r[0]['descrizione'] ?? '';
-        if ($desc && md5($desc) === $hash) {
+        if ($desc && hash('sha256',$desc) === $hash) {
             $db->query("UPDATE bug SET attivato=1 WHERE id=?", [$bugId]);
             $msg = "Segnalazione #{$bugId} attivata. Grazie!";
         } else {
@@ -93,7 +93,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             if ($att) {
                 $msg="Segnalazione inviata. Grazie!";
             } else {
-                $h    = md5($desc);
+                $h    = hash('sha256',$desc);
                 $link = (isset($_SERVER['HTTPS'])?'https':'http')
                       ."://{$_SERVER['HTTP_HOST']}/bug/index.php?id={$newId}@{$h}";
                 SendBugActivation($email,$link);

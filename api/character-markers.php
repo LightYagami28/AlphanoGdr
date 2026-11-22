@@ -1,5 +1,7 @@
 <?php
 declare(strict_types=1);
+
+if (!defined('S1192_API_CHARACTER_MARKERS_PHP_145B91_ELENCO_PERSONAGGI_NON_VALIDO')) { define('S1192_API_CHARACTER_MARKERS_PHP_145B91_ELENCO_PERSONAGGI_NON_VALIDO', 'Elenco personaggi non valido.'); }
 require_once __DIR__.'/../libs/player-runtime.inc.php';
 require_once __DIR__.'/../libs/ai-profile.inc.php';
 require_once __DIR__.'/../libs/race-presentation.inc.php';
@@ -10,10 +12,10 @@ require_once __DIR__.'/../libs/online-presence.inc.php';
 playerApi(static function():array{
  alphanoRequireLogin(true);
  $parse=static function($raw):array{
-  if(!is_string($raw)||strlen($raw)>1600||($raw!==''&&!preg_match('/^\d+(?:,\d+)*$/D',$raw))){ throw new DomainException('Elenco personaggi non valido.',422); }
+  if(!is_string($raw)||strlen($raw)>1600||($raw!==''&&!preg_match('/^\d+(?:,\d+)*$/D',$raw))){ throw new DomainException(S1192_API_CHARACTER_MARKERS_PHP_145B91_ELENCO_PERSONAGGI_NON_VALIDO,422); }
   $ids=$raw===''?[]:array_values(array_unique(array_map('intval',explode(',',$raw))));
-  if(count($ids)>100){ throw new DomainException('Elenco personaggi non valido.',422); }
-  foreach($ids as $id){ if($id<1){ throw new DomainException('Elenco personaggi non valido.',422); } }
+  if(count($ids)>100){ throw new DomainException(S1192_API_CHARACTER_MARKERS_PHP_145B91_ELENCO_PERSONAGGI_NON_VALIDO,422); }
+  foreach($ids as $id){ if($id<1){ throw new DomainException(S1192_API_CHARACTER_MARKERS_PHP_145B91_ELENCO_PERSONAGGI_NON_VALIDO,422); } }
   return $ids;
  };
  $players=$parse($_GET['players']??'');$npcs=$parse($_GET['npcs']??'');$items=[];$db=connectDB();$races=array_column($db->query('SELECT id,nome FROM razze'),'nome','id');

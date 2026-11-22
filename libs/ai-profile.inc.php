@@ -34,7 +34,7 @@ function ai_validate_profile(array $input, array $previous): array {
 }
 function ai_profile_link(array $npc, bool $icon=true): string {
     $p=ai_npc_profile($npc);$url='/profili/png.php?Id='.(int)$npc['id'];
-    return '<a class="npc-profile-link '.alphano_chat_gender($p['sex']).'" href="'.$url.'" data-npc-profile="'.(int)$npc['id'].'">'.($icon?processRazza((int)$p['race_id'],$p['sex'],(int)$p['ethnicity_id']).' ':'').htmlspecialchars($npc['name'],ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8').'</a>';
+    return '<a class="npc-profile-link '.alphano_chat_gender($p['sex']).'" href="'.$url.'" data-npc-profile="'.(int)$npc['id'].'">'.($icon?processRazza((int)$p['race_id'],(int)$p['ethnicity_id']).' ':'').htmlspecialchars($npc['name'],ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8').'</a>';
 }
 function ai_public_npc(array $npc): array {
     $p=ai_npc_profile($npc);

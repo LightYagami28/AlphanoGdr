@@ -46,7 +46,7 @@ $identity = [GetRazza((int)$profile['race_id']), $profile['sex'], GetEtnia((int)
 if ($profile['age']) { $identity[] = (int)$profile['age'] . ' anni'; }
 $sheet = [
     'title' => $npc['name'], 'kind' => 'Personaggio non giocante', 'portrait' => $profile['portrait'] ?: '/assets/placeholder.svg',
-    'identity_html' => processRazza((int)$profile['race_id'], $profile['sex'], (int)$profile['ethnicity_id']) . ' ' . $escape(implode(' · ', $identity)),
+    'identity_html' => processRazza((int)$profile['race_id'], (int)$profile['ethnicity_id']) . ' ' . $escape(implode(' · ', $identity)),
     'subtitle' => $profile['occupation'], 'motto_html' => nl2br($escape($profile['motto'])), 'music' => '',
     'metrics' => ['Punti ferita' => $profile['hit_points'], 'Corone' => number_format((int)$profile['money'], 0, ',', '.'), 'Forza'=>alphano_profile_strength('npc',$id,(int)$profile['race_id'])],
     'sections' => $sections, 'actions' => [['title' => $npc['title'], 'icon' => 'compass', 'url' => '/chat/index.php?chat=' . rawurlencode($npc['chat_key'])]],

@@ -307,7 +307,7 @@ function alphanoRaceIcon(): string
     return '/assets/avatar.svg';
 }
 
-function processRazza(int $razzaId, string $sesso, int $etniaId = 0): string
+function processRazza(int $razzaId, int $etniaId = 0): string
 {
     if ($razzaId === ALPHANO_RACE_LEGACY_SPIRIT) {$razzaId = ALPHANO_RACE_SPIRIT;}
     $db     = getDB();
@@ -527,27 +527,27 @@ function modifyAraldica(...$args): string
         return $error;
     }
     $db = getDB();
-    $result = ALPHANO_MSG_CARICA_NOT_FOUND;
-    if ($db->query('SELECT id FROM araldiche WHERE id=? AND city=?', [$id, $city])) {
-        $owned = !$db->inTransaction();
+    if (!($db->query('SELECT id FROM araldiche WHERE id=? AND city=?', [$id, $city]))) {
+        return ALPHANO_MSG_CARICA_NOT_FOUND;
+    }
+    $owned = !$db->inTransaction();
+    if ($owned) {
+        $db->beginTransaction();
+    }
+    try {
+        $db->execute('UPDATE araldiche SET nome=?,prima=?,city=?,ramo=?,livello=?,descrizione=? WHERE id=? AND city=?', [$nome, $prima ? 1 : 0, $city, $ramo, $livello, $descrizione, $id, $city]);
+        if (!alphanoSaveBadge($file, '/uploads/badges/cariche/' . $id . '.gif')) {
+            throw new BadgeSaveException(ALPHANO_MSG_BADGE_SAVE);
+        }
         if ($owned) {
-            $db->beginTransaction();
+            $db->commit();
         }
-        try {
-            $db->execute('UPDATE araldiche SET nome=?,prima=?,city=?,ramo=?,livello=?,descrizione=? WHERE id=? AND city=?', [$nome, $prima ? 1 : 0, $city, $ramo, $livello, $descrizione, $id, $city]);
-            if (!alphanoSaveBadge($file, '/uploads/badges/cariche/' . $id . '.gif')) {
-                throw new BadgeSaveException(ALPHANO_MSG_BADGE_SAVE);
-            }
-            if ($owned) {
-                $db->commit();
-            }
-            $result = 'Carica aggiornata';
-        } catch (Throwable $e) {
-            if ($owned && $db->inTransaction()) {
-                $db->rollBack();
-            }
-            $result = ALPHANO_MSG_CARICA_SAVE;
+        $result = 'Carica aggiornata';
+    } catch (Throwable $e) {
+        if ($owned && $db->inTransaction()) {
+            $db->rollBack();
         }
+        $result = ALPHANO_MSG_CARICA_SAVE;
     }
     return $result;
 }
@@ -874,27 +874,27 @@ function modifyCaricaOrg(...$args): string
         return $error;
     }
     $db = getDB();
-    $result = ALPHANO_MSG_CARICA_NOT_FOUND;
-    if ($db->query('SELECT id FROM caricheorganizzazioni WHERE id=? AND organizzazione=?', [$id, $org])) {
-        $owned = !$db->inTransaction();
+    if (!($db->query('SELECT id FROM caricheorganizzazioni WHERE id=? AND organizzazione=?', [$id, $org]))) {
+        return ALPHANO_MSG_CARICA_NOT_FOUND;
+    }
+    $owned = !$db->inTransaction();
+    if ($owned) {
+        $db->beginTransaction();
+    }
+    try {
+        $db->execute('UPDATE caricheorganizzazioni SET nome=?,prima=?,organizzazione=?,ramo=?,livello=?,descrizione=? WHERE id=? AND organizzazione=?', [$nome, $prima ? 1 : 0, $org, $ramo, $livello, $descrizione, $id, $org]);
+        if (!alphanoSaveBadge($file, ALPHANO_BADGE_PATH_ORG . $org . '/' . $id . '.gif')) {
+            throw new BadgeSaveException(ALPHANO_MSG_BADGE_SAVE);
+        }
         if ($owned) {
-            $db->beginTransaction();
+            $db->commit();
         }
-        try {
-            $db->execute('UPDATE caricheorganizzazioni SET nome=?,prima=?,organizzazione=?,ramo=?,livello=?,descrizione=? WHERE id=? AND organizzazione=?', [$nome, $prima ? 1 : 0, $org, $ramo, $livello, $descrizione, $id, $org]);
-            if (!alphanoSaveBadge($file, ALPHANO_BADGE_PATH_ORG . $org . '/' . $id . '.gif')) {
-                throw new BadgeSaveException(ALPHANO_MSG_BADGE_SAVE);
-            }
-            if ($owned) {
-                $db->commit();
-            }
-            $result = 'Carica organizzazione aggiornata';
-        } catch (Throwable $e) {
-            if ($owned && $db->inTransaction()) {
-                $db->rollBack();
-            }
-            $result = ALPHANO_MSG_CARICA_SAVE;
+        $result = 'Carica organizzazione aggiornata';
+    } catch (Throwable $e) {
+        if ($owned && $db->inTransaction()) {
+            $db->rollBack();
         }
+        $result = ALPHANO_MSG_CARICA_SAVE;
     }
     return $result;
 }
@@ -1140,27 +1140,27 @@ function modifyCaricaCorp(...$args): string
         return $error;
     }
     $db = getDB();
-    $result = ALPHANO_MSG_CARICA_NOT_FOUND;
-    if ($db->query('SELECT id FROM carichecorporazioni WHERE id=? AND corporazione=?', [$id, $corp])) {
-        $owned = !$db->inTransaction();
+    if (!($db->query('SELECT id FROM carichecorporazioni WHERE id=? AND corporazione=?', [$id, $corp]))) {
+        return ALPHANO_MSG_CARICA_NOT_FOUND;
+    }
+    $owned = !$db->inTransaction();
+    if ($owned) {
+        $db->beginTransaction();
+    }
+    try {
+        $db->execute('UPDATE carichecorporazioni SET nome=?,prima=?,corporazione=?,ramo=?,livello=?,descrizione=?,stipendio=?,provvigione=? WHERE id=? AND corporazione=?', [$nome, $prima ? 1 : 0, $corp, $ramo, $livello, $descrizione, $stipendio, $provvigione, $id, $corp]);
+        if (!alphanoSaveBadge($file, ALPHANO_BADGE_PATH_CORP . $corp . '/' . $id . '.gif')) {
+            throw new BadgeSaveException(ALPHANO_MSG_BADGE_SAVE);
+        }
         if ($owned) {
-            $db->beginTransaction();
+            $db->commit();
         }
-        try {
-            $db->execute('UPDATE carichecorporazioni SET nome=?,prima=?,corporazione=?,ramo=?,livello=?,descrizione=?,stipendio=?,provvigione=? WHERE id=? AND corporazione=?', [$nome, $prima ? 1 : 0, $corp, $ramo, $livello, $descrizione, $stipendio, $provvigione, $id, $corp]);
-            if (!alphanoSaveBadge($file, ALPHANO_BADGE_PATH_CORP . $corp . '/' . $id . '.gif')) {
-                throw new BadgeSaveException(ALPHANO_MSG_BADGE_SAVE);
-            }
-            if ($owned) {
-                $db->commit();
-            }
-            $result = 'Carica corporazione aggiornata';
-        } catch (Throwable $e) {
-            if ($owned && $db->inTransaction()) {
-                $db->rollBack();
-            }
-            $result = ALPHANO_MSG_CARICA_SAVE;
+        $result = 'Carica corporazione aggiornata';
+    } catch (Throwable $e) {
+        if ($owned && $db->inTransaction()) {
+            $db->rollBack();
         }
+        $result = ALPHANO_MSG_CARICA_SAVE;
     }
     return $result;
 }

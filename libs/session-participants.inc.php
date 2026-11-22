@@ -61,22 +61,41 @@ function alphanoParticipantsInt(array $input,string $name,int $min,int $max):int
     return $value;
 }
 /** Reserve the whole batch before effects, then recheck management and presence. */
+function alphanoParticipantsTargets(array $input):array {
+ $targets=$input['targets']??null;
+ if(!is_array($targets)||!array_is_list($targets)||!$targets||count($targets)>20){throw new ParticipantsDomainException('Seleziona da uno a venti personaggi.',422);}
+ $ids=[];foreach($targets as $target){$ids[]=alphanoParticipantsInt(['target'=>$target],'target',1,PHP_INT_MAX);}
+ if(count(array_unique($ids))!==count($ids)){throw new ParticipantsDomainException('Un personaggio non può comparire due volte.',422);}
+ sort($ids);return $ids;
+}
+function alphanoParticipantsValues(string $action,array $input,array $ids):array {
+ $values=[];
+ if($action==='health'){
+  $values['hp']=alphanoParticipantsInt($input,'hp',1,MAXPUNTIF);
+  $values['wounds']=playerText($input,'wounds',1020);
+  if(mb_strlen($values['wounds'])>255){throw new ParticipantsDomainException('Descrizione delle ferite troppo lunga.',422);}
+  $values['expected']=$input['expected']??null;
+  if(!is_array($values['expected'])){throw new ParticipantsDomainException('Ricarica le condizioni dei personaggi prima di modificarle.',409);}
+ }elseif($action==='note'){
+  $values['note']=playerText($input,'note',16000,true);
+  if(mb_strlen($values['note'])>4000){throw new ParticipantsDomainException('Annotazione troppo lunga.',422);}
+ }elseif($action==='crowns'){$values['amount']=alphanoParticipantsInt($input,'amount',1,1000000000);}
+ elseif($action==='item'){$values['item_id']=alphanoParticipantsInt($input,'item_id',1,PHP_INT_MAX);$values['quantity']=alphanoParticipantsInt($input,'quantity',1,100);}
+ else{
+  if(count($ids)!==1){throw new ParticipantsDomainException('Gli oggetti si gestiscono per un personaggio alla volta.',422);}
+  $values['instance']=alphanoParticipantsInt($input,'instance',1,PHP_INT_MAX);
+  if($action==='consume'){$values['quantity']=alphanoParticipantsInt($input,'quantity',1,2147483647);}
+ }
+ return $values;
+}
 function alphanoParticipantsInput(array $input):array {
-    $action=playerText($input,'action',30,true);
-    if(!in_array($action,['health','note','crowns','item','remove','break','consume'],true)){throw new ParticipantsDomainException('Intervento non valido.',422);}
-    $reason=playerText($input,'reason',4000,true);if(mb_strlen($reason)<5||mb_strlen($reason)>1000){throw new ParticipantsDomainException('Descrivi la motivazione dell’intervento, da 5 a 1000 caratteri.',422);}
-    $key=playerText($input,'request_id',100,true);if(!preg_match('/^[a-zA-Z0-9:_-]{16,100}$/D',$key)){throw new ParticipantsDomainException('Identificativo della richiesta non valido.',422);}
-    $targets=$input['targets']??null;
-    if(!is_array($targets)||!array_is_list($targets)||!$targets||count($targets)>20){throw new ParticipantsDomainException('Seleziona da uno a venti personaggi.',422);}
-    $ids=[];foreach($targets as $target){$ids[]=alphanoParticipantsInt(['target'=>$target],'target',1,PHP_INT_MAX);}
-    if(count(array_unique($ids))!==count($ids)){throw new ParticipantsDomainException('Un personaggio non può comparire due volte.',422);}sort($ids);
-    $expectedSession=alphanoParticipantsInt($input,'session_id',0,PHP_INT_MAX);$values=[];
-    if($action==='health'){$values['hp']=alphanoParticipantsInt($input,'hp',1,MAXPUNTIF);$values['wounds']=playerText($input,'wounds',1020);if(mb_strlen($values['wounds'])>255){throw new ParticipantsDomainException('Descrizione delle ferite troppo lunga.',422);}$values['expected']=$input['expected']??null;if(!is_array($values['expected'])){throw new ParticipantsDomainException('Ricarica le condizioni dei personaggi prima di modificarle.',409);}}
-    elseif($action==='note'){$values['note']=playerText($input,'note',16000,true);if(mb_strlen($values['note'])>4000){throw new ParticipantsDomainException('Annotazione troppo lunga.',422);}}
-    elseif($action==='crowns'){$values['amount']=alphanoParticipantsInt($input,'amount',1,1000000000);}
-    elseif($action==='item'){$values['item_id']=alphanoParticipantsInt($input,'item_id',1,PHP_INT_MAX);$values['quantity']=alphanoParticipantsInt($input,'quantity',1,100);}
-    else{if(count($ids)!==1){throw new ParticipantsDomainException('Gli oggetti si gestiscono per un personaggio alla volta.',422);}$values['instance']=alphanoParticipantsInt($input,'instance',1,PHP_INT_MAX);if($action==='consume'){$values['quantity']=alphanoParticipantsInt($input,'quantity',1,2147483647);}}
-    return [$action,$reason,$key,$ids,$expectedSession,$values];
+ $action=playerText($input,'action',30,true);
+ if(!in_array($action,['health','note','crowns','item','remove','break','consume'],true)){throw new ParticipantsDomainException('Intervento non valido.',422);}
+ $reason=playerText($input,'reason',4000,true);if(mb_strlen($reason)<5||mb_strlen($reason)>1000){throw new ParticipantsDomainException('Descrivi la motivazione dell'.'intervento, da 5 a 1000 caratteri.',422);}
+ $key=playerText($input,'request_id',100,true);if(!preg_match('/^[a-zA-Z0-9:_-]{16,100}$/D',$key)){throw new ParticipantsDomainException('Identificativo della richiesta non valido.',422);}
+ $ids=alphanoParticipantsTargets($input);
+ $expectedSession=alphanoParticipantsInt($input,'session_id',0,PHP_INT_MAX);
+ return [$action,$reason,$key,$ids,$expectedSession,alphanoParticipantsValues($action,$input,$ids)];
 }
 function alphanoParticipantsCheckTargets(array $ids,string $action,array $session,array $members,array $values,array $users,string $chat,int $actor):void {
  foreach($ids as $id){

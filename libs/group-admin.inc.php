@@ -6,12 +6,94 @@ require_once __DIR__.'/libpg.inc.php';
 require_once __DIR__.'/libelezioni.inc.php';
 
 
-/** Applies membership, branch and office mutations inside the shared transaction. */
-function alphanoGroupAdminMembersAndRanks($db,string $scope,int $group,string $action,array $input,array $files,string $field,string $admin,string $rankField,string $branchField,array $groupRow,callable $remember,array &$state,array &$undo): void
+/** Extracted branch of alphanoGroupAdminAction. */
+function alphanoGroupAdminDelegation($db,string $scope,int $group,int $actor,array $input,array $groupRow,array &$state): void
 {
-    $section=$state['section'];$target=$state['target'];$personal=$state['personal'];
-    $changed=$state['changed'];$before=$state['before'];$after=$state['after'];
-    $title=$state['title'];$detail=$state['detail'];
+        $section=$state['section'];$target=$state['target'];$before=$state['before'];$after=$state['after'];
+        $changed=$state['changed'];$personal=$state['personal'];$title=$state['title'];$detail=$state['detail'];
+            if ($action==='setflag') {
+                $section='flag';$target=economiaIntero($input['nome'] ?? '',1) ?? 0;
+                $flags=$scope==='organizzazioni'?['adminorganizzazione'=>'adminorg']:['admincorporazione'=>'admincorporazione','admintrasfcorp'=>'admintrasfcorp','admincatalogo'=>'admincatalogo'];
+                if($scope==='organizzazioni'){ foreach(['resurgo'=>'adminmorti','cerimonia'=>'adminstatosociale','ferite'=>'adminferite'] as $capability=>$flag){ if(!empty($groupRow[$capability])){ $flags[$flag]=$capability; } } }
+                $columns=implode(',',array_keys($flags));
+                $before=$db->query("SELECT id,nome,{$columns} FROM utenti WHERE id=? AND {$field}=? FOR UPDATE",[$target,$group])[0] ?? [];
+                economiaVerifica((bool)$before,'Personaggio non appartenente al gruppo');
+                require_once __DIR__.'/admin-governance.inc.php';
+                $updates=[];foreach($flags as $column=>$key){ $updates[$column]=!empty($input[$key])?1:0; }
+                alphanoGovernanceApply($actor,$target,$updates,'Delega dal pannello '.$groupRow['nome'],null,$scope,$group);
+                $after=$db->query("SELECT id,nome,{$columns} FROM utenti WHERE id=?",[$target])[0];
+                $changed=$before!==$after;$personal=true;$title='Privilegi nel gruppo aggiornati';$detail="Aggiornati i privilegi di {$before['nome']} in {$groupRow['nome']}.";
+        }
+        $state=compact('section','target','before','after','changed','personal','title','detail');
+}
+
+/** Extracted branch of alphanoGroupAdminAction. */
+function alphanoGroupAdminPrivateRoom($db,string $scope,int $group,array $input,array $groupRow,array &$state): void
+{
+        $section=$state['section'];$target=$state['target'];$before=$state['before'];$after=$state['after'];
+        $changed=$state['changed'];$personal=$state['personal'];$title=$state['title'];$detail=$state['detail'];
+            if ($action==='modifypvt') {
+                $section='pvt';$city=economiaIntero($input['city'] ?? '',1);$password=trim((string)($input['pvt'] ?? ''));
+                economiaVerifica($city!==null && (bool)$db->query('SELECT id FROM city WHERE id=?',[$city]) && ($scope!=='organizzazioni' || $password!==''),'Città o password non validi');
+                $columns=['city','sito','pvt','sfondotop','sfondo','mappa','descrizione'];$values=[$city,trim((string)($input['sito'] ?? '')),base64_encode($password),trim((string)($input['sfondotop'] ?? '')),trim((string)($input['sfondo'] ?? '')),trim((string)($input['mappa'] ?? '')),trim((string)($input['descrizione'] ?? ''))];
+                $before=array_intersect_key($groupRow,array_flip($columns));
+                $db->execute("UPDATE {$scope} SET city=?,sito=?,pvt=?,sfondotop=?,sfondo=?,mappa=?,descrizione=? WHERE id=?",[...$values,$group]);
+                $after=$db->query('SELECT '.implode(',',$columns)." FROM {$scope} WHERE id=?",[$group])[0];
+                $changed=$before!=$after;
+                foreach(['pvt','descrizione'] as $secret){$before[$secret]=hash('sha256',(string)$before[$secret]);$after[$secret]=hash('sha256',(string)$after[$secret]);}
+                $title='Dati e stanza privata aggiornati';$detail="Aggiornati città, sito e impostazioni della stanza privata di {$groupRow['nome']}.";
+        }
+        $state=compact('section','target','before','after','changed','personal','title','detail');
+}
+
+/** Extracted branch of alphanoGroupAdminAction. */
+function alphanoGroupAdminProposal($db,int $group,int $actor,array $input,array $groupRow,array &$state): void
+{
+        $section=$state['section'];$target=$state['target'];$before=$state['before'];$after=$state['after'];
+        $changed=$state['changed'];$personal=$state['personal'];$title=$state['title'];$detail=$state['detail'];
+            if ($action==='proponi') {
+                $section='elezioni';$city=economiaIntero($input['city'] ?? '',1) ?? 0;$target=economiaIntero($input['pg'] ?? '',1) ?? 0;$program=trim((string)($input['programma'] ?? ''));
+                if(alphanoElectionsReady()){ throw new DomainException('La candidatura è una scelta personale: ogni cittadino può presentarla dal registro elettorale della propria città.',409); }
+                $cityRow=$db->query('SELECT budget,costoelezioni,city FROM city WHERE id=? AND elezioni=1 FOR UPDATE',[$city])[0] ?? null;
+                $member=$db->query('SELECT u.id,u.nome FROM utenti u JOIN araldiche a ON a.id=u.araldica WHERE u.id=? AND u.organizzazione=? AND a.city=? FOR UPDATE',[$target,$group,$city])[0] ?? null;
+                economiaVerifica($cityRow && $member && $program!=='' && electionTime($city) && !$db->query('SELECT idpg FROM candidati WHERE idpg=? FOR UPDATE',[$target]),'Candidatura non valida, già presente o candidature chiuse');
+                $cost=(int)$cityRow['costoelezioni'];
+                economiaVerifica($cost>=0 && (int)$groupRow['budget']>=$cost && (int)$cityRow['budget']<=2147483647-$cost,'Fondi insufficienti o saldo non valido');
+                $db->execute('INSERT INTO candidati(idpg,organizzazione,city,programma) VALUES(?,?,?,?)',[$target,$group,$city,$program]);
+                $db->execute('UPDATE organizzazioni SET budget=budget-? WHERE id=?',[$cost,$group]);$db->execute('UPDATE city SET budget=budget+? WHERE id=?',[$cost,$city]);
+                $after=['candidato'=>$target,'city'=>$city,'programma'=>mb_substr($program,0,3000),'costo'=>$cost];$changed=true;$personal=true;
+                $title='Candidatura proposta';$detail=alphanoCurrencyText("{$groupRow['nome']} ha candidato {$member['nome']} alle elezioni di {$cityRow['city']}. Costo: {$cost} Corone.");
+            }
+        $state=compact('section','target','before','after','changed','personal','title','detail');
+}
+/** Only allowlisted group mutations enter this shared transaction and receipt. */
+function alphanoGroupAdminAction(string $scope, int $group, int $actor, string $action, array $input, array $files = []): ?string
+{
+    $actions=['admitpg','changecarica','addramo','modifyramo','dropramo','addcarica','modifycarica','dropcarica','setflag','modifypvt','proponi'];
+    if (!in_array($scope,['organizzazioni','corporazioni'],true) || !in_array($action,$actions,true)) { return null; }
+    if ($scope==='corporazioni' && $action==='proponi') { return null; }
+    if ($scope==='corporazioni' && $action==='modifycarica' && !isset($input['nome'])) { return null; }
+    if ($action==='modifyramo' && !isset($input['nome'])) { return null; } // The corporation's edit-form lookup.
+    $field=$scope==='organizzazioni'?'organizzazione':'corporazione';
+    $prefix=$scope==='organizzazioni'?'organization':'corporation';
+    $admin='admin'.$field;$rankField='carica'.$field;$branchField='ramo'.$field;
+    $undo=[];
+    try {
+        return economiaAtomica(static function() use($scope,$group,$actor,$action,$input,$files,$field,$prefix,$admin,$rankField,$branchField,&$undo): string {
+            $db=getDB();
+            economiaVerifica((bool)$db->query("SELECT id FROM utenti WHERE id=? AND (({$field}=? AND {$admin}=1) OR admin=1) FOR UPDATE",[$actor,$group]),'Mandato non valido');
+            $groupRow=$db->query("SELECT * FROM {$scope} WHERE id=? FOR UPDATE",[$group])[0] ?? null;
+            economiaVerifica((bool)$groupRow,'Gruppo non valido');
+            $payload=$input;$payload['_group']=$group;unset($payload['_csrf'],$payload['csrf_token'],$payload['_request_key']);
+            foreach ($files as $key=>$file) { if (is_array($file) && is_uploaded_file($file['tmp_name'] ?? '')) { $payload['upload_'.$key]=hash_file('sha256',$file['tmp_name']); } }
+            if (!alphanoOperationOnce($prefix.'-admin-'.$action,$actor,$input['_request_key'] ?? null,$payload)) { return 'Operazione già completata'; }
+            $before=[];$after=[];$section='iscritti';$target=0;$personal=false;$changed=false;
+            $title='Amministrazione del gruppo';$detail='';
+            $remember=static function(int $rank) use($scope,$group,&$undo): string {
+                $path=HTMLROOT.GROUP_ADMIN_INC_UPLOADS_BADGES.$scope.'/'.$group.'/'.$rank.'.gif';
+                $undo[$path]=is_file($path)?file_get_contents($path):null;
+                return $path;
+            };
             if (in_array($action,['admitpg','changecarica'],true)) {
                 $target=economiaIntero($input['pg'] ?? '',1) ?? 0;
                 $user=$db->query("SELECT id,nome,{$field},{$rankField},{$branchField},{$admin} FROM utenti WHERE id=? FOR UPDATE",[$target])[0] ?? null;
@@ -111,83 +193,11 @@ function alphanoGroupAdminMembersAndRanks($db,string $scope,int $group,string $a
                 if(isset($before['descrizione'])){ $before['descrizione']=hash('sha256',$before['descrizione']); }
                 if(isset($after['descrizione'])){ $after['descrizione']=hash('sha256',$after['descrizione']); }
             }
-    $state=compact('section','target','personal','changed','before','after','title','detail');
-}
-
-/** Applies delegations, private room settings and election proposals. */
-function alphanoGroupAdminSettings($db,string $scope,int $group,int $actor,string $action,array $input,string $field,array $groupRow,array &$state): void
-{
-    $section=$state['section'];$target=$state['target'];$personal=$state['personal'];
-    $changed=$state['changed'];$before=$state['before'];$after=$state['after'];
-    $title=$state['title'];$detail=$state['detail'];
-            if ($action==='setflag') {
-                $section='flag';$target=economiaIntero($input['nome'] ?? '',1) ?? 0;
-                $flags=$scope==='organizzazioni'?['adminorganizzazione'=>'adminorg']:['admincorporazione'=>'admincorporazione','admintrasfcorp'=>'admintrasfcorp','admincatalogo'=>'admincatalogo'];
-                if($scope==='organizzazioni'){ foreach(['resurgo'=>'adminmorti','cerimonia'=>'adminstatosociale','ferite'=>'adminferite'] as $capability=>$flag){ if(!empty($groupRow[$capability])){ $flags[$flag]=$capability; } } }
-                $columns=implode(',',array_keys($flags));
-                $before=$db->query("SELECT id,nome,{$columns} FROM utenti WHERE id=? AND {$field}=? FOR UPDATE",[$target,$group])[0] ?? [];
-                economiaVerifica((bool)$before,'Personaggio non appartenente al gruppo');
-                require_once __DIR__.'/admin-governance.inc.php';
-                $updates=[];foreach($flags as $column=>$key){ $updates[$column]=!empty($input[$key])?1:0; }
-                alphanoGovernanceApply($actor,$target,$updates,'Delega dal pannello '.$groupRow['nome'],null,$scope,$group);
-                $after=$db->query("SELECT id,nome,{$columns} FROM utenti WHERE id=?",[$target])[0];
-                $changed=$before!==$after;$personal=true;$title='Privilegi nel gruppo aggiornati';$detail="Aggiornati i privilegi di {$before['nome']} in {$groupRow['nome']}.";
-            } elseif ($action==='modifypvt') {
-                $section='pvt';$city=economiaIntero($input['city'] ?? '',1);$password=trim((string)($input['pvt'] ?? ''));
-                economiaVerifica($city!==null && (bool)$db->query('SELECT id FROM city WHERE id=?',[$city]) && ($scope!=='organizzazioni' || $password!==''),'Città o password non validi');
-                $columns=['city','sito','pvt','sfondotop','sfondo','mappa','descrizione'];$values=[$city,trim((string)($input['sito'] ?? '')),base64_encode($password),trim((string)($input['sfondotop'] ?? '')),trim((string)($input['sfondo'] ?? '')),trim((string)($input['mappa'] ?? '')),trim((string)($input['descrizione'] ?? ''))];
-                $before=array_intersect_key($groupRow,array_flip($columns));
-                $db->execute("UPDATE {$scope} SET city=?,sito=?,pvt=?,sfondotop=?,sfondo=?,mappa=?,descrizione=? WHERE id=?",[...$values,$group]);
-                $after=$db->query('SELECT '.implode(',',$columns)." FROM {$scope} WHERE id=?",[$group])[0];
-                $changed=$before!=$after;
-                foreach(['pvt','descrizione'] as $secret){$before[$secret]=hash('sha256',(string)$before[$secret]);$after[$secret]=hash('sha256',(string)$after[$secret]);}
-                $title='Dati e stanza privata aggiornati';$detail="Aggiornati città, sito e impostazioni della stanza privata di {$groupRow['nome']}.";
-            } elseif ($action==='proponi') {
-                $section='elezioni';$city=economiaIntero($input['city'] ?? '',1) ?? 0;$target=economiaIntero($input['pg'] ?? '',1) ?? 0;$program=trim((string)($input['programma'] ?? ''));
-                if(alphanoElectionsReady()){ throw new DomainException('La candidatura è una scelta personale: ogni cittadino può presentarla dal registro elettorale della propria città.',409); }
-                $cityRow=$db->query('SELECT budget,costoelezioni,city FROM city WHERE id=? AND elezioni=1 FOR UPDATE',[$city])[0] ?? null;
-                $member=$db->query('SELECT u.id,u.nome FROM utenti u JOIN araldiche a ON a.id=u.araldica WHERE u.id=? AND u.organizzazione=? AND a.city=? FOR UPDATE',[$target,$group,$city])[0] ?? null;
-                economiaVerifica($cityRow && $member && $program!=='' && electionTime($city) && !$db->query('SELECT idpg FROM candidati WHERE idpg=? FOR UPDATE',[$target]),'Candidatura non valida, già presente o candidature chiuse');
-                $cost=(int)$cityRow['costoelezioni'];
-                economiaVerifica($cost>=0 && (int)$groupRow['budget']>=$cost && (int)$cityRow['budget']<=2147483647-$cost,'Fondi insufficienti o saldo non valido');
-                $db->execute('INSERT INTO candidati(idpg,organizzazione,city,programma) VALUES(?,?,?,?)',[$target,$group,$city,$program]);
-                $db->execute('UPDATE organizzazioni SET budget=budget-? WHERE id=?',[$cost,$group]);$db->execute('UPDATE city SET budget=budget+? WHERE id=?',[$cost,$city]);
-                $after=['candidato'=>$target,'city'=>$city,'programma'=>mb_substr($program,0,3000),'costo'=>$cost];$changed=true;$personal=true;
-                $title='Candidatura proposta';$detail=alphanoCurrencyText("{$groupRow['nome']} ha candidato {$member['nome']} alle elezioni di {$cityRow['city']}. Costo: {$cost} Corone.");
-            }
-    $state=compact('section','target','personal','changed','before','after','title','detail');
-}
-/** Only allowlisted group mutations enter this shared transaction and receipt. */
-function alphanoGroupAdminAction(string $scope, int $group, int $actor, string $action, array $input, array $files = []): ?string
-{
-    $actions=['admitpg','changecarica','addramo','modifyramo','dropramo','addcarica','modifycarica','dropcarica','setflag','modifypvt','proponi'];
-    if (!in_array($scope,['organizzazioni','corporazioni'],true) || !in_array($action,$actions,true)) { return null; }
-    if ($scope==='corporazioni' && $action==='proponi') { return null; }
-    if ($scope==='corporazioni' && $action==='modifycarica' && !isset($input['nome'])) { return null; }
-    if ($action==='modifyramo' && !isset($input['nome'])) { return null; } // The corporation's edit-form lookup.
-    $field=$scope==='organizzazioni'?'organizzazione':'corporazione';
-    $prefix=$scope==='organizzazioni'?'organization':'corporation';
-    $admin='admin'.$field;$rankField='carica'.$field;$branchField='ramo'.$field;
-    $undo=[];
-    try {
-        return economiaAtomica(static function() use($scope,$group,$actor,$action,$input,$files,$field,$prefix,$admin,$rankField,$branchField,&$undo): string {
-            $db=getDB();
-            economiaVerifica((bool)$db->query("SELECT id FROM utenti WHERE id=? AND (({$field}=? AND {$admin}=1) OR admin=1) FOR UPDATE",[$actor,$group]),'Mandato non valido');
-            $groupRow=$db->query("SELECT * FROM {$scope} WHERE id=? FOR UPDATE",[$group])[0] ?? null;
-            economiaVerifica((bool)$groupRow,'Gruppo non valido');
-            $payload=$input;$payload['_group']=$group;unset($payload['_csrf'],$payload['csrf_token'],$payload['_request_key']);
-            foreach ($files as $key=>$file) { if (is_array($file) && is_uploaded_file($file['tmp_name'] ?? '')) { $payload['upload_'.$key]=hash_file('sha256',$file['tmp_name']); } }
-            if (!alphanoOperationOnce($prefix.'-admin-'.$action,$actor,$input['_request_key'] ?? null,$payload)) { return 'Operazione già completata'; }
-            $state=['before'=>[],'after'=>[],'section'=>'iscritti','target'=>0,'personal'=>false,'changed'=>false,'title'=>'Amministrazione del gruppo','detail'=>''];
-            $remember=static function(int $rank) use($scope,$group,&$undo): string {
-                $path=HTMLROOT.GROUP_ADMIN_INC_UPLOADS_BADGES.$scope.'/'.$group.'/'.$rank.'.gif';
-                $undo[$path]=is_file($path)?file_get_contents($path):null;
-                return $path;
-            };
-            alphanoGroupAdminMembersAndRanks($db,$scope,$group,$action,$input,$files,$field,$admin,$rankField,$branchField,$groupRow,$remember,$state,$undo);
-            alphanoGroupAdminSettings($db,$scope,$group,$actor,$action,$input,$field,$groupRow,$state);
-            $before=$state['before'];$after=$state['after'];$section=$state['section'];$target=$state['target'];
-            $personal=$state['personal'];$changed=$state['changed'];$title=$state['title'];$detail=$state['detail'];
+            $state=compact('section','target','before','after','changed','personal','title','detail');
+            if($action==='setflag'){alphanoGroupAdminDelegation($db,$scope,$group,$actor,$input,$groupRow,$state);}
+            elseif($action==='modifypvt'){alphanoGroupAdminPrivateRoom($db,$scope,$group,$input,$groupRow,$state);}
+            elseif($action==='proponi'){alphanoGroupAdminProposal($db,$group,$actor,$input,$groupRow,$state);}
+            extract($state);
             if ($changed) {
                 $audiences=[['scope'=>$scope,'id'=>$group,'section'=>$section,'role'=>'admin']];
                 if($personal && $target>0){ $audiences[]=['scope'=>'personale','id'=>$target,'section'=>'profilo','role'=>'member']; }

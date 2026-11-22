@@ -5,60 +5,27 @@ use Alphano\Database\PDOMySQLDriver;
 require_once __DIR__.'/../../libs/chat-format.inc.php';
 
 
-/** Applies sunlight damage without changing message rendering. */
-function alphanoChatVampireDamage(PDOMySQLDriver $db,int $idpg,string $chat,array $pg,string $sesso,string $ferite,int $razza,int $meteo,bool $vampiredamage): void
+/** Renders the character name once, keeping the original markup. */
+function alphanoChatDisplayName($db,int $idpg,int $umore,array $pg): string
 {
-    // 8) vampireDamage
-    if ((!function_exists('rpgCreationReady')||!rpgCreationReady()) && $vampiredamage && $out && $razza===2 && !licanTime() && $meteo===0) {
-        if (!str_contains($ferite,'Bruciature solari')) {
-            $ferite .= ' Bruciature solari';
-        }
-        if ((int)$pg['puntif'] > MAXPUNTIF/10) {
-            $db->execute(
-                'UPDATE utenti SET puntif=puntif-?,ferite=? WHERE id=?',
-                [MAXPUNTIF/10,$ferite,$idpg]
-            );
-            vampireDamage($chat,$pg['nome'],$sesso,false);
-        } else {
-            $db->execute(
-                'UPDATE utenti SET puntif=?,razza=7,ferite="" WHERE id=?',
-                [MAXPUNTIF,$idpg]
-            );
-            vampireDamage($chat,$pg['nome'],$sesso,true);
-        }
+    $name  = htmlentities($pg['nome'], ENT_QUOTES | ENT_SUBSTITUTE);
+    if ($umore) {
+        $name .= '&nbsp;' . GetUmore($umore);
     }
+    $name='<a class="chat-character-name '.alphanoChatGender((string)$pg['sesso']).'" href="javascript:openProfileId(\''.$idpg.'\')">'.$name.'</a>';
+    if ($db->query("SELECT 1 FROM equippg WHERE slot='musica' AND idpg=?",[$idpg])) {
+        $name .= '&nbsp;<img src=\"/chatimg/musica.gif\" border=\"0\">';
+    }
+    return $name;
 }
 
-/** Persists the rendered message in live recordings and the running session log. */
-function alphanoChatSessionLog(PDOMySQLDriver $db,string $chat,int $sessionName,string $out,bool $scriviPart,string $partecipanti,int $idpg): void
+/** Renders the plain speech and action commands. */
+function alphanoChatBasicOutput(array &$ctx,callable $render): void
 {
-    // 11) Log sessione in HTML
-    if ($SessionIsRunning) {
-        $logFile = HTMLROOT . "/sessione/log/{$sessionName}.html";
-        if(!empty($GLOBALS['alphano_defer_chat_log'])){ $GLOBALS['alphano_deferred_chat_session']=(int)$sessionName; }
-        else { file_put_contents($logFile, $out."<br>\n", FILE_APPEND|LOCK_EX); }
-        if ($scriviPart) {
-            $db->execute(
-                'UPDATE sessioni SET partecipanti=? WHERE id=?',
-                [$partecipanti.$idpg.';',$sessionName]
-            );
-        }
-        // reward spettatori…
-        $ids = array_filter(explode(';',$partecipanti), fn($v)=>$v!=='' && $v!=$idpg);
-        if ($ids && !$db->query('SELECT session_id FROM ai_quests WHERE session_id=?',[$sessionName])) {
-            $ph = implode(',', array_fill(0,count($ids),'?'));
-            $db->execute(
-                "UPDATE utenti SET denari=denari+10 WHERE id IN ($ph) AND chat=?",
-                [...$ids,$chat]
-            );
-        }
-    }
-}
-/** Renders a single chat command; early returns carry an immediate reply. */
-function alphanoChatRenderCommand(PDOMySQLDriver $db,int $idpg,string $str,string $ora,string $razImg,string $fPar,string $fAzo,string $name,string $araldica,callable $render,bool $SessionIsRunning,bool $NeedsDadi,bool $incog,array $pg,string &$out,int &$dest,string &$newLoc,string &$l,bool &$OnGame,string &$location): ?array
-{
-        $first = $str[0] ?? '';
-    switch ($first) {
+    $str=$ctx['str'];$ora=$ctx['ora'];$razImg=$ctx['razImg'];$fPar=$ctx['fPar'];$fAzo=$ctx['fAzo'];
+    $name=$ctx['name'];$pg=$ctx['pg'];$location=$ctx['location'];$newLoc=$ctx['newLoc'];$OnGame=$ctx['OnGame'];
+    $SessionIsRunning=$ctx['SessionIsRunning'];$NeedsDadi=$ctx['NeedsDadi'];$out=$ctx['out'];
+    switch($ctx['first']){
         case '/':
             if(str_starts_with($str,'//')){$OnGame=false;$out='<span class="String">'.$ora.'</span> '.$razImg.$fPar.$name.'</B></SPAN> <span class="chat-ooc-text">'.htmlspecialchars(substr($str,2),ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8').'</span>';break;}
             // A single slash is ordinary speech.
@@ -88,8 +55,16 @@ function alphanoChatRenderCommand(PDOMySQLDriver $db,int $idpg,string $str,strin
 
             break;
         }
+    }
+    $ctx=compact('out','location','newLoc','OnGame');
+}
 
-
+/** Renders master/private/URL commands; an early return carries an immediate reply. */
+function alphanoChatStaffCommands(array &$ctx): ?array
+{
+    $pg=$ctx['pg'];$SessionIsRunning=$ctx['SessionIsRunning'];$str=$ctx['str'];
+    $out=$ctx['out'];$OnGame=$ctx['OnGame'];$location=$ctx['location'];
+    switch($ctx['first']){
         case '#':
             if (($pg['fatepower']||$pg['admin']) && ($SessionIsRunning||$pg['admin'])) {
                 $cmd = htmlentities(substr($str,1));
@@ -117,8 +92,18 @@ function alphanoChatRenderCommand(PDOMySQLDriver $db,int $idpg,string $str,strin
                 $out = "<DIV class=\"align-center\"><img src=\"" . htmlspecialchars($url) . "\" /></DIV>";
                 $OnGame = false;
             }
-            break;
+            break;    }
+    $ctx=compact('out','OnGame');
+    return null;
+}
 
+/** Renders whisper, animal, incognito and plain speech commands. */
+function alphanoChatRoleCommands($db,int $idpg,array &$ctx,callable $render): void
+{
+    $str=$ctx['str'];$dest=$ctx['dest'];$razImg=$ctx['razImg'];$araldica=$ctx['araldica'];
+    $fPar=$ctx['fPar'];$fAzo=$ctx['fAzo'];$name=$ctx['name'];$ora=$ctx['ora'];
+    $incog=$ctx['incog'];$newLoc=$ctx['newLoc'];$out=$ctx['out'];
+    switch($ctx['first']){
         case '$':
             if (str_contains($str,';')) {
                 [$dst,$msg2] = explode(';',substr($str,1),2);
@@ -167,11 +152,83 @@ function alphanoChatRenderCommand(PDOMySQLDriver $db,int $idpg,string $str,strin
                  .$razImg.$araldica
                  .$fPar.$name.'</B></SPAN> '
                  .'<SPAN class="String">'.$render($str).'</SPAN>';
-            break;
-    }
-    return null;
+            break;    }
+    $ctx=compact('dest','newLoc','out');
 }
 
+/** Applies sunlight damage for a vampire character. */
+function alphanoChatSunlight($db,int $idpg,array $ctx): void
+{
+    $chat=$ctx['chat'];$nome=$ctx['pg']['nome'];$sesso=$ctx['sesso'];$ferite=$ctx['ferite'];
+    $razza=$ctx['razza'];$meteo=$ctx['meteo'];$vampiredamage=$ctx['vampiredamage'];
+    if ((!function_exists('rpgCreationReady')||!rpgCreationReady()) && $vampiredamage && $out && $razza===2 && !licanTime() && $meteo===0) {
+        if (!str_contains($ferite,'Bruciature solari')) {
+            $ferite .= ' Bruciature solari';
+        }
+        if ((int)$pg['puntif'] > MAXPUNTIF/10) {
+            $db->execute(
+                'UPDATE utenti SET puntif=puntif-?,ferite=? WHERE id=?',
+                [MAXPUNTIF/10,$ferite,$idpg]
+            );
+            vampireDamage($chat,$pg['nome'],$sesso,false);
+        } else {
+            $db->execute(
+                'UPDATE utenti SET puntif=?,razza=7,ferite="" WHERE id=?',
+                [MAXPUNTIF,$idpg]
+            );
+            vampireDamage($chat,$pg['nome'],$sesso,true);
+        }
+    }
+}
+
+/** Counts a lycanthropy action when the character is active. */
+function alphanoChatInfectedActions($db,int $idpg,bool $infected,bool $onGame): void
+{
+    if ($infected && $onGame) {
+        $db->execute(
+            'UPDATE utenti SET azionilican=azionilican+1 WHERE id=?',
+            [$idpg]
+        );
+    }
+}
+
+/** Stores the message in every active live recording. */
+function alphanoChatRecordings($db,string $chat,string $out): void
+{
+    foreach ($db->query('SELECT id FROM registrazioni WHERE chat=?',[$chat]) as $r) {
+        $db->execute(
+            'INSERT INTO registrazionichat (registrazione,testo) VALUES (?,?)',
+            [(int)$r['id'],$out]
+        );
+    }
+}
+
+/** Writes the running session log and rewards its spectators. */
+function alphanoChatSessionLog($db,array $ctx): void
+{
+    $chat=$ctx['chat'];$sessionName=$ctx['sessionName'];$out=$ctx['out'];
+    $scriviPart=$ctx['scriviPart'];$partecipanti=$ctx['partecipanti'];$idpg=$ctx['idpg'];
+    if ($SessionIsRunning) {
+        $logFile = HTMLROOT . "/sessione/log/{$sessionName}.html";
+        if(!empty($GLOBALS['alphano_defer_chat_log'])){ $GLOBALS['alphano_deferred_chat_session']=(int)$sessionName; }
+        else { file_put_contents($logFile, $out."<br>\n", FILE_APPEND|LOCK_EX); }
+        if ($scriviPart) {
+            $db->execute(
+                'UPDATE sessioni SET partecipanti=? WHERE id=?',
+                [$partecipanti.$idpg.';',$sessionName]
+            );
+        }
+        // reward spettatori…
+        $ids = array_filter(explode(';',$partecipanti), fn($v)=>$v!=='' && $v!=$idpg);
+        if ($ids && !$db->query('SELECT session_id FROM ai_quests WHERE session_id=?',[$sessionName])) {
+            $ph = implode(',', array_fill(0,count($ids),'?'));
+            $db->execute(
+                "UPDATE utenti SET denari=denari+10 WHERE id IN ($ph) AND chat=?",
+                [...$ids,$chat]
+            );
+        }
+    }
+}
 /**
  * buildChatMessage() – logica pari‐pari di addLchat.inc.php
  * restituisce [html, dest, location, lican]
@@ -242,14 +299,7 @@ function buildChatMessage(
 
     // 6) preparazione markup
     $link  = "<a href=\"javascript:openProfileId('{$idpg}')\">";
-    $name  = htmlentities($pg['nome'], ENT_QUOTES | ENT_SUBSTITUTE);
-    if ($umore) {
-        $name .= '&nbsp;' . GetUmore($umore);
-    }
-    $name='<a class="chat-character-name '.alphanoChatGender((string)$pg['sesso']).'" href="javascript:openProfileId(\''.$idpg.'\')">'.$name.'</a>';
-    if ($db->query("SELECT 1 FROM equippg WHERE slot='musica' AND idpg=?",[$idpg])) {
-        $name .= '&nbsp;<img src=\"/chatimg/musica.gif\" border=\"0\">';
-    }
+    $name=alphanoChatDisplayName($db,$idpg,$umore,$pg);
     $ora    = date('H:i');
     $razza  = (int)$pg['razza'];
     $sesso  = (string)$pg['sesso'];
@@ -285,33 +335,32 @@ function buildChatMessage(
     $out   = '';
 
     // 7) SWITCH sui comandi
+    $ctx=compact('first','str','ora','razImg','fPar','fAzo','name','pg','location','newLoc','OnGame','SessionIsRunning','NeedsDadi','out','dest','araldica','incog');
+    alphanoChatBasicOutput($ctx,$render);
+    extract($ctx);
 
-    if ($early !== null) { return $early; }
 
-    $early = alphanoChatRenderCommand($db,$idpg,$str,$ora,$razImg,$fPar,$fAzo,$name,$araldica,$render,$SessionIsRunning,$NeedsDadi,$incog,$pg,$out,$dest,$newLoc,$l,$OnGame,$location);
-    if ($early !== null) { return $early; }
+
+    $early=alphanoChatStaffCommands($ctx);
+    if($early!==null){return $early;}
+    alphanoChatRoleCommands($db,$idpg,$ctx,$render);
+    extract($ctx);
+
+
     // Persist a semantic presentation type; no schema change, also retained in saved logs.
     if($out!==''){$type=str_starts_with($str,'//')?'ooc':match($first){'+'=>'action','$'=>'whisper','&'=>'animal','#'=>'master',default=>'speech'};$out='<div data-message-type="'.$type.'">'.$out.'</div>';}
 
-    alphanoChatVampireDamage($db,$idpg,$chat,$pg['nome'],$sesso,$ferite,$razza,$meteo,$vampiredamage);
+    // 8) vampireDamage
+    alphanoChatSunlight($db,$idpg,compact('chat','pg','sesso','ferite','razza','meteo','vampiredamage'));
 
     // 9) Conta azioni lican
-    if ($inf && $OnGame) {
-        $db->execute(
-            'UPDATE utenti SET azionilican=azionilican+1 WHERE id=?',
-            [$idpg]
-        );
-    }
+    alphanoChatInfectedActions($db,$idpg,(bool)$inf,$OnGame);
 
     // 10) Registrazioni live
-    foreach ($db->query('SELECT id FROM registrazioni WHERE chat=?',[$chat]) as $r) {
-        $db->execute(
-            'INSERT INTO registrazionichat (registrazione,testo) VALUES (?,?)',
-            [(int)$r['id'],$out]
-        );
-    }
+    alphanoChatRecordings($db,$chat,$out);
 
-    alphanoChatSessionLog($db,$chat,$sessionName,$out,$scriviPart,$partecipanti,$idpg);
+    // 11) Log sessione in HTML
+    alphanoChatSessionLog($db,compact('chat','sessionName','out','scriviPart','partecipanti','idpg'));
 
     return [$out, $dest, $newLoc, $l];
 }

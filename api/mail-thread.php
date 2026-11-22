@@ -58,7 +58,7 @@ function alphanoMailConversation($d,int $uid,array $in):array {
  else{ $conversation=isset($r)?[$r]:[]; }
  return [$other,$conversation];
 }
-function alphanoMailRender(array $conversation,array $mailPeople,int $idpg,callable $h):string {
+function alphanoMailThreadRender(array $conversation,array $mailPeople,int $idpg,callable $h):string {
  ob_start();require __DIR__.'/../templates/mail/thread-messages.php';return (string)ob_get_clean();
 }
 function alphanoMailTradeIds(array $conversation):array {
@@ -76,7 +76,7 @@ function alphanoMailThreadRead(int $uid,$d,array $in,callable $h):array {
  foreach($conversation as $m){ if((int)$m['iddestinatario']===$uid){ $read[]=(int)$m['id']; } }
  if($read){ $d->execute('UPDATE mail SET letto=1 WHERE iddestinatario=? AND id IN('.implode(',',array_fill(0,count($read),'?')).')',[$uid,...$read]); }
  $mailPeople=alphanoMailPeople([$uid,$other,...array_column($conversation,'idmittente'),...array_column($conversation,'iddestinatario')]);
- $idpg=$uid;$html=alphanoMailRender($conversation,$mailPeople,$idpg,$h);
+ $idpg=$uid;$html=alphanoMailThreadRender($conversation,$mailPeople,$idpg,$h);
  return ['person'=>alphanoMailPerson($other,$mailPeople),'html'=>$html,'more'=>$more,'before'=>$conversation?(int)$conversation[0]['id']:0,'last_id'=>$conversation?(int)end($conversation)['id']:0,'subject'=>$conversation?(string)end($conversation)['oggetto']:'Missiva','trade_ids'=>alphanoMailTradeIds($conversation),'hidden_sent'=>$other>0?alphanoMailHiddenSent($uid,$other):0];
 }
 playerApi(static function(){

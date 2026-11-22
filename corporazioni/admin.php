@@ -426,6 +426,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
             $ok=economiaAzioneModulo(static fn(): bool => impostaProduzioniCorp($corpId,$pgid,$selection,$_POST['_request_key'] ?? null));
             $msg=$ok ? 'Produzioni aggiornate con successo' : 'Produzioni non aggiornate: controlla i punti disponibili';
             break;
+        default:
+            $msg = 'Azione non riconosciuta';
+            break;
         }
     }
 }
@@ -632,7 +635,7 @@ $lista2     = listaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
                       if ($hasProvvigione&&($car['provvigione'] ?? 0)>0) {
                         $flags[]=($car['provvigione'] ?? 0)."%";
                       }
-                      if (($car['prima'] ?? 0)) {
+                      if ($car['prima'] ?? 0) {
                         $flags[]='★';
                       }
                     ?>

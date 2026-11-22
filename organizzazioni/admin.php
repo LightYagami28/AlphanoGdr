@@ -369,8 +369,8 @@ $db      = ConnectDB();
           </td>
             <td><?=htmlspecialchars(GetCorporazione($d['corp']),ENT_QUOTES)?></td>
             <td><button type="button" class="u-link-button" onclick="openProfileId('<?=$d['pgcorp']?>')"><?=htmlspecialchars(GetPGFromID($d['pgcorp']),ENT_QUOTES)?></button></td>
-            <td aria-label="Quantità da modificare"><input type="number" min="1" max="2147483647" step="1" required name="quantita" form="org-loan-<?=(int)$d['id']?>" value="<?=$d['quantita']?>" class="u-a053cda31"> <?=alphano_currency_html()?></td>
-            <td aria-label="Percentuale interessi"><input type="number" min="0" max="100" step="1" required name="interessi" form="org-loan-<?=(int)$d['id']?>" value="<?=$d['interessi']?>" class="u-1a96f4c6d"> %</td>
+            <td><input aria-label="Quantità da modificare" type="number" min="1" max="2147483647" step="1" required name="quantita" form="org-loan-<?=(int)$d['id']?>" value="<?=$d['quantita']?>" class="u-a053cda31"> <?=alphano_currency_html()?></td>
+            <td><input aria-label="Percentuale interessi" type="number" min="0" max="100" step="1" required name="interessi" form="org-loan-<?=(int)$d['id']?>" value="<?=$d['interessi']?>" class="u-1a96f4c6d"> %</td>
             <td><?=processStato($d['stato'])?></td>
             <td><?=$rimanente?> <?=alphano_currency_html()?></td>
             <td>
@@ -536,27 +536,27 @@ $db      = ConnectDB();
         </tr>
         <tr>
           <th scope="row">Password stanza:</th>
-          <td aria-label="Password stanza"><input type="text" name="pvt" value="<?=htmlspecialchars($pvt,ENT_QUOTES)?>" required></td>
+          <td><input aria-label="Password stanza" type="text" name="pvt" value="<?=htmlspecialchars($pvt,ENT_QUOTES)?>" required></td>
         </tr>
         <tr>
           <th scope="row">Immagine Top:</th>
-          <td aria-label="Immagine top"><input type="text" name="sfondotop" value="<?=htmlspecialchars($sfondotop,ENT_QUOTES)?>"></td>
+          <td><input aria-label="Immagine top" type="text" name="sfondotop" value="<?=htmlspecialchars($sfondotop,ENT_QUOTES)?>"></td>
         </tr>
         <tr>
           <th scope="row">Immagine Sfondo:</th>
-          <td aria-label="Immagine sfondo"><input type="text" name="sfondo" value="<?=htmlspecialchars($sfondo,ENT_QUOTES)?>"></td>
+          <td><input aria-label="Immagine sfondo" type="text" name="sfondo" value="<?=htmlspecialchars($sfondo,ENT_QUOTES)?>"></td>
         </tr>
         <tr>
           <th scope="row">Mappa stanza:</th>
-          <td aria-label="Mappa stanza"><input type="text" name="mappa" value="<?=htmlspecialchars($mappa,ENT_QUOTES)?>"></td>
+          <td><input aria-label="Mappa stanza" type="text" name="mappa" value="<?=htmlspecialchars($mappa,ENT_QUOTES)?>"></td>
         </tr>
         <tr>
           <th scope="row">Descrizione stanza:</th>
-          <td aria-label="Descrizione stanza"><textarea name="descrizione" rows="4"><?=htmlspecialchars($descrizione,ENT_QUOTES)?></textarea></td>
+          <td><textarea aria-label="Descrizione stanza" name="descrizione" rows="4"><?=htmlspecialchars($descrizione,ENT_QUOTES)?></textarea></td>
         </tr>
         <tr>
           <th scope="row">Sito organizzazione:</th>
-          <td aria-label="Sito organizzazione"><input type="text" name="sito" value="<?=htmlspecialchars($sito,ENT_QUOTES)?>"></td>
+          <td><input aria-label="Sito organizzazione" type="text" name="sito" value="<?=htmlspecialchars($sito,ENT_QUOTES)?>"></td>
         </tr>
         <tr>
           <td colspan="2" class="u-72a68ac34">
@@ -570,4 +570,5 @@ $db      = ConnectDB();
 <div id="tab-abilita" class="tab-content"><?php $orgAbilityMode='organization';$orgAbilityId=$org;require_once __DIR__.'/../templates/academy/organization-abilities.php'; ?></div>
 </body>
 </html>
+
 

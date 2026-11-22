@@ -100,8 +100,15 @@ function alphanoInstallCreateSchema(PDO $pdo,string $root,array &$created):void
     }
 }
 
-function alphanoInstallSeed(PDO $pdo,string $root,array $settings,string $admin,string $password,array $in,int $now,bool &$mapWritten,$previousMap):void
+function alphanoInstallSeed(PDO $pdo,string $root,array $context):array
 {
+    $settings=$context['settings'];
+    $admin=$context['admin'];
+    $password=$context['password'];
+    $in=$context['in'];
+    $now=$context['now'];
+    $mapWritten=false;
+    $previousMap=null;
     $insert=static fn(string $table,array $values):int=>alphanoSeedInsert($pdo,$table,$values);
     $seed=json_decode((string)file_get_contents($root.'/config/rpg-seed.json'),true,64,JSON_THROW_ON_ERROR);
     foreach($seed['stats'] as $s){
@@ -136,6 +143,7 @@ function alphanoInstallSeed(PDO $pdo,string $root,array $settings,string $admin,
         $mapWritten=true;
     }
     alphano_settings_write($settings);
+    return ['mapWritten'=>$mapWritten,'previousMap'=>$previousMap];
 }
 
 function alphanoInstallAcceptLicense(string $root,array $in,string $admin):void
@@ -222,7 +230,9 @@ function alphanoInstall(array $in):void
         alphanoInstallCreateSchema($pdo,$root,$created);
         $pdo->beginTransaction();
         $now=time();
-        alphanoInstallSeed($pdo,$root,$settings,$admin,$password,$in,$now,$mapWritten,$previousMap);
+        $seedResult=alphanoInstallSeed($pdo,$root,['settings'=>$settings,'admin'=>$admin,'password'=>$password,'in'=>$in,'now'=>$now]);
+        $mapWritten=$seedResult['mapWritten'];
+        $previousMap=$seedResult['previousMap'];
         $pdo->commit();
         if(!rename($tempConfig,$root.'/config/local.php')){
             throw new DomainException('Attivazione della configurazione non riuscita.');

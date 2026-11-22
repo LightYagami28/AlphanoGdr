@@ -25,7 +25,7 @@ function alphano_npc_mortality_plain(string $text,int $limit=1000):string {
 function alphano_npc_mortality_insert(int $npc,array $entry):array {
  $db=ConnectDB();if(!$db->inTransaction()){ throw new LogicException('La morte del PNG richiede una transazione unica.'); }
  $n=$db->query('SELECT * FROM ai_npcs WHERE id=? FOR UPDATE',[$npc])[0]??null;if(!$n){ throw new DomainException('PNG inesistente.',404); }
- $profile=ai_npc_profile($n);if((int)$profile['hit_points']>0){ throw new DomainException('Non è possibile registrare come morto un PNG ancora vivo.',409); }
+ $profile=aiNpcProfile($n);if((int)$profile['hit_points']>0){ throw new DomainException('Non è possibile registrare come morto un PNG ancora vivo.',409); }
  $old=$db->query("SELECT * FROM npc_deaths WHERE npc_id=? AND status='active' ORDER BY id DESC LIMIT 1 FOR UPDATE",[$npc])[0]??null;if($old){ return $old; }
  $key=(string)$entry['source_key'];if($old=$db->query('SELECT * FROM npc_deaths WHERE source_key=?',[$key])[0]??null){ return $old; }
  $place=$db->query('SELECT title FROM mappe WHERE BINARY chat_key=BINARY ? LIMIT 1',[$n['chat_key']])[0]['title']??$n['chat_key'];
@@ -83,7 +83,7 @@ function alphano_npc_correct_admin_death(int $npc,int $expectedDeath,int $admin,
  if($death['status']!=='active'){ throw new DomainException('Registrazione non più rettificabile.',409); }
  $current=$db->query("SELECT id FROM npc_deaths WHERE npc_id=? AND status='active' ORDER BY id DESC LIMIT 1 FOR UPDATE",[$npc])[0]??[];
  if((int)($current['id']??0)!==$expectedDeath){ throw new DomainException('Il registro è cambiato. Ricarica il memoriale.',409); }
- $profile=ai_npc_profile($n);if((int)$profile['hit_points']>0){ throw new DomainException('La scheda non corrisponde più al decesso. Verifica il registro.',409); }
+ $profile=aiNpcProfile($n);if((int)$profile['hit_points']>0){ throw new DomainException('La scheda non corrisponde più al decesso. Verifica il registro.',409); }
  $profile['hit_points']=$hitPoints;
  // Do not reopen scenes or cancelled interventions: reactivation is a separate admin choice.
  $db->execute('UPDATE ai_npcs SET profile=?,active=0 WHERE id=?',[json_encode($profile,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR),$npc]);
@@ -97,6 +97,6 @@ function alphano_npc_revert_death(string $effectKey,int $reviewer,string $reason
  if((empty($u['admin'])&&empty($u['fatepower']))||!empty($u['bloccato'])){ throw new DomainException('Rettifica riservata allo staff autorizzato.',403); }
  $effect=$db->query("SELECT target_id FROM ai_quest_effects WHERE effect_key=? AND effect_type='death' AND target_kind='npc' AND status='reverted'",[$effectKey])[0]??null;
  if(!$effect){ throw new DomainException('La rettifica richiede lo storno verificato dell’esito di morte.',409); }
- $npc=$db->query('SELECT profile FROM ai_npcs WHERE id=?',[(int)$effect['target_id']])[0]??[];if((int)ai_npc_profile($npc)['hit_points']<=0){ throw new DomainException('La rettifica non ha ripristinato un PNG vivo.',409); }
+ $npc=$db->query('SELECT profile FROM ai_npcs WHERE id=?',[(int)$effect['target_id']])[0]??[];if((int)aiNpcProfile($npc)['hit_points']<=0){ throw new DomainException('La rettifica non ha ripristinato un PNG vivo.',409); }
  $db->execute("UPDATE npc_deaths SET status='reverted',reverted_at=?,reverted_by=?,revert_reason=? WHERE effect_key=? AND status='active'",[time(),$reviewer,alphano_npc_mortality_plain($reason,1000),$effectKey]);
 }

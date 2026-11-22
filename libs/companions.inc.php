@@ -14,14 +14,14 @@ function companionship_player_consent(int $player, bool $lock=false): array {
 }
 
 function companionship_partner(array $npc): int {
-    return function_exists('ai_adult_partner')?(int)ai_adult_partner((int)$npc['id']):(int)($npc['exclusive_player_id']??0);
+    return function_exists('aiAdultPartner')?(int)aiAdultPartner((int)$npc['id']):(int)($npc['exclusive_player_id']??0);
 }
 
 /** Current game health, rather than active/public visibility, determines capacity to consent. */
 function companionship_npc_available(array $npc): bool {
-    $profile=ai_npc_profile($npc);
+    $profile=aiNpcProfile($npc);
     if (empty($npc['active']) || (int)$profile['age']<18 || (int)$profile['hit_points']<=0) { return false; }
-    $settings=ConnectDB()->query('SELECT settings FROM ai_npc_game WHERE npc_id=?',[(int)$npc['id']])[0]['settings']??'{}';
+    $settings=ConnectDB()->query('SELECT settings FROM aiNpcGame WHERE npc_id=?',[(int)$npc['id']])[0]['settings']??'{}';
     $conditions=(string)((json_decode($settings,true)?:[])['conditions']??'');
     // This is the staff-maintained current condition field, never biography or player dialogue.
     $conditions=preg_replace('/\bnon\s+(?:è\s+)?(?:incosciente|svenut[ao]|mort[ao]|privo di sensi|priva di sensi)\b/iu','',$conditions);
@@ -104,7 +104,7 @@ function companionship_list(int $player,string $host): array {
         $compatible=!$consenting || ($viewer && aiRomanceAllowed($npc,$viewer,aiSocialRules((int)$npc['id'])));
         $available=!$busy && (!$partner || $partner===$player) && !$quest && $compatible;
         $reason=$busy?'Questa persona è impegnata in una visita.':($quest?'È impegnata in una quest.':(($partner && $partner!==$player)?'Non desidera accettare un nuovo incontro.':(!$compatible?'Le sue preferenze non consentono questo incontro.':'')));
-        $npcs[]=[...ai_public_npc($npc),'available'=>$available,'status'=>$available?'available':($busy?'busy':'unavailable'),'unavailable_reason'=>$reason,'busy_until'=>(int)($npc['busy_until']??0)];
+        $npcs[]=[...aiPublicNpc($npc),'available'=>$available,'status'=>$available?'available':($busy?'busy':'unavailable'),'unavailable_reason'=>$reason,'busy_until'=>(int)($npc['busy_until']??0)];
     }
     return ['host'=>$host,'title'=>$place['title'],'minutes'=>(int)$place['companion_minutes'],'price'=>(int)$place['companion_price'],'server_time'=>time(),'preferences'=>array_map('intval',$preferences),'npcs'=>$npcs];
 }
@@ -206,7 +206,7 @@ function companionship_invite(int $player,int $npcId,string $chat,string $reques
         $partner=companionship_partner($npc);
         if ($partner && $partner!==$player) { $db->commit();return ['accepted'=>false,'reason'=>'La persona resta fedele al proprio legame e declina con rispetto l’invito.']; }
         if ($db->query('SELECT id FROM companion_appointments WHERE active_npc_id=? OR active_player_id=? OR rental_id=?',[$npcId,$player,(int)$rental['id']])) { throw new DomainException('La persona o la camera sono già impegnate in una visita.',409); }
-        $decision=function_exists('ai_adult_invitation_decision')?ai_adult_invitation_decision($npcId,$player):['allowed'=>false,'reason'=>'La persona preferisce continuare a conoscervi nella sala comune.'];
+        $decision=function_exists('aiAdultInvitationDecision')?aiAdultInvitationDecision($npcId,$player):['allowed'=>false,'reason'=>'La persona preferisce continuare a conoscervi nella sala comune.'];
         if (empty($decision['allowed'])) { $db->commit();return ['accepted'=>false,'reason'=>(string)($decision['reason']??'La persona declina con rispetto l’invito.')]; }
         $now=time();$expires=(int)$rental['expires_at'];
         $db->execute("INSERT INTO companion_appointments(npc_id,player_id,rental_id,host_key,started_at,expires_at,request_key,price,kind,active_npc_id,active_player_id) VALUES(?,?,?,?,?,?,?,0,'invitation',?,?)",[$npcId,$player,(int)$rental['id'],$rental['host_key'],$now,$expires,$request,$npcId,$player]);

@@ -56,7 +56,7 @@ function alphanoChatBasicOutput(array &$ctx,callable $render): void
             break;
         }
     }
-    $ctx=compact('out','location','newLoc','OnGame');
+    $ctx['out']=$out;$ctx['location']=$location;$ctx['newLoc']=$newLoc;$ctx['OnGame']=$OnGame;
 }
 
 /** Renders master/private/URL commands; an early return carries an immediate reply. */
@@ -93,7 +93,7 @@ function alphanoChatStaffCommands(array &$ctx): ?array
                 $OnGame = false;
             }
             break;    }
-    $ctx=compact('out','OnGame');
+    $ctx['out']=$out;$ctx['OnGame']=$OnGame;
     return null;
 }
 
@@ -153,7 +153,7 @@ function alphanoChatRoleCommands($db,int $idpg,array &$ctx,callable $render): vo
                  .$fPar.$name.'</B></SPAN> '
                  .'<SPAN class="String">'.$render($str).'</SPAN>';
             break;    }
-    $ctx=compact('dest','newLoc','out');
+    $ctx['dest']=$dest;$ctx['newLoc']=$newLoc;$ctx['out']=$out;
 }
 
 /** Applies sunlight damage for a vampire character. */

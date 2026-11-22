@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/exceptions.inc.php';
 require_once __DIR__ . '/ai.inc.php';
 require_once __DIR__.'/lycan.inc.php';
 require_once __DIR__.'/ai-scheduler.inc.php';
@@ -26,7 +27,7 @@ function aiSyncLogs(bool $force=false): void {
                 while (($line=fgets($file))!==false) { if (str_contains($line,$marker)) { $found=true;break; } }
                 if (!$found) {
                     fseek($file,0,SEEK_END);$line=$marker.aiMessageHtml($job)."<br>\n";
-                    if (fwrite($file,$line)!==strlen($line) || !fflush($file)) { throw new RuntimeException('Scrittura diario incompleta.'); }
+                    if (fwrite($file,$line)!==strlen($line) || !fflush($file)) { throw new AiQuestRuntimeException('Scrittura diario incompleta.'); }
                 }
                 flock($file,LOCK_UN);
             } catch (Throwable $e) { error_log('[Master IA diario] '.$e->getMessage());continue; }

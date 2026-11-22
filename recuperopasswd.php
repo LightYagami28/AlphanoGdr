@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/libs/exceptions.inc.php';
 require_once __DIR__ . '/libs/kernel.inc.php';
 require_once __DIR__ . '/libs/sendmail.inc.php';
 $error = '';
@@ -52,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if (!$recent || (int)$recent['created_at'] < time()-300) {
                         $token = bin2hex(random_bytes(32));
                         $db->execute('REPLACE INTO password_resets(pg,token_hash,created_at,expires_at) VALUES (?,?,?,?)',[(int)$row['id'],hash('sha256',$token),time(),time()+3600]);
-                        if (!sendPasswordReset($row['email'],$row['nome'],$token)) { throw new RuntimeException('Email non inviata'); }
+                        if (!sendPasswordReset($row['email'],$row['nome'],$token)) { throw new AlphanoMailException('Email non inviata'); }
                     }
                     $db->commit();
                 } catch (Throwable $exception) {

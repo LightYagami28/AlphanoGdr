@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once dirname(__DIR__,2).'/libs/exceptions.inc.php';
 const ALPHANO_MSG_SELECT_FROM_UTENTI_WHERE_NOME_2BCE = 'SELECT * FROM utenti WHERE nome=?';
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
@@ -630,7 +631,7 @@ try {
         case 'statosociale':
             if (trim((string)($data['stato'] ?? '')) === '' || mb_strlen((string)$data['stato'])>60) { throw new InvalidArgumentException('Stato sociale non valido'); }
             if (!($admin||$adminstatosociale)) {
-                throw new RuntimeException('Non autorizzato');
+                throw new AlphanoAdminException('Non autorizzato');
             }
             $db->execute(
                 "UPDATE utenti SET statosociale=:stato WHERE nome=:nome",

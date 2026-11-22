@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/exceptions.inc.php';
 
 /** Only present, explicitly addressed characters join a dialogue. No model routing or AI-to-AI loop. */
 function aiDialogueParticipants(array $npcs, array $selected, string $text): array {
@@ -89,6 +90,6 @@ function aiDialogueWithoutRepeats(array $npc,array $job,string $text): string {
     }
     foreach(array_reverse($remove) as [$start,$length]){ $text=substr_replace($text,'',$start,$length); }
     $text=trim(preg_replace('/^\s*[»”]+\s*/u','',$text));
-    if(mb_strlen($normalize($text))<30){ throw new RuntimeException('Risposta ripetuta: nuovo tentativo senza pubblicare il duplicato.'); }
+    if(mb_strlen($normalize($text))<30){ throw new AiQuestRuntimeException('Risposta ripetuta: nuovo tentativo senza pubblicare il duplicato.'); }
     return $text;
 }

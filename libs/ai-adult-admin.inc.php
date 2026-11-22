@@ -15,21 +15,26 @@ function aiAdultAdminWorkplaces(): array {
     foreach($rooms as &$room){$room['city']='Altri luoghi';foreach($cities as $city){$key=$normalize($city['city']);if($key!==''&&(str_starts_with($normalize($room['chat_key']),$key)||str_contains($normalize($room['position']),$key))){$room['city']=$city['city'];break;}}}unset($room);
     usort($rooms,static fn($a,$b)=>strnatcasecmp($a['city'].' '.$a['title'],$b['city'].' '.$b['title']));return $rooms;
 }
+function aiAdultAdminValidateConsent(array $v,array $profile):void {
+ if(($v['sexuality_enabled']||$v['companion_enabled'])&&(int)($profile['age']??0)<18){ throw new DomainException('Indica un’età di almeno 18 anni per abilitare le scene adulte del PNG.',422); }
+ if($v['companion_enabled']&&!$v['sexuality_enabled']){ throw new DomainException('Per il servizio di accompagnatrice abilita la sessualità adulta del PNG.',422); }
+}
+function aiAdultAdminValidateWorkplace(array $v,string $chat):void {
+ if($v['workplace_key']===''){ return; }
+ if(!aiDb()->query('SELECT id FROM mappe WHERE chat_key=? AND chat=1 AND rental_enabled=1',[$v['workplace_key']])){ throw new DomainException('Scegli una locanda o un rifugio con affitto camere abilitato.',422); }
+ if($v['workplace_key']!==$chat){ throw new DomainException('Il luogo di lavoro deve coincidere con il luogo di gioco selezionato. Crea o gestisci il PNG nella locanda scelta.',422); }
+}
 function aiAdultAdminValidate(array $input,array $profile,string $chat): array {
-    if(array_diff(array_keys($input),['sexuality_enabled','companion_enabled','workplace_key','exclusive_player_id'])){ throw new DomainException('Impostazione adulta del PNG non riconosciuta.',422); }
-    $v=array_replace(aiAdultAdminSettings(0),$input);
-    foreach(['sexuality_enabled','companion_enabled'] as $field){ $v[$field]=aiInteger($v,$field,0,1); }
-    $v['exclusive_player_id']=aiInteger($v,'exclusive_player_id',0,PHP_INT_MAX);
-    $v['workplace_key']=aiField($v,'workplace_key',100);
-    if(($v['sexuality_enabled']||$v['companion_enabled'])&&(int)($profile['age']??0)<18){ throw new DomainException('Indica un’età di almeno 18 anni per abilitare le scene adulte del PNG.',422); }
-    if($v['companion_enabled']&&!$v['sexuality_enabled']){ throw new DomainException('Per il servizio di accompagnatrice abilita la sessualità adulta del PNG.',422); }
-    if($v['workplace_key']!==''){
-        if(!aiDb()->query('SELECT id FROM mappe WHERE chat_key=? AND chat=1 AND rental_enabled=1',[$v['workplace_key']])){ throw new DomainException('Scegli una locanda o un rifugio con affitto camere abilitato.',422); }
-        if($v['workplace_key']!==$chat){ throw new DomainException('Il luogo di lavoro deve coincidere con il luogo di gioco selezionato. Crea o gestisci il PNG nella locanda scelta.',422); }
-    }
-    if($v['companion_enabled']&&$v['workplace_key']===''){ throw new DomainException('Scegli il luogo di lavoro dell’accompagnatrice.',422); }
-    if($v['exclusive_player_id']&&!aiDb()->query('SELECT u.id FROM utenti u JOIN ai_player_preferences p ON p.player_id=u.id WHERE u.id=? AND p.character_age>=18',[$v['exclusive_player_id']])){ throw new DomainException('Il vincolo di fedeltà deve riferirsi a un personaggio giocante con età adulta dichiarata.',422); }
-    return $v;
+ if(array_diff(array_keys($input),['sexuality_enabled','companion_enabled','workplace_key','exclusive_player_id'])){ throw new DomainException('Impostazione adulta del PNG non riconosciuta.',422); }
+ $v=array_replace(aiAdultAdminSettings(0),$input);
+ foreach(['sexuality_enabled','companion_enabled'] as $field){ $v[$field]=aiInteger($v,$field,0,1); }
+ $v['exclusive_player_id']=aiInteger($v,'exclusive_player_id',0,PHP_INT_MAX);
+ $v['workplace_key']=aiField($v,'workplace_key',100);
+ aiAdultAdminValidateConsent($v,$profile);
+ aiAdultAdminValidateWorkplace($v,$chat);
+ if($v['companion_enabled']&&$v['workplace_key']===''){ throw new DomainException('Scegli il luogo di lavoro dell’accompagnatrice.',422); }
+ if($v['exclusive_player_id']&&!aiDb()->query('SELECT u.id FROM utenti u JOIN ai_player_preferences p ON p.player_id=u.id WHERE u.id=? AND p.character_age>=18',[$v['exclusive_player_id']])){ throw new DomainException('Il vincolo di fedeltà deve riferirsi a un personaggio giocante con età adulta dichiarata.',422); }
+ return $v;
 }
 function aiAdultAdminSave(int $npc,array $values): void {
     $db=aiDb();if(!$db->inTransaction()){ throw new LogicException('La configurazione adulta richiede la transazione del PNG.'); }

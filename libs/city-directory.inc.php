@@ -8,7 +8,7 @@ require_once __DIR__.'/hierarchy-presentation.inc.php';
 require_once __DIR__.'/public-guides.inc.php';
 require_once __DIR__.'/elections.inc.php';
 
-function alphanoCityDirectoryEnrich(array $city,array $viewer,int $viewerCity,int $pending,int $selected,array $mayors,array $elections,array $titles,?array $chosen):?array {
+function alphanoCityDirectoryEnrich(array &$city,array $viewer,int $viewerCity,int $pending,int $selected,array $mayors,array $elections,array $titles,?array $chosen):?array {
  $id=(int)$city['id'];
  $city['leader_title']=$titles[$id]??'Governante';
  $city['election']=$elections[$id];

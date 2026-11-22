@@ -22,7 +22,7 @@ if(($_SERVER['REQUEST_METHOD']??'GET')==='POST'){
  if(!is_string($_POST['_csrf']??null)||!hash_equals($_SESSION['setup_csrf'],$_POST['_csrf'])){http_response_code(403);$error='Sessione scaduta. Ricarica la pagina.';}
  else{try{
   $input=array_replace($defaults,$_POST);$input['registration_enabled']=false;
-  alphano_install($input);
+  alphanoInstall($input);
   // Only the verified bootstrap admin enters the authenticated, resumable wizard.
   $_SESSION=[];session_destroy();session_write_close();
   session_name('alphano_'.substr(hash('sha256',$root),0,16));session_start(['cookie_httponly'=>true,'cookie_samesite'=>'Lax','cookie_secure'=>alphano_https_context((string)$input['base_url'])]);session_regenerate_id(true);$_SESSION['user_id']=1;$_SESSION['csrf_token']=bin2hex(random_bytes(32));
@@ -38,7 +38,7 @@ function field(string $name,string $label,string $type='text',bool $required=tru
 
 <?php if($error):?><p class="error" role="alert"><?=alphano_escape($error)?></p><?php endif;?>
 <?php if($warning=alphano_runtime_warning()):?><aside class="runtime-warning" role="note" aria-labelledby="runtime-warning-title"><span class="runtime-warning-symbol" aria-hidden="true">!</span><div><p class="eyebrow">Requisito compatibile · Aggiornamento consigliato</p><h2 id="runtime-warning-title">Puoi continuare l’installazione</h2><p><?=alphano_escape($warning)?></p><a href="https://www.php.net/archive/2026.php" target="_blank" rel="noopener noreferrer">Leggi l’avviso ufficiale PHP ↗</a></div></aside><?php endif;?>
-<details<?=in_array(false,alphano_install_requirements(),true)?' open':''?>><summary>Requisiti del server</summary><ul><?php foreach(alphano_install_requirements() as $label=>$ok):?><li><?=$ok?'✓':'✕'?> <?=alphano_escape($label)?></li><?php endforeach;?></ul><p>Compatibilità: PHP 8.4 o successivo. Aggiornamenti di sicurezza consigliati: PHP 8.4.27+ oppure 8.5.12+.</p></details>
+<details<?=in_array(false,alphanoInstallRequirements(),true)?' open':''?>><summary>Requisiti del server</summary><ul><?php foreach(alphanoInstallRequirements() as $label=>$ok):?><li><?=$ok?'✓':'✕'?> <?=alphano_escape($label)?></li><?php endforeach;?></ul><p>Compatibilità: PHP 8.4 o successivo. Aggiornamenti di sicurezza consigliati: PHP 8.4.27+ oppure 8.5.12+.</p></details>
 
 <form method="post" autocomplete="off"><input type="hidden" name="_csrf" value="<?=alphano_escape($_SESSION['setup_csrf'])?>">
 <?php if(alphano_runtime_warning()!==''):?><label class="runtime-consent"><input type="checkbox" name="accept_php_risk" value="1" required <?=($_POST['accept_php_risk']??'')==='1'?'checked':''?>><span>Ho letto l’avviso, comprendo che il server potrebbe non includere tutte le correzioni di sicurezza e accetto il rischio di continuare l’installazione con questa versione PHP.</span></label><?php endif;?>

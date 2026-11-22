@@ -389,7 +389,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $prg = trim($_POST['programma'] ?? '');
             if ($cid && $pid && $prg && isset($pgcity[$cid][$pid]) && electionTime($cid)) {
                 $costo = (int)$listacity[$cid]['costoelezioni'];
-                $res   = inserisciCandidato($budget, $costo, $pid, $cid, $prg, $org);
+                $res   = inserisciCandidato($costo, $pid, $cid, $prg, $org);
                 $msg   = $res === true
                     ? 'Candidato correttamente inserito'
                     : (string)$res;

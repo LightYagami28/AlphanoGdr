@@ -97,28 +97,44 @@ trait FenStatusTrait
 
     private function resolveCastlingRight(string $right, bool $shredder, ?string $kingsFile, ?string $kingsRook, ?string $queensRook, string $castling) : array
     {
-      $lower = strtolower($right);
-      if ($shredder && $lower >= 'a' && $lower <= 'h') {
-        $kingsFile = $this->board->findSquareWithPiece(Board::getPieceOfColor('K', ctype_upper($right) ? 'w' : 'b'), true)->getFile();
-        if ($lower < $kingsFile) {
-          $type = ctype_upper($right) ? 'Q' : 'q';
-          if ($queensRook && $queensRook != $lower) {
-            throw new ParseException("Multiple queen's rook castling rights in string '$castling'.");
-          }
-          $queensRook = $lower;
-        } else {
-          $type = ctype_upper($right) ? 'K' : 'k';
-          if ($kingsRook && $kingsRook != $lower) {
-            throw new ParseException("Multiple king's rook castling rights in string '$castling'.");
-          }
-          $kingsRook = $lower;
+      if (!$this->isShredderFile($right, $shredder)) {
+        if (!$shredder) {
+          return [$right, $kingsFile, $kingsRook, $queensRook];
         }
-        return [$type, $kingsFile, $kingsRook, $queensRook];
+        throw new ParseException("Invalid castling right '$right' in string '$castling'.");
       }
+      return $this->resolveShredderRight($right, $castling, $kingsFile, $kingsRook, $queensRook);
+    }
+
+    private function isShredderFile(string $right, bool $shredder) : bool
+    {
       if (!$shredder) {
-        return [$right, $kingsFile, $kingsRook, $queensRook];
+        return false;
       }
-      throw new ParseException("Invalid castling right '$right' in string '$castling'.");
+      $lower = strtolower($right);
+      return $lower >= 'a' && $lower <= 'h';
+    }
+
+    private function resolveShredderRight(string $right, string $castling, ?string $kingsFile, ?string $kingsRook, ?string $queensRook) : array
+    {
+      $lower = strtolower($right);
+      $kingsFile = $this->board->findSquareWithPiece(Board::getPieceOfColor('K', ctype_upper($right) ? 'w' : 'b'), true)->getFile();
+      if ($lower < $kingsFile) {
+        $type = ctype_upper($right) ? 'Q' : 'q';
+        $queensRook = $this->assertUniqueRook($queensRook, $lower, $castling, "queen's");
+      } else {
+        $type = ctype_upper($right) ? 'K' : 'k';
+        $kingsRook = $this->assertUniqueRook($kingsRook, $lower, $castling, "king's");
+      }
+      return [$type, $kingsFile, $kingsRook, $queensRook];
+    }
+
+    private function assertUniqueRook(?string $current, string $rookFile, string $castling, string $side) : string
+    {
+      if ($current && $current != $rookFile) {
+        throw new ParseException("Multiple $side rook castling rights in string '$castling'.");
+      }
+      return $rookFile;
     }
 
     private function validateCastling(array $castlingRights, ?string $kingsFile, ?string $kingsRookFile, ?string $queensRookFile) : void

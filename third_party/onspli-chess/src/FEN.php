@@ -16,17 +16,18 @@ namespace Onspli\Chess;
 */
 class FEN
 {
-    private $board;
-    private $active = 'w';
-    private $enPassant;
-    private $halfmove = 0;
-    private $fullmove = 1;
+    // Lo stato e' condiviso con i trait che compongono la classe: deve essere protected.
+    protected $board;
+    protected $active = 'w';
+    protected $enPassant;
+    protected $halfmove = 0;
+    protected $fullmove = 1;
 
-    private $kingsRookFile = 'h';
-    private $queensRookFile = 'a';
-    private $kingsFile = 'e';
-    private $useShredderFen = false;
-    private $castlingRights = [ "K" => true, "Q" => true, "k" => true, "q" => true];
+    protected $kingsRookFile = 'h';
+    protected $queensRookFile = 'a';
+    protected $kingsFile = 'e';
+    protected $useShredderFen = false;
+    protected $castlingRights = [ "K" => true, "Q" => true, "k" => true, "q" => true];
 
     /**
     * Load FEN (or Shredder-FEN) or setup starting position.

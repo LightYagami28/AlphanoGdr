@@ -20,7 +20,7 @@ trait FenMoveTrait
         if ($target_square->getRankIndex() == 3 && $this->board->isSquareVacant($target_square->getRelativeSquare(0, -1))) {
           $origin_candidates[] = $target_square->getRelativeSquare(0, -2);
         }
-      } else if($piece == 'p' && !$isCapture) {
+      } elseif ($piece == 'p' && !$isCapture) {
         $origin_candidates = [$target_square->getRelativeSquare(0, 1)];
         if ($target_square->getRankIndex() == 4 && $this->board->isSquareVacant($target_square->getRelativeSquare(0, 1))) {
           $origin_candidates[] = $target_square->getRelativeSquare(0, 2);

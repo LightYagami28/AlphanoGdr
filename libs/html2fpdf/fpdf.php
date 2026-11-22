@@ -129,7 +129,8 @@ class FPDF
     /** Compatibilita' con la API storica in PascalCase. */
     public function __call(string $name,array $arguments): mixed {
       if ($name === 'FPDF') {
-        return $this->__construct(...$arguments);
+        $this->__construct(...$arguments);
+        return null;
       }
       $target=lcfirst($name);
       if (method_exists($this,$target)) {

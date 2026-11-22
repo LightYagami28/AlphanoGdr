@@ -4,7 +4,7 @@ require_once __DIR__.'/libequip.inc.php';
 
 function alphanoFortuneCatalog(): array
 {
- $settings=require __DIR__.'/../config/fortune.php';$items=[];$available=[];
+ $settings=require_once __DIR__.'/../config/fortune.php';$items=[];$available=[];
  foreach(db()->query("SELECT e.id,e.materiaprima,e.shortDesc,e.immagine FROM equip e JOIN tipo t ON t.id=e.tipo WHERE e.corp=0 AND e.approvato='1' AND e.visibile='1' AND t.tipoG='risorsa' ORDER BY e.id") as $row){ $available[$row['materiaprima']]??=$row; }
  foreach($settings['resources'] as $key=>$weight){
   $r=$available[$key]??null;
@@ -55,7 +55,7 @@ function alphanoFortunePlay(int $player,string $action,string $request,int $roun
    if(!$r){ throw new DomainException('Giro non trovato.',404); }
    if((int)$r['awarded_at']){ return alphanoFortuneState($player); }
    if(!db()->query('SELECT id FROM equip WHERE id=?',[$r['resource_id']])){ throw new DomainException('Risorsa non disponibile: contatta la gestione.',409); }
-   $settings=require __DIR__.'/../config/fortune.php';$qty=(int)alphanoFortuneDraw($settings['multipliers']);$ids=[];
+   $settings=require_once __DIR__.'/../config/fortune.php';$qty=(int)alphanoFortuneDraw($settings['multipliers']);$ids=[];
    for($i=0;$i<$qty;$i++){db()->execute('INSERT INTO equippg(uid,idpg) VALUES(?,?)',[$r['resource_id'],$player]);$ids[]=(int)db()->lastInsertId();}
    $now=time();db()->execute('UPDATE fortune_rounds SET multiplier=?,awarded_at=?,available_at=?,inventory_ids=? WHERE id=?',[$qty,$now,$now+$settings['cooldown'],json_encode($ids),$round]);
   }else { throw new DomainException('Operazione non valida.',400); }

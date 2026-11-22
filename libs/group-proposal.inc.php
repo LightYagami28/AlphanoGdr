@@ -30,4 +30,4 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
         $saved=(bool)$db->query("SELECT id FROM $table WHERE nome=? AND idmaster=? AND approvato=0",[$name,$idpg]);
     }catch(DomainException $e){$message=$e->getMessage();}catch(Throwable $e){error_log('[Proposta gruppo] '.$e->getMessage());$message='Impossibile inviare la proposta. Riprova.';}
 }
-require __DIR__.'/../templates/groups/proposal.php';
+require_once __DIR__.'/../templates/groups/proposal.php';

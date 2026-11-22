@@ -14,5 +14,5 @@ if ($cityName === '') {
 $cityRecord = connectDB()->query('SELECT id,city FROM city WHERE LOWER(city)=LOWER(?) LIMIT 1', [$cityName])[0] ?? null;
 if (!$cityRecord) { alphanoFail('Città non trovata.', 404); }
 $cityName = (string)$cityRecord['city'];
-require __DIR__ . '/../../templates/cities/assembly.php';
+require_once __DIR__ . '/../../templates/cities/assembly.php';
 closePage();

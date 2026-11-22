@@ -14,5 +14,5 @@ if (($_POST['modifica'] ?? '')==='1') {
 } else {
     $editor=['title'=>'Modifica messaggio','board'=>$board,'thread'=>$thread,'id'=>$id,
         'subject'=>$original['oggetto'],'message'=>$original['messaggio'],'modify'=>true,'notify'=>false];
-    require dirname(__DIR__,2).'/templates/forum/editor.php';
+    require_once dirname(__DIR__,2).'/templates/forum/editor.php';
 }

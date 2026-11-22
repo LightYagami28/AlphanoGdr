@@ -13,5 +13,5 @@ function alphanoEmailUrl(string $path='/main.php'):string {
 function alphanoEmailRender(string $subject,string $body,string $category='alerts',string $path='/main.php',bool $optional=false):string {
  $art=in_array($category,['mail','trade','alerts','welcome','security'],true)?$category:(alphanoEmailCategories()[$category][2]??'alerts');
  $h=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
- ob_start();require dirname(__DIR__).'/templates/email/notification.php';return ob_get_clean();
+ ob_start();require_once dirname(__DIR__).'/templates/email/notification.php';return ob_get_clean();
 }

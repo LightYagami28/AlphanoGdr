@@ -25,7 +25,7 @@ const ALPHANO_RACE_LEGACY_SPIRIT = 8;
 function alphanoConfig(string $key): mixed
 {
     static $config;
-    $config ??= (static function (): array { return require dirname(__DIR__) . '/config/app.php'; })();
+    $config ??= (static function (): array { return require_once dirname(__DIR__) . '/config/app.php'; })();
     if (!array_key_exists($key, $config)) { throw new InvalidArgumentException('Configurazione sconosciuta: ' . $key); }
     return $config[$key];
 }
@@ -211,4 +211,5 @@ if (PHP_SAPI !== 'cli') { set_exception_handler(static function (Throwable $exce
     foreach (headers_list() as $header) { if (stripos($header, 'Content-Type: application/json') === 0) { $json = true; } }
     alphanoFail('Operazione non completata. Riprova tra poco. Codice assistenza: '.$reference, 500, $json);
 }
-); }
+); 
+}

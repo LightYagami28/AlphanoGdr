@@ -3,8 +3,8 @@ declare(strict_types=1);
 function alphanoNavigation(array $items): array
 {
     require_once __DIR__.'/appearance.inc.php';$appearance=alphanoAppearance();
-    $groups=require dirname(__DIR__).'/config/navigation.php';
-    $art=require dirname(__DIR__).'/config/navigation-icons.php';
+    $groups=require_once dirname(__DIR__).'/config/navigation.php';
+    $art=require_once dirname(__DIR__).'/config/navigation-icons.php';
     $labels=['Razze'=>'Elenco razze','Organizzazioni'=>'Elenco organizzazioni','Corporazioni'=>'Elenco corporazioni',
         'Bacheca Org'=>'Forum dell’organizzazione','Bacheca Corp'=>'Forum della corporazione',
         'Admin Org'=>'Amministrazione organizzazione','Admin Corp'=>'Amministrazione corporazione',

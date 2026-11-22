@@ -48,7 +48,7 @@ function rpgCombatChooseNpc(int $id,int $sid,int $round,string $decision):?array
  return $choices[0]??null;
 }
 function rpgCombatSettings():array {
- $rules=require __DIR__.'/../config/quest-rules.php';foreach(rpg_settings() as $key=>$value){ if(str_starts_with($key,'scene_')&&array_key_exists(substr($key,6),$rules)){ $rules[substr($key,6)]=$value; } }return $rules;
+ $rules=require_once __DIR__.'/../config/quest-rules.php';foreach(rpg_settings() as $key=>$value){ if(str_starts_with($key,'scene_')&&array_key_exists(substr($key,6),$rules)){ $rules[substr($key,6)]=$value; } }return $rules;
 }
 function rpgCombatContext(array $sheet,float $scale=1,string $action=''):string {
  if($scale<=.5){ return rpgCompactSkillContext($sheet,$action,$scale); }

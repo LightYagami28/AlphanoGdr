@@ -3,7 +3,7 @@ declare(strict_types=1);
 /** Display terminology only: persisted money amounts and protocol keys stay unchanged. */
 function alphanoCurrencyName(): string
 {
-    $value=function_exists('alphanoConfig')?alphanoConfig('currency_name'):(require dirname(__DIR__).'/config/app.php')['currency_name'];
+    $value=function_exists('alphanoConfig')?alphanoConfig('currency_name'):(require_once dirname(__DIR__).'/config/app.php')['currency_name'];
     return is_string($value)&&trim($value)!==''?$value:'Corone';
 }
 function alphanoCurrencyText(string $text): string

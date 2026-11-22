@@ -89,7 +89,7 @@ function alphanoAppearanceSave(array $input,array $files): void {
     try{
         if(!hash_equals(alphanoAppearanceRevision(),(string)($input['revision']??''))){ throw new DomainException('Le impostazioni sono cambiate in un’altra pagina. Ricarica prima di salvare.'); }
         $file=$dir.'/appearance.json';$a=is_file($file)?json_decode(file_get_contents($file),true,32,JSON_THROW_ON_ERROR):[];
-        $section=$input['section']??'';$target=$input['target']??'';$catalog=alphanoAppearanceCatalog();$groups=require dirname(__DIR__).'/config/navigation.php';
+        $section=$input['section']??'';$target=$input['target']??'';$catalog=alphanoAppearanceCatalog();$groups=require_once dirname(__DIR__).'/config/navigation.php';
         if(!is_string($target)){ throw new DomainException('Voce non valida.'); }
         $valid=match($section){'defaults','home'=>$target==='','groups'=>isset($groups[$target]),'items'=>isset(alphanoAppearanceMenuCatalog()[$target]),'pages'=>isset($catalog[$target]),default=>false};
         if(!$valid){ throw new DomainException('Seleziona una voce del catalogo.'); }

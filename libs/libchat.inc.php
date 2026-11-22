@@ -36,7 +36,7 @@ if (!function_exists('db')) {
 
 // Catalogo immagini inizialmente vuoto, configurabile dal gestore.
 $GLOBALS['arrimgs'] = [];
-include __DIR__ . '/libchat_imgs.inc.php';
+include_once __DIR__ . '/libchat_imgs.inc.php';
 /** helper retro-compatibile: restituisce l’array completo */
 function getChatImages(): array
 {

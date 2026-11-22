@@ -14,7 +14,8 @@ function alphanoPolicyFields():array{return [
  'rights'=>['Diritti e come esercitarli','Scrivere al contatto privacy per accesso, rettifica, cancellazione, limitazione, portabilità e opposizione nei casi previsti. Il consenso può essere revocato. È possibile proporre reclamo al Garante per la protezione dei dati personali.'],
  'cookies_extra'=>['Ulteriori cookie e strumenti del proprio hosting','Elencare nome, fornitore, finalità, categoria e durata dei cookie aggiuntivi realmente presenti. Nessuno nel motore base: verificare gli eventuali strumenti aggiunti dal provider o dal gestore.'],
  'additional'=>['Ulteriori informazioni','Descrivere età minima, eventuali decisioni automatizzate, contatti e particolarità effettive del proprio gioco.']
-];}
+];
+}
 function alphanoPolicySections():array{
  $v=alphanoManagedRead('privacy-policy');$out=[];
  foreach(alphanoPolicyFields() as $key=>[$title]){ if(trim((string)($v[$key]??''))!==''){ $out[]=[$title,$v[$key]]; } }

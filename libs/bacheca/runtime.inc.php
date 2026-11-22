@@ -23,5 +23,5 @@ function bachecaLegacyRender(int $board=0,int $thread=0,string $location='',stri
     $forum=['mode'=>'board','title'=>'Bacheche','apiBaseUrl'=>'/api/bacheche',
         'currentUserId'=>(int)$user['id'],'isAdmin'=>!empty($user['admin']),'csrfToken'=>alphanoCsrfToken(),
         'initialBoard'=>$board,'initialThread'=>$thread,'initialLocation'=>$location,'message'=>$message];
-    require dirname(__DIR__,2).'/templates/forum/index.php';
+    require_once dirname(__DIR__,2).'/templates/forum/index.php';
 }

@@ -21,7 +21,7 @@ function alphanoViewId(?string $path = null): string
 function alphanoThemeAssets(): string
 {
     $version = alphanoThemeVersion();
-    $ui = json_encode(require dirname(__DIR__) . '/config/ui.php', JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE);
+    $ui = json_encode(require_once dirname(__DIR__) . '/config/ui.php', JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE);
     return alphanoFaviconLinks().'<meta name="alphano-currency" content="'.alphanoEscape(alphanoCurrencyName()).'"><script src="/assets/currency.js?v='.filemtime(dirname(__DIR__).'/assets/currency.js').'"></script><script src="/assets/fallback.js?v='.filemtime(dirname(__DIR__).'/assets/fallback.js').'" defer></script>'.'<script src="/assets/appearance.js?v='.filemtime(dirname(__DIR__).'/assets/appearance.js').'" defer></script>'.'<script type="application/json" id="alphano-ui-config">' . $ui . '</script>'
         . '<script src="/js/page-heading.js?v=' . filemtime(dirname(__DIR__) . '/js/page-heading.js') . '" defer></script>'
         . '<script src="/js/ui.js?v=' . filemtime(dirname(__DIR__) . '/js/ui.js') . '" defer></script>'
@@ -51,7 +51,7 @@ function alphanoThemeDocument(string $html): string
     }, $html);
     if (stripos($html, '<body') !== false) {
         $view = alphanoViewId();
-        $manifest = require dirname(__DIR__) . '/config/views.php';
+        $manifest = require_once dirname(__DIR__) . '/config/views.php';
         $styles = $manifest[$view] ?? '';
         $page=alphanoAppearancePage();$style='';
         foreach(['background','header'] as $kind){ if($page[$kind]!==''){ $style.='--custom-'.$kind.':url("'.alphanoEscape($page[$kind]).'");'; } }

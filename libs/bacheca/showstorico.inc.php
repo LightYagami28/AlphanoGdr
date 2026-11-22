@@ -11,4 +11,4 @@ require_once dirname(__DIR__).'/profile-art.inc.php';
 $history=getStorico($id);
 foreach($history as &$entry) { $entry['portrait']=alphanoProfilePortrait(array_merge($entry,['id'=>(int)$entry['idpg']])); }
 unset($entry);
-require dirname(__DIR__,2).'/templates/forum/history.php';
+require_once dirname(__DIR__,2).'/templates/forum/history.php';

@@ -24,5 +24,5 @@ if ($subject!=='' || $message!=='') {
     }
     $editor=['title'=>$thread?'Rispondi':'Nuova discussione','board'=>$board,'thread'=>$thread,'id'=>0,
         'subject'=>'','message'=>$quote,'modify'=>false,'notify'=>!empty($parent['segnalazione'])];
-    require dirname(__DIR__,2).'/templates/forum/editor.php';
+    require_once dirname(__DIR__,2).'/templates/forum/editor.php';
 }

@@ -40,7 +40,8 @@ function alphanoManagementDocument(string $html):string{
  $h=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');$rail='<aside class="management-rail" id="management-navigation" aria-label="Navigazione amministrativa"><div class="management-rail-heading"><small>AREA DI LAVORO</small><strong>Strumenti e sezioni</strong></div><label class="management-search">Cerca uno strumento<input type="search" placeholder="Nome o funzione…" data-management-search autocomplete="off"></label><section class="management-local" data-management-local hidden><h2>In questa pagina</h2><div data-management-local-items></div></section><nav aria-label="Pannelli di gestione">';
  foreach($groups as $key=>$group){$open=$key===$scope||($scope==='master'&&$key==='ia'&&str_contains($path,'master-'));$rail.='<details class="management-group" data-default-open="'.($open?'1':'0').'"'.($open?' open':'').'><summary><img src="/assets/default-nav-'.$h($group['icon']).'.svg" alt="" width="26" height="26"><span>'.$h($group['title']).'</span></summary><div>';
  foreach($group['items'] as $item){ $rail.='<a class="management-destination" href="'.$h($item['url']).'"'.($current($item['url'])?' aria-current="page"':'').'><strong>'.$h($item['label']).'</strong><small>'.$h($item['description']).'</small></a>'; }
- $rail.='</div></details>';}
+ $rail.='</div></details>';
+ }
  $rail.='</nav><p class="management-search-empty" data-management-empty hidden>Nessuna sezione corrisponde alla ricerca.</p><a class="management-return" href="/main.php">← Torna al gioco</a></aside>';
  $html=preg_replace('/<body\b/i','<body data-management-shell="'.$h($scope).'"',$html,1);
  $html=preg_replace('/(<body\b[^>]*>)/i','$1<a class="management-skip" href="#management-content">Vai al contenuto</a>'.$rail,$html,1);

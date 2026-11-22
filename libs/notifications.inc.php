@@ -176,9 +176,11 @@ function alphanoActivityNotifications(int $recipient): array
             if(isset($recorded[(int)$row['id']])){ continue; }
             $version=[(int)$row['stato'],(int)$row['quantita'],(int)$row['interessi'],(int)$row['restituiti'],(int)$row['pgorg'],(int)$row['pgcorp']];
             if($org && (int)$row['org']===$org){ $add(alphanoActivityKey('loan-org',$row['id'],$version),'organizzazioni','Prestito: '.$row['corp_name'],
-                $row['quantita'].alphanoCurrencyText(' corone · ').($states[(int)$row['stato']] ?? 'Aggiornato'),'/organizzazioni/admin.php#tab-finanze',(int)$row['data'],1); }
+                $row['quantita'].alphanoCurrencyText(' corone · ').($states[(int)$row['stato']] ?? 'Aggiornato'),'/organizzazioni/admin.php#tab-finanze',(int)$row['data'],1); 
+                }
             if($corp && (int)$row['corp']===$corp){ $add(alphanoActivityKey('loan-corp',$row['id'],$version),'corporazioni','Prestito: '.$row['org_name'],
-                $row['quantita'].alphanoCurrencyText(' corone · ').($states[(int)$row['stato']] ?? 'Aggiornato'),'/corporazioni/admin.php#finanze',(int)$row['data'],1); }
+                $row['quantita'].alphanoCurrencyText(' corone · ').($states[(int)$row['stato']] ?? 'Aggiornato'),'/corporazioni/admin.php#finanze',(int)$row['data'],1); 
+                }
         }
     }
     if((int)$user['corporazione']>0 && (!empty($user['admincorporazione']) || !empty($user['admintrasfcorp']))){
@@ -205,9 +207,11 @@ function alphanoActivityNotifications(int $recipient): array
                 $title=($change?'Modifica oggetto: ':'Nuovo oggetto: ').$row['shortDesc'];
                 $created=(int)($row['datamodifica'] ?: $row['datacreazione']);
                 if($isAcademy){ $add(alphanoActivityKey($change?'academy-item-change':'academy-item',$row['id'],$version),
-                    'accademia',$title,'Valutazione Accademia','/admin/accademia.php#'.($change?'modifiche':'proposte'),$created,1); }
+                    'accademia',$title,'Valutazione Accademia','/admin/accademia.php#'.($change?'modifiche':'proposte'),$created,1); 
+                    }
                 if($catalogCorp && (int)$row['corp']===$catalogCorp){ $add(alphanoActivityKey($change?'catalog-change':'catalog-item',$row['id'],$version),
-                    'corporazioni',$title,'Catalogo · In valutazione Accademia','/corporazioni/catalogo.php?corp='.$catalogCorp,$created,1); }
+                    'corporazioni',$title,'Catalogo · In valutazione Accademia','/corporazioni/catalogo.php?corp='.$catalogCorp,$created,1); 
+                    }
             }
         }
     }

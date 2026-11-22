@@ -31,7 +31,8 @@ function rpgSaveMalus(string $kind,int $id,mixed $input,string $reason,int $acto
  return rpg_atomic(function()use($kind,$id,$values,$reason,$actor){$identity=rpg_identity($kind,$id,true);$before=rpgMalusState($kind,$id);if(!empty($before['silver_contact'])&&empty($values['silver_contact'])){ $values['silver_after']=1; }connectDB()->execute('INSERT INTO rpgMalusState(owner_kind,owner_id,conditions,reason,actor_id,updated_at) VALUES(?,?,?,?,?,?) ON DUPLICATE KEY UPDATE conditions=VALUES(conditions),reason=VALUES(reason),actor_id=VALUES(actor_id),updated_at=VALUES(updated_at)',[$kind,$id,rpg_json($values),$reason,$actor,time()]);
  // An explicit staff edit replaces old counters in every active scene for this actor.
  foreach(connectDB()->query("SELECT c.session_id,c.state FROM ai_quest_cast c JOIN ai_quests q ON q.session_id=c.session_id WHERE c.kind=? AND c.actor_id=? AND q.status='active' FOR UPDATE",[$kind,$id]) as $row){$s=rpg_decode($row['state']);$s['racial_malus']=$values;connectDB()->execute('UPDATE ai_quest_cast SET state=? WHERE session_id=? AND kind=? AND actor_id=?',[rpg_json($s),$row['session_id'],$kind,$id]);}
- rpg_admin_audit($actor,'save_malus',$kind.':'.$id,$before,['conditions'=>$values,'reason'=>$reason]);return rpg_sheet($kind,$id);});
+ rpg_admin_audit($actor,'save_malus',$kind.':'.$id,$before,['conditions'=>$values,'reason'=>$reason]);return rpg_sheet($kind,$id);
+ });
 }
 /** A single resistance roll, persisted in the verdict. Only the relevant acquired skill applies. */
 function rpgDominationResolution(int $sourceRace,int $targetRace,array $owned,int $roll,array $chances=[]):array {

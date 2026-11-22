@@ -85,7 +85,8 @@ function alphanoMailConversation(array $current,int $viewer):array {
   if(count($linked)>=25){ break; }
   if(isset($linked[(int)$letter['id']])){ continue; }
   if(preg_match('~^<span class="mail-parent-reference" id="mail-parent-(\d+)"></span>~',(string)$letter['messaggio'],$m)&&isset($linked[(int)$m[1]])){$linked[(int)$letter['id']]=$letter;$added=true;}
- }}while($added&&count($linked)<25);
+ }
+ }while($added&&count($linked)<25);
  $thread=array_values($linked);usort($thread,static fn($a,$b)=>(int)$a['id']<=>(int)$b['id']);return $thread;
 }
 function alphanoMailBubbleParts(string $message):array {

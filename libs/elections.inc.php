@@ -18,7 +18,9 @@ function alphanoElectionsSummaries(?int $now=null):array {
  $now??=time();$ready=alphanoElectionsReady();$rounds=[];
  if($ready){ foreach(connectDB()->query("SELECT s.id,s.city_id,s.civic_state,s.start_elezioni,s.end_elezioni,
   (SELECT COUNT(*) FROM civic_election_candidates x JOIN utenti u ON u.id=x.player_id JOIN araldiche a ON a.id=u.araldica WHERE x.round_id=s.id AND x.eligible=1 AND u.bloccato=0 AND u.puntif>0 AND a.city=s.city_id) AS candidates
-  FROM storicoelezioni s JOIN (SELECT city_id,MAX(id) AS id FROM storicoelezioni WHERE civic_state IN('candidacy','voting','runoff') GROUP BY city_id) recent ON recent.id=s.id") as $r){ $rounds[(int)$r['city_id']]=$r; } }
+  FROM storicoelezioni s JOIN (SELECT city_id,MAX(id) AS id FROM storicoelezioni WHERE civic_state IN('candidacy','voting','runoff') GROUP BY city_id) recent ON recent.id=s.id") as $r){ $rounds[(int)$r['city_id']]=$r; 
+  } 
+  }
  $out=[];
  foreach(connectDB()->query('SELECT id FROM city ORDER BY id') as $c){
   $id=(int)$c['id'];$r=$rounds[$id]??null;$phase=$r['civic_state']??($ready?'waiting':'unavailable');

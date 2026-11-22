@@ -14,7 +14,10 @@ function alphanoRentalExpire(?string $key=null):void {
   $db->execute('INSERT INTO registrazionichat(registrazione,testo) SELECT id,? FROM registrazioni WHERE chat=?',[$html,$room['chat_key']]);
   $db->execute('UPDATE utenti SET chat=?,posizione=?,lastmove=? WHERE chat=?',[$room['host_key'],$host,time(),$room['chat_key']]);
   $db->execute('UPDATE chat_rentals SET closed_at=?,word_lookup=NULL WHERE id=?',[time(),$room['id']]);$db->commit();
- }catch(Throwable $e){if($db->inTransaction()){ $db->rollBack(); }throw $e;}}
+ }catch(Throwable $e){if($db->inTransaction()){ $db->rollBack(); 
+ }throw $e;
+ }
+ }
 }
 function alphanoRentalInfo(string $key,int $pg):?array {
  if(!preg_match('/^rent_[a-f0-9]{40}$/D',$key)){ return null; }

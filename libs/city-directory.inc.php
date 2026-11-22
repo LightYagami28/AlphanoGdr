@@ -8,6 +8,43 @@ require_once __DIR__.'/hierarchy-presentation.inc.php';
 require_once __DIR__.'/public-guides.inc.php';
 require_once __DIR__.'/elections.inc.php';
 
+function alphanoCityDirectoryEnrich(array &$city,array $viewer,int $viewerCity,int $pending,int $selected,array $mayors,array $elections,array $titles,?array $chosen):?array {
+ $id=(int)$city['id'];
+ $city['leader_title']=$titles[$id]??'Governante';
+ $city['election']=$elections[$id];
+ $city['mayors']=array_values(array_filter($mayors,static fn(array $mayor):bool=>(int)$mayor['city']===$id));
+ $city['can_manage']=!empty($viewer['admin'])||(!empty($viewer['sindaco'])&&$viewerCity===$id);
+ $city['is_citizen']=$viewerCity===$id;
+ $city['artwork']=alphanoCityArtwork((string)$city['city']);
+ $city['pending_application']=$pending===$id;
+ $city['can_apply']=!$city['is_citizen']&&$pending===0;
+ return $id===$selected?$city:$chosen;
+}
+function alphanoCityDirectorySelected($db,int $selected,array $chosen):array {
+ // LEFT JOIN includes the mayoral office, which legitimately has no branch.
+ $offices=$db->query('SELECT a.id,a.nome,a.stipendio,a.descrizione,a.prima,a.livello,
+     a.ramo AS branch_id,COALESCE(r.livello,2147483647) AS branch_level,r.nome AS branch_name FROM araldiche a LEFT JOIN ramiaraldiche r ON r.id=a.ramo AND r.city=a.city
+     WHERE a.city=? ORDER BY COALESCE(r.livello,0),COALESCE(r.nome,\'\'),a.livello DESC,a.nome,a.id',[$selected]);
+ foreach($offices as &$office){ $office['badge']=alphanoBadgeUrl('cariche',(int)$office['id']); }
+ unset($office);
+ $citizens=$db->query('SELECT u.id,u.nome,u.sindaco,u.razza,u.alternate_form,u.sesso,u.avatar,u.avatar2,a.nome AS office_name,
+     a.id AS office_id,r.nome AS branch_name,z.nome AS race_name
+     FROM utenti u JOIN araldiche a ON a.id=u.araldica
+     LEFT JOIN ramiaraldiche r ON r.id=a.ramo AND r.city=a.city
+     LEFT JOIN razze z ON z.id=u.razza WHERE a.city=? ORDER BY u.sindaco DESC,u.nome,u.id',[$selected]);
+ foreach($citizens as &$citizen){
+  $race=alphanoVisibleRace($citizen);
+  $citizen['portrait_data']=alphanoHierarchyMember($citizen);
+  $citizen['race_name']=GetRazza($race)??'';
+  $citizen['race_icon']=alphanoRaceIcon();
+ }
+ unset($citizen);
+ $byOffice=[];foreach($citizens as $citizen){ $byOffice[(int)$citizen['office_id']][]=$citizen['portrait_data']; }
+ foreach($offices as &$office){$office['badge_small']=alphanoHierarchySmallBadge($office['badge']);$office['members']=$byOffice[(int)$office['id']]??[];$office['description_html']=processText((string)$office['descrizione']);}
+ unset($office);
+ $chosen['statute_html']=processText((string)$chosen['statuto']);
+ return [$chosen,$offices,$citizens];
+}
 /** Public city data only: proposals, finances and applications remain in their protected controllers. */
 function alphanoCityDirectory(array $viewer, int $selected = 0): array
 {
@@ -24,44 +61,11 @@ function alphanoCityDirectory(array $viewer, int $selected = 0): array
     $viewerCity = (int)($db->query('SELECT city FROM araldiche WHERE id=?', [(int)($viewer['araldica'] ?? 0)])[0]['city'] ?? 0);
     $chosen = null;
     $elections=alphanoElectionsSummaries();$titles=alphanoGovernanceCityTitles();
-    foreach ($cities as &$city) {
-        $id = (int)$city['id'];
-        $city['leader_title']=$titles[$id]??'Governante';
-        $city['election']=$elections[$id];
-        $city['mayors'] = array_values(array_filter($mayors, static fn(array $mayor): bool => (int)$mayor['city'] === $id));
-        $city['can_manage'] = !empty($viewer['admin']) || (!empty($viewer['sindaco']) && $viewerCity === $id);
-        $city['is_citizen'] = $viewerCity === $id;
-        $city['artwork']=alphanoCityArtwork();
-        $city['pending_application']=$pending===$id;
-        $city['can_apply']=!$city['is_citizen']&&$pending===0;
-        if ($id === $selected) { $chosen = $city; }
-    }
+    foreach ($cities as &$city) { $chosen=alphanoCityDirectoryEnrich($city,$viewer,$viewerCity,$pending,$selected,$mayors,$elections,$titles,$chosen); }
     unset($city);
     $offices = [];
     $citizens = [];
-    if ($chosen !== null) {
-        // LEFT JOIN includes the mayoral office, which legitimately has no branch.
-        $offices = $db->query('SELECT a.id,a.nome,a.stipendio,a.descrizione,a.prima,a.livello,
-            a.ramo AS branch_id,COALESCE(r.livello,2147483647) AS branch_level,r.nome AS branch_name FROM araldiche a LEFT JOIN ramiaraldiche r ON r.id=a.ramo AND r.city=a.city
-            WHERE a.city=? ORDER BY COALESCE(r.livello,0),COALESCE(r.nome,\'\'),a.livello DESC,a.nome,a.id', [$selected]);
-        foreach ($offices as &$office) { $office['badge'] = alphanoBadgeUrl('cariche', (int)$office['id']); }
-        unset($office);
-        $citizens = $db->query('SELECT u.id,u.nome,u.sindaco,u.razza,u.alternate_form,u.sesso,u.avatar,u.avatar2,a.nome AS office_name,
-            a.id AS office_id,r.nome AS branch_name,z.nome AS race_name
-            FROM utenti u JOIN araldiche a ON a.id=u.araldica
-            LEFT JOIN ramiaraldiche r ON r.id=a.ramo AND r.city=a.city
-            LEFT JOIN razze z ON z.id=u.razza WHERE a.city=? ORDER BY u.sindaco DESC,u.nome,u.id', [$selected]);
-        foreach ($citizens as &$citizen) {
-            $race = alphanoVisibleRace($citizen);
-            $citizen['portrait_data']=alphanoHierarchyMember($citizen);
-            $citizen['race_name'] = GetRazza($race)??'';
-            $citizen['race_icon'] = alphanoRaceIcon();
-        }
-        unset($citizen);
-        $byOffice=[];foreach($citizens as $citizen){ $byOffice[(int)$citizen['office_id']][]=$citizen['portrait_data']; }
-        foreach($offices as &$office){$office['badge_small']=alphanoHierarchySmallBadge($office['badge']);$office['members']=$byOffice[(int)$office['id']]??[];$office['description_html']=processText((string)$office['descrizione']);}unset($office);
-        $chosen['statute_html'] = processText((string)$chosen['statuto']);
-    }
+    if ($chosen !== null) { [$chosen,$offices,$citizens]=alphanoCityDirectorySelected($db,$selected,$chosen); }
     $chart=alphanoHierarchyChart($offices,[],true);
     return ['pending_application'=>$pending,'chart'=>$chart,'cities' => $cities, 'selected' => $chosen, 'offices' => $offices, 'citizens' => $citizens];
 }

@@ -7,11 +7,18 @@ function alphanoNextLunarBoundary(int $now,bool $full):?int {
  return null;
 }
 function alphanoMetamorphosis(array $user,?int $now=null):?array {
- $now??=time();if((int)$user['puntif']<=0||!empty($user['bloccato'])){ return null; }
- $pending=connectDB()->query("SELECT ready_at FROM lineage_members WHERE player_id=? AND kind='vampire' AND status='pending'",[(int)$user['id']])[0]??null;
- if($pending){ return ['kind'=>'vampire','label'=>'Trasformazione programmata','detail'=>'Trasformazione in vampiro tra','deadline'=>(int)$pending['ready_at'],'server_time'=>$now,'due'=>'La trasformazione è imminente…']; }
- $state=alphanoLycanState($user);
- if(!$state['eligible']||$state['ancestral']){ return null; }
- $wolf=$state['fullMoon'];$deadline=alphanoNextLunarBoundary($now,!$wolf);
- return ['kind'=>'lycan','label'=>'Trasformazione periodica','detail'=>$wolf?'Ritorno alla forma umana tra':'Trasformazione alla Luna Piena tra','deadline'=>$deadline,'server_time'=>$now,'due'=>'La metamorfosi è imminente…'];
+ $now??=time();$result=null;
+ if((int)$user['puntif']>0&&empty($user['bloccato'])){
+  $pending=connectDB()->query("SELECT ready_at FROM lineage_members WHERE player_id=? AND kind='vampire' AND status='pending'",[(int)$user['id']])[0]??null;
+  if($pending){ $result=['kind'=>'vampire','label'=>'Trasformazione programmata','detail'=>'Trasformazione in vampiro tra','deadline'=>(int)$pending['ready_at'],'server_time'=>$now,'due'=>'La trasformazione è imminente…']; }
+  else{
+   $state=alphanoLycanState($user,$now);
+   if($state['eligible']&&!$state['ancestral']){
+    $wolf=$state['fullMoon'];$deadline=alphanoNextLunarBoundary($now,!$wolf);
+    if($wolf){ $detail='Ritorno alla forma umana tra'; }else{ $detail='Trasformazione alla Luna Piena tra'; }
+    $result=['kind'=>'lycan','label'=>'Trasformazione periodica','detail'=>$detail,'deadline'=>$deadline,'server_time'=>$now,'due'=>'La metamorfosi è imminente…'];
+   }
+  }
+ }
+ return $result;
 }

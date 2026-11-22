@@ -7,7 +7,7 @@ function Carica(order){
     const headerCell=([label,field])=>`<th scope="col" aria-sort="${sortDirection(field)}"><button class="ui-sort" type="button" data-sort="${field}">${label}${sortArrow(field)}</button></th>`;
   const rowHtml=r=>`<tr>
   <td class="search-character"><img class="search-portrait" src="${esc(r.portrait)}" data-mail-fallback="${esc(r.portrait_default)}" alt="" loading="lazy"><a href="/profili/?Id=${Number(r.idpg)}"><strong>${esc(r.nome)}</strong></a></td>
-  <td data-label="Razza"><span class="ui-person"><img class="race-emblem" src="${raceIcon(r.imgrazza)}" width="26" height="26" alt="${esc(r.razza)}" title="${esc(r.razza)}"> ${esc(r.razza)}</span></td>
+  <td data-label="Razza"><span class="ui-person"><img class="race-emblem" src="${raceIcon()}" width="26" height="26" alt="${esc(r.razza)}" title="${esc(r.razza)}"> ${esc(r.razza)}</span></td>
   <td data-label="Allineamento">${esc(r.allineamento)}</td>
   <td data-label="Cariche"><span class="ui-badge-row">${badge(r.org_url,r.org,r.descorg)}${badge(r.corp_url,r.corp,r.desccorp)}${badge(r.araldica_url,r.araldica,r.descaral)}</span></td>
   <td data-label="Posizione">${esc(r.posizione)}</td></tr>`;

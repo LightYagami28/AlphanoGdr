@@ -113,8 +113,8 @@ foreach ($notesRaw as $n) {
 // 6) Composizione JSON
 // ────────────────────────────────────────────────────────────────────
 $lineageRace = alphanoProfileLineageRace($row);
-$output = [
-    'sidebar_art_url' => alphanoProfileDefaultBanner(),
+return [
+    'sidebar_art_url' => alphanoProfileDefaultBanner($lineageRace, (string)$row['sesso']),
     'lineage_race_label' => GetRazza($lineageRace),
     'id'           => (int)$row['id'],
     'nome'         => $row['nome'],
@@ -178,5 +178,4 @@ $output = [
 // ────────────────────────────────────────────────────────────────────
 // 7) Output JSON
 // ────────────────────────────────────────────────────────────────────
-return $output;
 });

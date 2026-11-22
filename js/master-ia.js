@@ -197,10 +197,10 @@
       if(chat!==originalChat){return;}
       try{
         const d=await api('job',{id:result.job.id});failures.value=0;
-        if(['queued','running'].includes(d.job.status)){previewTimer=setTimeout(()=>void previewPoll(result,originalChat,failures),2000);return;}
+        if(['queued','running'].includes(d.job.status)){previewTimer=setTimeout(()=>{previewPoll(result,originalChat,failures);},2000);return;}
         $('ai-preview').textContent=d.job.result?.testo||d.job.error||'Prova interrotta.';$('ai-test-submit').disabled=false;await load();await overview();
       }catch(e){
-        if(++failures.value<3){previewTimer=setTimeout(()=>void previewPoll(result,originalChat,failures),4000);}
+        if(++failures.value<3){previewTimer=setTimeout(()=>{previewPoll(result,originalChat,failures);},4000);}
         else{$('ai-test-submit').disabled=false;feedback('Connessione interrotta ('+e.message+'). La richiesta resta visibile nell’attività del luogo.');}
       }
     };

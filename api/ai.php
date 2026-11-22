@@ -10,7 +10,7 @@ try {
     $method=$_SERVER['REQUEST_METHOD'];
     if (!in_array($method,['GET','POST'],true)) { throw new DomainException('Metodo non consentito.',405); }
     $multipart=$method==='POST' && str_contains($_SERVER['CONTENT_TYPE']??'','multipart/form-data');
-    $in=$method==='POST'?($multipart?$_POST:alphanoRequestJson()):$_GET;
+    if($method!=='POST'){ $in=$_GET; }elseif($multipart){ $in=$_POST; }else{ $in=alphanoRequestJson(); }
     if ($method==='POST') { alphanoRequireCsrf(true); }
     $action=aiField($in,'action',30,true);$db=aiDb();
     if ($action==='portrait' && $method==='GET') {
@@ -145,7 +145,7 @@ try {
     $db->commit();echo json_encode(['ok'=>true]);
 } catch (Throwable $e) {
     if (isset($db) && $db->inTransaction()) { $db->rollBack(); }
-    $status=$e instanceof DomainException?$e->getCode():($e instanceof JsonException?400:500);
+    if($e instanceof DomainException){ $status=$e->getCode(); }elseif($e instanceof JsonException){ $status=400; }else{ $status=500; }
     if ($status<400 || $status>599) { $status=500; }
     if ($status===500) { error_log('[Master IA API] '.$e->getMessage()); }
     http_response_code($status);

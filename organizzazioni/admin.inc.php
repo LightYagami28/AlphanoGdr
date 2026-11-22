@@ -81,6 +81,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         case 'modifypvt':
             $activeTab = 'pvt';
             break;
+
+        default:
+            break;
     }
 }
 
@@ -200,13 +203,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $last  = GetLastCaricaOrg($org);
             if ($pg && $last !== null) {
                 $ok  = AdmitPGOrg($pg, $org, $last, $admit);
-                $msg = $ok
-                    ? ($admit
-                        ? GetPGFromID($pg) . " ammesso nell'Organizzazione"
-                        : GetPGFromID($pg) . " respinto con successo")
-                    : ($admit
-                        ? "Errore nell'ammissione di " . GetPGFromID($pg)
-                        : "Errore nella respinsione di " . GetPGFromID($pg));
+                if ($ok) {
+                    $msg = $admit ? GetPGFromID($pg) . " ammesso nell'Organizzazione" : GetPGFromID($pg) . " respinto con successo";
+                } elseif ($admit) {
+                    $msg = "Errore nell'ammissione di " . GetPGFromID($pg);
+                } else {
+                    $msg = "Errore nella respinsione di " . GetPGFromID($pg);
+                }
             } else {
                 $msg = $last === null
                     ? 'Prima carica non impostata'
@@ -460,6 +463,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $activeTab = 'iscritti';
                 break;
+
+        default:
+            break;
     }
     }
 
@@ -565,5 +571,3 @@ foreach ($pgPerCarica as $cid => $rows) {
         ];
     }
 }
-
-return;

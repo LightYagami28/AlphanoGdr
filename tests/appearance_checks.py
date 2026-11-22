@@ -21,8 +21,8 @@ def exercise(env,admin,player,guest,room_key,check):
  check('removed introductory cards are absent','portal-chapters' not in guest.request('/')[1] and 'Una parola alla volta' not in guest.request('/')[1])
  home=guest.request('/')[1]
  check('public homepage includes the author repository and linked example',all(x in home for x in ['Programmato da','Alfano Gaetano','https://github.com/Aikanairo','https://github.com/Aikanairo/AlphanoGdr','https://gothik.it/','/legal/?type=credits']))
- credits=guest.request('/legal/?type=credits')[1]
- check('public legal page explains author attribution separately from operation',all(x in credits for x in ['Alfano Gaetano','AGPL-3.0-only','gestore','https://gothik.it/','controllo','ripristino']))
+ legal_html=guest.request('/legal/?type=credits')[1]
+ check('public legal page explains author attribution separately from operation',all(x in legal_html for x in ['Alfano Gaetano','AGPL-3.0-only','gestore','https://gothik.it/','controllo','ripristino']))
  failure=type(guest)(env['base']);bad_password='Incorrect_Test_Password_2026'
  code,body,response=failure.request('/checkuser.php',dict(_csrf=failure.csrf('/'),username='DemoAdmin',password=bad_password))
  check('invalid password returns a visible styled message',code==200 and 'role="alert"' in body and 'Accesso non riuscito' in body and 'portal-login-error' in body and response.geturl().endswith('/?login=failed#accesso'))

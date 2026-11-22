@@ -4,7 +4,6 @@
 // VARIABILI GLOBALI
 //////////////////////////////////////////////////////////////////////////
 const nomeobj  = "mainmenu";
-var   vocimenu = [];
 
 //////////////////////////////////////////////////////////////////////////
 // 1) LOGOUT
@@ -23,10 +22,6 @@ function CloseLand() {
 function GeneraMenu(){
   let out='<ul>';
   out+=`<li><a href="#" onclick="Nascondi('${nomeobj}');return false;">×</a></li>`;
-  for(const voce of vocimenu){
-    const [url,name,w,h,label]=voce.split(',');
-    out+=`<li><a href="#" onclick="OpenPopUp('${url}','${name}',${w},${h});return false;">${label}</a></li>`;
-  }
   out+='</ul>';
   return out;
 }
@@ -104,9 +99,10 @@ function OpenPopUp(dest,name,w,h){
 // 5) SUONI
 //////////////////////////////////////////////////////////////////////////
 function GetPlugins(){
-  const o={};
-  for(const p of navigator.plugins)
-    for(const m of p) o[m.type]=true;
+  const o={},audio=document.createElement('audio');
+  for(const type of ['application/ogg','audio/mpeg','audio/x-wav']){
+    if(audio.canPlayType(type)) o[type]=true;
+  }
   return o;
 }
 function PlaySound(mailNonLette){
@@ -135,14 +131,8 @@ function PlaySound(mailNonLette){
 //////////////////////////////////////////////////////////////////////////
 // 6) UPDATE DA control.php + MODAL LUNA
 //////////////////////////////////////////////////////////////////////////
-function UpdateMTop(
-  sorgecala,cielo,descrCielo,
-  tempoCode,descrTempo,
-  ventoCode,descrVento,
-  temperatura,
-  lunaPhase,daysToFull,
-  postaNonLette, weatherIcons={}
-){
+function UpdateMTop(data){
+  const {sorgecala,cielo,descrCielo,tempoCode,descrTempo,ventoCode,descrVento,temperatura,lunaPhase,daysToFull,postaNonLette,weatherIcons={}}=data;
   // alba/tramonto
   document.getElementById('sorgecala').textContent=sorgecala;
   // icone

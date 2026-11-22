@@ -48,7 +48,7 @@
   }
   if(window.navigator?.locks)try{return await window.navigator.locks.request('alphano:notification-audio',{ifAvailable:true},lock=>lock?play():false);}catch(_){}
   // Older engines: short verified lease lets one tab win before playing.
-  const lease='alphano:notice-sound-lease',token=String(Math.random())+Date.now();
+  const lease='alphano:notice-sound-lease',token=crypto.getRandomValues(new Uint32Array(1))[0].toString(36)+Date.now();
   try{localStorage.setItem(lease,token);await new Promise(resolve=>setTimeout(resolve,40));if(!safeEqual(localStorage.getItem(lease),token)){return false;}}catch(error){
    // localStorage puo' essere disabilitato: senza lease verificabile si riproduce
    // come dispositivo singolo, senza bloccare l'audio.

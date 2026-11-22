@@ -50,4 +50,4 @@ body[data-view="map"] .map-feedback[hidden]{display:none}
 @media(max-width:600px){body[data-view="map"] .map-toolbar{top:7px;right:auto;gap:4px;padding:5px;max-width:calc(100% - 14px)}body[data-view="map"] .map-toolbar button,body[data-view="map"] .map-tool-link{width:31px;height:31px;min-height:31px;padding:6px}body[data-view="map"] .map-atmosphere-status{font-size:10px;flex-basis:100%;text-align:center;padding:1px 5px}body[data-view="map"] .map-label{font-size:29px}body[data-view="map"] .map-destinations{min-width:54px}body[data-view="map"] .map-destinations summary{padding:9px}}
 @media(prefers-reduced-motion:reduce){body[data-view="map"] .map-art{transition:none}}
 body[data-view="map"] .map-link .map-label{pointer-events:all;cursor:pointer;font-size:var(--map-label-size,24px)}
-
+@media(prefers-reduced-motion:reduce){body[data-view="map"] img[data-fullcover]{transition:none;animation:none}}

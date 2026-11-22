@@ -16,7 +16,7 @@
  }
  window.addEventListener('storage',event=>{if(event.key===key)void refresh();});
  window.addEventListener('message',event=>{if(event.origin===location.origin&&event.data?.type===key)void refresh();});
- if(document.body.hasAttribute('data-appearance-saved')){
+ if(document.body.dataset.appearanceSaved!==undefined){
   try{localStorage.setItem(key,String(Date.now()));}catch(_){}
   if(window.parent!==window)window.parent.postMessage({type:key},location.origin);
  }

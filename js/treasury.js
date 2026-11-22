@@ -9,7 +9,7 @@
   if(action==='save'||action==='mandate'){data.enabled=form.elements.enabled.checked?1:0;}
   if(action==='save'){data.roles={};for(const input of form.querySelectorAll('[data-salary-role]')){data.roles[input.dataset.salaryRole]=input.value;}}
   if(['payroll','donate'].includes(action)){
-   const answer=await notice({title:action==='payroll'?'Eroga gli stipendi':'Conferma donazione',message:action==='payroll'?'Gli stipendi saranno accreditati ai membri usando il budget attuale.':'Vuoi versare '+data.amount+window.AlphanoCurrency.text(' Corone personali a questa comunità?'),buttonLabel:'Conferma',cancelLabel:'Annulla'}).catch(error=>{feedback.textContent=error.message;return 'dismiss';});if(answer!=='ack'){setBusy(false);return;}
+   const answer=await notice({title:action==='payroll'?'Eroga gli stipendi':'Conferma donazione',message:action==='payroll'?'Gli stipendi saranno accreditati ai membri usando il budget attuale.':'Vuoi versare '+Number(data.amount)+window.AlphanoCurrency.text(' Corone personali a questa comunità?'),buttonLabel:'Conferma',cancelLabel:'Annulla'}).catch(error=>{feedback.textContent=error.message;return 'dismiss';});if(answer!=='ack'){setBusy(false);return;}
    const key=JSON.stringify([action,data]);if(!receipts.has(key)){receipts.set(key,crypto.randomUUID());}data.request_id=receipts.get(key);
   }
   feedback.textContent='Operazione in corso…';

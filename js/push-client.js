@@ -24,7 +24,7 @@
   const response=await fetch('/api/push.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':config.csrfToken},body:JSON.stringify({action,...extra})});
   const result=await response.json();if(!response.ok){throw new Error(result.error||'Notifiche non disponibili. Riprova più tardi.');}return result;
  }
- function keyBytes(value){const raw=atob(value.replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from(raw,c=>c.charCodeAt(0));}
+ function keyBytes(value){const raw=atob(value.replaceAll('-','+').replaceAll('_','/'));return Uint8Array.from(raw,c=>c.codePointAt(0));}
  function sameKey(sub,key){const stored=sub.options?.applicationServerKey;if(!stored){return true;}const bytes=new Uint8Array(stored),expected=keyBytes(key);return bytes.length===expected.length&&bytes.every((b,i)=>b===expected[i]);}
  async function inspect(){
   if(!supported||!config){return;}

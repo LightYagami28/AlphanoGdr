@@ -19,7 +19,7 @@ body[data-view=main] { padding: 0; height: 100dvh; overflow: hidden; }
 .game-navigation .tab-list { display:none; position:fixed; top:var(--menu-top,150px); left:var(--menu-left,12px); width:270px; min-width:0; max-width:calc(100vw - 24px); max-height:min(60dvh,calc(100dvh - var(--menu-top,150px) - 14px)); overflow-y:auto; margin:0; padding:10px; list-style:none; background:linear-gradient(160deg,color-mix(in srgb,var(--panel) 96.08%,transparent),color-mix(in srgb,var(--panel) 98.04%,transparent)); border:1px solid #c6b3994a; border-radius:16px; box-shadow:0 17px 50px #000b,inset 0 0 0 1px #ffffff0c; backdrop-filter:blur(18px); z-index:100; }
 .game-navigation .tab-list.show { display:block; }
 .game-navigation .tab-list a { display:block; padding:11px 12px; border-radius:9px; color:#e2e8f0; font:14px/1.4 var(--font-ui); ;display:flex;align-items:center;gap:12px;padding:8px 10px;min-height:66px}
-.game-navigation .tab-list a:is(:hover,:focus-visible) { background:#ffffff15; color:#ffe3aa; text-decoration:none; }
+.game-navigation .tab-list a:is(:hover,:focus-visible) { background:#ffffff15; color:#3a2a12; text-decoration:none; }
 .top-actions,.quicklinks-box { display:flex; gap:8px; align-items:center; flex:none; }
 .top-actions { padding-left:clamp(14px,1.6vw,28px); border-left:1px solid #e8e4df24; }
 .topbar .top-actions .icon-btn { height:42px; width:42px; min-height:42px; min-width:42px; display:grid; place-items:center; padding:0; border:1px solid #b9b09e3d; color:#d8d5c8; background:color-mix(in srgb,var(--panel) 78.82%,transparent); border-radius:12px; box-shadow:none; }

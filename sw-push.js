@@ -4,7 +4,7 @@ self.addEventListener('install',event=>event.waitUntil(self.skipWaiting()));
 self.addEventListener('activate',event=>event.waitUntil(self.clients.claim()));
 self.addEventListener('push',event=>event.waitUntil((async()=>{
  let data={};try{data=event.data?.json()||{};}catch(_){}
- if(data.type!=='mail'||!/^mail:[1-9][0-9]{0,18}$/.test(data.event||''))return;
+ if(data.type!=='mail'||!/^mail:[1-9]\d{0,18}$/.test(data.event||''))return;
  const clients=await self.clients.matchAll({type:'window',includeUncontrolled:true});
  const foreground=clients.find(client=>client.visibilityState==='visible'&&client.focused);
  // Always present a visible notification; foreground sound comes from the game chime.

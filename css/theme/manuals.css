@@ -81,7 +81,7 @@ body.ui-page .manual-library-heading>.ui-return-location { position:absolute; to
 .forum-directory-section .forum-table td:nth-child(2) { width:37%; }
 .forum-directory-section .forum-table td:nth-child(3) { width:13%; }
 .forum-directory-section .forum-table td:last-child { width:26%; }
-body.ui-page .forum-directory-section img.forum-board-thumbnail { display:block; max-width:160px; object-fit:cover; width:160px; height:78px; margin:0 0 12px; object-fit:cover; border:1px solid var(--reading-line); border-radius:8px; }
+body.ui-page .forum-directory-section img.forum-board-thumbnail { display:block; max-width:160px; object-fit:cover; width:160px; height:78px; margin:0 0 12px; border:1px solid var(--reading-line); border-radius:8px; }
 .forum-board-unread td:first-child { box-shadow:inset 4px 0 #ae3047; }
 .forum-board-hero { min-height:170px; background:linear-gradient(90deg,color-mix(in srgb,var(--panel) 93.73%,transparent),color-mix(in srgb,var(--panel) 78.82%,transparent) 65%,color-mix(in srgb,var(--panel) 46.67%,transparent)),var(--board-cover) center/cover; }
 .forum-board-hero[data-mode=board] .forum-breadcrumb h2 { display:none; }

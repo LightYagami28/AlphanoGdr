@@ -238,7 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
       li.className = 'api-output';
       li.innerHTML = `
         <strong>👤 ${escapeHtml(cand.name)}</strong><br>
-        <p><em>${escapeHtml(cand.program || '— nessun programma —').replace(/\n/g,'<br>')}</em></p>
+        <p><em>${escapeHtml(cand.program || '— nessun programma —').replaceAll('\n','<br>')}</em></p>
         <p><strong>Voti:</strong> ${cand.votes}</p>
         ${inProg && canVote
           ? `<button class="action-btn btn-vota" data-id="${cand.id}">

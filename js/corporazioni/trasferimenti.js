@@ -94,7 +94,7 @@ function tradeStatus(message,error=false) {
 }
 function tradeValue(id,label,max=2147483647) {
   const input=document.getElementById(id),raw=input?.value || '';
-  if(!/^[0-9]+$/.test(raw) || Number(raw)<1 || Number(raw)>max){
+  if(!/^\d+$/.test(raw) || Number(raw)<1 || Number(raw)>max){
     tradeStatus('Inserisci '+label+' come numero intero tra 1 e '+max+'.',true);
     input?.setAttribute('aria-invalid','true');input?.focus();return null;
   }

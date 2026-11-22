@@ -6,7 +6,7 @@
  function reference(link){
   if(link.closest('.game-navigation,[data-character-markers="off"]')||link.matches('.action-btn,[data-icon]')||!link.textContent.trim()){return null;}
   try{const url=new URL(link.getAttribute('href')||'',location.href);if(url.origin===location.origin&&/^\/profili\/(?:index\.php|png\.php)?$/.test(url.pathname)){const id=Number(url.searchParams.get('Id')||url.searchParams.get('id'));if(Number.isSafeInteger(id)&&id>0){return {key:(url.pathname.endsWith('png.php')?'npc:':'pg:')+id,id};}}}catch{}
-  const match=((link.getAttribute('href')||'')+' '+(link.getAttribute('onclick')||'')).match(/(?:javascript:)?\bopenProfile(?:Id)?\(\s*['"]?(\d+)/i);
+  const match=((link.getAttribute('href')||'')+' '+(link.getAttribute('onclick')||'')).exec(/(?:javascript:)?\bopenProfile(?:Id)?\(\s*['"]?(\d+)/i);
   return match?{key:'pg:'+Number(match[1]),id:Number(match[1])}:null;
  }
  function links(){document.querySelectorAll('.game-navigation .character-markers,[data-character-markers="off"] .character-markers').forEach(marker=>marker.remove());return [...document.querySelectorAll('a[href],button[onclick]')].map(link=>({link,ref:reference(link)})).filter(x=>x.ref);}

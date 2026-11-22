@@ -53,11 +53,11 @@ function ImpostaTastiRegistrazione(hasrecord)
 {
 	if(hasrecord)
 	{
-		var out = "<IMG src=\"/assets/placeholder.svg\" alt=\"Avvia Registrazione Giocata\" title=\"Avvia Registrazione Giocata\" border=\"0\"><A href=\"javascript:EventoRegistrazione('salva')\"><IMG src=\"/assets/placeholder.svg\" alt=\"Salva Registrazione Giocata\" title=\"Salva Registrazione Giocata\" border=\"0\"></A>";
+		out = "<IMG src=\"/assets/placeholder.svg\" alt=\"Avvia Registrazione Giocata\" title=\"Avvia Registrazione Giocata\" border=\"0\"><A href=\"javascript:EventoRegistrazione('salva')\"><IMG src=\"/assets/placeholder.svg\" alt=\"Salva Registrazione Giocata\" title=\"Salva Registrazione Giocata\" border=\"0\"></A>";
 	}
 	else
 	{
-		var out = "<A href=\"javascript:EventoRegistrazione('registra')\"><IMG src=\"/assets/placeholder.svg\" alt=\"Avvia Registrazione Giocata\" title=\"Avvia Registrazione Giocata\" border=\"0\"></A><IMG src=\"/assets/placeholder.svg\" alt=\"Salva Registrazione Giocata\" title=\"Salva Registrazione Giocata\" border=\"0\">";
+		out = "<A href=\"javascript:EventoRegistrazione('registra')\"><IMG src=\"/assets/placeholder.svg\" alt=\"Avvia Registrazione Giocata\" title=\"Avvia Registrazione Giocata\" border=\"0\"></A><IMG src=\"/assets/placeholder.svg\" alt=\"Salva Registrazione Giocata\" title=\"Salva Registrazione Giocata\" border=\"0\">";
 	}
 	document.getElementById("registrazione").innerHTML = out;
 }

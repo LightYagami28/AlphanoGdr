@@ -52,10 +52,20 @@ function checkQuality(pass) {
 	if (hasUppercase) score++;
 	if (hasLowercase) score++;
 	
-  if (score > 8) {return 'Ottima (' + score + ')';}
-  if (score > 7) {return 'Molto Buona (' + score + ')';}
-  if (score > 6) {return 'Buona (' + score + ')';}
-  if (score > 5) {return 'Discreta (' + score + ')';}
-  if (score > 4) {return 'Decente (' + score + ')';}
+  if (score > 8) {
+    return 'Ottima (' + score + ')';
+  }
+  if (score > 7) {
+    return 'Molto Buona (' + score + ')';
+  }
+  if (score > 6) {
+    return 'Buona (' + score + ')';
+  }
+  if (score > 5) {
+    return 'Discreta (' + score + ')';
+  }
+  if (score > 4) {
+    return 'Decente (' + score + ')';
+  }
   return 'Inutile (' + score + ')';
 }

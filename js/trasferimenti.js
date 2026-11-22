@@ -130,7 +130,7 @@ function showTransferStatus(message,error=false){
 }
 function commerceValue(id,label,max=2147483647){
   const input=document.getElementById(id),raw=input?.value || '';
-  if(!/^[0-9]+$/.test(raw) || Number(raw)<1 || Number(raw)>max){
+  if(!/^\d+$/.test(raw) || Number(raw)<1 || Number(raw)>max){
     showTransferStatus('Inserisci '+label+' come numero intero tra 1 e '+max+'.',true);
     input?.setAttribute('aria-invalid','true');input?.focus();return null;
   }

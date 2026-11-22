@@ -66,3 +66,4 @@ body.demo-page { margin:0; min-height:100dvh; background:var(--page-background);
  .demo-compose label:first-child { grid-column:1/-1; }
  .demo-messages { padding-inline:16px; }
 }
+@media(prefers-reduced-motion:reduce){.demo-messages{scroll-behavior:auto;transition:none;animation:none}}

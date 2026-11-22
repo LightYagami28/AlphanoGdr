@@ -94,8 +94,7 @@ body.ui-page .ui-tabgroup > form.ui-fieldgroup { display: grid; grid-template-co
 body.ui-page .ui-tabgroup > form.ui-fieldgroup label { margin: 4px 0 0; }
 body.ui-page .ui-tabgroup > form.ui-fieldgroup :is(input,select) { width: 100%; }
 body.ui-page .ui-tabgroup > form.ui-fieldgroup button { width: fit-content; }
-@media (max-width: 720px) {
-}
+
 body.ui-page[data-view=statistiche-index] .container { display: block; height: auto; }
 body.ui-page[data-view=statistiche-index] .nav { display: none; }
 body.ui-page[data-view=statistiche-index] .content { padding: 0; overflow: visible; }

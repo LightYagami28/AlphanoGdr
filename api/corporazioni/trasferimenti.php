@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 
+if (!defined('S1192_API_CORPORAZIONI_TRASFERIMENTI_PHP_79D460_PERMESSI_INSUFFICIENTI')) { define('S1192_API_CORPORAZIONI_TRASFERIMENTI_PHP_79D460_PERMESSI_INSUFFICIENTI', 'Permessi insufficienti'); }
+if (!defined('S1192_API_CORPORAZIONI_TRASFERIMENTI_PHP_D5A049_PARAMETRI_NON_ESAURIENTI')) { define('S1192_API_CORPORAZIONI_TRASFERIMENTI_PHP_D5A049_PARAMETRI_NON_ESAURIENTI', 'Parametri non esaurienti'); }
+
 foreach (array_merge($_GET,$_POST) as $value) {
     if (is_array($value) || is_object($value)) {
         http_response_code(400);
@@ -77,11 +80,11 @@ try {
       // ─ Prendi in carico un ordine cliente ───────────────────────────────────
       case 'prendiincarico':
         if (!$isAdminTransf) {
-            respond(['success'=>false,'error'=>true,'message'=>'Permessi insufficienti']);
+            respond(['success'=>false,'error'=>true,'message'=>S1192_API_CORPORAZIONI_TRASFERIMENTI_PHP_79D460_PERMESSI_INSUFFICIENTI]);
         }
         $id = (int)($_POST['id'] ?? 0);
         if ($id <= 0) {
-            respond(['success'=>false,'error'=>true,'message'=>'Parametri non esaurienti']);
+            respond(['success'=>false,'error'=>true,'message'=>S1192_API_CORPORAZIONI_TRASFERIMENTI_PHP_D5A049_PARAMETRI_NON_ESAURIENTI]);
         }
         $ok  = prendiInCaricoOrdine($id, $idpg);
         $msg = $ok
@@ -94,11 +97,11 @@ try {
 
 case 'admintransf':
     if (!$isAdminTransf) {
-        respond(['success'=>false,'error'=>true,'message'=>'Permessi insufficienti']);
+        respond(['success'=>false,'error'=>true,'message'=>S1192_API_CORPORAZIONI_TRASFERIMENTI_PHP_79D460_PERMESSI_INSUFFICIENTI]);
     }
     $id = (int)($_POST['id'] ?? 0);
     if ($id <= 0) {
-        respond(['success'=>false,'error'=>true,'message'=>'Parametri non esaurienti']);
+        respond(['success'=>false,'error'=>true,'message'=>S1192_API_CORPORAZIONI_TRASFERIMENTI_PHP_D5A049_PARAMETRI_NON_ESAURIENTI]);
     }
 
     if (isset($_POST['accetta'])) {
@@ -134,17 +137,17 @@ case 'admintransf':
         respond(['success'=>$ok,'message'=>$msg]);
     }
 
-    respond(['success'=>false,'error'=>true,'message'=>'Parametri non esaurienti']);
+    respond(['success'=>false,'error'=>true,'message'=>S1192_API_CORPORAZIONI_TRASFERIMENTI_PHP_D5A049_PARAMETRI_NON_ESAURIENTI]);
     break;
 
       // ─ Amministrazione ordini ───────────────────────────────────────────────
       case 'adminorder':
         if (!$isAdminTransf) {
-            respond(['success'=>false,'error'=>true,'message'=>'Permessi insufficienti']);
+            respond(['success'=>false,'error'=>true,'message'=>S1192_API_CORPORAZIONI_TRASFERIMENTI_PHP_79D460_PERMESSI_INSUFFICIENTI]);
         }
         $id = (int)($_POST['id'] ?? 0);
         if ($id <= 0) {
-            respond(['success'=>false,'error'=>true,'message'=>'Parametri non esaurienti']);
+            respond(['success'=>false,'error'=>true,'message'=>S1192_API_CORPORAZIONI_TRASFERIMENTI_PHP_D5A049_PARAMETRI_NON_ESAURIENTI]);
         }
         if (isset($_POST['accetta'])) {
             $msg = finalizeOrdine($id, $idpg);
@@ -174,7 +177,7 @@ case 'admintransf':
                  : 'Errore durante l\'operazione';
             respond(['success'=>$ok,'message'=>$msg]);
         }
-        respond(['success'=>false,'error'=>true,'message'=>'Parametri non esaurienti']);
+        respond(['success'=>false,'error'=>true,'message'=>S1192_API_CORPORAZIONI_TRASFERIMENTI_PHP_D5A049_PARAMETRI_NON_ESAURIENTI]);
 
       // ─ Esegui una consegna ───────────────────────────────────────────────────
         case 'consegna':
@@ -182,7 +185,7 @@ case 'admintransf':
                 respond([
                     'success' => false,
                     'error'   => true,
-                    'message' => 'Permessi insufficienti'
+                    'message' => S1192_API_CORPORAZIONI_TRASFERIMENTI_PHP_79D460_PERMESSI_INSUFFICIENTI
                 ]);
             }
             $id = (int)($_POST['id'] ?? 0);
@@ -190,7 +193,7 @@ case 'admintransf':
                 respond([
                     'success' => false,
                     'error'   => true,
-                    'message' => 'Parametri non esaurienti'
+                    'message' => S1192_API_CORPORAZIONI_TRASFERIMENTI_PHP_D5A049_PARAMETRI_NON_ESAURIENTI
                 ]);
             }
             $msg     = consegna($id, $idpg, $corp);
@@ -206,7 +209,7 @@ case 'admintransf':
       // ─ Cancella storico cronologico ───────────────────────────────────────────
       case 'clearcrono':
         if (!$isAdminCorp) {
-            respond(['success'=>false,'error'=>true,'message'=>'Permessi insufficienti']);
+            respond(['success'=>false,'error'=>true,'message'=>S1192_API_CORPORAZIONI_TRASFERIMENTI_PHP_79D460_PERMESSI_INSUFFICIENTI]);
         }
         $tras = $db->query("SELECT id FROM trasferimenti WHERE corp = ?", [$corp]);
         $ids  = [];

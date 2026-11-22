@@ -1,5 +1,7 @@
 <?php
 declare(strict_types=1);
+
+if (!defined('S1192_LIBS_REVELATIONS_INC_PHP_BAE6CF_ASSETS_PLACEHOLDER_SVG')) { define('S1192_LIBS_REVELATIONS_INC_PHP_BAE6CF_ASSETS_PLACEHOLDER_SVG', '/assets/placeholder.svg'); }
 require_once __DIR__.'/kernel.inc.php';
 require_once __DIR__.'/ai-perception.inc.php';
 require_once __DIR__.'/profile-art.inc.php';
@@ -114,9 +116,9 @@ function alphanoRevelationsProfile(string $kind,int $id,int $viewer):array {
     foreach($rows as $r){
         $direction=$kind==='npc'||(int)$r['subject_id']===$id?'known_by':'discovered';
         $other=$direction==='known_by'?(int)$r['observer_id']:(int)$r['subject_id'];
-        if($r['observer_kind']==='npc'){$p=json_decode($r['npc_profile'],true)?:[];$name=$r['name'];$portrait=$p['portrait']??'/assets/placeholder.svg';$url='/profili/png.php?Id='.$other;$sex=$p['sex']??'Maschio';$race=(int)($p['race_id']??1);}
+        if($r['observer_kind']==='npc'){$p=json_decode($r['npc_profile'],true)?:[];$name=$r['name'];$portrait=$p['portrait']??S1192_LIBS_REVELATIONS_INC_PHP_BAE6CF_ASSETS_PLACEHOLDER_SVG;$url='/profili/png.php?Id='.$other;$sex=$p['sex']??'Maschio';$race=(int)($p['race_id']??1);}
         else{$u=$people[$other]??null;if(!$u){ continue; }$name=$u['nome'];$portrait=alphanoProfilePortrait($u)['url'];$url='/profili/?Id='.$other;$sex=$u['sesso'];$race=alphanoVisibleRace($u);}
-        $out['items'][]=['direction'=>$direction,'observer_kind'=>$r['observer_kind'],'observer_id'=>(int)$r['observer_id'],'subject_id'=>(int)$r['subject_id'],'name'=>$name,'portrait'=>$portrait?:'/assets/placeholder.svg','profile_url'=>$url,'sex'=>$sex,'race_icon'=>alphanoRaceIcon(),'race_label'=>aiPerceptionRaceFamily((int)$r['race_id'])===2?'vampiro':'licantropo','first_seen'=>(int)$r['first_seen'],'last_seen'=>(int)$r['last_seen'],'place'=>$r['place']?:$r['chat_key'],'chat_key'=>$r['chat_key'],'evidence'=>alphanoRevelationExcerpt($r['evidence'])];
+        $out['items'][]=['direction'=>$direction,'observer_kind'=>$r['observer_kind'],'observer_id'=>(int)$r['observer_id'],'subject_id'=>(int)$r['subject_id'],'name'=>$name,'portrait'=>$portrait?:S1192_LIBS_REVELATIONS_INC_PHP_BAE6CF_ASSETS_PLACEHOLDER_SVG,'profile_url'=>$url,'sex'=>$sex,'race_icon'=>alphanoRaceIcon(),'race_label'=>aiPerceptionRaceFamily((int)$r['race_id'])===2?'vampiro':'licantropo','first_seen'=>(int)$r['first_seen'],'last_seen'=>(int)$r['last_seen'],'place'=>$r['place']?:$r['chat_key'],'chat_key'=>$r['chat_key'],'evidence'=>alphanoRevelationExcerpt($r['evidence'])];
     }
     $out['allowed']=true;$out['count']=count($out['items']);return $out;
 }
@@ -132,7 +134,7 @@ function alphanoRelationsProfilePg(int $player,int $viewer):array {
         $rules=array_replace(aiSocialDefaults(),json_decode($r['social_rules']??'{}',true)?:[]);$p=json_decode($r['profile'],true)?:[];
         $romantic=in_array($r['state'],['innamoramento','relazione','crisi','riconciliazione'],true)&&aiRomanceAllowed($r,$identity,$rules);
         $bond=aiRelationSummary($r,$romantic);
-        $out['items'][]=['id'=>(int)$r['npc_id'],'name'=>$r['name'],'portrait'=>($p['portrait']??'')?:'/assets/placeholder.svg','interactions'=>(int)$r['interactions'],'encounters'=>(int)$r['encounters'],'bond'=>$bond];
+        $out['items'][]=['id'=>(int)$r['npc_id'],'name'=>$r['name'],'portrait'=>($p['portrait']??'')?:S1192_LIBS_REVELATIONS_INC_PHP_BAE6CF_ASSETS_PLACEHOLDER_SVG,'interactions'=>(int)$r['interactions'],'encounters'=>(int)$r['encounters'],'bond'=>$bond];
     }
     $out['allowed']=true;return $out;
 }

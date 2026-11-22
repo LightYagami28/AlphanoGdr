@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+if (!defined('S1192_LIBS_AI_IDENTITY_INC_PHP_9C1134_B_IU')) { define('S1192_LIBS_AI_IDENTITY_INC_PHP_9C1134_B_IU', '\b/iu'); }
+
 /** A mistaken salutation is observable dialogue, never a rewrite of the addressee. */
 function aiIdentityMisaddress(string $name, string $sex, string $raw): bool
 {
@@ -9,7 +11,7 @@ function aiIdentityMisaddress(string $name, string $sex, string $raw): bool
     $wrong=$sex==='Maschio'?'signora|madama|donna':'signore|messere|uomo';
     if (preg_match('/(?:^|[,.!?]\s*|\b(?:buona\s*sera|buon\s*giorno|salve|buona\s*notte|scusate|scusatemi|grazie)\s*[,;:]?\s*)(?:(?:mia|mio|gentile|cara|caro|egregia|egregio)\s+)?(?:'.$wrong.')(?:[,.!?]|\s*$)/iu',$reading['speech'])) { return true; }
     $first=preg_split('/\s+/u',trim($name))[0]??'';
-    return $first!=='' && (bool)preg_match('/\b(?:'.$wrong.')\s+'.preg_quote($first,'/').'\b/iu',$reading['action']);
+    return $first!=='' && (bool)preg_match('/\b(?:'.$wrong.')\s+'.preg_quote($first,'/').S1192_LIBS_AI_IDENTITY_INC_PHP_9C1134_B_IU,$reading['action']);
 }
 
 /** Restricted physical projection. Never send account fields or latent lineage to the model. */
@@ -108,8 +110,8 @@ function aiIdentityValidateText(array $npc, array $job, string $text, ?array $pl
     if(aiIdentityMisaddress((string)$npc['name'],$sex,(string)($job['prompt']??'')) && preg_match('/\bnon\s+sono\s+(?:un[ao]?\s+)?(?:'.$own.')\b/iu',$reading['speech'])) {
         throw new RuntimeException('La correzione nega il sesso effettivo del PNG. Rigenera correggendo soltanto l’appellativo sbagliato del visitatore.');
     }
-    if (preg_match('/\b'.$name.'\s+(?:è|era|diventa|si\s+scopre)\s+(?:un[ao]?\s+)?'.$wrong.'\b/iu',$reading['action'])
-        || preg_match('/(?:^|[.!?]\s*)sono\s+(?:un[ao]?\s+)?'.$wrong.'\b/iu',$reading['speech'])) {
+    if (preg_match('/\b'.$name.'\s+(?:è|era|diventa|si\s+scopre)\s+(?:un[ao]?\s+)?'.$wrong.S1192_LIBS_AI_IDENTITY_INC_PHP_9C1134_B_IU,$reading['action'])
+        || preg_match('/(?:^|[.!?]\s*)sono\s+(?:un[ao]?\s+)?'.$wrong.S1192_LIBS_AI_IDENTITY_INC_PHP_9C1134_B_IU,$reading['speech'])) {
         throw new RuntimeException('Il PNG contraddice la propria identità registrata. Rigenera distinguendo interlocutore e PNG.');
     }
     $player??=aiIdentityPlayer((int)($job['user_id']??0));

@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+if (!defined('S1192_CHAT_LIBS_CHAT_LOGIC_INC_PHP_68DE83_NBSP')) { define('S1192_CHAT_LIBS_CHAT_LOGIC_INC_PHP_68DE83_NBSP', '&nbsp;'); }
+
 use Alphano\Database\PDOMySQLDriver;
 require_once __DIR__.'/../../libs/chat-format.inc.php';
 
@@ -76,7 +78,7 @@ function buildChatMessage(
     $link  = "<a href=\"javascript:openProfileId('{$idpg}')\">";
     $name  = htmlentities($pg['nome'], ENT_QUOTES | ENT_SUBSTITUTE);
     if ($umore) {
-        $name .= '&nbsp;' . GetUmore($umore);
+        $name .= S1192_CHAT_LIBS_CHAT_LOGIC_INC_PHP_68DE83_NBSP . GetUmore($umore);
     }
     $name='<a class="chat-character-name '.alphanoChatGender((string)$pg['sesso']).'" href="javascript:openProfileId(\''.$idpg.'\')">'.$name.'</a>';
     if ($db->query("SELECT 1 FROM equippg WHERE slot='musica' AND idpg=?",[$idpg])) {
@@ -108,7 +110,7 @@ function buildChatMessage(
         } else {
             $araldica = processAraldica((int)$pg['araldica'],"araldiche[{$idpg}]");
         }
-        $araldica .= '&nbsp;';
+        $araldica .= S1192_CHAT_LIBS_CHAT_LOGIC_INC_PHP_68DE83_NBSP;
     }
     $fPar = "<SPAN class=\"String{$alline}\"><B>";
     $fAzo = "<SPAN class=\"Azione{$alline}\">";
@@ -203,7 +205,7 @@ function buildChatMessage(
                 )[0]??null;
                 if ($row) {
                     consuma($idpg,(int)$row['id']);
-                    $out = $fAzo.$ora.'&nbsp;'
+                    $out = $fAzo.$ora.S1192_CHAT_LIBS_CHAT_LOGIC_INC_PHP_68DE83_NBSP
                          .htmlentities($row['nome']).', '
                          .htmlentities($row['shortDesc']).' di '
                          .$name.', '.htmlentities($act).'</SPAN>';

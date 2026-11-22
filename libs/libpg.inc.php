@@ -882,7 +882,7 @@ function modifyCaricaOrg(...$args): string
         }
         try {
             $db->execute('UPDATE caricheorganizzazioni SET nome=?,prima=?,organizzazione=?,ramo=?,livello=?,descrizione=? WHERE id=? AND organizzazione=?', [$nome, $prima ? 1 : 0, $org, $ramo, $livello, $descrizione, $id, $org]);
-            if (!alphanoSaveBadge($file, '/uploads/badges/organizzazioni/' . $org . '/' . $id . '.gif')) {
+            if (!alphanoSaveBadge($file, ALPHANO_BADGE_PATH_ORG . $org . '/' . $id . '.gif')) {
                 throw new BadgeSaveException(ALPHANO_MSG_BADGE_SAVE);
             }
             if ($owned) {
@@ -1148,7 +1148,7 @@ function modifyCaricaCorp(...$args): string
         }
         try {
             $db->execute('UPDATE carichecorporazioni SET nome=?,prima=?,corporazione=?,ramo=?,livello=?,descrizione=?,stipendio=?,provvigione=? WHERE id=? AND corporazione=?', [$nome, $prima ? 1 : 0, $corp, $ramo, $livello, $descrizione, $stipendio, $provvigione, $id, $corp]);
-            if (!alphanoSaveBadge($file, '/uploads/badges/corporazioni/' . $corp . '/' . $id . '.gif')) {
+            if (!alphanoSaveBadge($file, ALPHANO_BADGE_PATH_CORP . $corp . '/' . $id . '.gif')) {
                 throw new BadgeSaveException(ALPHANO_MSG_BADGE_SAVE);
             }
             if ($owned) {

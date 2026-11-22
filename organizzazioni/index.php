@@ -26,7 +26,7 @@ require_once __DIR__ . '/../chat/libs/chat-core.php';  // connectDB()
 
 
 initSession();
-$pgid = GetIDPG(false, true);
+$pgid = GetIDPG(false);
 $db   = connectDB();
 
 // Recupera organizzazione corrente e permessi admin

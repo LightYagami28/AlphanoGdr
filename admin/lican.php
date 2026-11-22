@@ -6,7 +6,7 @@ $id=alphanoRequireLogin();$state=alphanoLycanSync($id);
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     alphanoRequireCsrf();
     try {
-        $form=$state['canChoose']?($state['form']==='wolf'?'human':'wolf'):'wolf';
+        if ($state['canChoose'] && $state['form']==='wolf') { $form='human'; } else { $form='wolf'; }
         alphanoLycanSync($id,$form);
         header('Location: /admin/lican.php',true,303);exit;
     } catch (DomainException $e) {alphanoFail($e->getMessage(),$e->getCode());}

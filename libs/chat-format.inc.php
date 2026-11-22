@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 function alphanoChatGender(string $sex): string {
-    return $sex==='Femmina'?'chat-female':($sex==='Maschio'?'chat-male':'chat-neutral');
+    if ($sex==='Femmina') { return 'chat-female'; } elseif ($sex==='Maschio') { return 'chat-male'; } return 'chat-neutral';
 }
 
 /** Solo testo: mai HTML del giocatore o del modello. I dialoghi restano normali. */

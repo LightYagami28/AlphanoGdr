@@ -5,7 +5,7 @@ header('Content-Type: application/json; charset=utf-8');header('Cache-Control: p
 try{
  $viewer=alphanoRequireLogin(true);$method=$_SERVER['REQUEST_METHOD'];if(!in_array($method,['GET','POST'],true)){ throw new DomainException('Metodo non consentito.',405); }
  if($method==='GET'&&($_GET['summary']??'')==='1'){echo json_encode(['summaries'=>array_values(alphanoElectionsSummaries())],JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);exit;}
- $input=$method==='POST'?(str_contains($_SERVER['CONTENT_TYPE']??'','application/json')?alphanoRequestJson():$_POST):$_GET;
+ if($method!=='POST'){ $input=$_GET; }elseif(str_contains($_SERVER['CONTENT_TYPE']??'','application/json')){ $input=alphanoRequestJson(); }else{ $input=$_POST; }
  $raw=$input['city']??0;if(!is_scalar($raw)||filter_var($raw,FILTER_VALIDATE_INT)===false||(int)$raw<1){ throw new DomainException('Città non valida.',400); }$city=(int)$raw;$receipt=null;
  if($method==='POST'){
   alphanoRequireCsrf(true);$action=$input['action']??'';if(!is_string($action)){ throw new DomainException('Azione non valida.',400); }

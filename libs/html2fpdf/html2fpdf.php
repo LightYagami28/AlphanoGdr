@@ -8,8 +8,8 @@ if (!defined('HTML2FPDF_VERSION')) {
 class HTML2FPDF extends FPDF
 {
     public function __construct($orientation='P',$unit='mm',$format='A4') { parent::__construct($orientation,$unit,$format); }
-    public function useCss($enabled=true): void { /* Dompdf reads CSS by default. */ }
-    public function writeHtml($html): void {
+    public function UseCSS($enabled=true): void { /* Dompdf reads CSS by default. */ }
+    public function WriteHTML($html): void {
         $this->html.=function_exists('alphanoSanitizeHtml') ? alphanoSanitizeHtml((string)$html) : (string)$html;
     }
 }

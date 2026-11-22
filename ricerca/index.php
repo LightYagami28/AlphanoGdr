@@ -37,7 +37,7 @@ $pgid    = GetIDPG();
 // privilegi utente
 // nuovo: estraggo prima il risultato, poi controllo se c’è almeno una riga
 $tmp = $db->query("SELECT admin, fatepower FROM utenti WHERE id='$pgid'");
-if (count($tmp) > 0) {
+if (!empty($tmp)) {
     $userRow = $tmp[0];
 } else {
     $userRow = ['admin' => 0, 'fatepower' => 0];

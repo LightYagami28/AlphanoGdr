@@ -1065,7 +1065,8 @@ function impostaProduzioniCorp(int $corp, int $actor, array $selection, ?string 
         $hidden=$db->execute('UPDATE equip e JOIN tipo t ON t.id=e.tipo LEFT JOIN produzionicorporazioni p ON p.produzione=t.subtipo AND p.corporazione=e.corp SET e.visibile=0 WHERE e.corp=? AND e.visibile=1 AND p.produzione IS NULL',[$corp]);
         $after=$db->query('SELECT produzione,quality FROM produzionicorporazioni WHERE corporazione=? ORDER BY produzione',[$corp]);
         if ($before!==$after || $hidden>0) {alphanoRecordActivity('corporation-production-updated',$actor,[['scope'=>'corporazioni','id'=>$corp,'section'=>'production','role'=>'admin']],
-            'Produzioni corporative aggiornate',"Assegnati {$points} punti produzione. Oggetti nascosti perché non più producibili: {$hidden}.",['corporazione'=>$corp,'prima'=>$before,'dopo'=>$after,'punti'=>$points,'oggetti_nascosti'=>$hidden]);}
+            'Produzioni corporative aggiornate',"Assegnati {$points} punti produzione. Oggetti nascosti perché non più producibili: {$hidden}.",['corporazione'=>$corp,'prima'=>$before,'dopo'=>$after,'punti'=>$points,'oggetti_nascosti'=>$hidden]);
+        }
         return true;
     });
 }

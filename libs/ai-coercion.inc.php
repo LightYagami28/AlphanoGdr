@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/regex-any.inc.php';
 /** Survival pressure is personal, receipted and distinct from affection or a magical bond. */
 function aiCoercionAssess(array $npc,array $job,array $episode):?array {
     if(empty($episode['coercive'])||!empty($episode['observer'])||!empty($episode['anonymous'])){ return null; }
@@ -35,7 +36,7 @@ function aiCoercionReplyProblem(array $npc,array $job,string $text):?string {
     if(aiRecognitionAnonymous($npc,$job)){ return null; }
     $s=aiCoercionState((int)$npc['id'],(int)($job['user_id']??0));if(!$s||empty($job['episode']['coercive'])){ return null; }
     $speech=aiNarrativeParse($text,['channel'=>'action'])['speech'];
-    return preg_match('/obbed|ordini|farò|faro|come\s+(?:vuoi|volete)|non\s+(?:mi\s+)?(?:ferir|uccid|mord)|risparmi|vita|vi\s+ascolto|ti\s+ascolto/iu',$speech)?null:'Rispondi all’ultimatum presente con una resa o una richiesta concreta di risparmiare la vita, coerente con la condotta di sopravvivenza; non basta una fuga generica.';
+    return aiRegexAny(['/obbed/iu','/ordini/iu','/farò/iu','/faro/iu','/come\s+(?:vuoi|volete)/iu','/non\s+(?:mi\s+)?(?:ferir|uccid|mord)/iu','/risparmi/iu','/vita/iu','/vi\s+ascolto/iu','/ti\s+ascolto/iu'],$speech)?null:'Rispondi all’ultimatum presente con una resa o una richiesta concreta di risparmiare la vita, coerente con la condotta di sopravvivenza; non basta una fuga generica.';
 }
 function aiCoercionFallback(array $npc):string {
     return $npc['name'].' tiene le mani visibili, con il corpo contratto per il dolore e il fiato incerto. «Basta, non ferirmi ancora. Farò come chiedi. Dimmi che cosa vuoi da me.» La resa nasce dalla paura per la propria vita; non cancella il ricordo della violenza.';

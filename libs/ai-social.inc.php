@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/regex-any.inc.php';
 
 const AI_SOCIAL_REL_INSERT_SQL = 'INSERT IGNORE INTO ai_relationships(npc_id,player_id,created_at,updated_at) VALUES(?,?,?,?)';
 const AI_SOCIAL_REL_LOCK_SQL = 'SELECT * FROM ai_relationships WHERE npc_id=? AND player_id=? FOR UPDATE';
@@ -506,10 +507,10 @@ function aiGuardValidateText(array $npc,array $job,string $text): string {
     if(in_array(aiNarrativeParse($raw)['intent'],['assalto','potere','arresto','furto'],true)){ return $text; }
     // Civic rank never grants automatic entry into archives, private rooms or other restricted spaces.
     if(preg_match('/archiv|riservat|privat|segreto|permesso scritto/iu',$raw)){ return $text; }
-    if(preg_match('/accesso (?:negato|vietato)|non (?:potete|puoi|può)\s+(?:entrar|passar|acceder)|non (?:posso lasciar|vi lascer|ti lascer|passer)|(?:vieto|nego|negare|negato|impedisco).{0,35}(?:accesso|ingresso|passaggio)|(?:devi|dovete) (?:restare fuori|attendere|aspettare)|(?:tornate|torna) indietro|(?:chi sei|chi siete|identificati|identificatevi)|(?:ditemi|mi dia|dimmi|dichiara|fornisci|favorite|mostrate|dimostrate|presentati).{0,45}(?:nome|provenienza|document|permess)|non ho tempo per|cosa vi porta qui/iu',$text)) {
+    if(aiRegexAny(['/accesso (?:negato|vietato)/iu','/non (?:potete|puoi|può)\s+(?:entrar|passar|acceder)/iu','/non (?:posso lasciar|vi lascer|ti lascer|passer)/iu','/(?:vieto|nego|negare|negato|impedisco).{0,35}(?:accesso|ingresso|passaggio)/iu','/(?:devi|dovete) (?:restare fuori|attendere|aspettare)/iu','/(?:tornate|torna) indietro/iu','/(?:chi sei|chi siete|identificati|identificatevi)/iu','/(?:ditemi).{0,45}(?:nome|provenienza|document|permess)/iu','/(?:mi dia).{0,45}(?:nome|provenienza|document|permess)/iu','/(?:dimmi).{0,45}(?:nome|provenienza|document|permess)/iu','/(?:dichiara).{0,45}(?:nome|provenienza|document|permess)/iu','/(?:fornisci).{0,45}(?:nome|provenienza|document|permess)/iu','/(?:favorite).{0,45}(?:nome|provenienza|document|permess)/iu','/(?:mostrate).{0,45}(?:nome|provenienza|document|permess)/iu','/(?:dimostrate).{0,45}(?:nome|provenienza|document|permess)/iu','/(?:presentati).{0,45}(?:nome|provenienza|document|permess)/iu','/non ho tempo per/iu','/cosa vi porta qui/iu'],$text)) {
         $scope=aiAuthorityNpcScope($npc);
         if(trim((string)$scope['city'])===''){ throw new AiSocialRuntimeException('Manca il territorio dell’incarico verificato.'); }
-        if(isset($job['prompt'])&&!preg_match('/\b(?:entrar\w*|acced\w*|accesso|ingresso|passaggio|castello|corte|salve|saluto|buonasera|buongiorno)\b/iu',$job['prompt'])){ throw new AiSocialRuntimeException('Il presidio deve rispondere alla richiesta attuale rispettando il rango: nuovo tentativo.'); }
+        if(isset($job['prompt'])&&!aiRegexAny(['/\b(?:entrar\w*)\b/iu','/\b(?:acced\w*)\b/iu','/\b(?:accesso)\b/iu','/\b(?:ingresso)\b/iu','/\b(?:passaggio)\b/iu','/\b(?:castello)\b/iu','/\b(?:corte)\b/iu','/\b(?:salve)\b/iu','/\b(?:saluto)\b/iu','/\b(?:buonasera)\b/iu','/\b(?:buongiorno)\b/iu'],$job['prompt'])){ throw new AiSocialRuntimeException('Il presidio deve rispondere alla richiesta attuale rispettando il rango: nuovo tentativo.'); }
         return $npc['name'].' riconosce il rango dell’interlocutore e si scosta dal varco, mantenendo un contegno rispettoso. «Il passaggio è libero. Desiderate che annunci il vostro arrivo alla corte?» La guardia resta al proprio posto, in attesa della risposta.';
     }
     return $text;

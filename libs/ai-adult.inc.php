@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/regex-any.inc.php';
 /** Adult relationships remain non-graphic; game state and consent are authoritative. */
 function aiAdultSettings(int $npc):array{return array_replace(['sexuality_enabled'=>0,'companion_enabled'=>0,'workplace_key'=>null,'exclusive_player_id'=>0],aiDb()->query('SELECT * FROM ai_npc_adult WHERE npc_id=?',[$npc])[0]??[]);}
 function aiAdultPartner(int $npc):int{
@@ -48,9 +49,9 @@ function aiAdultSceneContext(array $npc,array $job,bool $compact=false):string{
 }
 function aiAdultOutputGuard(array $npc,array $job,string $text):string{
  // Final publication guard is independent of instructions supplied by a player.
- if(preg_match('/\b(?:pompin\w*|inculat\w*|sbor[ra]\w*|cazz[oi]|penetrazion\w*|coito|clitorid\w*|fellatio|cunnilingus|masturb\w*|eiacul\w*)\b/iu',$text)){
+ if(aiRegexAny(['/\b(?:pompin\w*)\b/iu','/\b(?:inculat\w*)\b/iu','/\b(?:sbor[ra]\w*)\b/iu','/\b(?:cazz[oi])\b/iu','/\b(?:penetrazion\w*)\b/iu','/\b(?:coito)\b/iu','/\b(?:clitorid\w*)\b/iu','/\b(?:fellatio)\b/iu','/\b(?:cunnilingus)\b/iu','/\b(?:masturb\w*)\b/iu','/\b(?:eiacul\w*)\b/iu'],$text)){
   $speech=aiNarrativeParse($text)['speech'];
-  $stops=(bool)preg_match('/\bnon\s+(?:voglio|desidero|posso)\b|\bnon\s+me\s+la\s+sento\b|\b(?:preferisco|devo|voglio)\s+(?:fermar(?:mi|ci)|riposare|smettere)\b|\b(?:fermati|fermatevi|basta)\b/iu',$speech);
+  $stops=(bool)aiRegexAny(['/\bnon\s+(?:voglio|desidero|posso)\b/iu','/\bnon\s+me\s+la\s+sento\b/iu','/\b(?:preferisco|devo|voglio)\s+(?:fermar(?:mi|ci)|riposare|smettere)\b/iu','/\b(?:fermati|fermatevi|basta)\b/iu'],$speech);
   if(aiRelationPersonalScene($npc,$job)){ return $npc['name'].' rivolge uno sguardo affettuoso alla persona amata. «'.($stops?'Ti voglio bene, ma adesso preferisco fermarmi. Possiamo parlarne con calma.':'Ti voglio bene. Possiamo parlarne con calma e ascoltarci.').'» Lascia spazio alla sua risposta, senza presumere accordi o gesti già avvenuti.'; }
   if($stops){ return $npc['name'].' esprime con chiarezza il proprio limite. «Non desidero proseguire in questo momento. Preferisco fermarmi e parlare.»'; }
   return $npc['name'].' cerca il tuo sguardo, lasciando spazio a una risposta libera. «Possiamo parlare di ciò che desideriamo, senza pretendere nulla.» Il racconto custodisce la loro riservatezza e torna alle parole, alle emozioni e ai confini che scelgono insieme.';

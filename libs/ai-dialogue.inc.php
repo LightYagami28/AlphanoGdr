@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/regex-any.inc.php';
 
 /** Only present, explicitly addressed characters join a dialogue. No model routing or AI-to-AI loop. */
 function aiDialogueParticipants(array $npcs, array $selected, string $text): array {
@@ -7,10 +8,10 @@ function aiDialogueParticipants(array $npcs, array $selected, string $text): arr
     // A Master's turn order takes priority over conversational addressing.
     if(aiGameSession($selected['chat_key'])){ return $participants; }
     if(preg_match('/\bnon\s+(?:voglio|chiedo|desidero|serve)\b/iu',$text)){ return $participants; }
-    $joint=(bool)preg_match('/\b(?:tu\s+e|voi\s+(?:due|tre|2|3)|entrambi|entrambe|tutti\s+e\s+(?:due|tre|2|3)|insieme\s+a)\b/iu',$text);
+    $joint=(bool)aiRegexAny(['/\b(?:tu\s+e)\b/iu','/\b(?:voi\s+(?:due|tre|2|3))\b/iu','/\b(?:entrambi)\b/iu','/\b(?:entrambe)\b/iu','/\b(?:tutti\s+e\s+(?:due|tre|2|3))\b/iu','/\b(?:insieme\s+a)\b/iu'],$text);
     // A plural invitation without a name refers to colleagues of the selected PNG, not every bystander.
-    $collective=(bool)preg_match('/\b(?:voi\s+(?:due|tre|2|3)|entrambi|entrambe|tutti\s+e\s+(?:due|tre|2|3)|in\s+(?:due|2))\b/iu',$text)
-        &&(bool)preg_match('/\b(?:attacc(?:ate|hiate)|rispond(?:ete|iate)|ven(?:ite|iate)|aiut(?:ate|iate)|parl(?:ate|iate)|combattiamo|alleniamoci)\b/iu',$text);
+    $collective=(bool)aiRegexAny(['/\b(?:voi\s+(?:due|tre|2|3))\b/iu','/\b(?:entrambi)\b/iu','/\b(?:entrambe)\b/iu','/\b(?:tutti\s+e\s+(?:due|tre|2|3))\b/iu','/\b(?:in\s+(?:due|2))\b/iu'],$text)
+        &&(bool)aiRegexAny(['/\b(?:attacc(?:ate|hiate))\b/iu','/\b(?:rispond(?:ete|iate))\b/iu','/\b(?:ven(?:ite|iate))\b/iu','/\b(?:aiut(?:ate|iate))\b/iu','/\b(?:parl(?:ate|iate))\b/iu','/\b(?:combattiamo)\b/iu','/\b(?:alleniamoci)\b/iu'],$text);
     $faction=aiNpcGame((int)$selected['id'])['faction'];
     $roles=['sergent[ei]'=>'sergent','capitan[oi]'=>'capitan','guard(?:ia|ie)'=>'guardia','suor[ae]'=>'suor','parroc[oi]'=>'parroc','sacerdot[ei]'=>'sacerdot','ost[ei]'=>'oste','locandier[ei]'=>'locandier','custod[ei]'=>'custod'];
     foreach($npcs as $npc){

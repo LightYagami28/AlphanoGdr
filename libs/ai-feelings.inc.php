@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/regex-any.inc.php';
 /** A single reading of existing pair scores; this creates no emotion or consent. */
 function aiRelationFeelings(array $r):array {
     $romantic=in_array($r['state']??'',['innamoramento','relazione','crisi','riconciliazione'],true)&&(int)($r['love']??0)>=50;
@@ -53,9 +54,9 @@ function aiRelationFeelingsReplyProblem(array $npc,array $job,string $text):?str
     if(!aiRomanceAllowed($npc,aiPlayerIdentity($uid),aiSocialRules((int)$npc['id']))){ return null; }
     $speech=aiNarrativeParse($text)['speech'];
     foreach(preg_split('/(?<=[.!?;])\s*/u',$speech,-1,PREG_SPLIT_NO_EMPTY)?:[] as $sentence){
-        if(preg_match('/\b(?:prima|allora|un tempo|credevo|pensavo|dicevo|dicevi|dicevate|ho detto|avevo detto|se|forse)\b|\?$/iu',$sentence)){ continue; }
+        if(aiRegexAny(['/\b(?:prima)\b/iu','/\b(?:allora)\b/iu','/\b(?:un tempo)\b/iu','/\b(?:credevo)\b/iu','/\b(?:pensavo)\b/iu','/\b(?:dicevo)\b/iu','/\b(?:dicevi)\b/iu','/\b(?:dicevate)\b/iu','/\b(?:ho detto)\b/iu','/\b(?:avevo detto)\b/iu','/\b(?:se)\b/iu','/\b(?:forse)\b/iu','/\?$/iu'],$sentence)){ continue; }
         if(preg_match('/non\s+(?:ti|vi)\s+amo\s+(?:meno|solo|soltanto|perch[ée])/iu',$sentence)){ continue; }
-        if(preg_match('/\bnon\s+(?:(?:ti|vi)\s+amo|sono\s+(?:più\s+)?innamorat[oa](?!\s+di\s+(?!(?:te|voi)\b))|provo\s+(?:alcun\s+)?(?:amore|sentimenti)(?!\s+per\s+(?!(?:te|voi)\b)))\b|\b(?:per\s+me\s+)?(?:sei|siete)\s+soltanto\s+un[ao]?\s+amic[oa]\b|\b(?:provo|sento)\s+soltanto\s+amicizia\b/iu',$sentence)){ return 'Il legame attuale registra già amore e fiducia: non negare il sentimento presente ripetendo vecchi rifiuti. Puoi mantenere i tuoi limiti e rifiutare uno specifico gesto o invito.'; }
+        if(aiRegexAny(['/\bnon\s+(?:(?:ti|vi)\s+amo)\b/iu','/\bnon\s+(?:sono\s+(?:più\s+)?innamorat[oa](?!\s+di\s+(?!(?:te)\b)))\b/iu','/\bnon\s+(?:sono\s+(?:più\s+)?innamorat[oa](?!\s+di\s+(?!(?:voi)\b)))\b/iu','/\bnon\s+(?:provo\s+(?:alcun\s+)?(?:amore)(?!\s+per\s+(?!(?:te)\b)))\b/iu','/\bnon\s+(?:provo\s+(?:alcun\s+)?(?:amore)(?!\s+per\s+(?!(?:voi)\b)))\b/iu','/\bnon\s+(?:provo\s+(?:alcun\s+)?(?:sentimenti)(?!\s+per\s+(?!(?:te)\b)))\b/iu','/\bnon\s+(?:provo\s+(?:alcun\s+)?(?:sentimenti)(?!\s+per\s+(?!(?:voi)\b)))\b/iu','/\b(?:per\s+me\s+)?(?:sei)\s+soltanto\s+un[ao]?\s+amic[oa]\b/iu','/\b(?:per\s+me\s+)?(?:siete)\s+soltanto\s+un[ao]?\s+amic[oa]\b/iu','/\b(?:provo|sento)\s+soltanto\s+amicizia\b/iu'],$sentence)){ return 'Il legame attuale registra già amore e fiducia: non negare il sentimento presente ripetendo vecchi rifiuti. Puoi mantenere i tuoi limiti e rifiutare uno specifico gesto o invito.'; }
     }
     return null;
 }

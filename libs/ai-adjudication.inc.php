@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/regex-any.inc.php';
 require_once __DIR__.'/rpg-combat.inc.php';
 require_once __DIR__.'/lycan.inc.php';
 require_once __DIR__.'/item-engine.inc.php';
@@ -114,7 +115,7 @@ function aiAdjudicate(int $sid):array{
   $mental=$ability?$effectType==='mental':($analysis['intent']==='potere');
   if($mental&&!$ability){$r['outcome']='la dichiarazione non attiva una capacità appresa';$r['reason']='Per esercitare un potere mentale seleziona un’abilità appresa e disponibile: il nome scritto in chat non assegna effetti, non supera i requisiti e non evita il recupero.';$results[]=$r;continue;}
   $physical=mb_strtolower(implode(' ',array_column(array_filter($analysis['acts'],static fn($act)=>in_array($act['intent'],['assalto','arresto'],true)),'text')));
-  $bite=in_array($intent,['assalto','attacco'],true)&&(bool)preg_match('/\b(?:morde|mordo|mordere|morderlo|morderla|mordendolo|mordendola|morderli|morderle|azzanna|azzanno|azzannare|azzannarlo|azzannarla|azzannarli|azzannarle)\b|'.aiNarrativeBitePattern().'/iu',$physical);$grab=in_array($intent,['assalto','attacco','arresto'],true)&&(bool)preg_match('/\b(?:immobilizza|immobilizzo|immobilizzare|afferra|afferro|afferrare|afferrar(?:lo|la|li|le|gli)|stringe|stringo|stringere|serrare)\b/iu',$physical)&&!preg_match('/visto che|già|ha stretto|mantiene/iu',$physical);
+  $bite=in_array($intent,['assalto','attacco'],true)&&(bool)preg_match('/\b(?:morde|mordo|mordere|morderlo|morderla|mordendolo|mordendola|morderli|morderle|azzanna|azzanno|azzannare|azzannarlo|azzannarla|azzannarli|azzannarle)\b|'.aiNarrativeBitePattern().'/iu',$physical);$grab=in_array($intent,['assalto','attacco','arresto'],true)&&(bool)aiRegexAny(['/\b(?:immobilizza)\b/iu','/\b(?:immobilizzo)\b/iu','/\b(?:immobilizzare)\b/iu','/\b(?:afferra)\b/iu','/\b(?:afferro)\b/iu','/\b(?:afferrare)\b/iu','/\b(?:afferrar(?:lo|la|li|le|gli))\b/iu','/\b(?:stringe)\b/iu','/\b(?:stringo)\b/iu','/\b(?:stringere)\b/iu','/\b(?:serrare)\b/iu'],$physical)&&!preg_match('/visto che|già|ha stretto|mantiene/iu',$physical);
   // One declaration is one offensive manoeuvre. An attempted bite must not
   // disappear behind its preparatory grab, nor grant a free successful grapple.
   if($bite){ $grab=false; }
@@ -165,7 +166,7 @@ function aiAdjudicate(int $sid):array{
   $inventory=aiGameInventory($a['kind'],(int)$a['actor_id']);$weapon=rpgDeclaredWeapon($inventory,$raw);
   if($bite||$grab||preg_match('/pugno|calcio|mani nude|artigli/iu',$raw)){ $weapon=null; }
   if(!empty($effect['requires_weapon'])&&!$weapon){$r['outcome']='la tecnica armata non può diventare un colpo a mani nude';$r['reason']='L’abilità dichiarata richiede di usare l’arma impugnata: il morso, la presa o il pugno descritti non ne ricevono i bonus e non infliggono danni con quella tecnica.';$results[]=$r;continue;}
-  $claimedWeapon=(bool)preg_match('/spad\p{L}*|pugnal\p{L}*|lancia\b|fucil\p{L}*|pistol\p{L}*|moschett\p{L}*|carabin\p{L}*|trombon\p{L}*|\bspar\p{L}*|balestr\p{L}*|\barco\b|freccia|dardo/iu',$raw);
+  $claimedWeapon=(bool)aiRegexAny(['/spad\p{L}*/iu','/pugnal\p{L}*/iu','/lancia\b/iu','/fucil\p{L}*/iu','/pistol\p{L}*/iu','/moschett\p{L}*/iu','/carabin\p{L}*/iu','/trombon\p{L}*/iu','/\bspar\p{L}*/iu','/balestr\p{L}*/iu','/\barco\b/iu','/freccia/iu','/dardo/iu'],$raw);
   if($claimedWeapon&&!$weapon){$r['outcome']='non può usare l’arma dichiarata';$r['reason']='Quell’arma non risulta impugnata e utilizzabile: la sola dichiarazione non la fa comparire nella mano.';$results[]=$r;continue;}
   if($weaponReason=rpgWeaponLineageReason(['race_id'=>(int)$actor['razza'],'native_race_id'=>(int)($actor['native_race_id']??$actor['razza'])],$weapon)){$r['outcome']='non può usare l’arma da fuoco';$r['reason']=$weaponReason;$results[]=$r;continue;}
   $ranged=$weapon&&rpgRangedFamily($weapon)!=='';
@@ -255,7 +256,7 @@ function aiAdjudicationNonAttackOutcome(array &$r,array &$conditions,array $cast
 /** Resolves push and human manoeuvre outcomes; returns true when the action is resolved. */
 function aiAdjudicationManeuverOutcome(array &$r,array &$conditions,array &$ammoEffects,string $maneuver,string $raw,array $target,string $targetKey,?array $ability,string $key,int $round):bool{
   if($maneuver==='push'){
-   aiTacticalContact($conditions,$key,$targetKey,$round);$position=preg_match('/contro\s+(?:il\s+|la\s+|un[ao]?\s+|l[’\x{27}])?(muro|parete|porta|banco|tavolo)/iu',$raw,$anchor)?'contro '.(in_array(mb_strtolower($anchor[1]),['parete','porta'],true)?'la ':'il ').mb_strtolower($anchor[1]):'spostato all’indietro';
+   aiTacticalContact($conditions,$key,$targetKey,$round);$position=aiRegexAny(['/contro\s+(?:il\s+)?(muro|parete|porta|banco|tavolo)/iu','/contro\s+(?:la\s+)?(muro|parete|porta|banco|tavolo)/iu','/contro\s+(?:un[ao]?\s+)?(muro)/iu','/contro\s+(?:un[ao]?\s+)?(parete)/iu','/contro\s+(?:un[ao]?\s+)?(porta)/iu','/contro\s+(?:un[ao]?\s+)?(banco)/iu','/contro\s+(?:un[ao]?\s+)?(tavolo)/iu','/contro\s+(?:l[’\x{27}])?(muro|parete|porta|banco|tavolo)/iu'],$raw,$anchor)?'contro '.(in_array(mb_strtolower($anchor[1]),['parete','porta'],true)?'la ':'il ').mb_strtolower($anchor[1]):'spostato all’indietro';
    $conditions[$targetKey]['position']=$position;$r['outcome']='la spinta sposta il bersaglio';$r['reason']='Il confronto supera la resistenza: '.$target['name'].' si trova '.$position.'. Le prese già accertate restano attive; non viene inflitta una ferita automatica.';return true;
  }
   if(isset($ability['human_rules'])&&in_array((int)$ability['human_rules']['number'],[4,10,11],true)){
@@ -336,7 +337,7 @@ function aiAdjudicationApply(array $v,array $q,array $s):void{
 function aiAdjudicationAtmosphereSafe(string $text,array $names=[]):bool{
  if($text===''||mb_strlen($text)>650){ return false; }
  foreach($names as $name){ if(is_string($name)&&$name!==''&&aiMentionsNpc($text,$name)){ return false; } }
- return !preg_match('/<|```|[\x{3400}-\x{9fff}\x{0400}-\x{04ff}]|convalid|nessun esito|punti vita|corone|ferisce|uccid|muore|morto|cade|sanguin|morso|immobilizz|piogg|piov|nevic|neve|temporale|\b(?:vento|sole|nebbia|grandine|tuono|gelo|sergente|guardia|guardie|soldato|soldati|uomo|donna|visitatore|compagno|qualcuno|nessuno|egli|ella|lui|lei)\b/iu',$text);
+ return !aiRegexAny(['/</iu','/```/iu','/[\x{3400}-\x{9fff}\x{0400}-\x{04ff}]/iu','/convalid/iu','/nessun esito/iu','/punti vita/iu','/corone/iu','/ferisce/iu','/uccid/iu','/muore/iu','/morto/iu','/cade/iu','/sanguin/iu','/morso/iu','/immobilizz/iu','/piogg/iu','/piov/iu','/nevic/iu','/neve/iu','/temporale/iu','/\b(?:vento)\b/iu','/\b(?:sole)\b/iu','/\b(?:nebbia)\b/iu','/\b(?:grandine)\b/iu','/\b(?:tuono)\b/iu','/\b(?:gelo)\b/iu','/\b(?:sergente)\b/iu','/\b(?:guardia)\b/iu','/\b(?:guardie)\b/iu','/\b(?:soldato)\b/iu','/\b(?:soldati)\b/iu','/\b(?:uomo)\b/iu','/\b(?:donna)\b/iu','/\b(?:visitatore)\b/iu','/\b(?:compagno)\b/iu','/\b(?:qualcuno)\b/iu','/\b(?:nessuno)\b/iu','/\b(?:egli)\b/iu','/\b(?:ella)\b/iu','/\b(?:lui)\b/iu','/\b(?:lei)\b/iu'],$text);
 }
 function aiAdjudicationNarrate(array $room,array $technical,bool $offline=false):array{
  $facts=aiAdjudicationFallback($technical);$intro='';

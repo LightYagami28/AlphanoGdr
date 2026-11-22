@@ -4,17 +4,21 @@ from pathlib import Path
 import argparse,hashlib,zipfile,shutil,re,subprocess,sys
 ROOT=Path(__file__).resolve().parents[1]
 UPLOAD_DIRS=[('images',),('equip','images'),('equip','newimages'),('profili','pg'),('uploads',),('temp',),('sessione','log')]
+def is_private_or_generated(rel,path):
+ if rel.parts[0]=='private' and rel.as_posix()!='private/.htaccess':return True
+ if rel.as_posix() in ['config/local.php','config/ai.local.php']:return True
+ return path.name.endswith(('.log','.eml','.bak','.sql.gz','.pyc'))
+
 def publish_files(include_vendor=False):
  for p in sorted(ROOT.rglob('*')):
   if not p.is_file() or p.is_symlink():continue
-  rel=p.relative_to(ROOT);parts=rel.parts
-  if any(x in {'.git','dist','__pycache__','runtime','node_modules'} for x in parts):continue
-  if parts[0]=='vendor':
+  rel=p.relative_to(ROOT)
+  if any(x in {'.git','dist','__pycache__','runtime','node_modules'} for x in rel.parts):continue
+  if rel.parts[0]=='vendor':
    if include_vendor:yield p
    continue
-  if parts[0]=='private' and rel.as_posix()!='private/.htaccess':continue
-  if rel.as_posix() in ['config/local.php','config/ai.local.php'] or p.name.endswith(('.log','.eml','.bak','.sql.gz','.pyc')):continue
-  if any(parts[:len(d)]==d for d in UPLOAD_DIRS) and p.name!='.htaccess':continue
+  if is_private_or_generated(rel,p):continue
+  if any(rel.parts[:len(d)]==d for d in UPLOAD_DIRS) and p.name!='.htaccess':continue
   yield p
 if __name__=='__main__':
  args=argparse.ArgumentParser();args.add_argument('--include-vendor',action='store_true');args=args.parse_args()

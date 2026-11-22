@@ -15,32 +15,47 @@ import {patchLiveList} from './live-list.js';
     }
     let previousMail=null,latestMail=0;const seenQuest=new Set(),seenActivity=new Set();
     let modalRunning=false;const modalQueue=new Map();
+    async function boardDecisions(batch){
+      const games=batch.filter(n=>n.event_type==='board-game');
+      const latest=new Map();games.forEach(n=>{const id=n.data?.game_id||n.key,old=latest.get(id);if(!old||Number(n.data?.presentation?.version||n.created_at||0)>Number(old.data?.presentation?.version||old.created_at||0)){latest.set(id,n);}});
+      await Promise.all([...latest.values()].map(async n=>{const decision=await window.alphanoBoardNotices.fromNotice(n,Number(document.getElementById('app-script')?.dataset.idpg||0));if(decision==='ack'){await request({keys:[n.key]});}}));
+    }
+    function dropBoardGames(batch){
+      for(let i=batch.length-1;i>=0;i--)if(batch[i].event_type==='board-game'){batch.splice(i,1);}
+    }
+    function noticeOptions(trade,single,batch){
+      const noticeTitle=(trade,single)=>{if(trade){return single.title;}return single?'Nuova notifica':'Nuove notifiche';};
+      const noticeMessage=(trade,batch,single)=>{if(trade){return single.detail;}return batch.length+(single?' aggiornamento da leggere.':' aggiornamenti da leggere.');};
+      const noticeSymbol=n=>{if(n.event_type==='board-game'){return '\u265c';}return n.key==='mail'?'\u2709':'\u2726';};
+      return {
+        variant:'activity',iconImage:trade?'/assets/placeholder.svg':undefined,title:noticeTitle(trade,single),eyebrow:'Alphano · Cronaca',
+        message:noticeMessage(trade,batch,single),
+        items:trade?undefined:batch.slice(0,12).map(n=>({label:n.title,meta:n.detail,image:n.data?.order_id||n.commerce?'/assets/placeholder.svg':undefined,symbol:noticeSymbol(n),actionUrl:n.url||'/notifiche/?notice='+encodeURIComponent(n.key),actionLabel:n.event_type==='board-game'?'Apri il tavolo':'Leggi'})),
+        itemsTitle:'Ultimi aggiornamenti',contentUrl:trade?'/commercio/?id='+Number(single.data.order_id):undefined,
+        actionUrl:trade?undefined:'/notifiche/',buttonLabel:trade?'Chiudi trattativa':'Apri la cronaca',cancelLabel:'Più tardi'
+      };
+    }
+    function openedTarget(decision,trade,single,batch){
+      const openedFrom=(decision,trade,single,batch)=>{if(decision.startsWith('item:')){return batch[Number(decision.slice(5))];}return decision==='ack'&&trade?single:null;};
+      return openedFrom(decision,trade,single,batch);
+    }
+    async function markOpened(opened){
+      if(opened?.key?.startsWith('quest:')){await request({ids:[Number(opened.key.slice(6))]});}
+      else if(opened?.key&&opened.key!=='mail'){await request({keys:[opened.key]});}
+    }
     async function announce(){
       if(modalRunning||!modalQueue.size||!window.alphanoDialog){return;}
       modalRunning=true;const batch=[...modalQueue.values()];modalQueue.clear();
       try{
         if(window.alphanoBoardNotices){
-          const games=batch.filter(n=>n.event_type==='board-game'),latest=new Map();games.forEach(n=>{const id=n.data?.game_id||n.key,old=latest.get(id);if(!old||Number(n.data?.presentation?.version||n.created_at||0)>Number(old.data?.presentation?.version||old.created_at||0)){latest.set(id,n);}});
-          await Promise.all([...latest.values()].map(async n=>{const decision=await window.alphanoBoardNotices.fromNotice(n,Number(document.getElementById('app-script')?.dataset.idpg||0));if(decision==='ack'){await request({keys:[n.key]});}}));
-          for(let i=batch.length-1;i>=0;i--)if(batch[i].event_type==='board-game'){batch.splice(i,1);}
+          await boardDecisions(batch);
+          dropBoardGames(batch);
           if(!batch.length){return;}
         }
         const single=batch.length===1?batch[0]:null,trade=Boolean(single?.data?.order_id);
-        const noticeTitle=(trade,single)=>{if(trade){return single.title;}return single?'Nuova notifica':'Nuove notifiche';};
-        const noticeMessage=(trade,batch,single)=>{if(trade){return single.detail;}return batch.length+(single?' aggiornamento da leggere.':' aggiornamenti da leggere.');};
-        const noticeSymbol=n=>{if(n.event_type==='board-game'){return '\u265c';}return n.key==='mail'?'\u2709':'\u2726';};
-        const openedFrom=(decision,trade,single,batch)=>{if(decision.startsWith('item:')){return batch[Number(decision.slice(5))];}return decision==='ack'&&trade?single:null;};
-        const decision=await window.alphanoDialog.notice({
-          variant:'activity',iconImage:trade?'/assets/placeholder.svg':undefined,title:noticeTitle(trade,single),eyebrow:'Alphano · Cronaca',
-          message:noticeMessage(trade,batch,single),
-          items:trade?undefined:batch.slice(0,12).map(n=>({label:n.title,meta:n.detail,image:n.data?.order_id||n.commerce?'/assets/placeholder.svg':undefined,symbol:noticeSymbol(n),actionUrl:n.url||'/notifiche/?notice='+encodeURIComponent(n.key),actionLabel:n.event_type==='board-game'?'Apri il tavolo':'Leggi'})),
-          itemsTitle:'Ultimi aggiornamenti',contentUrl:trade?'/commercio/?id='+Number(single.data.order_id):undefined,
-          actionUrl:trade?undefined:'/notifiche/',buttonLabel:trade?'Chiudi trattativa':'Apri la cronaca',cancelLabel:'Più tardi'
-        });
+        const decision=await window.alphanoDialog.notice(noticeOptions(trade,single,batch));
         // Opening the chronicle is not the same as reading every receipt in the batch.
-        const opened=openedFrom(decision,trade,single,batch);
-        if(opened?.key?.startsWith('quest:')){await request({ids:[Number(opened.key.slice(6))]});}
-        else if(opened?.key&&opened.key!=='mail'){await request({keys:[opened.key]});}
+        await markOpened(openedTarget(decision,trade,single,batch));
       }catch(error){console.error('Lettura della notifica non salvata',error);}
       finally{modalRunning=false;if(modalQueue.size){void announce();}}
     }

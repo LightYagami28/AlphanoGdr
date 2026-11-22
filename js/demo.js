@@ -39,6 +39,26 @@
     options($('demo-npc'), [['0', 'Nessuno'], ...room.npcs.map(n => [n.id, n.name])], '0');
     $('demo-messages').replaceChildren(); signature = ''; busy = false; $('demo-typing').textContent = '';
   }
+  function turnTime(t) {
+    const time = new Date(t.time * 1000).toLocaleTimeString('it-IT', {hour: '2-digit', minute: '2-digit'});
+    return time;
+  }
+  function turnNode(t, time) {
+    const row = element('article', '', 'demo-turn');
+    row.append(element('div', time + ' · ' + (visitor.sex === 'Femmina' ? '♀' : '♂') + ' ' + visitor.name + (t.npc_id ? ' → ' + t.npc_name : ''), 'demo-speaker'));
+    row.append(element('p', t.text));
+    return row;
+  }
+  function replyNode(t, time) {
+    const npc = rooms.find(r => r.chat_key === current)?.npcs.find(n => n.id === t.npc_id);
+    const reply = element('article', '', 'demo-turn');
+    reply.append(element('div', time + ' · ' + (npc?.sex === 'Femmina' ? '♀' : '♂') + ' ' + t.npc_name + ' · PNG', 'demo-speaker ' + (npc?.sex === 'Femmina' ? 'demo-female' : 'demo-male')));
+    reply.append(narrative(t.reply, npc?.sex));
+    return reply;
+  }
+  function failureNode() {
+    return element('p', 'La risposta non è arrivata. Puoi riprovare con un nuovo messaggio.', 'demo-error');
+  }
   function render(turns) {
     const mark = JSON.stringify(turns);
     busy = turns.some(t => ['queued', 'running'].includes(t.status));
@@ -52,16 +72,10 @@
     const nodes = [];
     if (!turns.length) {nodes.push(element('p', 'Il luogo attende la tua prima azione. Scegli un PNG nel menu “Rivolgiti a” per iniziare a parlare.', 'demo-empty'));}
     for (const t of turns) {
-      const time = new Date(t.time * 1000).toLocaleTimeString('it-IT', {hour: '2-digit', minute: '2-digit'});
-      const row = element('article', '', 'demo-turn');
-      row.append(element('div', time + ' · ' + (visitor.sex === 'Femmina' ? '♀' : '♂') + ' ' + visitor.name + (t.npc_id ? ' → ' + t.npc_name : ''), 'demo-speaker'));
-      row.append(element('p', t.text)); nodes.push(row);
-      if (t.reply) {
-        const npc = rooms.find(r => r.chat_key === current)?.npcs.find(n => n.id === t.npc_id);
-        const reply = element('article', '', 'demo-turn');
-        reply.append(element('div', time + ' · ' + (npc?.sex === 'Femmina' ? '♀' : '♂') + ' ' + t.npc_name + ' · PNG', 'demo-speaker ' + (npc?.sex === 'Femmina' ? 'demo-female' : 'demo-male')));
-        reply.append(narrative(t.reply, npc?.sex)); nodes.push(reply);
-      } else if (['failed', 'cancelled'].includes(t.status)) {nodes.push(element('p', 'La risposta non è arrivata. Puoi riprovare con un nuovo messaggio.', 'demo-error'));}
+      const time = turnTime(t);
+      nodes.push(turnNode(t, time));
+      if (t.reply) {nodes.push(replyNode(t, time));}
+      else if (['failed', 'cancelled'].includes(t.status)) {nodes.push(failureNode());}
     }
     log.replaceChildren(...nodes);
     if (nearBottom || turns.length < 2) {log.scrollTop = log.scrollHeight;}

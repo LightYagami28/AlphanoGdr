@@ -425,6 +425,7 @@ function aiQuestCompactNpcPrompt(array $room,array $npc,array $job,float $scale)
   'allenamento'=>'Prepara una tecnica leale e controllata, senza colpi riusciti o danni.',
   'aiuto'=>'Chiedi aiuto; non dichiarare rinforzi già arrivati.',
   default=>'Descrivi solo il tentativo scelto, senza dichiararne il successo.'};
+ $targetId=0;
  if(!empty($job['quest_threat'])){
   $threat=$job['quest_threat'];$targetKind=$threat['target_kind']??'npc';$targetId=(int)($threat['target_id']??0);
   $self=$targetKind==='npc'&&$targetId===$nid;

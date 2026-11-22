@@ -20,11 +20,20 @@ function bg_computer_search(Onspli\Chess\FEN $fen,int $depth,int $alpha,int $bet
  usort($legal,static fn($a,$b)=>(int)str_contains($b,'x')<=>(int)str_contains($a,'x'));
  foreach($legal as $san){$next=clone $fen;$next->move($san);$score=-bg_computer_search($next,$depth-1,-$beta,-$alpha,$deadline);$alpha=max($alpha,$score);if($alpha>=$beta){ break; }}return $alpha;
 }
+function bg_computerInitialScores(Onspli\Chess\FEN $fen,array $legal,float $deadline):array {
+ $scores=[];
+ foreach($legal as $san){
+  if($scores&&microtime(true)>$deadline){ break; }
+  $next=clone $fen;$next->move($san);
+  $scores[$san]=$next->isMate()?100000:-bg_computer_evaluate($next);
+ }
+ return $scores;
+}
 function bg_computer_choose(array $state,int $level=2):string {
  $fen=new Onspli\Chess\FEN($state['fen']);$legal=array_column($state['legal'],'id');if(!$legal){ throw new RuntimeException('Nessuna mossa per il PNG.'); }
  $deadline=microtime(true)+.45;$best=$legal[0];$bestScore=-PHP_INT_MAX;
  // Every candidate gets a one-ply score before deeper analysis consumes the budget.
- $scores=[];foreach($legal as $san){if($scores&&microtime(true)>$deadline){ break; }$next=clone $fen;$next->move($san);$scores[$san]=$next->isMate()?100000:-bg_computer_evaluate($next);}
+ $scores=bg_computerInitialScores($fen,$legal,$deadline);
  arsort($scores);$best=(string)array_key_first($scores);if(reset($scores)>=100000){ return $best; }
  if($level===1){ return $best; }
  foreach($scores as $san=>$initial){try{$next=clone $fen;$next->move($san);$score=-bg_computer_search($next,1,-200000,200000,$deadline);}catch(RuntimeException $e){if($e->getMessage()!=='search-budget'){ throw $e; }break;}if($score>$bestScore){$bestScore=$score;$best=$san;}}
@@ -38,14 +47,21 @@ function bg_computer_finish(array &$m,int $winner,string $reason,bool $void):voi
  $d->execute('UPDATE board_games SET status=?,winner=?,reason=?,finished_at=?,result_json=?,version=?,clock_white=?,clock_black=? WHERE id=?',[$m['status'],$winner,$reason,$now,$m['result_json'],$m['version'],$m['clock_white'],$m['clock_black'],$m['id']]);
  bgAudit((int)$m['id'],0,'computer-settled',$result);bgNotify($m,'Allenamento con il PNG concluso: '.$reason.'. Nessun premio e nessuna variazione ELO.');bgPublicNotice($m,'Allenamento al tavolo #'.$m['id'].' concluso: '.$reason.'. Nessun premio o punto ELO.');
 }
+function bg_computerTurn(array $state,array $m):int {
+ if($state['turn']===0){ return (int)$m['white_id']; }
+ return (int)$m['white_id']===(int)$m['a']?(int)$m['b']:(int)$m['a'];
+}
 function bg_computer_reply(array &$m):void {
- $c=bg_computer_info($m);if(!$c||$m['status']!=='active'){ return; }$state=rpg_decode($m['state_json']);$turn=$state['turn']===0?(int)$m['white_id']:((int)$m['white_id']===(int)$m['a']?(int)$m['b']:(int)$m['a']);
+ $c=bg_computer_info($m);if(!$c||$m['status']!=='active'){ return; }$state=rpg_decode($m['state_json']);$turn=bg_computerTurn($state,$m);
  if($turn!==(int)$m['b']){ return; }
  $move=bg_computer_choose($state,(int)$c['level']);bgExpire($m);if($m['status']==='active'){ bgCommitMove($m,(int)$m['b'],$move); }
 }
+function bg_computerStartPreflight(array $settings,array $room):void {
+ if(!$settings['enabled']||!$settings['scacchi']||!$room['scacchi']){ throw new DomainException('Gli scacchi non sono abilitati in questo luogo.',403); }
+}
 function bg_computer_start(int $uid,array $in):array {
  $d=connectDB();$chat=playerText($in,'chat',100,true);bgActor($uid,$chat);$settings=bgSettings();$room=bgRoom($chat);
- if(!$settings['enabled']||!$settings['scacchi']||!$room['scacchi']){ throw new DomainException('Gli scacchi non sono abilitati in questo luogo.',403); }
+ bg_computerStartPreflight($settings,$room);
  $npcId=rpg_int($in['npc']??0,1,PHP_INT_MAX,'PNG');$npcs=array_column(bg_computer_npcs($chat),null,'id');$npc=$npcs[$npcId]??null;if(!$npc){ throw new DomainException('Scegli un PNG presente in questo luogo.',422); }
  $level=rpg_int($in['level']??2,1,2,'Difficoltà');$color=(string)($in['color']??'white');if(!in_array($color,['white','black','random'],true)){ throw new DomainException('Colore non valido.',422); }
  $total=rpg_int($in['total']??$settings['default_total'],$settings['min_total'],$settings['max_total'],'Tempo totale');

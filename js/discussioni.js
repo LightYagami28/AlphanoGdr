@@ -1,6 +1,6 @@
-const renderHTML=(el,markup)=>{const doc=new DOMParser().parseFromString(String(markup??''),'text/html');el.replaceChildren(...[...doc.body.childNodes].map(node=>document.importNode(node,true)));};
 document.addEventListener('DOMContentLoaded', () => {
   'use strict';
+  const renderHTML=(el,markup)=>{const doc=new DOMParser().parseFromString(String(markup??''),'text/html');el.replaceChildren(...[...doc.body.childNodes].map(node=>document.importNode(node,true)));};
   const F=window.alphanoForum, {esc,button}=F, config=F.config;
   const menu=document.getElementById('menu-list'),title=document.getElementById('panel-title'),panel=document.getElementById('panel-container');
   const modal=document.getElementById('modal'),form=modal.querySelector('form'),modalTitle=modal.querySelector('.modal-title');

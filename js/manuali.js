@@ -1,6 +1,6 @@
-const renderHTML=(el,markup)=>{const doc=new DOMParser().parseFromString(String(markup??''),'text/html');el.replaceChildren(...[...doc.body.childNodes].map(node=>document.importNode(node,true)));};
 (() => {
   'use strict';
+  const renderHTML=(el,markup)=>{const doc=new DOMParser().parseFromString(String(markup??''),'text/html');el.replaceChildren(...[...doc.body.childNodes].map(node=>document.importNode(node,true)));};
   const config=JSON.parse(document.getElementById('manuals-config')?.textContent||'{}');
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const byId=id=>document.getElementById(id),btn=(text,act,id=0)=>'<button type="button" class="action-btn" data-action="' + (act) + '" data-id="' + (id) + '">' + (esc(text)) + '</button>';

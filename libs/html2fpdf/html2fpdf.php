@@ -2,7 +2,9 @@
 declare(strict_types=1);
 /** Dompdf-backed adapter for the legacy HTML2FPDF call surface. */
 require_once __DIR__.'/fpdf.php';
-if (!defined('HTML2FPDF_VERSION')) define('HTML2FPDF_VERSION','dompdf-compat');
+if (!defined('HTML2FPDF_VERSION')) {
+    define('HTML2FPDF_VERSION','dompdf-compat');
+}
 class HTML2FPDF extends FPDF
 {
     public function HTML2FPDF($orientation='P',$unit='mm',$format='A4'): void { $this->__construct($orientation,$unit,$format); }

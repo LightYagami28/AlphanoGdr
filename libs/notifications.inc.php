@@ -66,7 +66,8 @@ function alphanoActivityKey(string $source, int|string $identity, array $version
 
 
 /** Emits the notice for the currently open civic round phase. */
-function alphanoElectionPhaseNotice($db,int $homeId,array $homeCity,int $recipient,string $assemblyUrl,array $round,callable $add): void
+/** Emits the notice for the currently open civic round phase. */
+function alphanoElectionPhaseNotice(int $homeId,array $homeCity,int $recipient,string $assemblyUrl,array $round,callable $add): void
 {
             $now=time();$candidates=strtotime($round['start_candidature']);$voting=strtotime($round['start_elezioni']);$end=strtotime($round['end_elezioni']);
             if($now>=$candidates && $now<$voting){
@@ -79,19 +80,20 @@ function alphanoElectionPhaseNotice($db,int $homeId,array $homeCity,int $recipie
                 $key=alphanoActivityKey('city-election',$homeId,[(int)$round['id'],$phase,$round['start_elezioni'],$round['end_elezioni']]);
                 $add($key,'citta',$title,$homeCity['city'].' · Assemblea cittadina',$assemblyUrl,$created,1);
             }
-        }
+}
 
 /** Announces an open civic round without mutating election state. */
-function alphanoCivicElectionNotice(int $homeId,array $homeCity,int $recipient,string $assemblyUrl,callable $add): void
+function alphanoCivicElectionNotice($db,int $homeId,array $homeCity,int $recipient,string $assemblyUrl,callable $add): void
 {
         // Announce actual rounds. Merely polling notifications must never create
         // elections, send mail, reset votes or run the assembly's maintenance.
         if(!alphanoElectionsReady()){
         $round=$db->query('SELECT id,start_candidature,start_elezioni,end_elezioni FROM storicoelezioni WHERE city_id=? AND winner_id IS NULL ORDER BY id DESC LIMIT 1',[$homeId])[0] ?? null;
-        if($round){alphanoElectionPhaseNotice($db,$homeId,$homeCity,$recipient,$assemblyUrl,$round,$add);}
+        if($round){alphanoElectionPhaseNotice($homeId,$homeCity,$recipient,$assemblyUrl,$round,$add);}
         } // Civic rounds publish their own immutable, correctly timed receipts.
 }
-/** Builds forum notifications from unread posts visible to the recipient. */
+
+
 function alphanoForumNotifications($db,array $user,int $recipient,callable $add): void
 {
     // The permission expression is the same OR policy as player_board_permissions.
@@ -171,7 +173,7 @@ function alphanoActivityNotifications(int $recipient): array
             $key=alphanoActivityKey('city-statute',$homeId,[$homeCity['statuto'],$homeCity['newstatuto']]);
             $add($key,'citta','Nuova proposta di statuto',$homeCity['city'].' · Assemblea cittadina',$assemblyUrl,0,1);
         }
-    alphanoCivicElectionNotice($homeId,$homeCity,$recipient,$assemblyUrl,$add);
+    alphanoCivicElectionNotice($db,$homeId,$homeCity,$recipient,$assemblyUrl,$add);
     }
     $requests=$db->query('SELECT r.*,u.nome FROM richieste r JOIN utenti u ON u.id=r.idpg
         WHERE (r.organizzazione=? AND r.organizzazione>0) OR (r.corporazione=? AND r.corporazione>0) OR (r.city=? AND r.city>0) OR (?=1 AND r.city>0)',[$org,$corp,$city,(int)!empty($user['admin'])]);

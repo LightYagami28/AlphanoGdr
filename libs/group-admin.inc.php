@@ -10,8 +10,6 @@ require_once __DIR__.'/libelezioni.inc.php';
 function alphanoGroupAdminDelegation($db,string $scope,int $group,int $actor,array $input,array $groupRow,array &$state): void
 {
         $field=$state['field'] ?? '';
-        $section=$state['section'] ?? null;$target=$state['target'] ?? null;$before=$state['before'] ?? null;$after=$state['after'] ?? null;
-        $changed=$state['changed'] ?? null;$personal=$state['personal'] ?? null;$title=$state['title'] ?? null;$detail=$state['detail'] ?? null;
                 $section='flag';$target=economiaIntero($input['nome'] ?? '',1) ?? 0;
                 $flags=$scope==='organizzazioni'?['adminorganizzazione'=>'adminorg']:['admincorporazione'=>'admincorporazione','admintrasfcorp'=>'admintrasfcorp','admincatalogo'=>'admincatalogo'];
                 if($scope==='organizzazioni'){ foreach(['resurgo'=>'adminmorti','cerimonia'=>'adminstatosociale','ferite'=>'adminferite'] as $capability=>$flag){ if(!empty($groupRow[$capability])){ $flags[$flag]=$capability; } } }
@@ -23,7 +21,8 @@ function alphanoGroupAdminDelegation($db,string $scope,int $group,int $actor,arr
                 alphanoGovernanceApply($actor,$target,$updates,'Delega dal pannello '.$groupRow['nome'],null,$scope,$group);
                 $after=$db->query("SELECT id,nome,{$columns} FROM utenti WHERE id=?",[$target])[0];
                 $changed=$before!==$after;$personal=true;$title='Privilegi nel gruppo aggiornati';$detail="Aggiornati i privilegi di {$before['nome']} in {$groupRow['nome']}.";
-        $state=compact('section','target','before','after','changed','personal','title','detail');
+        $state['section']=$section;$state['target']=$target;$state['before']=$before;$state['after']=$after;
+        $state['changed']=$changed;$state['personal']=$personal;$state['title']=$title;$state['detail']=$detail;
 }
 
 /** Extracted branch of alphanoGroupAdminAction. */

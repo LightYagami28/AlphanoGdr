@@ -51,7 +51,7 @@ function bg_computer_start(int $uid,array $in):array {
  $total=rpg_int($in['total']??$settings['default_total'],$settings['min_total'],$settings['max_total'],'Tempo totale');
  $request=playerText($in,'request_key',80,true);if(!preg_match('/^[a-zA-Z0-9-]{16,80}$/D',$request)){ throw new DomainException('Identificativo non valido.',422); }
  $signature=['npc'=>$npcId,'level'=>$level,'color'=>$color,'total'=>$total];
- return economiaAtomicaResiliente(function()use($d,$uid,$chat,$npc,$npcId,$level,$color,$total,$request,$signature,$settings){
+ return economiaAtomicaResiliente(function()use($d,$uid,$chat,$npc,$npcId,$level,$color,$total,$request,$signature){
   $d->query('SELECT id FROM utenti WHERE id=? FOR UPDATE',[$uid]);
   if($old=$d->query('SELECT * FROM board_games WHERE a=? AND request_key=?',[$uid,$request])[0]??null){$audit=$d->query("SELECT details_json FROM board_game_audit WHERE game_id=? AND action='computer-start' ORDER BY id LIMIT 1",[$old['id']])[0]??null;if($old['chat_key']!==$chat||!$audit||rpg_decode($audit['details_json'])!==$signature){ throw new DomainException('Identificativo già utilizzato con condizioni diverse.',409); }return bgView($old,$uid);}
   if($d->query("SELECT id FROM board_games WHERE status='active' AND (a=? OR b=?) LIMIT 1 FOR UPDATE",[$uid,$uid])){ throw new DomainException('Hai già una partita attiva: concludila prima di allenarti.',409); }

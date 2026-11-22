@@ -5,7 +5,7 @@ require_once __DIR__.'/fpdf.php';
 if (!defined('HTML2FPDF_VERSION')) define('HTML2FPDF_VERSION','dompdf-compat');
 class HTML2FPDF extends FPDF
 {
-    public function HTML2FPDF($orientation='P',$unit='mm',$format='A4'): void { $this->__construct($orientation,$unit,$format); }
+    public function __construct($orientation='P',$unit='mm',$format='A4') { parent::__construct($orientation,$unit,$format); }
     public function UseCSS($enabled=true): void { /* Dompdf reads CSS by default. */ }
     public function WriteHTML($html): void {
         $this->html.=function_exists('alphanoSanitizeHtml') ? alphanoSanitizeHtml((string)$html) : (string)$html;

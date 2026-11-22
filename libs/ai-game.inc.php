@@ -43,7 +43,7 @@ function aiGameRacialFragment(string $html,int $race,bool $sentient): string {
 }
 function aiGameRules(int $race,bool $sentient,string $question): array {
     // The handbook explains OFF mechanics and private administration; it is not NPC knowledge.
-    static $manualSchema; $manualSchema??=(bool)aiDb()->query("SHOW COLUMNS FROM regole LIKE 'manual_key'");
+    static $manualSchema = null; $manualSchema??=(bool)aiDb()->query("SHOW COLUMNS FROM regole LIKE 'manual_key'");
     $rows=aiDb()->query('SELECT r.id,r.oggetto,r.spiegazione,s.nome AS section FROM regole r JOIN sezioniregole s ON s.id=r.sezione'.($manualSchema?" WHERE r.audience='public' AND r.manual_key IS NULL":'').' ORDER BY r.id');$candidates=[];
     $terms=preg_split('/[^\p{L}\p{N}]+/u',mb_strtolower($question),-1,PREG_SPLIT_NO_EMPTY);
     $terms=array_values(array_unique(array_filter($terms,static fn($v)=>mb_strlen($v)>=4)));

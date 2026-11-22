@@ -3,7 +3,7 @@ declare(strict_types=1);
 /** Small SMTP client with explicit transport, verified TLS and no shell calls. */
 class SMTPMailer {
  private $socket=null;
- public function __construct(private string $host,private int $port,private bool $tls,private string $user,private string $pass){}
+ public function __construct(private string $host,private int $port,bool $tls,private string $user,private string $pass){}
  public function send(string $from,string $to,string $subject,string $body,?string $html=null):bool{
   $transport=alphanoConfig('mail_transport');if($transport==='disabled'){ return false; }
   foreach([$from,$to,$subject] as $v){ if(strpbrk($v,"\r\n")!==false){ throw new InvalidArgumentException('Intestazione non valida.'); } }

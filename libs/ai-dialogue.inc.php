@@ -82,7 +82,7 @@ function aiDialogueWithoutRepeats(array $npc,array $job,string $text): string {
     $sentences=preg_split('/(?<=[.!?])(?:[»”"])*(?:\s+|$)/u',$text,-1,PREG_SPLIT_OFFSET_CAPTURE|PREG_SPLIT_NO_EMPTY);
     // Use offsets in the original text so unmatched punctuation, quotes and accents are preserved.
     $remove=[];
-    foreach($sentences as $i=>[$sentence,$start]){
+    foreach($sentences as $i=>[,$start]){
         $end=$sentences[$i+1][1]??strlen($text);$fragment=substr($text,$start,$end-$start);$normal=$normalize($fragment);
         if(preg_match_all('/\p{L}+/u',$normal)<8||mb_strlen($normal)<45){ continue; }
         foreach($history as $old){ if(str_contains($old,' '.$normal.' ')){$remove[]=[$start,$end-$start];break;} }

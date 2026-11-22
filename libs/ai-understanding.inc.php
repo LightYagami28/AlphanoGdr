@@ -80,7 +80,6 @@ function aiOrdinaryActorGuard(array $npc,array $job,string $text,?array $invento
         ||($name!==''&&preg_match('/(?:^|\n)\s*'.preg_quote($name,'/').'\s*:/iu',$text))){ throw new RuntimeException('Il PNG ha scritto un turno del PG: nuovo tentativo senza pubblicarlo.'); }
     $question=aiNarrativeParse((string)($job['prompt']??''))['speech'];$answer=aiNarrativeParse($text)['speech'];
     $normalize=static fn($v)=>trim(preg_replace('/[^\p{L}\p{N}]+/u',' ',mb_strtolower($v)));
-    $answerWords=$normalize($answer);$questionWords=$normalize($question);
     preg_match_all('/[^.!?]*\?/u',$question,$questions);
     preg_match_all('/[^.!?]*\?/u',$answer,$answerQuestions);
     foreach($questions[0] as $unit){

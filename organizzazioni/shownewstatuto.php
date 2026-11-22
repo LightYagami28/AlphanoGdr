@@ -17,7 +17,7 @@ require_once __DIR__ . '/../libs/libposta.inc.php';    // (se serve)
 
 
 initSession();
-$idpg = GetIDPG(false, true);
+$idpg = GetIDPG(false);
 if (!$idpg) {
     header('Location: /login.php');
     exit;

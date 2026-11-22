@@ -565,5 +565,3 @@ foreach ($pgPerCarica as $cid => $rows) {
         ];
     }
 }
-
-return;

@@ -51,6 +51,7 @@ playerApi(function (): array {
             $thread['id']=(int)$thread['id']; $thread['idpg']=(int)$thread['idpg']; $thread['chiusa']=(string)(int)$thread['chiusa'];
             $thread['message_raw']=$thread['messaggio']; $thread['messaggio']=processText($thread['messaggio']);
         }
+        unset($thread);
         $info=$db->query('SELECT * FROM luoghi WHERE id=?',[$board])[0];$info['image']=alphanoBoardImage($info);return ['success'=>true,'threads'=>$threads,'board'=>$info];
     }
     if (in_array($action, ['getPosts','postReply'], true)) {

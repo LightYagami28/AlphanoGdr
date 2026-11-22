@@ -250,7 +250,6 @@ function aiAdjudicationNonAttackOutcome(array &$r,array &$conditions,array $cast
    elseif(in_array($intent,['ritirata','fuga'],true)){$r['outcome']='guadagna spazio e si ritira';$r['reason']='Nessuna presa già accertata impedisce di arretrare; non infligge un attacco mentre si allontana.';aiTacticalRetreat($conditions,$key,$round);}
    elseif($intent==='difesa'){$r['outcome']='copre il settore minacciato';$r['reason']='La guardia resta concentrata su una difesa concreta e rende più difficile superarla; non ottiene un colpo gratuito.';}
    else{$r['outcome']='porta a termine il gesto non contrastato';$r['reason']='Nella dichiarazione non emerge un ostacolo concreto né un attacco da risolvere; il gesto può trovare seguito nella scena.';}
-   return;
 }
 /** Resolves push and human manoeuvre outcomes; returns true when the action is resolved. */
 function aiAdjudicationManeuverOutcome(array &$r,array &$conditions,array &$ammoEffects,string $maneuver,string $raw,array $target,string $targetKey,?array $ability,string $key,int $round):bool{
@@ -359,7 +358,7 @@ function aiAdjudicationNarrate(array $room,array $technical,bool $offline=false)
 /** A bounded end-of-quest grant: the model never chooses an amount or invents a recipient. */
 function aiQuestSettle(int $sid,string $reason):void{
  $db=aiDb();$q=$db->query('SELECT * FROM ai_quests WHERE session_id=? FOR UPDATE',[$sid])[0];if(!aiAdjudicationEnabled($sid)||$q['mode']!=='auto'){ return; }
- $cfg=aiSceneRules();$room=aiRoom($q['chat_key']);$g=aiGameGuidance($sid);$count=(int)$db->query('SELECT COUNT(*) n FROM ai_quest_verdicts WHERE session_id=? AND status=\'applied\'',[$sid])[0]['n'];
+ $cfg=aiSceneRules();$room=aiRoom($q['chat_key']);aiGameGuidance($sid);$count=(int)$db->query('SELECT COUNT(*) n FROM ai_quest_verdicts WHERE session_id=? AND status=\'applied\'',[$sid])[0]['n'];
  foreach($db->query("SELECT DISTINCT actor_id FROM ai_quest_cast WHERE session_id=? AND kind='pg'",[$sid]) as $c){$uid=(int)$c['actor_id'];
   if($db->query('SELECT player_id FROM ai_quest_settlements WHERE session_id=? AND player_id=?',[$sid,$uid])){ continue; }
   $actions=$db->query("SELECT details FROM ai_quest_actions WHERE session_id=? AND kind='pg' AND actor_id=? AND status='submitted'",[$sid,$uid]);$money=0;$text='Quest #'.$sid.' conclusa: '.aiText($reason,220).'. Giri risolti: '.$count.'.';

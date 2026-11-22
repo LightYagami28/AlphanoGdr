@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 $root=dirname(__DIR__);
-$local=is_file(__DIR__.'/local.php')?require_once __DIR__.'/local.php':[];
+$local=is_file(__DIR__.'/local.php')?($GLOBALS['ALPHANO_LOCAL_CONFIG_CACHE'] ??= require_once __DIR__.'/local.php'):[];
 $site=is_file($root.'/private/settings.json')?json_decode(file_get_contents($root.'/private/settings.json'),true,32,JSON_THROW_ON_ERROR):[];
 $defaults=[
  'db_host'=>'127.0.0.1','db_port'=>3306,'db_socket'=>'','db_db'=>'','db_user'=>'','db_pass'=>'',

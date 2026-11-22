@@ -50,7 +50,7 @@ function alphanoAppearanceUpload(array $file): string {
     if(!$info||!isset($types[$info[2]])||$info[0]>6000||$info[1]>6000||$info[0]*$info[1]>16000000){ throw new AlphanoDomainException('Usa PNG, JPEG o WebP, massimo 6000 pixel per lato e 16 milioni di pixel.'); }
     $mime=(new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']);
     if($mime!==image_type_to_mime_type($info[2])){ throw new AlphanoDomainException('Il contenuto non corrisponde al formato dell’immagine.'); }
-    $dir=dirname(__DIR__).'/uploads/appearance';if(!is_dir($dir)&&!mkdir($dir,0755,true)){ throw new AlphanoStorageException('Cartella immagini non scrivibile.'); }
+    $dir=dirname(__DIR__).'/uploads/appearance';if(!is_dir($dir)&&!mkdir($dir,0750,true)){ throw new AlphanoStorageException('Cartella immagini non scrivibile.'); }
     $path='/uploads/appearance/'.bin2hex(random_bytes(16)).'.'.$types[$info[2]];
     // Fixed bitmap extensions, nosniff and the uploads execution ban also protect hosts without GD.
     if(!move_uploaded_file($file['tmp_name'],dirname(__DIR__).$path)){ throw new AlphanoStorageException('Impossibile salvare l’immagine.'); }

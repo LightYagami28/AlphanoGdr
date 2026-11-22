@@ -120,7 +120,7 @@ function aiEpisodePrepare(array $npc,array $job):array {
         if((int)$before['fear']>=(int)$rules['romance_fear_limit']||(int)$before['hostility']>=20){ foreach($raw as $key=>$v){ if($v>0&&in_array($key,['sympathy','trust','affection'],true)){ unset($raw[$key]); } } }
         if((int)$before['fear']>0&&($episode['verified_trauma']||(int)$before['hostility']>=10)){ foreach(['trust','affection'] as $key){ if(($raw[$key]??0)>0){ unset($raw[$key]); } } }
         $after=$before;$changes=[];
-        foreach($raw as $key=>$value){$delta=aiSocialBoundedDelta($key,$value,$category,$before,$rules,$significant,$bond,$romance,'',$day);$min=in_array($key,['sympathy','trust','respect','honor'],true)?-100:0;$after[$key]=max($min,min(100,(int)$before[$key]+$delta));if($after[$key]!==$before[$key]){ $changes[$key]=$after[$key]-$before[$key]; }}
+        foreach($raw as $key=>$value){$delta=aiSocialBoundedDelta($key,$value,$category,$before,$rules,['significant'=>$significant,'bond'=>$bond,'romance'=>$romance,'evidence'=>'','day'=>$day]);$min=in_array($key,['sympathy','trust','respect','honor'],true)?-100:0;$after[$key]=max($min,min(100,(int)$before[$key]+$delta));if($after[$key]!==$before[$key]){ $changes[$key]=$after[$key]-$before[$key]; }}
         // A recorded hostile attempt establishes enmity even before any hit is resolved.
         // A sparring proposal, quotation or bystander's turn never reaches this branch.
         if(!empty($episode['aggression'])&&empty($episode['observer'])){
@@ -137,7 +137,7 @@ function aiEpisodePrepare(array $npc,array $job):array {
         $episode=[...$episode,'source_id'=>$source,'chat_key'=>$job['chat_key'],'changes'=>$changes,'counted'=>$counted,'repeated'=>$repeated];unset($episode['reading']);
         $keys=[...array_keys(AI_RELATION_METRICS),'state','meaningful','updated_at'];$db->execute('UPDATE ai_relationships SET '.implode(',',array_map(static fn($k)=>$k.'=?',$keys)).' WHERE npc_id=? AND player_id=?',[...array_map(static fn($k)=>$after[$k],$keys),$nid,$uid]);
         $record=$after;$record['_episode']=$episode;$record['_evolution']=['category'=>$category,'evidence'=>aiSocialEvidenceKey($episode['evidence']),'meaningful'=>$counted,'romantic'=>false,'source_id'=>$source];
-        aiRelationEvent($nid,$uid,$before,$record,'Percezione prima della risposta · '.$category.': '.$episode['evidence'],$job);
+        aiRelationEvent($nid,$uid,$before,$record,'Percezione prima della risposta · '.$category.': '.$episode['evidence'],['job'=>$job]);
         if($changes){$story=$category==='minaccia'&&array_sum(array_map('abs',$changes))>=(int)$rules['trauma_threshold']?'trauma':'evoluzione';$summary='Ha percepito '.$category.' nelle parole o nei tentativi di questo personaggio: «'.$episode['evidence'].'». Il rapporto ne risente; non certifica esiti fisici, sincerità dei racconti o sentimenti del PG.';$db->execute("INSERT IGNORE INTO ai_personal_memories(npc_id,player_id,chat_key,job_id,category,summary,evidence,source,epistemic,visible,created_at,updated_at) VALUES(?,?,?,?,?,?,?,'interpreted','interpretation',?,?,?)",[$nid,$uid,$job['chat_key'],(int)($job['id']??0)>0?(int)$job['id']:null,$story,$summary,$episode['evidence'],empty($rules['hidden_emotions'])?1:0,time(),time()]);}
         if($owned){ $db->commit(); }return [...$episode,'reading'=>aiNarrativeParse((string)$job['prompt'])];
     }catch(Throwable $e){if($owned&&$db->inTransaction()){ $db->rollBack(); }throw $e;}

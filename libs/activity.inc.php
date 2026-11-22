@@ -121,8 +121,12 @@ function alphanoActivityHistoryTotal(int $recipient,?string $group=null,?string 
 }
 
 /** History and unread receipts share the same current membership/role ACL. */
-function alphanoPersistedActivity(int $recipient,bool $includeRead=false,int $limit=0,int $offset=0,?string $group=null,?string $section=null,bool $summary=false,array $eventIds=[]): array
+function alphanoPersistedActivity(int $recipient,bool $includeRead=false,int $limit=0,int $offset=0,array $options=[]): array
 {
+    $group=$options['group']??null;
+    $section=$options['section']??null;
+    $summary=(bool)($options['summary']??false);
+    $eventIds=$options['event_ids']??[];
     $db=connectDB();$u=$db->query('SELECT * FROM utenti WHERE id=?',[$recipient])[0]??null;
     if(!$u){ return []; }
     [$where,$params]=alphanoActivityWhere($u,$includeRead,$group,$section);

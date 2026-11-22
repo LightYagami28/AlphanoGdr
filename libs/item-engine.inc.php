@@ -107,7 +107,9 @@ function itemActiveScene(array $state,int $sid,int $round,string $kind,int $id):
  $entries=array_values(array_filter($state['item_effects']??[],static fn($e)=>!isset($e['id'])&&(int)$e['expires_round']>=$round));return [...$entries,...itemConditions($kind,$id,$sid,$round)];
 }
 /** Pure projection: effects and charges are persisted only by verdict publication. */
-function itemSceneAction(array $declaration,array $actor,array $target,int $sid,int $round,int $roll,int $defence,array &$hp,array &$conditions,array &$cast,array &$changes,array &$result,bool $training):bool {
+function itemSceneAction(array $declaration,array $actor,array $target,int $sid,int $round,int $roll,array &$ctx):bool {
+    $defence=(int)$ctx['defence'];$hp=&$ctx['hp'];$conditions=&$ctx['conditions'];$cast=&$ctx['cast'];
+    $changes=&$ctx['changes'];$result=&$ctx['result'];$training=(bool)$ctx['training'];
  $s=$declaration['rules'];$key=$actor['kind'].':'.$actor['id'];$targetKey=($target['kind']??'').':'.($target['id']??0);$owner=(int)$actor['id'];$i=itemInstance((int)$declaration['instance'],$owner);itemUsagePrecheck($i,$declaration['operation'],(int)$declaration['provider'],$round,$sid);itemEffectiveState($i,$sid,$round);
  if($declaration['operation']!=='activate'){$changes[]=['type'=>'item-use','kind'=>'pg','id'=>$owner,'declaration'=>$declaration];$result['outcome']=$declaration['operation']==='recharge'?'inizia una ricarica verificata':'nutre il proprio animale';$result['reason']='L’operazione usa gli oggetti effettivamente posseduti; disponibilità e tempi sono verificati alla pubblicazione.';return true;}
  if($s['target']==='opponent'&&(!$target||$targetKey===$key||$target['chat']!==$actor['chat']||in_array((int)$target['razza'],[4,7,8],true)||($hp[$targetKey]??0)<1)){ throw new DomainException('Scegli un bersaglio fisico presente nella quest.',422); }

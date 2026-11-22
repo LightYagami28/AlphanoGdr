@@ -148,7 +148,7 @@ try {
     if($workPrepared){$result['work']=alphanoWorkComplete($idpg,$chat,$requestId,$messageId,$workPrepared);}
     else { try {
         require_once __DIR__.S1192_CHAT_MESSAGES_PHP_56E465_LIBS_AI_INC_PHP;
-        $result += aiAfterMessage($chat,$messageId,$idpg,$parsed['html'],$text,(int)$parsed['dest'],$parsed['lican'],['requested'=>!empty($input['ai_request']),'npcId'=>max(0,(int)($input['ai_npc_id']??0)),'abilityId'=>$abilityId,'autoAddress'=>$autoAddress]);
+        $result += aiAfterMessage($chat,$messageId,$idpg,$parsed['html'],$text,(int)$parsed['dest'],['requested'=>!empty($input['ai_request']),'npcId'=>max(0,(int)($input['ai_npc_id']??0)),'abilityId'=>$abilityId,'autoAddress'=>$autoAddress]);
     }
     catch (Throwable $aiError) { if($atomicChat){ throw $aiError; }
     error_log('[Master IA hook] '.$aiError->getMessage());

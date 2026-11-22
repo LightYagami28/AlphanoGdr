@@ -116,7 +116,8 @@ function aiEnqueueLocked(array $room, array $npc, int $user, string $key, string
     return $job;
 }
 /** Hook dopo l'invio: nessun errore IA deve trasformare un messaggio già salvato in un invio fallito. */
-function aiAfterMessage(string $chat, int $source, int $user, string $html, string $raw, int $dest, string $lican, array $options=[]): array {
+function aiAfterMessage(string $chat, int $source, int $user, string $html, string $raw, int $dest, array $options=[]): array {
+ $lican=(string)($options['lican']??'');
  $requested=(bool)($options['requested']??false); $npcId=(int)($options['npcId']??0); $abilityId=(int)($options['abilityId']??0); $autoAddress=(bool)($options['autoAddress']??false);
  if(!alphanoConfig('ai_enabled')){ return []; }
     $db=aiDb();$owned=!$db->inTransaction();

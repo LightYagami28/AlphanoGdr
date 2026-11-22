@@ -253,7 +253,7 @@ function alphanoActivityNotifications(int $recipient): array
         }
     }
 
-    foreach(alphanoPersistedActivity($recipient,false,0,0,null,null,true) as $event){$event['priority']=1;$activity[$event['key']]=$event;}
+    foreach(alphanoPersistedActivity($recipient,false,0,0,['summary'=>true]) as $event){$event['priority']=1;$activity[$event['key']]=$event;}
 
     // Forum reads were filtered by their indexed join; this also filters pending
     // tasks whose version keys depend on the current state of their source row.
@@ -345,7 +345,7 @@ function alphanoNotificationInbox(int $recipient,string $view,?string $group,?st
     if($view==='history'){
         $total=alphanoActivityHistoryTotal($recipient,$group,$section);
         $pages=max(1,(int)ceil($total/$perPage));$page=min($page,$pages);
-        $items=alphanoPersistedActivity($recipient,true,$perPage,($page-1)*$perPage,$group,$section);
+        $items=alphanoPersistedActivity($recipient,true,$perPage,($page-1)*$perPage,['group'=>$group,'section'=>$section]);
     }else{
         $items=[];
         foreach($unread??alphanoActivityNotifications($recipient) as $item){
@@ -359,7 +359,7 @@ function alphanoNotificationInbox(int $recipient,string $view,?string $group,?st
         $items=array_slice($items,($page-1)*$perPage,$perPage);
         $ids=[];foreach($items as $item){ if(!empty($item['persistent'])){ $ids[]=(int)substr($item['key'],6); } }
         if($ids){
-            $full=array_column(alphanoPersistedActivity($recipient,false,0,0,$group,$section,false,$ids),null,'key');
+            $full=array_column(alphanoPersistedActivity($recipient,false,0,0,['group'=>$group,'section'=>$section,'event_ids'=>$ids]),null,'key');
             foreach($items as &$item){ if(isset($full[$item['key']])){ $item=$full[$item['key']]; } }unset($item);
         }
     }

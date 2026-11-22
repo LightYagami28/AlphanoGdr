@@ -75,7 +75,7 @@ try{
         $after['state']=$state;$keys=[...array_keys(AI_RELATION_METRICS),'state'];
         $db->execute('UPDATE ai_relationships SET '.implode(',',array_map(static fn($k)=>$k.'=?',$keys)).',updated_at=? WHERE npc_id=? AND player_id=?',[...array_map(static fn($k)=>$after[$k],$keys),time(),$nid,$player]);
         if($description!==''){ $after['_context']=aiRelationContextCapture($description); }
-        aiRelationEvent($nid,$player,$before,$after,$reason,['chat_key'=>$npc['chat_key']],0,$uid);
+        aiRelationEvent($nid,$player,$before,$after,$reason,['context'=>['chat_key'=>$npc['chat_key']],'actor'=>$uid]);
     }elseif($action==='admin_memory'){
         $player=aiInteger($in,'player_id',1,PHP_INT_MAX);if(!aiPlayerIdentity($player)){ throw new DomainException(S1192_API_AI_SOCIAL_PHP_414BE2_GIOCATORE_NON_DISPONIBILE,404); }
         // Match relationship corrections: pair, queued work, then memories.

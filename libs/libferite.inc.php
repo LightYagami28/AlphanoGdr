@@ -11,10 +11,14 @@ require_once __DIR__ . '/activity.inc.php';
 require_once __DIR__.'/transformations.inc.php';
 
 /** Una modifica al personaggio e il relativo log devono riuscire insieme. */
-function alphanoMasterAction(int $pg, int $executor, string $chat, string $action, callable $change, ?string $requestKey=null, array $payload=[], ?bool &$replayed=null,string $reason='',bool $journal=false): bool
+function alphanoMasterAction(int $pg, int $executor, string $chat, string $action, callable $change, array $options=[]): bool
 {
+    $requestKey=$options['request_key']??null;
+    $payload=$options['payload']??[];
+    $reason=(string)($options['reason']??'');
+    $journal=(bool)($options['journal']??false);
     $db = connectDB();
-    $replayed=false;
+    $options['replayed']=false;
     $own=!$db->inTransaction();
     if ($own) { $db->beginTransaction(); }
     try {
@@ -34,7 +38,7 @@ function alphanoMasterAction(int $pg, int $executor, string $chat, string $actio
         $operationPayload=[$pg,$chat,$action,$reward?(int)$session['id']:0,$payload];
         if($reason!==''){ $operationPayload[]=$reason; }
         if (!alphanoOperationOnce($scope,$executor,$requestKey,$operationPayload)) {
-            $replayed=true;
+            $options['replayed']=true;
             if ($own) { $db->commit(); }
             return true;
         }
@@ -89,17 +93,18 @@ function uccidi(int $pgId,int $esecutore,int $modo,string $chat): bool
     });
 }
 
-function setFerite(int $pgId,int $pf,string $descr,int $esecutore,string $chat,?string $requestKey=null,?bool &$replayed=null,string $reason='',bool $journal=false): bool
+function setFerite(int $pgId,int $pf,string $descr,int $esecutore,string $chat,array $options=[]): bool
 {
     if ($pf <= 0 || mb_strlen($descr)>255) { return false; }
     $pf = min($pf,MAXPUNTIF);
     $descr = trim($descr);
+    $options['payload']=[$pf,$descr];
     return alphanoMasterAction($pgId,$esecutore,$chat,'impostaferite',static function($db,$target) use($pf,$descr) {
         if((int)$target['puntif']<=0||in_array((int)$target['razza'],[ALPHANO_RACE_SPIRIT,ALPHANO_RACE_DEAD_VAMPIRE,ALPHANO_RACE_LEGACY_SPIRIT],true)){ return false; }
         $db->execute('UPDATE utenti SET puntif=?,ferite=? WHERE id=?', [$pf,$descr,$target['id']]);
         $safe = htmlspecialchars($descr,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
         return ["ora ha $pf PF (ferite: $safe)",$pf,0,$descr];
-    },$requestKey,[$pf,$descr],$replayed,$reason,$journal);
+    },$options);
 }
 
 function resuscita(int $pgId,int $esecutore,string $chat): bool
@@ -112,18 +117,19 @@ function resuscita(int $pgId,int $esecutore,string $chat): bool
     });
 }
 
-function ricompensa(int $pgId,int $amount,int $esecutore,string $chat,?string $requestKey=null,?bool &$replayed=null,string $reason='',bool $journal=false): bool
+function ricompensa(int $pgId,int $amount,int $esecutore,string $chat,array $options=[]): bool
 {
     if ($amount <= 0 || $amount > 1000000000) { return false; }
     return alphanoMasterAction($pgId,$esecutore,$chat,LIBFERITE_INC_RICOMPENSA_SOLDI,static function($db,$target) use($amount) {
         if ((int)$target['denari']>PHP_INT_MAX-$amount) { throw new DomainException('Il premio supera il saldo massimo consentito',400); }
         $db->execute('UPDATE utenti SET denari=denari+? WHERE id=?', [$amount,$target['id']]);
         return [alphanoCurrencyText("riceve in premio $amount corone"),$amount,0,''];
-    },$requestKey,[$amount],$replayed,$reason,$journal);
+    },$options+['payload'=>[$amount]]);
 }
 
-function daiOggetto(int $pgId,int $itemId,int $esecutore,string $chat,?string $requestKey=null,?bool &$replayed=null,int $quantity=1,string $reason='',bool $journal=false): bool
+function daiOggetto(int $pgId,int $itemId,int $esecutore,string $chat,array $options=[]): bool
 {
+    $quantity=(int)($options['quantity']??1);
     if($quantity<1||$quantity>100){ return false; }
     return alphanoMasterAction($pgId,$esecutore,$chat,LIBFERITE_INC_RICOMPENSA_OGGETTO,static function($db,$target) use($itemId,$quantity) {
         $item = $db->query('SELECT id,shortDesc FROM equip WHERE id=? AND approvato=1 AND corp=0', [$itemId])[0] ?? null;
@@ -131,10 +137,10 @@ function daiOggetto(int $pgId,int $itemId,int $esecutore,string $chat,?string $r
         $instances=[];for($i=0;$i<$quantity;$i++){$db->execute('INSERT INTO equippg(idpg,uid) VALUES (?,?)', [$target['id'],$itemId]);$instances[]=(int)$db->lastInsertID();}
         $receipt=['istanza'=>$instances[0]];if($quantity>1){ $receipt['istanze']=$instances; }
         return ['riceve in premio '.($quantity>1?$quantity.' × ':'').htmlspecialchars($item['shortDesc'],ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8'),$quantity,$itemId,'',$receipt];
-    },$requestKey,$quantity===1?[$itemId]:[$itemId,$quantity],$replayed,$reason,$journal);
+    },$options+['payload'=>$quantity===1?[$itemId]:[$itemId,$quantity]]);
 }
 
-function consumaMaster(int $pg,int $instance,int $quantity,int $executor,string $chat,?string $requestKey=null,?bool &$replayed=null,string $reason='',bool $journal=false): bool
+function consumaMaster(int $pg,int $instance,int $quantity,int $executor,string $chat,array $options=[]): bool
 {
     if ($instance<1 || $quantity<1 || $quantity>2147483647) { return false; }
     return alphanoMasterAction($pg,$executor,$chat,'consuma',static function($db,$target) use($instance,$quantity) {
@@ -143,11 +149,11 @@ function consumaMaster(int $pg,int $instance,int $quantity,int $executor,string 
         $after=$db->query('SELECT consumo FROM equippg WHERE id=? AND idpg=?',[$instance,$target['id']])[0] ?? null;
         return ["consuma {$quantity} unità di ".htmlspecialchars($item['shortDesc'],ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8'),$quantity,(int)$item['uid'],LIBFERITE_INC_ISTANZA.$instance,
             ['istanza'=>$instance,'consumo_prima'=>(int)$item['consumo'],'consumo_dopo'=>$after?(int)$after['consumo']:null,'rimosso'=>$after===null]];
-    },$requestKey,[$instance,$quantity],$replayed,$reason,$journal);
+    },$options+['payload'=>[$instance,$quantity]]);
 }
 
 /** Broken instances persist, but cannot remain equipped or hold other items. */
-function rompiOggettoMaster(int $pg,int $instance,int $executor,string $chat,?string $requestKey=null,?bool &$replayed=null,string $reason='',bool $journal=false):bool {
+function rompiOggettoMaster(int $pg,int $instance,int $executor,string $chat,array $options=[]):bool {
     if($instance<1){ return false; }
     return alphanoMasterAction($pg,$executor,$chat,'rompi',static function($db,$target)use($instance,$executor){
         $item=$db->query('SELECT p.*,e.shortDesc,e.durata FROM equippg p JOIN equip e ON e.id=p.uid WHERE p.id=? AND p.idpg=? FOR UPDATE',[$instance,$target['id']])[0]??null;
@@ -163,25 +169,25 @@ function rompiOggettoMaster(int $pg,int $instance,int $executor,string $chat,?st
         $after=$db->query('SELECT p.*,e.shortDesc,e.durata FROM equippg p JOIN equip e ON e.id=p.uid WHERE p.id=? AND p.idpg=?',[$instance,$target['id']])[0];
         $stateAfter=$stateBefore?($db->query('SELECT * FROM equipment_state WHERE instance_id=?',[$instance])[0]??null):null;
         return ['vede rompersi l’oggetto '.htmlspecialchars($item['shortDesc'],ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8'),1,(int)$item['uid'],LIBFERITE_INC_ISTANZA.$instance,['before'=>$item,'after'=>$after,'released_children'=>$children,'equipment_state_before'=>$stateBefore,'equipment_state_after'=>$stateAfter]];
-    },$requestKey,[$instance],$replayed,$reason,$journal);
+    },$options+['payload'=>[$instance]]);
 }
 
 /** Remove the actual instance through the same equipment engine as player inventory. */
-function rimuoviOggettoMaster(int $pg,int $instance,int $executor,string $chat,?string $requestKey=null,?bool &$replayed=null,string $reason='',bool $journal=false):bool {
+function rimuoviOggettoMaster(int $pg,int $instance,int $executor,string $chat,array $options=[]):bool {
     return alphanoMasterAction($pg,$executor,$chat,'rimuovi',static function($db,$target)use($instance,$executor){
         $item=$db->query('SELECT p.*,e.shortDesc FROM equippg p JOIN equip e ON e.id=p.uid WHERE p.id=? AND p.idpg=? FOR UPDATE',[$instance,$target['id']])[0]??null;
         if(!$item||!deleteObject($instance,(int)$target['id'],$executor)){ throw new DomainException('Oggetto del personaggio non disponibile.',409); }
         return ['perde l’oggetto '.htmlspecialchars($item['shortDesc'],ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8'),1,(int)$item['uid'],LIBFERITE_INC_ISTANZA.$instance,['before'=>$item,'after'=>null]];
-    },$requestKey,[$instance],$replayed,$reason,$journal);
+    },$options+['payload'=>[$instance]]);
 }
 
 /** A private Master note is audited, while its contents never enter public chat. */
-function notaMaster(int $pg,int $executor,string $chat,string $note,?string $requestKey=null,?bool &$replayed=null,string $reason='',bool $journal=false):bool {
+function notaMaster(int $pg,int $executor,string $chat,string $note,array $options=[]):bool {
     if(trim($note)===''||mb_strlen($note)>4000){ return false; }
     return alphanoMasterAction($pg,$executor,$chat,'nota',static function($db,$target)use($executor,$note){
         if(!insertNote((int)$target['id'],$executor,$note)){ return false; }
         return ['ha ricevuto un’annotazione riservata nel registro del Master',0,0,'Annotazione Master riservata',['nota_id'=>(int)$db->lastInsertId()]];
-    },$requestKey,[$note],$replayed,$reason,$journal);
+    },$options+['payload'=>[$note]]);
 }
 
 function insertNote(int $pgId,int $esecutore,string $text): bool

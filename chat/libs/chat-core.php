@@ -94,8 +94,7 @@ function parseClient(array $in): array
         $msg,
         (int)($in['umore']    ?? 0),
         (string)($in['location'] ?? ''),
-        (bool)$GLOBALS['vampiredamage'],
-        (string)($in['position'] ?? $chat)
+        ['vampiredamage'=>(bool)$GLOBALS['vampiredamage'],'position'=>(string)($in['position'] ?? $chat)]
     );
 
     return ['html'=>$html,'dest'=>$dest,'location'=>$newLoc,'lican'=>$lican];

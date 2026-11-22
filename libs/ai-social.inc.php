@@ -108,7 +108,7 @@ function aiSocialCapturePerception(array $npc,array $job):void {
     $after['updated_at']=$now;
     $db->execute('UPDATE ai_relationships SET fear=?,respect=?,updated_at=? WHERE npc_id=? AND player_id=?',[$after['fear'],$after['respect'],$now,$nid,$actor]);
     $after['_perception']=['source_id'=>$source,'family'=>$family,'actor_id'=>$actor,'mode'=>$reaction['mode'],'intensity'=>'panic_floor'];
-    aiRelationEvent($nid,$actor,$before,$after,'Prima reazione a rivelazione pubblica verificata #'.$source.': intensità del terrore coerente con coraggio e autocontrollo; nessun affetto automatico.',['chat_key'=>$job['chat_key'],'source_id'=>$source]);
+    aiRelationEvent($nid,$actor,$before,$after,'Prima reazione a rivelazione pubblica verificata #'.$source.': intensità del terrore coerente con coraggio e autocontrollo; nessun affetto automatico.',['context'=>['chat_key'=>$job['chat_key'],'source_id'=>$source]]);
     $evidence=aiText((string)($event['content']??''),450);
     $db->execute("INSERT INTO ai_personal_memories(npc_id,player_id,chat_key,category,summary,evidence,source,epistemic,created_at,updated_at) VALUES(?,?,?,'rivelazione',?,?,'system','verified',?,?)",[$nid,$actor,(string)$job['chat_key'],'Ha osservato una natura '.($family===2?'vampirica':'lupina').' manifestarsi ed è rimasto scosso. La propria paura non impone emozioni o gesti al visitatore.',$evidence,$now,$now]);
 }
@@ -328,7 +328,7 @@ function aiSocialApply(array $npc,array $job,array $proposal): void {
     $after=$before;
     foreach(AI_RELATION_METRICS as $key=>$_){
         $raw=isset($episode['changes'][$key])?0:($deltas[$key]??0);
-        $delta=aiSocialBoundedDelta($key,is_int($raw)?$raw:0,$category,$before,$rules,$significant,$meaningful,$romance,$ne,$day);
+        $delta=aiSocialBoundedDelta($key,is_int($raw)?$raw:0,$category,$before,$rules,['significant'=>$significant,'bond'=>$meaningful,'romance'=>$romance,'evidence'=>$ne,'day'=>$day]);
         $min=in_array($key,['sympathy','trust','respect','honor'],true)?-100:0;
         $after[$key]=max($min,min(100,(int)$before[$key]+$delta));
     }
@@ -363,9 +363,9 @@ function aiSocialApply(array $npc,array $job,array $proposal): void {
     elseif($significant){ $prefix='Storia conservata, limite di crescita della scena · '; }
     $reason=$grounded?$prefix.$category.': '.$pe.' / '.$ne:'Nessun cambiamento: proposta priva di riscontro testuale osservabile.';
     $eventAfter=$after;$eventAfter['_evolution']=['category'=>$category,'evidence'=>$grounded?aiSocialEvidenceKey($pe):'','meaningful'=>$meaningful&&empty($episode['counted']),'romantic'=>$reciprocal,'source_id'=>(int)($job['source_id']??0)];
-    aiRelationEvent($nid,$uid,$before,$eventAfter,$reason,$job,$id);
+    aiRelationEvent($nid,$uid,$before,$eventAfter,$reason,['job'=>$job,'actor'=>$id]);
     if($significant){ $db->execute('INSERT IGNORE INTO ai_personal_memories(npc_id,player_id,chat_key,job_id,category,summary,evidence,source,epistemic,created_at,updated_at) VALUES(?,?,?,?,?,?,?,\'interpreted\',\'interpretation\',?,?)',[$nid,$uid,$job['chat_key'],$id,$category,'Percezione maturata da parole/tentativi del PG: «'.$pe.'». Risposta di '.$npc['name'].': «'.$ne.'». Non certifica esiti o veridicità dei racconti.',$pe.' / '.$ne,$now,$now]); }
-    aiSocialDevelopmentRecord($npc,$job,$before,$after,$rules,$significant,$pe,$ne,$grounded,$category);
+    aiSocialDevelopmentRecord($npc,$job,$before,$after,$rules,['significant'=>$significant,'player_evidence'=>$pe,'npc_evidence'=>$ne,'declaration_eligible'=>$grounded,'episode_category'=>$category]);
     $money=$proposal['money']??[];
     if($grounded&&is_array($money)&&isset($money['kind'],$money['amount'])&&is_int($money['amount'])&&$money['amount']>0&&preg_match('/(?<![0-9])'.$money['amount'].'\\s+coron[ae]\\b/iu',$reply)){
         try{aiMoneyOffer($npc,$uid,(string)$money['kind'],$money['amount'],aiText((string)($money['reason']??'Proposta del PNG'),400),'job:'.$id);}catch(DomainException){/* A rejected proposal never turns into a transfer. */}

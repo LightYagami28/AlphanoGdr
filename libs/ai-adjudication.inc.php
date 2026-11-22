@@ -311,7 +311,8 @@ function aiAdjudicationApply(array $v,array $q,array $s):void{
     require_once __DIR__.'/lineages.inc.php';
     $victim=$db->query('SELECT * FROM utenti WHERE id=? FOR UPDATE',[$id])[0];
     lineageDeath($victim,(int)($e['killer_id']??0),(string)($e['killer_name']??'Master IA'),$e['text']);
-    $oldRace=(int)$before['razza'];$dead=in_array($oldRace,[2,5,7],true)?ALPHANO_RACE_DEAD_VAMPIRE:ALPHANO_RACE_SPIRIT;$db->execute('UPDATE utenti SET puntif=0,ferite=?,razza=?,infetto=0,ancestrale=0,senziente=0,datamorte=? WHERE id=?',[$e['text'],$dead,time(),$id]);}
+    $oldRace=(int)$before['razza'];$dead=in_array($oldRace,[2,5,7],true)?ALPHANO_RACE_DEAD_VAMPIRE:ALPHANO_RACE_SPIRIT;$db->execute('UPDATE utenti SET puntif=0,ferite=?,razza=?,infetto=0,ancestrale=0,senziente=0,datamorte=? WHERE id=?',[$e['text'],$dead,time(),$id]);
+}
    elseif(!$db->query("SELECT player_id FROM lineage_members WHERE player_id=? AND status='eliminated'",[$id])){ $db->execute('UPDATE utenti SET puntif=?,ferite=? WHERE id=?',[$e['hp'],$e['wounds'],$id]); }
    $db->execute('INSERT INTO logs_adminpg(azione,data,chat,esecutore,destinatario,qta,obj,descr) VALUES(?,?,?,0,?, ?,0,?)',['regia-ia:'.$e['type'],time(),$q['chat_key'],$id,$e['hp']??0,'Regolamento Alphano v1, quest #'.$sid.', giro '.$v['round_number']]);
    insertNote($id,0,'Quest #'.$sid.', giro '.$v['round_number'].': '.($e['type']==='death'?$e['text']:$e['wounds'].'; punti vita '.$e['hp'].'.'));

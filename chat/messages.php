@@ -148,7 +148,8 @@ try {
         $result += aiAfterMessage($chat,$messageId,$idpg,$parsed['html'],$text,(int)$parsed['dest'],$parsed['lican'],['requested'=>!empty($input['ai_request']),'npcId'=>max(0,(int)($input['ai_npc_id']??0)),'abilityId'=>$abilityId,'autoAddress'=>$autoAddress]);
     }
     catch (Throwable $aiError) { if($atomicChat){ throw $aiError; }
-    error_log('[Master IA hook] '.$aiError->getMessage()); }
+    error_log('[Master IA hook] '.$aiError->getMessage());
+    }
     }
     if(!$workId&&$atomicChat){ alphanoWorkNarrated($idpg,$chat,$text,(int)$parsed['dest'],$messageId); }
     if($atomicChat){$logSession=(int)($GLOBALS['alphano_deferred_chat_session']??(aiQuestRow($chat)['session_id']??0));if($logSession){ $db->execute('INSERT IGNORE INTO ai_quest_outbox(session_id,event_key,html,created_at,chat_id) VALUES(?,?,?,?,?)',[$logSession,'rpg:chat:'.$messageId,$parsed['html'],time(),$messageId]); }$db->execute('INSERT INTO rpg_chat_receipts(player_id,chat_key,request_key,payload_hash,response_json,created_at) VALUES(?,?,?,?,?,?)',[$idpg,$chat,$requestId,$skillHash,json_encode($result,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR),time()]);$db->commit();}

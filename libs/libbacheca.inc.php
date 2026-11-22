@@ -417,5 +417,5 @@ function isNewThread(int $id, int $timestamp): bool
         [$id, $id]
     )[0] ?? ['maxdata'=>0];
 
-    return ((int)$row['maxdata'] > $timestamp);
+    return (int)$row['maxdata'] > $timestamp;
 }

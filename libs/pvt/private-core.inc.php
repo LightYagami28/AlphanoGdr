@@ -328,6 +328,6 @@ function alphanoPrivateDisclaimer(): string
 {
     return <<<'HTML'
 Il sottoscritto accedendo alla zona privata, solleva i gestori del sito da ogni responsabilit&agrave; personale e patrimoniale in osservanza delle leggi vigenti nello stato italiano in tutela del rispetto dei minori, della privacy, di dichiarazioni mendaci e di ogni legge vigente a tutela dei cittadini.<BR>
-						Il sottoscritto inoltre nel momento dell'accesso dell'area privata, sotto propria responsabilit&agrave;, accetta le eventuali sanzioni scaturenti da un suo comportamento contrario alle  leggi imperative, di buon costume o comunque di tutela del cittadino italiano nel caso di commissione di un  reato punibile secondo le norme del codice penale o leggi speciali attualmente in vigore nello Stato italiano.<BR>
+                        Il sottoscritto inoltre nel momento dell'accesso dell'area privata, sotto propria responsabilit&agrave;, accetta le eventuali sanzioni scaturenti da un suo comportamento contrario alle  leggi imperative, di buon costume o comunque di tutela del cittadino italiano nel caso di commissione di un  reato punibile secondo le norme del codice penale o leggi speciali attualmente in vigore nello Stato italiano.<BR>
 HTML;
 }

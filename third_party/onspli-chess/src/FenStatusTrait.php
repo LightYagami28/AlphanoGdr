@@ -103,7 +103,7 @@ trait FenStatusTrait
         }
         throw new ParseException("Invalid castling right '$right' in string '$castling'.");
       }
-      return $this->resolveShredderRight($right, $castling, $kingsFile, $kingsRook, $queensRook);
+      return $this->resolveShredderRight($right, $castling, $kingsRook, $queensRook);
     }
 
     private function isShredderFile(string $right, bool $shredder) : bool
@@ -115,7 +115,7 @@ trait FenStatusTrait
       return $lower >= 'a' && $lower <= 'h';
     }
 
-    private function resolveShredderRight(string $right, string $castling, ?string $kingsFile, ?string $kingsRook, ?string $queensRook) : array
+    private function resolveShredderRight(string $right, string $castling, ?string $kingsRook, ?string $queensRook) : array
     {
       $lower = strtolower($right);
       $actualKingFile = $this->board->findSquareWithPiece(Board::getPieceOfColor('K', ctype_upper($right) ? 'w' : 'b'), true)->getFile();

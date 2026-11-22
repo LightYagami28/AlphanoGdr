@@ -21,7 +21,12 @@ function rpgHumanConsume(array &$state,string $test,int $round):void {
 /** Form changes interrupt incompatible ongoing techniques, including an ally’s support. */
 function rpgHumanValidBuffs(array $state,int $round,array $actor):array {
  return array_values(array_filter(rpgHumanActiveBuffs($state,$round),static function($b)use($actor){
-  if(!empty($b['owner_kind'])&&!empty($b['owner_id'])){try{rpg_get_ability($b['owner_kind'],(int)$b['owner_id'],(int)(array_column(array_filter(rpg_catalog()['abilities'],static fn($a)=>$a['key']===$b['key']),'id')[0]??0));return true;}catch(DomainException){return false;}}
-  foreach(rpg_catalog()['abilities'] as $a){ if($a['key']===$b['key']){ return rpgAbilityFormReason($a,rpg_identity($actor['kind'],(int)$actor['id']))===''; } }return false;
+  $result=false;
+  if(!empty($b['owner_kind'])&&!empty($b['owner_id'])){
+   try{rpg_get_ability($b['owner_kind'],(int)$b['owner_id'],(int)(array_column(array_filter(rpg_catalog()['abilities'],static fn($a)=>$a['key']===$b['key']),'id')[0]??0));$result=true;}catch(DomainException){$result=false;}
+  }else{
+   foreach(rpg_catalog()['abilities'] as $a){ if($a['key']===$b['key']){ $result=rpgAbilityFormReason($a,rpg_identity($actor['kind'],(int)$actor['id']))===''; break; } }
+  }
+  return $result;
  }));
 }

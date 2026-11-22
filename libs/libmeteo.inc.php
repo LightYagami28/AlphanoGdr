@@ -152,18 +152,12 @@ function getMeteo(): array
  */
 function getStagione(): int
 {
-    switch ((int)date("n")) {
-        case 12:
-        case 1:
-        case 2:  return 0;
-        case 3:
-        case 4:
-        case 5:  return 1;
-        case 6:
-        case 7:
-        case 8:  return 2;
-        default: return 3;
-    }
+    return match ((int)date("n")) {
+        12, 1, 2 => 0,
+        3, 4, 5 => 1,
+        6, 7, 8 => 2,
+        default => 3
+    };
 }
 
 /**

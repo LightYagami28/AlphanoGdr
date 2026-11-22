@@ -9,8 +9,9 @@ require_once __DIR__.'/libelezioni.inc.php';
 /** Extracted branch of alphanoGroupAdminAction. */
 function alphanoGroupAdminDelegation($db,string $scope,int $group,int $actor,array $input,array $groupRow,array &$state): void
 {
-        $section=$state['section'];$target=$state['target'];$before=$state['before'];$after=$state['after'];
-        $changed=$state['changed'];$personal=$state['personal'];$title=$state['title'];$detail=$state['detail'];
+        $action=$state['action'] ?? null;$field=$state['field'] ?? '';
+        $section=$state['section'] ?? null;$target=$state['target'] ?? null;$before=$state['before'] ?? null;$after=$state['after'] ?? null;
+        $changed=$state['changed'] ?? null;$personal=$state['personal'] ?? null;$title=$state['title'] ?? null;$detail=$state['detail'] ?? null;
             if ($action==='setflag') {
                 $section='flag';$target=economiaIntero($input['nome'] ?? '',1) ?? 0;
                 $flags=$scope==='organizzazioni'?['adminorganizzazione'=>'adminorg']:['admincorporazione'=>'admincorporazione','admintrasfcorp'=>'admintrasfcorp','admincatalogo'=>'admincatalogo'];
@@ -30,8 +31,9 @@ function alphanoGroupAdminDelegation($db,string $scope,int $group,int $actor,arr
 /** Extracted branch of alphanoGroupAdminAction. */
 function alphanoGroupAdminPrivateRoom($db,string $scope,int $group,array $input,array $groupRow,array &$state): void
 {
-        $section=$state['section'];$target=$state['target'];$before=$state['before'];$after=$state['after'];
-        $changed=$state['changed'];$personal=$state['personal'];$title=$state['title'];$detail=$state['detail'];
+        $action=$state['action'] ?? null;$field=$state['field'] ?? '';
+        $section=$state['section'] ?? null;$target=$state['target'] ?? null;$before=$state['before'] ?? null;$after=$state['after'] ?? null;
+        $changed=$state['changed'] ?? null;$personal=$state['personal'] ?? null;$title=$state['title'] ?? null;$detail=$state['detail'] ?? null;
             if ($action==='modifypvt') {
                 $section='pvt';$city=economiaIntero($input['city'] ?? '',1);$password=trim((string)($input['pvt'] ?? ''));
                 economiaVerifica($city!==null && (bool)$db->query('SELECT id FROM city WHERE id=?',[$city]) && ($scope!=='organizzazioni' || $password!==''),'Città o password non validi');
@@ -47,10 +49,11 @@ function alphanoGroupAdminPrivateRoom($db,string $scope,int $group,array $input,
 }
 
 /** Extracted branch of alphanoGroupAdminAction. */
-function alphanoGroupAdminProposal($db,int $group,int $actor,array $input,array $groupRow,array &$state): void
+function alphanoGroupAdminProposal($db,int $group,array $input,array $groupRow,array &$state): void
 {
-        $section=$state['section'];$target=$state['target'];$before=$state['before'];$after=$state['after'];
-        $changed=$state['changed'];$personal=$state['personal'];$title=$state['title'];$detail=$state['detail'];
+        $action=$state['action'] ?? null;$field=$state['field'] ?? '';
+        $section=$state['section'] ?? null;$target=$state['target'] ?? null;$before=$state['before'] ?? null;$after=$state['after'] ?? null;
+        $changed=$state['changed'] ?? null;$personal=$state['personal'] ?? null;$title=$state['title'] ?? null;$detail=$state['detail'] ?? null;
             if ($action==='proponi') {
                 $section='elezioni';$city=economiaIntero($input['city'] ?? '',1) ?? 0;$target=economiaIntero($input['pg'] ?? '',1) ?? 0;$program=trim((string)($input['programma'] ?? ''));
                 if(alphanoElectionsReady()){ throw new DomainException('La candidatura è una scelta personale: ogni cittadino può presentarla dal registro elettorale della propria città.',409); }
@@ -194,9 +197,10 @@ function alphanoGroupAdminAction(string $scope, int $group, int $actor, string $
                 if(isset($after['descrizione'])){ $after['descrizione']=hash('sha256',$after['descrizione']); }
             }
             $state=compact('section','target','before','after','changed','personal','title','detail');
+            $state['action']=$action;$state['field']=$field;
             if($action==='setflag'){alphanoGroupAdminDelegation($db,$scope,$group,$actor,$input,$groupRow,$state);}
             elseif($action==='modifypvt'){alphanoGroupAdminPrivateRoom($db,$scope,$group,$input,$groupRow,$state);}
-            elseif($action==='proponi'){alphanoGroupAdminProposal($db,$group,$actor,$input,$groupRow,$state);}
+            elseif($action==='proponi'){alphanoGroupAdminProposal($db,$group,$input,$groupRow,$state);}
             extract($state);
             if ($changed) {
                 $audiences=[['scope'=>$scope,'id'=>$group,'section'=>$section,'role'=>'admin']];

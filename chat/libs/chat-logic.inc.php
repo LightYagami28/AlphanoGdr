@@ -22,12 +22,12 @@ function alphanoChatDisplayName($db,int $idpg,int $umore,array $pg): string
 /** Renders the plain speech and action commands. */
 function alphanoChatBasicOutput(array &$ctx,callable $render): void
 {
-    $str=$ctx['str'];$ora=$ctx['ora'];$razImg=$ctx['razImg'];$fPar=$ctx['fPar'];$fAzo=$ctx['fAzo'];
-    $name=$ctx['name'];$pg=$ctx['pg'];$location=$ctx['location'];$newLoc=$ctx['newLoc'];$OnGame=$ctx['OnGame'];
-    $SessionIsRunning=$ctx['SessionIsRunning'];$NeedsDadi=$ctx['NeedsDadi'];$out=$ctx['out'];
+    $str=$ctx['str'] ?? null;$ora=$ctx['ora'] ?? null;$razImg=$ctx['razImg'] ?? null;$fPar=$ctx['fPar'] ?? null;$fAzo=$ctx['fAzo'] ?? null;
+    $name=$ctx['name'] ?? null;$pg=$ctx['pg'] ?? null;$location=$ctx['location'] ?? null;$newLoc=$ctx['newLoc'] ?? null;$on_game=$ctx['on_game'] ?? null;
+    $session_is_running=$ctx['session_is_running'] ?? null;$needs_dadi=$ctx['needs_dadi'] ?? null;$out=$ctx['out'] ?? null;
     switch($ctx['first']){
         case '/':
-            if(str_starts_with($str,'//')){$OnGame=false;$out='<span class="String">'.$ora.'</span> '.$razImg.$fPar.$name.'</B></SPAN> <span class="chat-ooc-text">'.htmlspecialchars(substr($str,2),ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8').'</span>';break;}
+            if(str_starts_with($str,'//')){$on_game=false;$out='<span class="String">'.$ora.'</span> '.$razImg.$fPar.$name.'</B></SPAN> <span class="chat-ooc-text">'.htmlspecialchars(substr($str,2),ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8').'</span>';break;}
             // A single slash is ordinary speech.
             $out='<span class="String">'.$ora.'</span> '.$razImg.$name.' '.$render(substr($str,1));break;
         case '+': {
@@ -48,30 +48,31 @@ function alphanoChatBasicOutput(array &$ctx,callable $render): void
             // **Qui ricreo correttamente time + nome + azione**
             $out = $fAzo . $ora . '</SPAN>'
                 . $fAzo . $razImg . $name . ' ' . $render($azione,true) . '</SPAN>';
-            if ($SessionIsRunning && $NeedsDadi) {
+            if ($session_is_running && $needs_dadi) {
                 $out .= '&nbsp;<img height="10" width="10" src="/chatimg/dadod20.gif">&nbsp;' . rand(1,20);
             }
             $out .= '</SPAN>';
 
             break;
         }
+        default: break;
     }
-    $ctx['out']=$out;$ctx['location']=$location;$ctx['newLoc']=$newLoc;$ctx['OnGame']=$OnGame;
+    $ctx=compact('out','location','newLoc','on_game');
 }
 
 /** Renders master/private/URL commands; an early return carries an immediate reply. */
 function alphanoChatStaffCommands(array &$ctx): ?array
 {
-    $pg=$ctx['pg'];$SessionIsRunning=$ctx['SessionIsRunning'];$str=$ctx['str'];
-    $out=$ctx['out'];$OnGame=$ctx['OnGame'];$location=$ctx['location'];
+    $pg=$ctx['pg'] ?? null;$session_is_running=$ctx['session_is_running'] ?? null;$str=$ctx['str'] ?? null;
+    $out=$ctx['out'] ?? null;$on_game=$ctx['on_game'] ?? null;$location=$ctx['location'] ?? null;
     switch($ctx['first']){
         case '#':
-            if (($pg['fatepower']||$pg['admin']) && ($SessionIsRunning||$pg['admin'])) {
+            if (($pg['fatepower']||$pg['admin']) && ($session_is_running||$pg['admin'])) {
                 $cmd = htmlentities(substr($str,1));
                 $out = "<TABLE class=\"column-width-100\"><TR>"
                      . "<TD class=\"MasterKey\">{$cmd}</TD>"
                      . "</TR></TABLE>";
-                $OnGame = false;
+                $on_game = false;
             }
             break;
 
@@ -81,7 +82,7 @@ function alphanoChatStaffCommands(array &$ctx): ?array
                 $out = "<TABLE class=\"column-width-100\"><TR>"
                      . "<TD class=\"DescrKey\">{$txt}</TD>"
                      . "</TR></TABLE>";
-                $OnGame = false;
+                $on_game = false;
             }
             break;
 
@@ -90,20 +91,22 @@ function alphanoChatStaffCommands(array &$ctx): ?array
                 $url = substr($str,1);
                 if (!preg_match('~^(https?://|/(?!/))~i', $url)) { return ['',0,$location,'0']; }
                 $out = "<DIV class=\"align-center\"><img src=\"" . htmlspecialchars($url) . "\" /></DIV>";
-                $OnGame = false;
+                $on_game = false;
             }
-            break;    }
-    $ctx['out']=$out;$ctx['OnGame']=$OnGame;
+            break;
+        default: break;
+    }
+    $ctx=compact('out','on_game');
     return null;
 }
 
-/** Renders whisper, animal, incognito and plain speech commands. */
-function alphanoChatRoleCommands($db,int $idpg,array &$ctx,callable $render): void
+/** Renders whisper and animal-item commands. */
+function alphanoChatWhisperCommands($db,int $idpg,array &$ctx,callable $render): void
 {
-    $str=$ctx['str'];$dest=$ctx['dest'];$razImg=$ctx['razImg'];$araldica=$ctx['araldica'];
-    $fPar=$ctx['fPar'];$fAzo=$ctx['fAzo'];$name=$ctx['name'];$ora=$ctx['ora'];
-    $incog=$ctx['incog'];$newLoc=$ctx['newLoc'];$out=$ctx['out'];
-    switch($ctx['first']){
+    $str=$ctx['str'] ?? null;$dest=$ctx['dest'] ?? null;$razImg=$ctx['razImg'] ?? null;$araldica=$ctx['araldica'] ?? null;
+    $fPar=$ctx['fPar'] ?? null;$name=$ctx['name'] ?? null;
+    $fAzo=$ctx['fAzo'] ?? null;$ora=$ctx['ora'] ?? null;$out=$ctx['out'] ?? null;
+    switch($ctx['first'] ?? null){
         case '$':
             if (str_contains($str,';')) {
                 [$dst,$msg2] = explode(';',substr($str,1),2);
@@ -136,7 +139,17 @@ function alphanoChatRoleCommands($db,int $idpg,array &$ctx,callable $render): vo
                 }
             }
             break;
+        default: break;
+    }
+    $ctx=compact('dest','out');
+}
 
+/** Renders incognito and plain speech commands. */
+function alphanoChatPlainCommands(array &$ctx,callable $render): void
+{
+    $str=$ctx['str'] ?? null;$ora=$ctx['ora'] ?? null;$incog=$ctx['incog'] ?? null;$newLoc=$ctx['newLoc'] ?? null;$out=$ctx['out'] ?? null;
+    $razImg=$ctx['razImg'] ?? null;$araldica=$ctx['araldica'] ?? null;$fPar=$ctx['fPar'] ?? null;$name=$ctx['name'] ?? null;
+    switch($ctx['first'] ?? null){
         case '|':
             if ($incog) {
                 $out = '<span class="StringN">'.$ora.' <strong>PNG</strong> '.htmlentities(substr($str,1),ENT_QUOTES|ENT_SUBSTITUTE).'</span>';
@@ -152,15 +165,16 @@ function alphanoChatRoleCommands($db,int $idpg,array &$ctx,callable $render): vo
                  .$razImg.$araldica
                  .$fPar.$name.'</B></SPAN> '
                  .'<SPAN class="String">'.$render($str).'</SPAN>';
-            break;    }
-    $ctx['dest']=$dest;$ctx['newLoc']=$newLoc;$ctx['out']=$out;
+            break;
+    }
+    $ctx=compact('newLoc','out');
 }
 
 /** Applies sunlight damage for a vampire character. */
 function alphanoChatSunlight($db,int $idpg,array $ctx): void
 {
-    $chat=$ctx['chat'];$pg=$ctx['pg'];$nome=$pg['nome'];$out=$ctx['out'];$sesso=$ctx['sesso'];$ferite=$ctx['ferite'];
-    $razza=$ctx['razza'];$meteo=$ctx['meteo'];$vampiredamage=$ctx['vampiredamage'];
+    $chat=$ctx['chat'] ?? null;$out=$ctx['out'] ?? null;$sesso=$ctx['sesso'] ?? null;$ferite=$ctx['ferite'] ?? null;
+    $razza=$ctx['razza'] ?? null;$meteo=$ctx['meteo'] ?? null;$vampiredamage=$ctx['vampiredamage'] ?? null;
     if ((!function_exists('rpgCreationReady')||!rpgCreationReady()) && $vampiredamage && $out && $razza===2 && !licanTime() && $meteo===0) {
         if (!str_contains($ferite,'Bruciature solari')) {
             $ferite .= ' Bruciature solari';
@@ -206,9 +220,9 @@ function alphanoChatRecordings($db,string $chat,string $out): void
 /** Writes the running session log and rewards its spectators. */
 function alphanoChatSessionLog($db,array $ctx): void
 {
-    $chat=$ctx['chat'];$sessionName=$ctx['sessionName'];$out=$ctx['out'];$SessionIsRunning=$ctx['SessionIsRunning'];
-    $scriviPart=$ctx['scriviPart'];$partecipanti=$ctx['partecipanti'];$idpg=$ctx['idpg'];
-    if ($SessionIsRunning) {
+    $chat=$ctx['chat'] ?? null;$sessionName=$ctx['sessionName'] ?? null;$session_is_running=$ctx['session_is_running'] ?? null;$out=$ctx['out'] ?? null;
+    $scriviPart=$ctx['scriviPart'] ?? null;$partecipanti=$ctx['partecipanti'] ?? null;$idpg=$ctx['idpg'] ?? null;
+    if ($session_is_running) {
         $logFile = HTMLROOT . "/sessione/log/{$sessionName}.html";
         if(!empty($GLOBALS['alphano_defer_chat_log'])){ $GLOBALS['alphano_deferred_chat_session']=(int)$sessionName; }
         else { file_put_contents($logFile, $out."<br>\n", FILE_APPEND|LOCK_EX); }
@@ -248,7 +262,7 @@ function buildChatMessage(
     $now     = time();
     $str     = trim($rawMsg);
     $stanga  = ord('|');
-    $OnGame  = true;
+    $on_game  = true;
     $dest    = 0;
     $l      = '0';
     $newLoc  = $location;
@@ -284,10 +298,10 @@ function buildChatMessage(
           WHERE chat = ? AND run = 1",
         [$chat]
     )[0] ?? [];
-    $SessionIsRunning = (bool)($run['run'] ?? false);
+    $session_is_running = (bool)($run['run'] ?? false);
     if (!empty($run['lock']) && empty($pg['fatepower'])) { return ['', 0, $location, '0']; }
     $sessionName      = (int)($run['id'] ?? 0);
-    $NeedsDadi        = (bool)($run['dadi'] ?? false);
+    $needs_dadi        = (bool)($run['dadi'] ?? false);
     $partecipanti     = (string)($run['partecipanti'] ?? '');
     if ($partecipanti === '') {
         $partecipanti = ';';
@@ -315,7 +329,7 @@ function buildChatMessage(
     };
     $razImg   = processRazza(alphanoVisibleRace($pg),(int)$pg['etnia']);
     $razImg   = $link . $razImg . '</a>&nbsp;';
-    $incog    = ($str[0] ?? '') === '|' && $pg['fatepower'] && $SessionIsRunning;
+    $incog    = ($str[0] ?? '') === '|' && $pg['fatepower'] && $session_is_running;
     $alline   = $incog ? 'N' : ($pg['allineamento'][1] ?? 'N');
     $araldica = '';
     if (! $incog) {
@@ -335,7 +349,7 @@ function buildChatMessage(
     $out   = '';
 
     // 7) SWITCH sui comandi
-    $ctx=compact('first','str','ora','razImg','fPar','fAzo','name','pg','location','newLoc','OnGame','SessionIsRunning','NeedsDadi','out','dest','araldica','incog');
+    $ctx=compact('first','str','ora','razImg','fPar','fAzo','name','pg','location','newLoc','on_game','session_is_running','needs_dadi','out','dest','araldica','incog');
     alphanoChatBasicOutput($ctx,$render);
     extract($ctx);
 
@@ -343,7 +357,8 @@ function buildChatMessage(
 
     $early=alphanoChatStaffCommands($ctx);
     if($early!==null){return $early;}
-    alphanoChatRoleCommands($db,$idpg,$ctx,$render);
+    alphanoChatWhisperCommands($db,$idpg,$ctx,$render);
+    alphanoChatPlainCommands($ctx,$render);
     extract($ctx);
 
 
@@ -354,7 +369,7 @@ function buildChatMessage(
     alphanoChatSunlight($db,$idpg,compact('chat','pg','sesso','ferite','razza','meteo','vampiredamage','out'));
 
     // 9) Conta azioni lican
-    alphanoChatInfectedActions($db,$idpg,(bool)$inf,$OnGame);
+    alphanoChatInfectedActions($db,$idpg,(bool)$inf,$on_game);
 
     // 10) Registrazioni live
     alphanoChatRecordings($db,$chat,$out);

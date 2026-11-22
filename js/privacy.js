@@ -1,7 +1,7 @@
 /* Privacy choices and explicit per-player game preferences share one settings window. */
-const renderHTML=(el,markup)=>{const doc=new DOMParser().parseFromString(String(markup??''),'text/html');el.replaceChildren(...[...doc.body.childNodes].map(node=>document.importNode(node,true)));};
 (() => {
  'use strict';if(window.alphanoPrivacy){return;}
+ const renderHTML=(el,markup)=>{const doc=new DOMParser().parseFromString(String(markup??''),'text/html');el.replaceChildren(...[...doc.body.childNodes].map(node=>document.importNode(node,true)));};
  let dialog,gameLoaded=false,firstPromise;
  const allowed=()=>/^v1\.media\.[a-f0-9]{32}$/.test(document.cookie.split('; ').find(c=>c.startsWith('alphano_privacy='))?.split('=')[1]||'');
  async function open(){

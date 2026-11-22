@@ -1,7 +1,7 @@
-const renderHTML=(el,markup)=>{const doc=new DOMParser().parseFromString(String(markup??''),'text/html');el.replaceChildren(...[...doc.body.childNodes].map(node=>document.importNode(node,true)));};
 // js/corporazioni/catalogo.js
 
 const Catalogo = (function(){
+  const renderHTML=(el,markup)=>{const doc=new DOMParser().parseFromString(String(markup??''),'text/html');el.replaceChildren(...[...doc.body.childNodes].map(node=>document.importNode(node,true)));};
   // ÔöÇÔöÇÔöÇ VAR DI STATO ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
   let catalogo        = [];
   let catalogoPers    = [];

@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+if (!defined('S1192_CORPORAZIONI_SHOWOBJ_PHP_753CB1_DOCTYPE_HTML_HTML_LANG_IT_BODY_CLA')) { define('S1192_CORPORAZIONI_SHOWOBJ_PHP_753CB1_DOCTYPE_HTML_HTML_LANG_IT_BODY_CLA', '<!DOCTYPE html><html lang="it"><body class="message-page">'); }
+
 require_once __DIR__ . '/../libs/kernel.inc.php';
 require_once __DIR__ . '/../libs/libgrafica.inc.php';
 require_once __DIR__ . '/../libs/libpg.inc.php';
@@ -25,7 +27,7 @@ if ((bool)$user['admin']) {
 }
 if (!(bool)$user['adminaccademia']) {
     http_response_code(403);
-    echo '<!DOCTYPE html><html lang="it"><body class="message-page">';
+    echo S1192_CORPORAZIONI_SHOWOBJ_PHP_753CB1_DOCTYPE_HTML_HTML_LANG_IT_BODY_CLA;
     echo '<h1>Accesso Negato</h1><p>Non hai i privilegi di accesso.</p>';
     echo '</body></html>';
     exit;
@@ -35,7 +37,7 @@ if (!(bool)$user['adminaccademia']) {
 $objid = isset($_POST['obj']) ? (int)$_POST['obj'] : 0;
 if ($objid <= 0) {
     http_response_code(400);
-    echo '<!DOCTYPE html><html lang="it"><body class="message-page">';
+    echo S1192_CORPORAZIONI_SHOWOBJ_PHP_753CB1_DOCTYPE_HTML_HTML_LANG_IT_BODY_CLA;
     echo '<h1>Errore</h1><p>Nessun oggetto selezionato.</p>';
     echo '</body></html>';
     exit;
@@ -54,7 +56,7 @@ $newObject = $db->query(
 // Se nessuno dei due esiste, errore
 if (!$object && !$newObject) {
     http_response_code(404);
-    echo '<!DOCTYPE html><html lang="it"><body class="message-page">';
+    echo S1192_CORPORAZIONI_SHOWOBJ_PHP_753CB1_DOCTYPE_HTML_HTML_LANG_IT_BODY_CLA;
     echo '<h1>Non Trovato</h1><p>Oggetto non trovato.</p>';
     echo '</body></html>';
     exit;
@@ -134,7 +136,7 @@ if (!$object && !$newObject) {
                     $items[$k] = (int)$v;
                 }
             }
-            if ($items):
+            if ($items) {
             ?>
             <div class="primes">
                 <?php foreach ($items as $mat => $val): ?>
@@ -144,7 +146,7 @@ if (!$object && !$newObject) {
                 </div>
                 <?php endforeach; ?>
             </div>
-            <?php endif; ?>
+            <?php } ?>
         </section>
         <?php endif; ?>
 
@@ -204,7 +206,7 @@ if (!$object && !$newObject) {
                     $itemsNew[$k] = (int)$v;
                 }
             }
-            if ($itemsNew):
+            if ($itemsNew) {
             ?>
             <div class="primes">
                 <?php foreach ($itemsNew as $mat => $val): ?>
@@ -214,7 +216,7 @@ if (!$object && !$newObject) {
                 </div>
                 <?php endforeach; ?>
             </div>
-            <?php endif; ?>
+            <?php } ?>
         </section>
         <?php endif; ?>
     </div>

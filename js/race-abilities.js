@@ -17,6 +17,11 @@ if(roots.length){
   catch(error){if(feedback){feedback.textContent=error.message;}}
   finally{try{await load();}catch(error){if(feedback){feedback.textContent=error.message;}}busy=false;paint();}
  }
- paint();load().catch(error=>{if(feedback){feedback.textContent=error.message;}const balance=shop?.querySelector('[data-rpg-learning-balance]');if(balance){balance.textContent='PE non disponibili';}});
+ paint();
+ try{await load();}catch(error){
+  if(feedback){feedback.textContent=error.message;}
+  const balance=shop?.querySelector('[data-rpg-learning-balance]');
+  if(balance){balance.textContent='PE non disponibili';}
+ }
  window.addEventListener('focus',()=>{if(!busy){load().catch(()=>{});}});
 }

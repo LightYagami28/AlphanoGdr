@@ -116,7 +116,7 @@ $sheet['design']=alphanoProfileDesign(['name'=>$row['nome'],'sex'=>$row['sesso']
 $sheet['transformation']=$isOwner?$transformation:null;
 $sheet['origin_label']=GetEtnia((int)$row['etnia'])?:'Origine non indicata';
 $sheet['origin_image']=alphanoEthnicityArt($sheet['origin_label']);
-$sheet['status_label']=$row['posizione']==='off'?'Non connesso':($row['posizione']==='online'?'Fuori scena':'In scena');
+$sheet['status_label']=match($row['posizione']){'off'=>'Non connesso','online'=>'Fuori scena',default=>'In scena'};
 $sheet['rpg_kind']='player';$sheet['rpg_id']=$cid;$sheet['race_id']=$visibleRace;
 array_splice($sheet['sections'],1,0,[['id'=>'progressione','title'=>'Caratteristiche e abilità','icon'=>'swords','rows'=>[],'template'=>'progression']]);
 if ($isOwner) { $sheet['actions'][] = ['title' => 'Modifica profilo', 'icon' => 'settings', 'url' => '/profili/modifyuser.php']; }
@@ -140,7 +140,7 @@ if($isOwner&&lineageVampireCanInfect($row)){ $sheet['actions'][]=['title'=>'Mord
 require_once __DIR__.'/../libs/metamorphosis.inc.php';
 $sheet['metamorphosis']=alphanoMetamorphosis($row);
 $sheet['art']=alphanoProfileBanner($row);
-$sheet['seal']=alphanoProfileRaceSeal(alphanoProfileLineageRace($row),(string)$row['sesso']);
+$sheet['seal']=alphanoProfileRaceSeal();
 $sheet['seal_label']=GetRazza(alphanoProfileLineageRace($row)).' · '.$row['sesso'];
 $sheet['equipment_url']='/equip/equip.php?pgid='.$cid.'&embedded=1';
 $sheet['sections'][]=['id'=>'equipment','title'=>'Equipaggiamento','icon'=>'shield','template'=>'equipment','rows'=>[]];

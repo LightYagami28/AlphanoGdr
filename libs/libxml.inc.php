@@ -11,7 +11,7 @@ function getXMLFromArray($array, $area = '')
     foreach ($array as $key => $value) {
         $value = serialize($value);
         $out .= '<FIELD name="' . htmlspecialchars((string)$key, ENT_QUOTES | ENT_XML1, 'UTF-8')
-            . '" ctrl="' . md5(md5($value)) . '">' . base64_encode($value) . "</FIELD>\n";
+            . '" ctrl="' . hash('sha256',$value) . '">' . base64_encode($value) . "</FIELD>\n";
     }
     return $out . '</FIELDSET>';
 }
@@ -50,7 +50,7 @@ function getArrayFromXML($xml, $area = '')
         $name = (string)$field['name'];
         if (array_key_exists($name, $out) || strlen($name) > 255) { return false; }
         $serialized = base64_decode((string)$field, true);
-        if ($serialized === false || !hash_equals(md5(md5($serialized)), (string)$field['ctrl'])) { return false; }
+        if ($serialized === false || !hash_equals(hash('sha256',$serialized), (string)$field['ctrl'])) { return false; }
         set_error_handler(static function ($severity, $message) { throw new UnexpectedValueException($message); });
         try { $value = unserialize($serialized, ['allowed_classes' => false, 'max_depth' => 64]); }
         catch (Throwable) { restore_error_handler(); return false; }

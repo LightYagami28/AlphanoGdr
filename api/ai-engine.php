@@ -1,5 +1,7 @@
 <?php
 declare(strict_types=1);
+
+if (!defined('S1192_API_AI_ENGINE_PHP_521BFA_SELECT_CHAT_KEY_FROM_AI_ROOMS_WHER')) { define('S1192_API_AI_ENGINE_PHP_521BFA_SELECT_CHAT_KEY_FROM_AI_ROOMS_WHER', 'SELECT chat_key FROM ai_rooms WHERE chat_key=? FOR UPDATE'); }
 require_once __DIR__.'/../libs/ai.inc.php';
 header('Content-Type: application/json; charset=utf-8');header('Cache-Control: private, no-store');$db=aiDb();
 try{
@@ -27,7 +29,7 @@ try{
  if($method==='POST'){$guard=alphanoSessionGuard($u['chat']);if(!(int)$db->query('SELECT GET_LOCK(?,5) acquired',[$guard])[0]['acquired']){ throw new DomainException('Regia occupata, riprova.',409); }register_shutdown_function(static function()use($db,$guard){$db->query('SELECT RELEASE_LOCK(?)',[$guard]);});}
  if($action==='state'&&$method==='GET'){echo aiQuestJson(['quest'=>aiQuestPublic($u['chat'],$uid)]);exit;}
  if($action==='join'&&$method==='POST'){
-  $db->beginTransaction();$db->query('SELECT chat_key FROM ai_rooms WHERE chat_key=? FOR UPDATE',[$u['chat']]);$q=aiQuestRow($u['chat'],true);if(!$q||!in_array($q['mode'],['auto','human'],true)){ throw new DomainException('Nessuna quest IA a cui unirsi.',409); }$sid=(int)$q['session_id'];$g=aiGameGuidance($sid);$old=$db->query('SELECT * FROM ai_quest_cast WHERE session_id=? AND kind=\'pg\' AND actor_id=? FOR UPDATE',[$sid,$uid])[0]??null;
+  $db->beginTransaction();$db->query(S1192_API_AI_ENGINE_PHP_521BFA_SELECT_CHAT_KEY_FROM_AI_ROOMS_WHER,[$u['chat']]);$q=aiQuestRow($u['chat'],true);if(!$q||!in_array($q['mode'],['auto','human'],true)){ throw new DomainException('Nessuna quest IA a cui unirsi.',409); }$sid=(int)$q['session_id'];$g=aiGameGuidance($sid);$old=$db->query('SELECT * FROM ai_quest_cast WHERE session_id=? AND kind=\'pg\' AND actor_id=? FOR UPDATE',[$sid,$uid])[0]??null;
   if(empty($old['active'])){$state=json_decode($old['state']??'{}',true)?:[];$state['join_round']=(int)$g['round_number']+1;$db->execute('INSERT INTO ai_quest_cast(session_id,kind,actor_id,state) VALUES(?,\'pg\',?,?) ON DUPLICATE KEY UPDATE state=VALUES(state)',[$sid,$uid,aiQuestJson($state)]);$s=$db->query('SELECT partecipanti FROM sessioni WHERE id=? FOR UPDATE',[$sid])[0];$list=array_filter(explode(';',$s['partecipanti']));$list[]=(string)$uid;$db->execute('UPDATE sessioni SET partecipanti=? WHERE id=?',[';'.implode(';',array_unique($list)).';',$sid]);aiQuestAudit($sid,'join_next_round',['player'=>$uid,'round'=>$state['join_round']],$uid);}
   $db->commit();echo aiQuestJson(['ok'=>true,'notice'=>'Parteciperai dal prossimo giro.']);exit;
  }
@@ -48,7 +50,7 @@ try{
    if($id){ $db->execute('UPDATE ai_master_knowledge SET title=?,topic=?,origin=?,source=?,summary=?,mechanics=?,active=?,updated_by=?,updated_at=?,version=version+1 WHERE id=?',[...$args,$id]); }else{$db->execute('INSERT INTO ai_master_knowledge(title,topic,origin,source,summary,mechanics,active,updated_by,updated_at) VALUES(?,?,?,?,?,?,?,?,?)',$args);$id=(int)$db->lastInsertId();}aiQuestAudit(0,'knowledge_saved',['id'=>$id,'reason'=>$reason,'origin'=>$v['origin']],$uid);
   }else{
    $id=aiInteger($in,'npc_id',1,2147483647);$n=$db->query('SELECT id,chat_key FROM ai_npcs WHERE id=?',[$id])[0]??null;if(!$n){ throw new DomainException('PNG non trovato.',404); }
-   $db->query('SELECT chat_key FROM ai_rooms WHERE chat_key=? FOR UPDATE',[$n['chat_key']]);$db->query('SELECT id FROM ai_npcs WHERE id=? FOR UPDATE',[$id]);
+   $db->query(S1192_API_AI_ENGINE_PHP_521BFA_SELECT_CHAT_KEY_FROM_AI_ROOMS_WHER,[$n['chat_key']]);$db->query('SELECT id FROM ai_npcs WHERE id=? FOR UPDATE',[$id]);
    if($action==='npc_save'){$old=$db->query('SELECT * FROM aiNpcGame WHERE npc_id=? FOR UPDATE',[$id])[0]??null;if((int)($old['version']??0)!==aiInteger($in,'version',0,PHP_INT_MAX)){ throw new DomainException('PNG modificato altrove: ricarica.',409); }$v=aiNpcGameValidate($in['settings']??[],$id);$db->execute('INSERT INTO aiNpcGame(npc_id,settings,updated_by,updated_at) VALUES(?,?,?,?) ON DUPLICATE KEY UPDATE settings=VALUES(settings),version=version+1,updated_by=VALUES(updated_by),updated_at=VALUES(updated_at)',[$id,aiQuestJson($v),$uid,time()]);aiQuestAudit(0,'npc_configured',['npc'=>$id,'before'=>$old,'after'=>$v,'reason'=>$reason],$uid);
    }elseif($action==='slot'){aiNpcItemSlot($id,aiInteger($in,'instance',1,PHP_INT_MAX),aiField($in,'slot',30));}
    else{
@@ -60,7 +62,7 @@ try{
   }
  }else{
   $sid=aiInteger($in,'quest_id',1,PHP_INT_MAX);$s=$db->query('SELECT * FROM sessioni WHERE id=?',[$sid])[0]??null;if(!$s||$s['chat']!==$u['chat']){ throw new DomainException('Raggiungi il luogo della quest per intervenire.',403); }
-  $db->query('SELECT chat_key FROM ai_rooms WHERE chat_key=? FOR UPDATE',[$s['chat']]);$q=$action==='reverse'?($db->query('SELECT * FROM ai_quests WHERE session_id=? FOR UPDATE',[$sid])[0]??null):aiQuestRow($s['chat'],true);if(!$q||(int)$q['session_id']!==$sid){ throw new DomainException('Quest non attiva.',409); }
+  $db->query(S1192_API_AI_ENGINE_PHP_521BFA_SELECT_CHAT_KEY_FROM_AI_ROOMS_WHER,[$s['chat']]);$q=$action==='reverse'?($db->query('SELECT * FROM ai_quests WHERE session_id=? FOR UPDATE',[$sid])[0]??null):aiQuestRow($s['chat'],true);if(!$q||(int)$q['session_id']!==$sid){ throw new DomainException('Quest non attiva.',409); }
   $g=aiGameGuidance($sid);$version=aiInteger($in,'version',1,PHP_INT_MAX);if($version!==(int)$q['version']){ throw new DomainException('Quest aggiornata: ricarica prima di agire.',409); }
   if($action==='conductor'){aiConductorSet($q,$uid,aiField($in,'mode',12,true));
   }elseif($action==='control'){
@@ -91,4 +93,4 @@ try{
   if(in_array($action,['control','policy','cast_state','reverse'],true)){ $db->execute("UPDATE ai_jobs SET status='cancelled',finished_at=?,error='Intervento del Master: stato cambiato' WHERE session_id=? AND status IN('queued','running')",[time(),$sid]); }
  }
  $db->commit();echo aiQuestJson(['ok'=>true]);
-}catch(Throwable $e){if($db->inTransaction()){ $db->rollBack(); }$value=(int)$e->getCode();$code=($e instanceof DomainException||($e instanceof RuntimeException&&in_array($value,[400,409,422],true)))?$value:($e instanceof JsonException?400:500);if($code<400||$code>499){ $code=500; }if($code===500){ error_log('[Motore Master] '.$e->getMessage()); }http_response_code($code);echo json_encode(['error'=>$code===500?'Operazione non completata. Nessuna modifica parziale applicata.':$e->getMessage()],JSON_UNESCAPED_UNICODE);}
+}catch(Throwable $e){if($db->inTransaction()){ $db->rollBack(); }$value=(int)$e->getCode();if($e instanceof DomainException||($e instanceof RuntimeException&&in_array($value,[400,409,422],true))){ $code=$value; }elseif($e instanceof JsonException){ $code=400; }else{ $code=500; }if($code<400||$code>499){ $code=500; }if($code===500){ error_log('[Motore Master] '.$e->getMessage()); }http_response_code($code);echo json_encode(['error'=>$code===500?'Operazione non completata. Nessuna modifica parziale applicata.':$e->getMessage()],JSON_UNESCAPED_UNICODE);}

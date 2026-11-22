@@ -1,5 +1,8 @@
 <?php
 declare(strict_types=1);
+
+if (!defined('S1192_LIBS_AI_PERSONALITY_INC_PHP_CEEFCF_SELECT')) { define('S1192_LIBS_AI_PERSONALITY_INC_PHP_CEEFCF_SELECT', 'SELECT '); }
+if (!defined('S1192_LIBS_AI_PERSONALITY_INC_PHP_EBCE77_FROM_AI_PERSONAL_MEMORIES_WHERE_NP')) { define('S1192_LIBS_AI_PERSONALITY_INC_PHP_EBCE77_FROM_AI_PERSONAL_MEMORIES_WHERE_NP', ' FROM ai_personal_memories WHERE npc_id=? AND player_id=? AND active=1'); }
 require_once __DIR__.'/ai-feelings.inc.php';
 require_once __DIR__.'/ai-relation-context.inc.php';
 
@@ -36,14 +39,14 @@ function aiPersonalityRecall(int $npc,int $player,array $job,int $limit=3): arra
     // even when its original dialogue receipt already appears in role history.
     if($already){ $scope.=" AND (source='admin' OR job_id IS NULL OR job_id NOT IN (".implode(',',$already).'))'; }
     $columns='id,category,summary,evidence,source,epistemic,chat_key,created_at,updated_at';
-    $db=aiDb();$recent=$db->query('SELECT '.$columns.' FROM ai_personal_memories WHERE npc_id=? AND player_id=? AND active=1'.$scope.' ORDER BY created_at DESC,id DESC LIMIT '.$limit,$params);
+    $db=aiDb();$recent=$db->query(S1192_LIBS_AI_PERSONALITY_INC_PHP_CEEFCF_SELECT.$columns.S1192_LIBS_AI_PERSONALITY_INC_PHP_EBCE77_FROM_AI_PERSONAL_MEMORIES_WHERE_NP.$scope.' ORDER BY created_at DESC,id DESC LIMIT '.$limit,$params);
     $term=aiText(aiPersonalityObservable((string)($job['prompt']??''),350),350);
-    $relevant=$term!==''?$db->query('SELECT '.$columns.' FROM ai_personal_memories WHERE npc_id=? AND player_id=? AND active=1'.$scope.' AND MATCH(summary) AGAINST (? IN NATURAL LANGUAGE MODE) ORDER BY MATCH(summary) AGAINST (? IN NATURAL LANGUAGE MODE) DESC,id DESC LIMIT 2',[...$params,$term,$term]):[];
+    $relevant=$term!==''?$db->query(S1192_LIBS_AI_PERSONALITY_INC_PHP_CEEFCF_SELECT.$columns.S1192_LIBS_AI_PERSONALITY_INC_PHP_EBCE77_FROM_AI_PERSONAL_MEMORIES_WHERE_NP.$scope.' AND MATCH(summary) AGAINST (? IN NATURAL LANGUAGE MODE) ORDER BY MATCH(summary) AGAINST (? IN NATURAL LANGUAGE MODE) DESC,id DESC LIMIT 2',[...$params,$term,$term]):[];
     // One durable episode survives a run of routine greetings; there is no
     // second mutable biography and no private-room scope is widened here.
     // An explicit staff correction must remain usable even when it edits an old
     // receipt. Its original scene date stays intact; updated_at ranks the edit.
-    $important=$db->query('SELECT '.$columns.' FROM ai_personal_memories WHERE npc_id=? AND player_id=? AND active=1'.$scope." AND (source IN('admin','system') OR category NOT IN('incontro','dialogo')) ORDER BY (source='admin') DESC,CASE WHEN source='admin' THEN updated_at ELSE created_at END DESC,id DESC LIMIT 1",$params);
+    $important=$db->query(S1192_LIBS_AI_PERSONALITY_INC_PHP_CEEFCF_SELECT.$columns.S1192_LIBS_AI_PERSONALITY_INC_PHP_EBCE77_FROM_AI_PERSONAL_MEMORIES_WHERE_NP.$scope." AND (source IN('admin','system') OR category NOT IN('incontro','dialogo')) ORDER BY (source='admin') DESC,CASE WHEN source='admin' THEN updated_at ELSE created_at END DESC,id DESC LIMIT 1",$params);
     $found=[];foreach([...$important,...$relevant,...$recent] as $memory){$found[(int)$memory['id']]=$memory;if(count($found)>=$limit){ break; }}
     return array_values($found);
 }
@@ -99,7 +102,8 @@ function aiPersonalityContext(array $npc,array $job,float $scale,array $relation
         'jealousy'=>'insicurezza del legame, senza possesso o controllo',
         default=>$value>=40?'affetto consolidato':'affetto crescente'
     }
-    ; }
+    ;
+}
     if($tone){ $out.=' Tono: '.implode(', ',$tone).($compact?'.':' ; mostralo in gesti e parole, senza nominare punteggi.'); }
     $out.=aiRelationFeelingsContext($npc,$job,$relation);
     $memories=aiPersonalityRecall((int)$npc['id'],(int)$job['user_id'],$job,$compact?2:3);

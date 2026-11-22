@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 /** Clean, opt-in bootstrap data. No players, histories or external database dumps. */
-function alphano_install_demo_data(PDO $pdo, int $admin, array &$settings): array
+function alphanoInstallDemoData(PDO $pdo, int $admin, array &$settings): array
 {
     $seed=json_decode(file_get_contents(dirname(__DIR__).'/config/demo-data.json'),true,32,JSON_THROW_ON_ERROR);
     $insert=static fn(string $table,array $values):int=>alphanoSeedInsert($pdo,$table,$values);

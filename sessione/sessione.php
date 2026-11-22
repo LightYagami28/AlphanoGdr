@@ -1,5 +1,8 @@
 <?php
 declare(strict_types=1);
+
+if (!defined('S1192_SESSIONE_SESSIONE_PHP_53936F_CACHE_CONTROL_PRIVATE_NO_STORE')) { define('S1192_SESSIONE_SESSIONE_PHP_53936F_CACHE_CONTROL_PRIVATE_NO_STORE', 'Cache-Control: private, no-store'); }
+if (!defined('S1192_SESSIONE_SESSIONE_PHP_44B79F_CONTENT_TYPE_APPLICATION_JSON_CHAR')) { define('S1192_SESSIONE_SESSIONE_PHP_44B79F_CONTENT_TYPE_APPLICATION_JSON_CHAR', 'Content-Type: application/json; charset=utf-8'); }
 require_once __DIR__.'/../libs/session-control.inc.php';
 $uid=alphanoRequireLogin();$u=alphanoUser();
 $chat=$_GET['chat']??($u['chat']??'');
@@ -21,12 +24,12 @@ try{
   $action=$input['azione']??$input['action']??'';
   if(!is_string($action)){ throw new DomainException('Comando non valido.',422); }
   $result=alphanoSessionControlAction($uid,$chat,$action,$input);
-  header('Content-Type: application/json; charset=utf-8');header('Cache-Control: private, no-store');
+  header(S1192_SESSIONE_SESSIONE_PHP_44B79F_CONTENT_TYPE_APPLICATION_JSON_CHAR);header(S1192_SESSIONE_SESSIONE_PHP_53936F_CACHE_CONTROL_PRIVATE_NO_STORE);
   echo json_encode($result,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);exit;
  }
  $state=alphanoSessionControlState($uid,$chat);
  if(isset($_GET['status'])){
-  header('Content-Type: application/json; charset=utf-8');header('Cache-Control: private, no-store');
+  header(S1192_SESSIONE_SESSIONE_PHP_44B79F_CONTENT_TYPE_APPLICATION_JSON_CHAR);header(S1192_SESSIONE_SESSIONE_PHP_53936F_CACHE_CONTROL_PRIVATE_NO_STORE);
   echo json_encode($state,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);exit;
  }
  $row=alphanoSessionCurrent($chat);$quest=aiQuestRow($chat);$room=aiRoom($chat);
@@ -35,11 +38,11 @@ try{
  require __DIR__.'/../templates/sessions/manager.php';
 }catch(Throwable $error){
  $code=(int)$error->getCode();
- $status=($error instanceof DomainException||($error instanceof RuntimeException&&in_array($code,[400,409,422],true)))?$code:($error instanceof JsonException?400:500);
+ if($error instanceof DomainException||($error instanceof RuntimeException&&in_array($code,[400,409,422],true))){ $status=$code; }elseif($error instanceof JsonException){ $status=400; }else{ $status=500; }
  if(!in_array($status,[400,401,403,404,405,409,422,429,503],true)){ $status=500; }
  if($status===500){error_log('[Session control] '.$error->getMessage());alphanoErrorReference($error,'session-control');}
  if(($_SERVER['REQUEST_METHOD']??'GET')==='POST'||isset($_GET['status'])){
-  http_response_code($status);header('Content-Type: application/json; charset=utf-8');header('Cache-Control: private, no-store');
+  http_response_code($status);header(S1192_SESSIONE_SESSIONE_PHP_44B79F_CONTENT_TYPE_APPLICATION_JSON_CHAR);header(S1192_SESSIONE_SESSIONE_PHP_53936F_CACHE_CONTROL_PRIVATE_NO_STORE);
   echo json_encode(['error'=>$status===500?'Operazione non completata. Riprova.':$error->getMessage()],JSON_UNESCAPED_UNICODE);
  }else { alphanoFail($status===500?'Il pannello non è momentaneamente disponibile.':$error->getMessage(),$status); }
 }

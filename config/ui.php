@@ -1,5 +1,7 @@
 <?php
 declare(strict_types=1);
+
+if (!defined('S1192_CONFIG_UI_PHP_866F85_CITTA')) { define('S1192_CONFIG_UI_PHP_866F85_CITTA', 'Città'); }
 /** Contratti di presentazione: selettori espliciti, nessuna modifica ai dati o ai permessi. */
 return [
     'views' => [
@@ -31,8 +33,8 @@ return [
         'news'=>['title'=>'Cronache','icon'=>'scroll','description'=>'Notizie dal mondo di Alphano.'],
         'recuperopasswd'=>['title'=>'Recupero accesso','icon'=>'user','description'=>'Ritrova l’accesso al tuo personaggio.'],
         'recuperopg'=>['title'=>'Recupero personaggio','icon'=>'user','description'=>'Ritrova il tuo personaggio di Alphano.'],
-        'citta' => ['title'=>'Città','icon'=>'city','description'=>'Araldiche, stipendi e cittadini delle città del mondo.'],
-        'city' => ['title'=>'Città','icon'=>'city','description'=>'Vita cittadina, assemblea e decisioni della comunità.'],
+        'citta' => ['title'=>S1192_CONFIG_UI_PHP_866F85_CITTA,'icon'=>'city','description'=>'Araldiche, stipendi e cittadini delle città del mondo.'],
+        'city' => ['title'=>S1192_CONFIG_UI_PHP_866F85_CITTA,'icon'=>'city','description'=>'Vita cittadina, assemblea e decisioni della comunità.'],
         'private' => ['title'=>'Luoghi privati','icon'=>'shield','description'=>'Stanze, dimore e risorse condivise del luogo.'],
         'admin' => ['title'=>'Amministrazione', 'icon'=>'settings', 'description'=>'Salute, città e strumenti di gestione del mondo di gioco.'],
         'corporazioni' => ['title'=>'Corporazioni', 'icon'=>'shield', 'description'=>'Mestieri, appartenenze e attività delle corporazioni.'],
@@ -86,7 +88,7 @@ return [
         'admin-master-ia'=>['.ai-admin > nav.ai-toolbar'],
     ],
     'tabs' => [
-        'statistiche-index'=>['sections'=>'.content > h2','label'=>'Statistiche del mondo','groups'=>['Personaggi'=>['Personaggi','Razze','Etnie','Allineamenti'],'Mondo'=>['Chat','Organizzazioni','Corporazioni','Città'],'Attività'=>['Messaggi','Visite Profili','Oggi Registrati'],'Inattività'=>['Da Cancellare']]],
+        'statistiche-index'=>['sections'=>'.content > h2','label'=>'Statistiche del mondo','groups'=>['Personaggi'=>['Personaggi','Razze','Etnie','Allineamenti'],'Mondo'=>['Chat','Organizzazioni','Corporazioni',S1192_CONFIG_UI_PHP_866F85_CITTA],'Attività'=>['Messaggi','Visite Profili','Oggi Registrati'],'Inattività'=>['Da Cancellare']]],
         'admin-blocco' => ['selector'=>'.moderation-sections > section','label'=>'Moderazione'],
         'admin-chats' => ['sections'=>'body > h2','label'=>'Gestione della chat'],
         'sondaggi-adminsondaggi' => ['selector'=>'body > form[data-section]','label'=>'Gestione sondaggi'],

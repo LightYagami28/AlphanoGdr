@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 
+if (!defined('S1192_API_TRASFERIMENTI_PHP_D8A7D6_PARAMETRI_NON_ESAURIENTI')) { define('S1192_API_TRASFERIMENTI_PHP_D8A7D6_PARAMETRI_NON_ESAURIENTI', 'Parametri non esaurienti'); }
+if (!defined('S1192_API_TRASFERIMENTI_PHP_6EC092_PERMESSI_INSUFFICIENTI')) { define('S1192_API_TRASFERIMENTI_PHP_6EC092_PERMESSI_INSUFFICIENTI', 'Permessi insufficienti'); }
+
 foreach (array_merge($_GET,$_POST) as $value) {
     if (is_array($value) || is_object($value)) {
         http_response_code(400);
@@ -91,7 +94,7 @@ try {
                      'message'=> $ok ? 'Trasferimento completato con successo'
                                      : 'Errore durante il trasferimento']);
         }
-        respond(['success'=>false,'error'=>true,'message'=>'Parametri non esaurienti']);
+        respond(['success'=>false,'error'=>true,'message'=>S1192_API_TRASFERIMENTI_PHP_D8A7D6_PARAMETRI_NON_ESAURIENTI]);
 
     /* ====================================================================
      * 0-bis) DONAZIONE A ORGANIZZAZIONE
@@ -106,16 +109,16 @@ try {
                      'message'=> $ok ? 'Donazione andata a buon fine'
                                      : 'Errore durante la donazione']);
         }
-        respond(['success'=>false,'error'=>true,'message'=>'Parametri non esaurienti']);
+        respond(['success'=>false,'error'=>true,'message'=>S1192_API_TRASFERIMENTI_PHP_D8A7D6_PARAMETRI_NON_ESAURIENTI]);
 
     /* ====================================================================
      * 1) PRENDI IN CARICO (impiegato corp) ORDINE CLIENTE
      * ==================================================================*/
     case 'prendiincarico':
         if (!$isAdminTransf)
-            { respond(['success'=>false,'error'=>true,'message'=>'Permessi insufficienti']); }
+            { respond(['success'=>false,'error'=>true,'message'=>S1192_API_TRASFERIMENTI_PHP_6EC092_PERMESSI_INSUFFICIENTI]); }
         $id = (int)($_POST['id'] ?? 0);
-        if (!$id) { respond(['success'=>false,'error'=>true,'message'=>'Parametri non esaurienti']); }
+        if (!$id) { respond(['success'=>false,'error'=>true,'message'=>S1192_API_TRASFERIMENTI_PHP_D8A7D6_PARAMETRI_NON_ESAURIENTI]); }
         $ok  = prendiInCaricoOrdine($id,$idpg);
         respond(['success'=>$ok,
                  'message'=> $ok ? 'Ordine preso in carico correttamente'
@@ -127,7 +130,7 @@ try {
     case 'admintransf':
         $id = (int)($_POST['id'] ?? 0);
         if (!$id) {
-            respond(['success'=>false,'error'=>true,'message'=>'Parametri non esaurienti']);
+            respond(['success'=>false,'error'=>true,'message'=>S1192_API_TRASFERIMENTI_PHP_D8A7D6_PARAMETRI_NON_ESAURIENTI]);
         }
 
         // carico la riga per sapere chi è il pg proprietario
@@ -140,7 +143,7 @@ try {
         // 1) ACCETTA (sia corp che proprietario)
         if (isset($_POST['accetta'])) {
             if (!$isAdminTransf && !$isOwner) {
-                respond(['success'=>false,'error'=>true,'message'=>'Permessi insufficienti']);
+                respond(['success'=>false,'error'=>true,'message'=>S1192_API_TRASFERIMENTI_PHP_6EC092_PERMESSI_INSUFFICIENTI]);
             }
             $msg=finalizeTransf($id,$idpg); respond(['success'=>$msg==='Trasferimento avvenuto correttamente','message'=>$msg]);
         }
@@ -148,7 +151,7 @@ try {
         // 2) ELIMINA (corp o pg proprietario)
         if (isset($_POST['elimina'])) {
             if (!$isAdminTransf && !$isOwner) {
-                respond(['success'=>false,'error'=>true,'message'=>'Permessi insufficienti']);
+                respond(['success'=>false,'error'=>true,'message'=>S1192_API_TRASFERIMENTI_PHP_6EC092_PERMESSI_INSUFFICIENTI]);
             }
             $ok = rejectTransf($id,$idpg);
             respond([
@@ -165,7 +168,7 @@ try {
             && (float)$_POST['prezzo'] > 0
         ) {
             if (!$isAdminTransf && !$isOwner) {
-                respond(['success'=>false,'error'=>true,'message'=>'Permessi insufficienti']);
+                respond(['success'=>false,'error'=>true,'message'=>S1192_API_TRASFERIMENTI_PHP_6EC092_PERMESSI_INSUFFICIENTI]);
             }
             // se a rispondere è il PG → stato = 3; se la corp → 2
             $newState = $isOwner ? 3 : 4;
@@ -184,7 +187,7 @@ try {
             ]);
         }
 
-        respond(['success'=>false,'error'=>true,'message'=>'Parametri non esaurienti']);
+        respond(['success'=>false,'error'=>true,'message'=>S1192_API_TRASFERIMENTI_PHP_D8A7D6_PARAMETRI_NON_ESAURIENTI]);
         break;
 
 
@@ -196,7 +199,7 @@ try {
         // ─ id valido? ───────────────────────────────────────────────────
         $id = (int)($_POST['id'] ?? 0);
         if (!$id) {
-            respond(['success'=>false,'error'=>true,'message'=>'Parametri non esaurienti']);
+            respond(['success'=>false,'error'=>true,'message'=>S1192_API_TRASFERIMENTI_PHP_D8A7D6_PARAMETRI_NON_ESAURIENTI]);
         }
 
         // ─ l’ordine esiste? ─────────────────────────────────────────────
@@ -208,7 +211,7 @@ try {
         // ─ chi sta agendo? (proprietario o impiegato corp) ─────────────
         $isOwner = ((int)$row['pg'] === $idpg);
         if (!$isAdminTransf && !$isOwner) {
-            respond(['success'=>false,'error'=>true,'message'=>'Permessi insufficienti']);
+            respond(['success'=>false,'error'=>true,'message'=>S1192_API_TRASFERIMENTI_PHP_6EC092_PERMESSI_INSUFFICIENTI]);
         }
 
         /* --------------------------- OPERAZIONI ------------------------ */
@@ -250,16 +253,16 @@ try {
         }
 
         // se nessuna delle condizioni sopra è passata
-        respond(['success'=>false,'error'=>true,'message'=>'Parametri non esaurienti']);
+        respond(['success'=>false,'error'=>true,'message'=>S1192_API_TRASFERIMENTI_PHP_D8A7D6_PARAMETRI_NON_ESAURIENTI]);
 
     /* ====================================================================
      * 4) CONSEGNA MERCE
      * ==================================================================*/
     case 'consegna':
         if (!$isAdminTransf)
-            { respond(['success'=>false,'error'=>true,'message'=>'Permessi insufficienti']); }
+            { respond(['success'=>false,'error'=>true,'message'=>S1192_API_TRASFERIMENTI_PHP_6EC092_PERMESSI_INSUFFICIENTI]); }
         $id = (int)($_POST['id'] ?? 0);
-        if (!$id) { respond(['success'=>false,'error'=>true,'message'=>'Parametri non esaurienti']); }
+        if (!$id) { respond(['success'=>false,'error'=>true,'message'=>S1192_API_TRASFERIMENTI_PHP_D8A7D6_PARAMETRI_NON_ESAURIENTI]); }
         $msg=consegna($id,$idpg,$corp); respond(['success'=>$msg==='Consegna andata a buon fine','message'=>$msg]);
 
     /* ====================================================================
@@ -267,7 +270,7 @@ try {
      * ==================================================================*/
     case 'clearcrono':
         if (!$isAdminCorp)
-            { respond(['success'=>false,'error'=>true,'message'=>'Permessi insufficienti']); }
+            { respond(['success'=>false,'error'=>true,'message'=>S1192_API_TRASFERIMENTI_PHP_6EC092_PERMESSI_INSUFFICIENTI]); }
         $ids = [];
         foreach ($db->query('SELECT id FROM trasferimenti WHERE corp = ?',[$corp]) as $r)
             { if (($_POST[(int)$r['id']] ?? '')==='s') { $ids[] = (int)$r['id']; } }
@@ -346,7 +349,8 @@ try {
               'prezzo'=>(float)$r['prezzo'],
               'stato'=>(int)$r['stato'],
               'statoText'=>statoTransf((int)$r['stato'],(int)$r['verso']),
-            ]; }
+            ];
+        }
 
         /* 3) cronologia denaro */
         $cronDenaro = [];
@@ -385,7 +389,8 @@ try {
               'stato'=>(int)$r['stato'],
               'verso'=>(int)$r['verso'],
               'statoText'=>statoTransf((int)$r['stato'],(int)$r['verso']),
-            ]; }
+            ];
+        }
 
         respond([
           'success'=>true,

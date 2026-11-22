@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 
+if (!defined('S1192_CHAT_MESSAGES_PHP_56E465_LIBS_AI_INC_PHP')) { define('S1192_CHAT_MESSAGES_PHP_56E465_LIBS_AI_INC_PHP', '/../libs/ai.inc.php'); }
+if (!defined('S1192_CHAT_MESSAGES_PHP_C9C1E4_IDENTIFICATIVO_GIA_USATO_PER_UN_AL')) { define('S1192_CHAT_MESSAGES_PHP_C9C1E4_IDENTIFICATIVO_GIA_USATO_PER_UN_AL', 'Identificativo già usato per un altro messaggio.'); }
+
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: private, no-store');
 
@@ -38,9 +41,9 @@ try {
             $db->execute('UPDATE utenti SET lastmove = ? WHERE id = ? AND chat = ?', [time(), $idpg, $chat]);
         }
         $initial = ($_GET['initial'] ?? '') === '1';
-        require_once __DIR__.'/../libs/ai.inc.php';if(!isset($room['private_kind'])){ aiQuestTick($chat); }
+        require_once __DIR__.S1192_CHAT_MESSAGES_PHP_56E465_LIBS_AI_INC_PHP;if(!isset($room['private_kind'])){ aiQuestTick($chat); }
         $result = httpChatHistory($chat, $since, $idpg, $initial, (int)$user['razza']);
-        require_once __DIR__.'/../libs/ai.inc.php';
+        require_once __DIR__.S1192_CHAT_MESSAGES_PHP_56E465_LIBS_AI_INC_PHP;
         $result['typing']=!isset($room['private_kind'])||companionshipRoomNpc($chat,$idpg)?aiPendingPublic($chat):[];
         $result['quest']=isset($room['private_kind'])?null:aiQuestPublic($chat,$idpg);
         $revision=$result['quest']?($result['quest']['id'].':'.$result['quest']['version'].':'.$result['quest']['round']):'';
@@ -96,15 +99,15 @@ try {
     // Una risposta HTTP persa può essere richiesta di nuovo senza ripetere azioni/ricompense.
     $receiptKey = $chat . ':' . $requestId;
     $receipt = $_SESSION['chat_receipts'][$receiptKey] ?? null;
-    if(isset($_SESSION['chat_receipt_hashes'][$receiptKey])&&!hash_equals($_SESSION['chat_receipt_hashes'][$receiptKey],$skillHash)){ throw new DomainException('Identificativo già usato per un altro messaggio.',409); }
-    if(!$hasDeclaration){$saved=$db->query('SELECT payload_hash,response_json FROM rpg_chat_receipts WHERE player_id=? AND chat_key=? AND request_key=?',[$idpg,$chat,$requestId])[0]??null;if($saved){if(!hash_equals($saved['payload_hash'],$skillHash)){ throw new DomainException('Identificativo già usato per un altro messaggio.',409); }session_write_close();echo strip_tags(json_encode(json_decode($saved['response_json'], true, 512, JSON_THROW_ON_ERROR),JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_INVALID_UTF8_SUBSTITUTE|JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR));exit;}}
+    if(isset($_SESSION['chat_receipt_hashes'][$receiptKey])&&!hash_equals($_SESSION['chat_receipt_hashes'][$receiptKey],$skillHash)){ throw new DomainException(S1192_CHAT_MESSAGES_PHP_C9C1E4_IDENTIFICATIVO_GIA_USATO_PER_UN_AL,409); }
+    if(!$hasDeclaration){$saved=$db->query('SELECT payload_hash,response_json FROM rpg_chat_receipts WHERE player_id=? AND chat_key=? AND request_key=?',[$idpg,$chat,$requestId])[0]??null;if($saved){if(!hash_equals($saved['payload_hash'],$skillHash)){ throw new DomainException(S1192_CHAT_MESSAGES_PHP_C9C1E4_IDENTIFICATIVO_GIA_USATO_PER_UN_AL,409); }session_write_close();echo strip_tags(json_encode(json_decode($saved['response_json'], true, 512, JSON_THROW_ON_ERROR),JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_INVALID_UTF8_SUBSTITUTE|JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR));exit;}}
     if ($receipt !== null && !$hasDeclaration) {
         session_write_close();
         echo json_encode($receipt, JSON_THROW_ON_ERROR);
         exit;
     }
     require_once __DIR__ . '/libs/chat-core.php';
-    require_once __DIR__.'/../libs/ai.inc.php';
+    require_once __DIR__.S1192_CHAT_MESSAGES_PHP_56E465_LIBS_AI_INC_PHP;
     if(!isset($room['private_kind'])){
       $guard=alphanoSessionGuard($chat);
       if(!(int)$db->query('SELECT GET_LOCK(?,5) acquired',[$guard])[0]['acquired']){ throw new DomainException('Regia occupata, riprova.',409); }
@@ -119,7 +122,7 @@ try {
         $db->query('SELECT chat_key FROM ai_rooms WHERE chat_key=? FOR UPDATE',[$chat]);
         $db->query('SELECT id FROM utenti WHERE id=? FOR UPDATE',[$idpg]);
         $saved=$db->query('SELECT payload_hash,response_json FROM rpg_chat_receipts WHERE player_id=? AND chat_key=? AND request_key=?',[$idpg,$chat,$requestId])[0]??null;
-        if($saved){if(!hash_equals($saved['payload_hash'],$skillHash)){ throw new DomainException('Identificativo già usato per un altro messaggio.',409); }$db->commit();session_write_close();echo strip_tags(json_encode(json_decode($saved['response_json'], true, 512, JSON_THROW_ON_ERROR),JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_INVALID_UTF8_SUBSTITUTE|JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR));exit;}
+        if($saved){if(!hash_equals($saved['payload_hash'],$skillHash)){ throw new DomainException(S1192_CHAT_MESSAGES_PHP_C9C1E4_IDENTIFICATIVO_GIA_USATO_PER_UN_AL,409); }$db->commit();session_write_close();echo strip_tags(json_encode(json_decode($saved['response_json'], true, 512, JSON_THROW_ON_ERROR),JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_INVALID_UTF8_SUBSTITUTE|JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR));exit;}
         if($abilityId){$ability=rpg_get_ability('pg',$idpg,$abilityId);rpgCombatAssertEquipment('pg',$idpg,$ability);}if($itemId){require_once __DIR__.'/../libs/item-engine.inc.php';itemInstance($itemId,$idpg,true);if(!aiQuestRow($chat)){ throw new DomainException('Per dichiarare un oggetto dalla chat serve una quest attiva. Fuori quest usa l’equipaggiamento.',409); }}
         if($hasDeclaration&&!str_starts_with(ltrim($text),'+')){ $text='+'.ltrim($text); }
     }
@@ -144,11 +147,12 @@ try {
     $result = ['ok'=>true, 'id' => $messageId, 'location' => $parsed['location']];
     if($workPrepared){$result['work']=alphanoWorkComplete($idpg,$chat,$requestId,$messageId,$workPrepared);}
     else { try {
-        require_once __DIR__.'/../libs/ai.inc.php';
+        require_once __DIR__.S1192_CHAT_MESSAGES_PHP_56E465_LIBS_AI_INC_PHP;
         $result += aiAfterMessage($chat,$messageId,$idpg,$parsed['html'],$text,(int)$parsed['dest'],$parsed['lican'],['requested'=>!empty($input['ai_request']),'npcId'=>max(0,(int)($input['ai_npc_id']??0)),'abilityId'=>$abilityId,'autoAddress'=>$autoAddress]);
     }
     catch (Throwable $aiError) { if($atomicChat){ throw $aiError; }
-    error_log('[Master IA hook] '.$aiError->getMessage()); }
+    error_log('[Master IA hook] '.$aiError->getMessage());
+    }
     }
     if(!$workId&&$atomicChat){ alphanoWorkNarrated($idpg,$chat,$text,(int)$parsed['dest'],$messageId); }
     if($atomicChat){$logSession=(int)($GLOBALS['alphano_deferred_chat_session']??(aiQuestRow($chat)['session_id']??0));if($logSession){ $db->execute('INSERT IGNORE INTO ai_quest_outbox(session_id,event_key,html,created_at,chat_id) VALUES(?,?,?,?,?)',[$logSession,'rpg:chat:'.$messageId,$parsed['html'],time(),$messageId]); }$db->execute('INSERT INTO rpg_chat_receipts(player_id,chat_key,request_key,payload_hash,response_json,created_at) VALUES(?,?,?,?,?,?)',[$idpg,$chat,$requestId,$skillHash,json_encode($result,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR),time()]);$db->commit();}
@@ -163,7 +167,7 @@ try {
     if (session_status() === PHP_SESSION_ACTIVE) {
         session_write_close();
     }
-    $status = $e instanceof DomainException ? $e->getCode() : ($e instanceof JsonException ? 400 : 500);
+    if ($e instanceof DomainException) { $status=$e->getCode(); } elseif ($e instanceof JsonException) { $status=400; } else { $status=500; }
     if($status<400||$status>599){ $status=500; }
     http_response_code($status);
     if ($status === 500) {

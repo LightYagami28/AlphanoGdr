@@ -7,10 +7,10 @@
 // ------------------------------------------------------------------
 // 1. Inclusioni
 // ------------------------------------------------------------------
-require("../libs/kernel.inc.php");
-require("../libs/libgrafica.inc.php");
-require("../libs/libpg.inc.php");
-require("../libs/libtext.inc.php");
+require "../libs/kernel.inc.php";
+require "../libs/libgrafica.inc.php";
+require "../libs/libpg.inc.php";
+require "../libs/libtext.inc.php";
 require_once __DIR__."/../libs/player-runtime.inc.php";
 require_once __DIR__."/../libs/search-filters.inc.php";
 
@@ -25,7 +25,7 @@ $db      = connectDB();
 $pgid    = GetIDPG();
 
 // Titolo del sito (cambia se vuoi)
-function TITOLO_SITO(): string { return 'Alphano'; }
+function titoloSito(): string { return 'Alphano'; }
 
 // ------------------------------------------------------------------
 // 2. Setup variabili di base
@@ -37,7 +37,7 @@ $pgid    = GetIDPG();
 // privilegi utente
 // nuovo: estraggo prima il risultato, poi controllo se c’è almeno una riga
 $tmp = $db->query("SELECT admin, fatepower FROM utenti WHERE id='$pgid'");
-if (count($tmp) > 0) {
+if (!empty($tmp)) {
     $userRow = $tmp[0];
 } else {
     $userRow = ['admin' => 0, 'fatepower' => 0];

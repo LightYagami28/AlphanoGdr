@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+if (!defined('S1192_EQUIP_EQUIP_PHP_FC5B0D_EMBEDDED_1')) { define('S1192_EQUIP_EQUIP_PHP_FC5B0D_EMBEDDED_1', '&embedded=1'); }
+
 foreach (array_merge($_GET,$_POST) as $value) {
     if (is_array($value) || is_object($value)) {
         http_response_code(400);
@@ -101,14 +103,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$ok) { http_response_code(400); exit('Richiesta non creata: verifica quantità disponibile e trattative già aperte.'); }
             $_SESSION['success']='Richiesta di acquisto inviata. Il venditore deve proporre il prezzo: nessun pagamento è stato effettuato.';
             $_SESSION['equipment_purchase']=['seller'=>$pgid,'corp'=>(int)$corp];
-            header('Location: /equip/equip.php?pgid='.$pgid.($embedded?'&embedded=1':'').($detail?'&detail_id='.$detail:'').'#equipment-detail',true,303);
+            header('Location: /equip/equip.php?pgid='.$pgid.($embedded?S1192_EQUIP_EQUIP_PHP_FC5B0D_EMBEDDED_1:'').($detail?'&detail_id='.$detail:'').'#equipment-detail',true,303);
             exit;
 
-
+        default:
+            break;
     }
 
     // Redirect per evitare resubmit
-    $url = "equip.php?pgid={$pgid}".($embedded?'&embedded=1':'');
+    $url = "equip.php?pgid={$pgid}".($embedded?S1192_EQUIP_EQUIP_PHP_FC5B0D_EMBEDDED_1:'');
     if ($detail) {
         $url .= "&detail_id={$detail}";
     }
@@ -173,11 +176,15 @@ $can = 0;
 $equipmentCreatorName = '';
 if ($o) {
     if ($o['slot'] === '' && ($isSame || $admin || $fatepower)) {
-        $can = in_array(strtolower($o['tipoG']), ['arma','armasx','armadx'], true)
-            ? checkSlotWeapon($pgid, (int)$o['mani'])
-            : ($o['equipaggiabile'] ? checkSlot($o['tipoG'], $pgid) : 0);
+        if (in_array(strtolower($o['tipoG']), ['arma','armasx','armadx'], true)) {
+            $can = checkSlotWeapon($pgid, (int)$o['mani']);
+        } elseif ($o['equipaggiabile']) {
+            $can = checkSlot($o['tipoG'], $pgid);
+        } else {
+            $can = 0;
+        }
     }
     if ($o['idcreatore']) { $equipmentCreatorName = GetPGFromID($o['idcreatore']); }
 }
-$equipmentUrl=static fn(int $item=0):string=>'/equip/equip.php?pgid='.$pgid.($embedded?'&embedded=1':'').($item?'&detail_id='.$item.'#equipment-detail':'');
+$equipmentUrl=static fn(int $item=0):string=>'/equip/equip.php?pgid='.$pgid.($embedded?S1192_EQUIP_EQUIP_PHP_FC5B0D_EMBEDDED_1:'').($item?'&detail_id='.$item.'#equipment-detail':'');
 require __DIR__ . '/../templates/equipment/sheet.php';

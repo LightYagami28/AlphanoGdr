@@ -20,8 +20,8 @@ function alphanoElectionsSummaries(?int $now=null):array {
  $now??=time();$ready=alphanoElectionsReady();$rounds=[];
  if($ready){ foreach(connectDB()->query("SELECT s.id,s.city_id,s.civic_state,s.start_elezioni,s.end_elezioni,
   (SELECT COUNT(*) FROM civic_election_candidates x JOIN utenti u ON u.id=x.player_id JOIN araldiche a ON a.id=u.araldica WHERE x.round_id=s.id AND x.eligible=1 AND u.bloccato=0 AND u.puntif>0 AND a.city=s.city_id) AS candidates
-  FROM storicoelezioni s JOIN (SELECT city_id,MAX(id) AS id FROM storicoelezioni WHERE civic_state IN('candidacy','voting','runoff') GROUP BY city_id) recent ON recent.id=s.id") as $r){ $rounds[(int)$r['city_id']]=$r; 
-  } 
+  FROM storicoelezioni s JOIN (SELECT city_id,MAX(id) AS id FROM storicoelezioni WHERE civic_state IN('candidacy','voting','runoff') GROUP BY city_id) recent ON recent.id=s.id") as $r){ $rounds[(int)$r['city_id']]=$r;
+  }
   }
  $out=[];
  foreach(connectDB()->query('SELECT id FROM city ORDER BY id') as $c){
@@ -43,7 +43,7 @@ function alphanoElectionsAnnounce(int $city,int $round,string $key,string $title
  foreach($db->query('SELECT u.id FROM utenti u JOIN araldiche a ON a.id=u.araldica WHERE a.city=? AND u.bloccato=0',[$city]) as $u){inviaMissiva($title,$html,(int)$u['id'],0,0);$mail=(int)$db->lastInsertId();$db->execute('INSERT INTO civic_election_deliveries(event_id,player_id,mail_id) VALUES(?,?,?)',[$event,(int)$u['id'],$mail]);}
  alphanoRecordActivity('civic-election',0,[['scope'=>'citta','id'=>$city,'section'=>'elezioni','role'=>'member']],$title,$body,['city_id'=>$city,'round_id'=>$round,'event_id'=>$event],'civic:'.$key);
 }
-function alphanoElectionsAppoint(int $city,int $winner,int $round,int $now):void {
+function alphanoElectionsAppoint(int $city,int $winner,int $round):void {
  $db=connectDB();alphanoGovernanceRetireMayors(0,$winner,$city,'Elezioni civiche #'.$round);
  $u=$db->query('SELECT * FROM utenti WHERE id=? FOR UPDATE',[$winner])[0]??null;if(!$u||alphanoElectionsCity($winner)!==$city){ throw new DomainException('Il vincitore non è più eleggibile.',409); }
  $before=alphanoGovernanceState($u);$after=$before;$after['araldica']=(int)alphanoGovernanceCityRole($city,true)['id'];$after['sindaco']=1;
@@ -68,7 +68,7 @@ function alphanoElectionsAdvance(array $city,int $now):void {
    alphanoElectionsAnnounce($cid,$rid,'runoff:'.$rid.':'.$ballot,'Ballottaggio a '.$city['city'],'Parità fra '.implode(', ',array_column($ties,'name')).'. Si apre un nuovo voto di 48 ore fra i candidati a pari merito. Il voto precedente rimane nel registro. Nessun vincitore viene sorteggiato.',$now);return;
   }
   $winner=$c?(int)$c[0]['id']:0;
-  if($winner){ alphanoElectionsAppoint($cid,$winner,$rid,$now); }
+  if($winner){ alphanoElectionsAppoint($cid,$winner,$rid); }
   $snapshot=array_map(static fn($x)=>array_intersect_key($x,array_flip(['id','name','votes','organization','program'])),$c);
   $db->execute("UPDATE storicoelezioni SET civic_state='closed',winner_id=?,civic_closed_at=?,consultazioni=? WHERE id=?",[$winner,$now,json_encode($snapshot,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR),$rid]);
   $db->execute('UPDATE city SET ballottaggio=0 WHERE id=?',[$cid]);

@@ -35,12 +35,13 @@ function alphanoSession(): void
     if (session_status() === PHP_SESSION_NONE) {
         if (!headers_sent()) {
             session_name('alphano_'.substr(hash('sha256',dirname(__DIR__)),0,16));
-            session_set_cookie_params([
-                'httponly' => true, 'samesite' => 'Lax', 'path' => '/',
-                'secure' => alphanoHttpsContext((string)alphanoConfig('base_url')),
-            ]);
         }
-        session_start();
+        session_start([
+            'cookie_httponly' => true,
+            'cookie_samesite' => 'Lax',
+            'cookie_path' => '/',
+            'cookie_secure' => alphanoHttpsContext((string)alphanoConfig('base_url')),
+        ]);
     }
     if(!empty($_SESSION['support_session_id'])){require_once __DIR__.'/user-support.inc.php';alphanoSupportGuard();}
 }
@@ -125,8 +126,7 @@ function alphanoRequireCsrf(bool $json = false): void
 
 function alphanoPasswordVerify(string $password, string $hash): bool
 {
-    return preg_match('/^[a-f0-9]{32}$/iD', $hash)
-        ? hash_equals(strtolower($hash), md5($password)) : password_verify($password, $hash);
+    return password_verify($password, $hash);
 }
 
 /** Protezione condivisa per le form storiche e i client fetch, senza cambiare l'interfaccia. */
@@ -211,5 +211,5 @@ if (PHP_SAPI !== 'cli') { set_exception_handler(static function (Throwable $exce
     foreach (headers_list() as $header) { if (stripos($header, 'Content-Type: application/json') === 0) { $json = true; } }
     alphanoFail('Operazione non completata. Riprova tra poco. Codice assistenza: '.$reference, 500, $json);
 }
-); 
+);
 }

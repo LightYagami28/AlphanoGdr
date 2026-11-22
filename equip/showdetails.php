@@ -10,7 +10,7 @@ require_once __DIR__ . '/../libs/libequip.inc.php';    // getInformation(), chec
 
 initSession();
 // permetti anche spettatori: secondo argomento true
-$idpg = GetIDPG(false, true);
+$idpg = GetIDPG(false);
 
 $id     = filter_input(INPUT_POST, 'id',     FILTER_VALIDATE_INT)
        ?? filter_input(INPUT_GET,  'id',     FILTER_VALIDATE_INT);

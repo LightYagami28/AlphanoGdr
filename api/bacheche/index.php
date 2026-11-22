@@ -141,6 +141,7 @@ function alphanoBoardThreadAction($db,int $idpg,array $user,array $input,string 
  $board=(int)($input['board'] ?? 0);
  playerRequireBoard($db,$board,$user);
  if($action==='getThreads'){ return alphanoBoardThreads($db,$idpg,$board); }
+ if($action==='postThread'){ return alphanoBoardWrite($db,$idpg,$board,0,$input,$action); }
  $threadId=(int)($input['thread'] ?? 0);
  $thread=$db->query('SELECT * FROM bacheche WHERE id=? AND bacheca=? AND replyid=0', [$threadId,$board])[0] ?? null;
  if(!$thread){ throw new RuntimeException('Thread non trovato',404); }

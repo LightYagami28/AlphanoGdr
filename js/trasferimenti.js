@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if(btn) {btn.addEventListener('click',()=>openTab(id));}
   });
   openTab(location.hash==='#donazione' || new URLSearchParams(location.search).has('organizzazione') ? 'donazione' : 'trasf');
-  loadAll().then(()=>{const id=Number(new URLSearchParams(location.search).get('trade'));if(id>0){manageTrade(id);}});
+  loadAll().then(()=>{const id=Number(new URLSearchParams(location.search).get('trade'));if(id>0){void manageTrade(id);}}).catch(error=>console.error('Apertura trattativa non riuscita',error));
 });
 
 function openTab(active){
@@ -78,7 +78,7 @@ async function doMonete(f){
   const r=await postAction({azione:'monete',...Object.fromEntries(new FormData(f))});
   if(r.success) {await loadAll();}
   showTransferStatus(r.message || 'Operazione non riuscita.',!r.success);
-  } catch(error) { showTransferStatus('Connessione interrotta. Puoi riprovare l’invio.',true); }
+  } catch(error) { console.error('Invio trasferimento non riuscito',error); showTransferStatus('Connessione interrotta. Puoi riprovare l’invio.',true); }
   finally { b.disabled=false; }
   return false;
 }
@@ -108,13 +108,14 @@ async function doDonazione(f){
   const r=await postAction({azione:'donazione',...Object.fromEntries(new FormData(f))});
   if(r.success) {await loadAll();}
   showTransferStatus(r.message || 'Operazione non riuscita.',!r.success);
-  } catch(error) { showTransferStatus('Connessione interrotta. Puoi riprovare l’invio.',true); }
+  } catch(error) { console.error('Invio trasferimento non riuscito',error); showTransferStatus('Connessione interrotta. Puoi riprovare l’invio.',true); }
   finally { b.disabled=false; }
   return false;
 }
 
 /* ===================== GENERIC HELPERS ================================ */
-const tplTable=(h,rows)=>`<div class="ui-table-scroll" tabindex="0" role="region" aria-label="Movimenti e ordini"><table class="ui-data-table"><thead><tr>${h.map(t=>`<th scope="col">${t}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
+const thCell=t=>`<th scope="col">${t}</th>`;
+const tplTable=(h,rows)=>`<div class="ui-table-scroll" tabindex="0" role="region" aria-label="Movimenti e ordini"><table class="ui-data-table"><thead><tr>${h.map(thCell).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
 function openProfile(id){window.openProfileId(id);}
 
 function showTransferStatus(message,error=false){
@@ -129,7 +130,7 @@ function showTransferStatus(message,error=false){
 }
 function commerceValue(id,label,max=2147483647){
   const input=document.getElementById(id),raw=input?.value || '';
-  if(!/^[0-9]+$/.test(raw) || Number(raw)<1 || Number(raw)>max){
+  if(!/^\d+$/.test(raw) || Number(raw)<1 || Number(raw)>max){
     showTransferStatus('Inserisci '+label+' come numero intero tra 1 e '+max+'.',true);
     input?.setAttribute('aria-invalid','true');input?.focus();return null;
   }
@@ -159,9 +160,6 @@ function renderTransazioni(rows) {
   const panel=document.getElementById('trasf');
   if (!rows.length) {panel.innerHTML='<p>Nessuna contrattazione in corso.</p>';return;}
   const html=rows.map(d=>{
-    const owner=d.isOwner!==false,state=Number(d.stato);
-    const edit=owner ? [2,4].includes(state) : state===3;
-    const accept=owner ? state===4 : state===3;
     const qty=Number(d.qta);
     const price=Number(d.prezzo)+window.AlphanoCurrency.html(' Corone');
     const actions=commerceButton('manageTrade',d.id,'Gestisci trattativa');
@@ -179,7 +177,6 @@ function renderOrdiniUtente(rows) {
   const panel=document.getElementById('trasf');
   if (!rows.length) {panel.innerHTML+='<p>Nessun ordine in corso da parte tua.</p>';return;}
   const html=rows.map(d=>{
-    const state=Number(d.stato),edit=state===3;
     const qty=Number(d.qta);
     const price=Number(d.prezzo)+window.AlphanoCurrency.html(' Corone');
     const actions=commerceButton('manageTrade',d.id,'Gestisci trattativa');

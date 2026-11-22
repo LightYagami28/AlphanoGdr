@@ -1,10 +1,11 @@
-<HTML>
+<!DOCTYPE html>
+<HTML lang="it">
 	<HEAD>
 		<TITLE>Colori HTML</TITLE>
 
 		<SCRIPT language="JavaScript">
 			var HEXArr = new Array("0","1","2","3","4","5","6","7","8","9","A","B","C","D","E","F");
-			var HEXStr = new String("0123456789ABCDEF");
+			var HEXStr = String("0123456789ABCDEF");
 
 			function DEC2HEX(dec)
 			{
@@ -61,17 +62,17 @@
 			<FORM>
 				Rosso:
 				<INPUT type="button" value="-" onclick="javascript:Diminuisci(this.form.rosso)">
-				<INPUT type="text" size="2" maxlength="2" name="rosso" value="FF" onchange="Controlla(this)">
+				<INPUT aria-label="Rosso" type="text" size="2" maxlength="2" name="rosso" value="FF" onchange="Controlla(this)">
 				<INPUT type="button" value="+" onclick="javascript:Aumenta(this.form.rosso)"><br>
 				Verde:
 				<INPUT type="button" value="-" onclick="javascript:Diminuisci(this.form.verde)">
-				<INPUT type="text" size="2" maxlength="2" name="verde" value="FF" onchange="Controlla(this)">
+				<INPUT aria-label="Verde" type="text" size="2" maxlength="2" name="verde" value="FF" onchange="Controlla(this)">
 				<INPUT type="button" value="+" onclick="javascript:Aumenta(this.form.verde)"><br>
 				Blu:
 				<INPUT type="button" value="-" onclick="javascript:Diminuisci(this.form.blu)">
-				<INPUT type="text" size="2" maxlength="2" name="blu" value="FF" onchange="Controlla(this)">
+				<INPUT aria-label="Blu" type="text" size="2" maxlength="2" name="blu" value="FF" onchange="Controlla(this)">
 				<INPUT type="button" value="+" onclick="javascript:Aumenta(this.form.blu)"><br>
-				Codice HTML: <INPUT type="text" size="7" maxlength="7" name="html" value="#FFFFFF" onchange="javascript:HTMLColor(this.value)">
+				Codice HTML: <INPUT aria-label="Colore HTML" type="text" size="7" maxlength="7" name="html" value="#FFFFFF" onchange="javascript:HTMLColor(this.value)">
 			</FORM>
 		</DIV>
 		<DIV id="anteprima">Anteprima</DIV>

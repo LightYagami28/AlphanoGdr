@@ -4,7 +4,7 @@
   function refresh(body,config){
     const heading=body.querySelector('[data-page-heading]');
     if(!heading){return;}
-    const view=body.dataset.view||'',family=view.split('-')[0];
+    const view=body.dataset.view||'';
     heading.classList.add('ui-integrated-heading');
     if(heading.dataset.headerImage&&heading.dataset.headerImage!=='/assets/placeholder.svg'&&!heading.classList.contains('rpg-hero')&&!heading.querySelector('.ui-header-art')){
       const art=document.createElement('img');art.className='ui-header-art';art.alt='';art.setAttribute('aria-hidden','true');art.decoding='async';

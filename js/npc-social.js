@@ -63,8 +63,8 @@
   finally{refreshing=false;}
  }
  window.addEventListener('focus',refresh);
- document.addEventListener('visibilitychange',()=>{if(!document.hidden){refresh();}});
- setInterval(()=>{if(document.hasFocus()){refresh();}},10000);
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden){void refresh();}});
+ setInterval(()=>{if(document.hasFocus()){void refresh();}},10000);
  document.querySelectorAll('form[data-npc-action]').forEach(form=>form.addEventListener('submit',async event=>{
   event.preventDefault();if(form.dataset.busy){return;}form.dataset.busy='1';
   const feedback=document.querySelector('[data-npc-feedback]');
@@ -75,7 +75,7 @@
   form.dataset.requestId ||= crypto.randomUUID();payload.request_id=form.dataset.requestId;
   try {
    const res=await fetch('/api/ai-social.php',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':document.querySelector('meta[name=csrf-token]').content},body:JSON.stringify(payload)});
-   const result=await res.json();if(!res.ok){throw Error(result.error||'Operazione non riuscita.');}
+   const result=await res.json();if(!res.ok){throw new Error(result.error||'Operazione non riuscita.');}
    feedback.textContent=result.receipt?'Movimento registrato.':'Preferenze aggiornate.';location.reload();
   }catch(error){feedback.textContent=error.message;buttons.forEach(b=>b.disabled=false);delete form.dataset.busy;}
  }));

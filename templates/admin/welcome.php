@@ -3,7 +3,7 @@
 <html lang="it"><head><meta charset="utf-8"><title>Messaggio di benvenuto</title></head><body class="ui-page">
 <header class="ui-page-heading" data-page-heading><span data-icon="mail"></span><div><div class="ui-eyebrow">Alphano · Amministrazione</div><h1>Messaggio di benvenuto</h1><p>Accogli i giocatori e segnala le opportunità per partecipare alla vita del mondo.</p></div></header>
 <?php if ($error): ?><p class="ui-notice" role="alert"><?=$h($error)?></p><?php endif; ?>
-<?php if ($notice): ?><p class="ui-notice" role="status"><?=$h($notice)?></p><?php endif; ?>
+<?php if ($notice): ?><p class="ui-notice" aria-live="polite"><?=$h($notice)?></p><?php endif; ?>
 <div class="welcome-admin-grid">
 <form method="post" class="welcome-admin-form panel">
  <input type="hidden" name="_csrf" value="<?=$h(alphano_csrf_token())?>">

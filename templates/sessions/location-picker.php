@@ -5,7 +5,7 @@
   <div class="session-control-content">
     <section class="session-control-panel session-location-intro"><span class="session-control-command-icon" data-icon="map" aria-hidden="true"></span><div><h2>Entra in un luogo per dirigere</h2><p>Apri la chat in cui vuoi giocare, poi premi <strong>Master</strong> nella testata. Da lì puoi aprire una sessione, guidarla e intervenire sui personaggi presenti.</p><?php if(!empty($u['admin'])): ?><p class="session-location-admin-note">Come amministratore puoi anche consultare la regia di un altro luogo. Per impartire comandi e modificare i personaggi devi prima entrare nella sua chat.</p><?php endif; ?></div></section>
     <section aria-label="Luoghi di gioco" class="session-location-section">
-      <div class="session-location-search"><label for="session-location-search">Cerca un luogo<input type="search" id="session-location-search" placeholder="Nome del luogo o della sessione…" autocomplete="off"></label><p id="session-location-count" role="status"><?=count($locations)?> luoghi disponibili</p></div>
+      <div class="session-location-search"><label for="session-location-search">Cerca un luogo<input type="search" id="session-location-search" placeholder="Nome del luogo o della sessione…" autocomplete="off"></label><p id="session-location-count" aria-live="polite"><?=count($locations)?> luoghi disponibili</p></div>
       <div class="session-location-grid">
       <?php foreach($locations as $location): $open=trim((string)($location['session_name']??''))!==''; ?>
         <article class="session-location-card" data-session-location data-search="<?=$h(($location['title']??'').' '.($location['session_name']??'').' '.($location['master_name']??''))?>">

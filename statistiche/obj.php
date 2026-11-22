@@ -28,7 +28,8 @@
         $dati = $res[0] ?? $dati;
     }
 ?>
-<html>
+<!DOCTYPE html>
+<html lang="it">
     <head>
         <TITLE>Statistiche Oggetto <?=TitoloSito?></TITLE>
 
@@ -38,12 +39,12 @@
     if($dati["num"])
     {
 ?>
-        <table class="column-width-100">
+        <table class="column-width-100"><thead><tr><th scope="col" class="ui-visually-hidden">Dettaglio</th><th scope="col" class="ui-visually-hidden">Valore</th></tr></thead>
             <TR>
                 <TD class="Descrizione align-center">Il prezzo indicato NON &egrave; vincolante</TD>
             </TR>
         </table>
-        <table class="column-width-100">
+        <table class="column-width-100"><thead><tr><th scope="col" class="ui-visually-hidden">Dettaglio</th><th scope="col" class="ui-visually-hidden">Valore</th></tr></thead>
             <TR>
                 <TD class="Valore align-center">Oggetto</TD>
                 <TD class="Valore align-center"><?=htmlspecialchars((string)$dati["nomeobj"], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')?></TD>
@@ -62,7 +63,7 @@
     else
     {
 ?>
-        <table class="column-width-100">
+        <table class="column-width-100"><thead><tr><th scope="col" class="ui-visually-hidden">Dettaglio</th><th scope="col" class="ui-visually-hidden">Valore</th></tr></thead>
             <TR>
                 <TD class="Descrizione align-center">Nessun oggetto di questo tipo mai venduto</TD>
             </TR>

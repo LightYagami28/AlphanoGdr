@@ -6,7 +6,8 @@
 	GetIDPG(0);
 	$statuto=stripslashes((string)($_POST["testo"] ?? ''));
 ?>
-<html>
+<!DOCTYPE html>
+<html lang="it">
 	<head>
 		<title>Anteprima <?=htmlspecialchars(GetTitolo($statuto),ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8')?> <?=TitoloSito?></title>
 

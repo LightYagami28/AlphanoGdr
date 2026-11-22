@@ -7,7 +7,7 @@
   feedback.textContent='Registrazione della rettifica…';
   try{
    const data=new FormData(form),response=await fetch('/api/ai.php',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':document.querySelector('meta[name="csrf-token"]').content},body:JSON.stringify({action:'correct_npc_death',chat:form.dataset.chat,npc_id:Number(form.dataset.npc),death_id:Number(form.dataset.death),hit_points:Number(data.get('hit_points')),reason:data.get('reason'),confirmation:'RETTIFICA'})});
-   const answer=await response.json();if(!response.ok){throw Error(answer.error||'Rettifica non completata.');}
+   const answer=await response.json();if(!response.ok){throw new Error(answer.error||'Rettifica non completata.');}
    feedback.textContent='Rettifica registrata. Il PNG rimane inattivo; puoi riattivarlo dal pannello amministrativo.';
    for(const input of form.querySelectorAll('input,textarea')){input.disabled=true;}
    button.textContent='Rettifica registrata';

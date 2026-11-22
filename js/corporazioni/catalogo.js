@@ -263,7 +263,7 @@ const Catalogo = (function(){
       const result=await response.json();
       if(!response.ok || result.success===false || result.error) {
         if(response.status<500){pendingKeys.delete(identity);}
-        throw Error(result.msg || result.message || 'Operazione non riuscita. Riprova.');
+        throw new Error(result.msg || result.message || 'Operazione non riuscita. Riprova.');
       }
       pendingKeys.delete(identity);
       if(payload.azione==='ordina'){

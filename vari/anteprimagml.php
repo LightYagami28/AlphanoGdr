@@ -7,7 +7,8 @@
     if ($_SERVER["REQUEST_METHOD"] === "POST") { alphano_require_csrf(); }
 	$statuto=(string)($_POST["testo"] ?? "");
 ?>
-<HTML>
+<!DOCTYPE html>
+<HTML lang="it">
 	<HEAD>
 		<TITLE>Anteprima <?=htmlspecialchars(GetTitolo($statuto),ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8')?> <?=TitoloSito?></TITLE>
 

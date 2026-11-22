@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
   tradeTabs.forEach(id => document.getElementById('m'+id)?.addEventListener('click', () => openTab(id)));
   openTab(location.hash.slice(1) || 'corp');
   window.addEventListener('hashchange',()=>openTab(location.hash.slice(1) || 'corp'));
-  loadAll().then(()=>{const id=Number(new URLSearchParams(location.search).get('trade'));if(id>0){manageTrade(id);}});
+  loadAll().then(()=>{const id=Number(new URLSearchParams(location.search).get('trade'));if(id>0){void manageTrade(id);}}).catch(error=>console.error('Apertura trattativa non riuscita',error));
 });
 function openTab(active) {
   if (!document.getElementById(active)) {active='personal';}
@@ -33,7 +33,7 @@ async function loadAll() {
   try {
     const response=await fetch('/api/corporazioni/trasferimenti.php?azione=list&corp='+encodeURIComponent(document.body.dataset.corporation||''));
     const data=await response.json();
-    if (!response.ok || !data.success) {throw Error(data.message || 'Dati non disponibili');}
+    if (!response.ok || !data.success) {throw new Error(data.message || 'Dati non disponibili');}
     const balance=document.getElementById('corporate-trade-balance');
     if (balance) {balance.textContent=String(data.budget);}
     renderTransazioni(data.transazioni || []);
@@ -45,11 +45,10 @@ async function loadAll() {
     renderStoricoVendite(data.storicoVen || []);
     tradeCount('stven',data.ordiniPresi?.length||0,'ordini in carico');tradeCount('produzione',data.consegne?.length||0,'ordini da consegnare');
     return true;
-  } catch (error) { tradeStatus('Impossibile caricare i trasferimenti. Ricarica la pagina e riprova.',true); return false; }
+  } catch (error) { console.error('Caricamento trasferimenti non riuscito',error); tradeStatus('Impossibile caricare i trasferimenti. Ricarica la pagina e riprova.',true); return false; }
 }
 function renderTransazioni(rows) {
   tradeSection('personal','Acquisti dai giocatori',['Data','Venditore','Oggetto','Quantit├á','Prezzo totale','Stato','Azioni'],rows.map(d=>{
-    const ready=Number(d.stato)===3;
     const qty=Number(d.qta);
     const price=Number(d.prezzo)+window.AlphanoCurrency.html(' Corone');
     const actions=tradeButton('manageTrade',d.id,'Gestisci trattativa');
@@ -70,7 +69,6 @@ function renderOrdiniClienti(rows) {
 }
 function renderOrdiniPresi(rows) {
   tradeSection('stven','I miei ordini in carico',['Data','Cliente','Oggetto','Quantit├á','Prezzo unitario','Totale','Stato','Azioni'],rows.map(d=>{
-    const state=Number(d.stato), edit=[1,2].includes(state);
     const qty=Number(d.qta);
     const price=Number(d.prezzo)+window.AlphanoCurrency.html(' Corone');
     const actions=tradeButton('manageTrade',d.id,'Gestisci trattativa');
@@ -96,7 +94,7 @@ function tradeStatus(message,error=false) {
 }
 function tradeValue(id,label,max=2147483647) {
   const input=document.getElementById(id),raw=input?.value || '';
-  if(!/^[0-9]+$/.test(raw) || Number(raw)<1 || Number(raw)>max){
+  if(!/^\d+$/.test(raw) || Number(raw)<1 || Number(raw)>max){
     tradeStatus('Inserisci '+label+' come numero intero tra 1 e '+max+'.',true);
     input?.setAttribute('aria-invalid','true');input?.focus();return null;
   }
@@ -114,7 +112,7 @@ async function postAction(payload) {
     document.body.dataset.commerceDirty='';window.alphanoCommerce?.changed();const refreshed=await loadAll();
     tradeStatus((data.message || data.msg || 'Operazione completata.')+(refreshed===false ? ' Ricarica la pagina per aggiornare i dati.' : ''));
     return data;
-  } catch(error) {tradeStatus('Connessione interrotta. Ricarica i dati prima di riprovare.',true);}
+  } catch(error) {console.error('Aggiornamento trasferimenti non riuscito',error);tradeStatus('Connessione interrotta. Ricarica i dati prima di riprovare.',true);}
   finally {tradeBusy=false;document.querySelectorAll('button').forEach(b=>b.disabled=false);}
 }
 async function takeOrder(id){const result=await postAction({azione:'prendiincarico',id});if(result?.success){openTab('stven');tradeStatus('Ordine preso in carico: puoi proporre il prezzo da I miei ordini.');}return result;}

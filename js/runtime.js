@@ -10,7 +10,7 @@
     if(pendingToken){return pendingToken;}
     pendingToken=nativeFetch('/api/session.php',{credentials:'same-origin',cache:'no-store'})
       .then(r=>r.ok?r.json():Promise.reject(new Error('Sessione non disponibile')))
-      .then(data=>{if(typeof data.csrfToken!=='string'||!data.csrfToken){throw Error('Sessione non disponibile');}token=data.csrfToken;const meta=document.querySelector('meta[name="csrf-token"]');if(meta){meta.content=token;}protectForms();return token;})
+      .then(data=>{if(typeof data.csrfToken!=='string'||!data.csrfToken){throw new Error('Sessione non disponibile');}token=data.csrfToken;const meta=document.querySelector('meta[name="csrf-token"]');if(meta){meta.content=token;}protectForms();return token;})
       .finally(()=>{pendingToken=null;});
     return pendingToken;
   }
@@ -35,7 +35,10 @@
   window.openProfile = name => window.alphanoOpenView('/profili/index.php?Nome=' + encodeURIComponent(name), 'Profilo');
   window.fetch = async (input, init = {}) => {
     const request = input instanceof Request ? input : null;
-    const url = request ? request.url : String(input);
+    let url;
+    if (request) {url = request.url;}
+    else if (typeof input === 'string') {url = input;}
+    else {url = input?.url ?? '';}
     // Public pages start several GETs at once: share the established session cookie.
     if(local(url)){await csrfToken();}
     if (local(url) && unsafe(init.method || request?.method || 'GET')) {

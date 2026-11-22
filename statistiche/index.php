@@ -206,7 +206,7 @@ $canc = $db->query(
     <main class="content">
 
       <h2 id="personaggi">Personaggi</h2>
-      <table class="ui-data-table">
+      <table class="ui-data-table"><thead><tr><th scope="col" class="ui-visually-hidden">Dettaglio</th><th scope="col" class="ui-visually-hidden">Valore</th></tr></thead>
         <tr><td class="Descrizione">Totale da inizio:</td><td class="Valore"><?=$tot?></td></tr>
         <tr><td class="Descrizione">Attualmente registrati:</td><td class="Valore"><?=$max?></td></tr>
         <tr><td class="Descrizione">Registrati ultimi 7 gg:</td><td class="Valore"><?=$reg7?></td></tr>
@@ -217,7 +217,7 @@ $canc = $db->query(
       </table>
 
       <h2 id="chat">Chat</h2>
-      <table class="ui-data-table">
+      <table class="ui-data-table"><thead><tr><th scope="col" class="ui-visually-hidden">Dettaglio</th><th scope="col" class="ui-visually-hidden">Valore</th></tr></thead>
         <?php if($pos): foreach($pos as $place=>$info): ?>
         <tr>
           <td class="Descrizione">
@@ -237,7 +237,7 @@ $canc = $db->query(
       </table>
 
       <h2 id="razze">Razze</h2>
-      <table class="ui-data-table">
+      <table class="ui-data-table"><thead><tr><th scope="col" class="ui-visually-hidden">Dettaglio</th><th scope="col" class="ui-visually-hidden">Valore</th></tr></thead>
         <?php foreach($razze as $k=>$pct): ?>
         <tr>
           <td class="Descrizione">
@@ -249,7 +249,7 @@ $canc = $db->query(
       </table>
 
       <h2 id="etnie">Etnie</h2>
-      <table class="ui-data-table">
+      <table class="ui-data-table"><thead><tr><th scope="col" class="ui-visually-hidden">Dettaglio</th><th scope="col" class="ui-visually-hidden">Valore</th></tr></thead>
         <?php foreach($etnie as $k=>$pct): ?>
         <tr>
           <td class="Descrizione">
@@ -261,7 +261,7 @@ $canc = $db->query(
       </table>
 
       <h2 id="allineamenti">Allineamenti</h2>
-      <table class="ui-data-table">
+      <table class="ui-data-table"><thead><tr><th scope="col" class="ui-visually-hidden">Dettaglio</th><th scope="col" class="ui-visually-hidden">Valore</th></tr></thead>
         <?php foreach($alline as $label=>$pct): ?>
         <tr>
           <td class="Descrizione"><?=$label?>:</td>
@@ -271,7 +271,7 @@ $canc = $db->query(
       </table>
 
       <h2 id="organizzazioni">Organizzazioni</h2>
-      <table class="ui-data-table">
+      <table class="ui-data-table"><thead><tr><th scope="col" class="ui-visually-hidden">Dettaglio</th><th scope="col" class="ui-visually-hidden">Valore</th></tr></thead>
         <?php foreach($org as $o): ?>
         <tr>
           <td class="Descrizione">
@@ -285,7 +285,7 @@ $canc = $db->query(
       </table>
 
       <h2 id="corporazioni">Corporazioni</h2>
-      <table class="ui-data-table">
+      <table class="ui-data-table"><thead><tr><th scope="col" class="ui-visually-hidden">Dettaglio</th><th scope="col" class="ui-visually-hidden">Valore</th></tr></thead>
         <?php foreach($corp as $c): ?>
         <tr>
           <td class="Descrizione">
@@ -299,7 +299,7 @@ $canc = $db->query(
       </table>
 
       <h2 id="citta">Città</h2>
-      <table class="ui-data-table">
+      <table class="ui-data-table"><thead><tr><th scope="col" class="ui-visually-hidden">Dettaglio</th><th scope="col" class="ui-visually-hidden">Valore</th></tr></thead>
         <?php foreach($city as $c): ?>
         <tr>
           <td class="Descrizione">
@@ -313,20 +313,20 @@ $canc = $db->query(
       </table>
 
       <h2 id="messaggi">Messaggi</h2>
-      <table class="ui-data-table">
+      <table class="ui-data-table"><thead><tr><th scope="col" class="ui-visually-hidden">Dettaglio</th><th scope="col" class="ui-visually-hidden">Valore</th></tr></thead>
         <tr><td class="Descrizione">Discussioni (<?=$numb?> bacheche):</td><td class="Valore"><?=$msgs?></td></tr>
         <tr><td class="Descrizione">Risposte:</td><td class="Valore"><?=$rpls?></td></tr>
       </table>
 
       <h2 id="visite">Visite Profili</h2>
-      <table class="ui-data-table">
+      <table class="ui-data-table"><thead><tr><th scope="col" class="ui-visually-hidden">Dettaglio</th><th scope="col" class="ui-visually-hidden">Valore</th></tr></thead>
         <?php foreach($visite as $v): ?>
         <tr>
           <td class="Descrizione">
             <?=processRazza($v['razza'])?>
-            <a href="#" onclick="openProfileId('<?=$v['id']?>')">
+            <button type="button" onclick="openProfileId('<?=$v['id']?>')">
               <?=htmlspecialchars($v['nome'],ENT_QUOTES)?>
-            </a>:
+            </button>:
           </td>
           <td class="Valore"><?=$v['visite']?></td>
         </tr>
@@ -334,28 +334,28 @@ $canc = $db->query(
       </table>
 
       <h2 id="oggi">Oggi Registrati</h2>
-      <table class="ui-data-table">
+      <table class="ui-data-table"><thead><tr><th scope="col" class="ui-visually-hidden">Dettaglio</th><th scope="col" class="ui-visually-hidden">Valore</th></tr></thead>
         <?php foreach($oggi as $o): ?>
         <tr>
           <td class="Valore">
             <?=processRazza($o['razza'])?>
-            <a href="#" onclick="openProfileId('<?=$o['id']?>')">
+            <button type="button" onclick="openProfileId('<?=$o['id']?>')">
               <?=htmlspecialchars($o['nome'],ENT_QUOTES)?>
-            </a>
+            </button>
           </td>
         </tr>
         <?php endforeach; ?>
       </table>
 
       <h2 id="cancellare">Da Cancellare</h2>
-      <table class="ui-data-table">
+      <table class="ui-data-table"><thead><tr><th scope="col" class="ui-visually-hidden">Dettaglio</th><th scope="col" class="ui-visually-hidden">Valore</th></tr></thead>
         <?php foreach($canc as $c): ?>
         <tr>
           <td class="Valore">
             <?=processRazza($c['razza'])?>
-            <a href="#" onclick="openProfileId('<?=$c['id']?>')">
+            <button type="button" onclick="openProfileId('<?=$c['id']?>')">
               <?=htmlspecialchars($c['nome'],ENT_QUOTES)?>
-            </a>
+            </button>
           </td>
         </tr>
         <?php endforeach; ?>

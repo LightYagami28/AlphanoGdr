@@ -177,19 +177,19 @@ if ($send) {
           <tr>
             <th>Destinatario</th>
             <td>
-              <input type="text" name="pgName" value="<?= h($pgName) ?>" placeholder="Nome o lista separata da ;">
+              <input aria-label="Nome personaggio" type="text" name="pgName" value="<?= h($pgName) ?>" placeholder="Nome o lista separata da ;">
             </td>
           </tr>
           <tr>
             <th>Oggetto</th>
             <td>
-              <input type="text" name="oggetto" value="FWD:<?= h($fwdSubject) ?>">
+              <input aria-label="Oggetto" type="text" name="oggetto" value="FWD:<?= h($fwdSubject) ?>">
             </td>
           </tr>
           <tr>
             <th>Messaggio</th>
             <td>
-              <textarea name="messaggio" rows="8"><?= h($fwdBody) ?></textarea>
+              <textarea aria-label="Messaggio" name="messaggio" rows="8"><?= h($fwdBody) ?></textarea>
             </td>
           </tr>
           <tr>

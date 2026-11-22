@@ -18,7 +18,7 @@
  modal.querySelector('.portal-modal-close').addEventListener('click',close);
  modal.addEventListener('cancel',e=>{if(pending){e.preventDefault();}});
  modal.addEventListener('close',()=>{returnFocus?.focus({preventScroll:true});});
- function recoveryLink(link){link.addEventListener('click',e=>{e.preventDefault();open(link);loadRecovery();});}
+ function recoveryLink(link){link.addEventListener('click',e=>{e.preventDefault();open(link);void loadRecovery();});}
  async function loadRecovery(form){
   if(pending){return;}
   pending=true;
@@ -35,7 +35,7 @@
    content.replaceChildren(document.importNode(card,true));
    modal.setAttribute('aria-labelledby','recovery-title');
    const next=content.querySelector('form');
-   if(next){next.addEventListener('submit',e=>{e.preventDefault();loadRecovery(next);});}
+   if(next){next.addEventListener('submit',e=>{e.preventDefault();void loadRecovery(next);});}
    content.querySelector('nav a')?.addEventListener('click',e=>{e.preventDefault();close();});
    const focus=content.querySelector('[role=alert], [role=status], input:not([type=hidden])')||content.querySelector('h1');
    if(focus && !focus.matches('input')){focus.setAttribute('tabindex','-1');}focus?.focus({preventScroll:true});

@@ -4,7 +4,9 @@
  const key='alphano:appearance';
  async function refresh(){
   try{
-   const response=await fetch('/api/appearance.php?page='+encodeURIComponent(location.pathname+location.search),{cache:'no-store'});
+   const current=new URL(location.href,location.origin);
+   const page=current.origin===location.origin?current.pathname+current.search:location.pathname;
+   const response=await fetch('/api/appearance.php?page='+encodeURIComponent(page),{cache:'no-store'});
    if(!response.ok)return;
    const data=await response.json(),body=document.body;
    body.dataset.palette=data.theme;body.dataset.sidebar=data.sidebar;body.dataset.header=data.header;

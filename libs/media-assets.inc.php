@@ -33,6 +33,10 @@ function alphanoWeatherAssetPath(string $key,string $path=''):string {
 function alphanoWeatherIcons(array $weather,string $phase,bool $night):array {
  $known=require_once __DIR__.'/../config/weather-assets.php';$rows=[];
  foreach(connectDB()->query('SELECT * FROM weather_assets') as $r){ $rows[$r['asset_key']]=$r; }
- $keys=['cielo'=>abs((int)$weather['cielo'])===2?'storm':(abs((int)$weather['cielo'])===1?'cloudy':($night?'clear-night':'clear-day')),'tempo'=>abs((int)$weather['tempo'])===2?((int)$weather['temperatura']>0?'rain':'snow'):'steady','vento'=>['fog','calm','breeze','wind','gale'][min(4,abs((int)$weather['vento']))],'luna'=>match($phase){'Luna Nuova'=>'moon-new','Luna Crescente'=>'moon-waxing','Luna Piena'=>'moon-full',default=>'moon-waning'}];
+ $sky=abs((int)$weather['cielo']);$rain=abs((int)$weather['tempo']);
+ if($sky===2){ $skyKey='storm'; }elseif($sky===1){ $skyKey='cloudy'; }elseif($night){ $skyKey='clear-night'; }else{ $skyKey='clear-day'; }
+ if($rain===2){ $rainKey=(int)$weather['temperatura']>0?'rain':'snow'; }else{ $rainKey='steady'; }
+ $moonKey=match($phase){'Luna Nuova'=>'moon-new','Luna Crescente'=>'moon-waxing','Luna Piena'=>'moon-full',default=>'moon-waning'};
+ $keys=['cielo'=>$skyKey,'tempo'=>$rainKey,'vento'=>['fog','calm','breeze','wind','gale'][min(4,abs((int)$weather['vento']))],'luna'=>$moonKey];
  $out=[];foreach($keys as $slot=>$key){$r=$rows[$key]??[];$url=alphanoWeatherAssetPath($key,$r['image_path']??'');$out[$slot]=['key'=>$key,'src'=>alphanoMediaFile($url)?$url:alphanoWeatherAssetPath($key),'label'=>$r['label']??$known[$key][0],'description'=>$r['description']??$known[$key][1]];}return $out;
 }

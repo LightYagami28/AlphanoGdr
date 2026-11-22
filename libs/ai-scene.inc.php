@@ -43,7 +43,7 @@ function aiSceneTarget(array $npcs,string $raw,int $selected,int $player=0,int $
     if($result['status']!=='resolved'||($result['target']['kind']??'')!=='npc'){ return null; }
     foreach($npcs as $n){ if((int)$n['id']===(int)$result['target']['id']){ return $n; } }return null;
 }
-function aiSceneKind(array $q): string {return (json_decode($q['policy']??'{}',true)['scene_kind']??'combattimento');}
+function aiSceneKind(array $q): string {return json_decode($q['policy']??'{}',true)['scene_kind']??'combattimento';}
 /** A complete round may suggest closure only when all active players have actually ceased the scene. */
 function aiSceneCanFinish(int $sid): bool {
     $g=aiGameGuidance($sid);

@@ -3,7 +3,8 @@
 $historyCard=static function(array $row,bool $wide=false)use($h):void {
  $story=$row['label']==='Storia';
 ?>
-<article class="rpg-history-card<?=$story?' rpg-history-biography':($wide?' rpg-history-wide':'')?>"<?=$story?' data-profile-biography':''?>>
+<?php $cardClass='rpg-history-card';if($story){ $cardClass.=' rpg-history-biography'; }elseif($wide){ $cardClass.=' rpg-history-wide'; } ?>
+<article class="<?=$cardClass?>"<?=$story?' data-profile-biography':''?>>
  <header><img class="rpg-chapter-symbol" src="<?=$h(alphanoProfileChapterSymbol($row['label']))?>" alt="" width="56" height="56"><div><small class="rpg-eyebrow">Il diario del personaggio</small><h2><?=$h($row['label'])?></h2></div></header>
  <div class="rpg-history-content"><?=$row['html']?></div>
 </article>

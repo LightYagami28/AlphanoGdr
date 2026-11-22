@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);require_once __DIR__.'/../libs/player-runtime.inc.php';require_once __DIR__.'/../libs/libposta.inc.php';require_once __DIR__.'/../libs/libeconomia.inc.php';require_once __DIR__.'/../libs/mail-presentation.inc.php';
+require_once dirname(__DIR__).'/libs/exceptions.inc.php';
 playerApi(static function(){
  $uid=alphanoRequireLogin(true);$d=connectDB();$in=playerInput();$action=(string)($in['action']??'read');$h=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
  if($_SERVER['REQUEST_METHOD']==='GET'&&$action==='people'){$q=playerText($in,'q',80);return $d->query('SELECT id,nome FROM utenti WHERE id<>? AND bloccato=0 AND nome LIKE ? ORDER BY nome LIMIT 25',[$uid,'%'.$q.'%']);}
@@ -17,7 +18,7 @@ playerApi(static function(){
    $d->query('SELECT id FROM utenti WHERE id=? FOR UPDATE',[$uid]);if(!alphanoOperationOnce('mail-compose',$uid,$key,[$other,$subject,$message,$parent,!empty($in['signature']),!empty($in['save'])])){ return ['success'=>true,'duplicate'=>true]; }
    if((int)$d->query('SELECT COUNT(*) n FROM mail WHERE idmittente=? AND data>?',[$uid,time()-60])[0]['n']>=15){ throw new DomainException('Troppe missive in un minuto. Attendi un momento.',429); }
    $body=processText($message);if(!empty($in['signature'])){ $body.=alphanoMailSignature($uid); }if($parent){ $body='<span class="mail-parent-reference" id="mail-parent-'.$parent.'"></span>'.$body; }
-   if(!inviaMissiva($subject,$body,$other,$uid,0)){ throw new RuntimeException('Invio non completato'); }return ['success'=>true,'id'=>(int)$d->lastInsertId()];
+   if(!inviaMissiva($subject,$body,$other,$uid,0)){ throw new AlphanoMailException('Invio non completato'); }return ['success'=>true,'id'=>(int)$d->lastInsertId()];
   });
  }
  $other=(int)($in['person']??0);$letter=(int)($in['id']??0);$before=max(0,(int)($in['before']??0));

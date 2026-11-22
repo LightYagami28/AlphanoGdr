@@ -7,7 +7,7 @@ function alphanoWorldMapRows(int $area,bool $editor=false):array{
  if(!$area){ return $editor?connectDB()->query('SELECT * FROM world_areas ORDER BY position,title'):alphanoWorldDestinations(); }
  return connectDB()->query('SELECT * FROM mappe WHERE area_id=? AND chat=1'.($editor?'':' AND public_enabled=1').' ORDER BY sort_order,title',[$area]);
 }
-function alphanoWorldMapImage(array $row,int $area):string{return alphanoWorldImage((string)($area?($row['scene_thumbnail']?:$row['scene_image']):$row['image']));}
+function alphanoWorldMapImage(array $row,int $area):string{if($area){$image=$row['scene_thumbnail']?:$row['scene_image'];}else{$image=$row['image'];}return alphanoWorldImage((string)$image);}
 function alphanoWorldMapSave(int $area,array $in,array $files):void{
  $config=alphanoWorldMap();if(!in_array($in['mode']??'', ['cards','visual'],true)){ throw new DomainException('Modalità mappa non valida.'); }
  $key=$area?'area-'.$area:'world';$old=$config['maps'][$key]??[];$image=$old['image']??'';

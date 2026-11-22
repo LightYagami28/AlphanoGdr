@@ -13,7 +13,7 @@ header('Referrer-Policy: no-referrer');
 $settings=alphanoLoadConfig($root.'/config/app.php');
 $steps=alphanoSetupStatus();
 $pending=count(array_filter($steps,static fn($status)=>$status==='pending'));
-$nextText=$pending===1?'Resta una sezione facoltativa da configurare. Puoi completarla, saltarla o riprenderla quando vuoi dal pannello del gestore.':($pending>1?'Restano '.$pending.' sezioni facoltative da configurare. Puoi completarle, saltarle o riprenderle quando vuoi dal pannello del gestore.':'Puoi modificare le impostazioni e consultare il riepilogo dal pannello del gestore.');
+if($pending===1){ $nextText='Resta una sezione facoltativa da configurare. Puoi completarla, saltarla o riprenderla quando vuoi dal pannello del gestore.'; }elseif($pending>1){ $nextText='Restano '.$pending.' sezioni facoltative da configurare. Puoi completarle, saltarle o riprenderle quando vuoi dal pannello del gestore.'; }else{ $nextText='Puoi modificare le impostazioni e consultare il riepilogo dal pannello del gestore.'; }
 $mail=['disabled'=>'Da configurare','log'=>'Modalità di prova','smtp'=>'SMTP configurato','mail'=>'Email del provider'];
 ?>
 <!doctype html><html lang="it"><head><meta charset="utf-8"><title>Installazione completata · <?=alphanoEscape($settings['game_name'])?></title><script src="/assets/install-complete.js?v=<?=substr(hash_file('sha256',$root.'/assets/install-complete.js'),0,12)?>" defer></script><noscript></noscript></head>

@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once dirname(__DIR__).'/libs/exceptions.inc.php';
 require_once __DIR__ . '/../libs/kernel.inc.php';
 require_once __DIR__ . '/../libs/libpg.inc.php';
 require_once __DIR__ . '/../libs/libgrafica.inc.php';
@@ -101,9 +102,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!isset($types[$mime])) { alphanoFail('Formato file non consentito.',400); }
             if(str_starts_with($mime,'image/')){$dimensions=@getimagesize($file['tmp_name']);if(!$dimensions||$dimensions[0]*$dimensions[1]>36000000){ alphanoFail('Immagine non valida o troppo grande (massimo 36 megapixel).',400); }}
             $directory=HTMLROOT.'/profili/pg/'.$idpg;
-            if (!is_dir($directory) && !mkdir($directory,0755,true)) { throw new RuntimeException('Impossibile creare la cartella del profilo'); }
+            if (!is_dir($directory) && !mkdir($directory,0755,true)) { throw new AlphanoProfileException('Impossibile creare la cartella del profilo'); }
             $filename=$field.'-'.bin2hex(random_bytes(8)).'.'.$types[$mime];
-            if (!move_uploaded_file($file['tmp_name'],$directory.'/'.$filename)) { throw new RuntimeException('Caricamento non riuscito'); }
+            if (!move_uploaded_file($file['tmp_name'],$directory.'/'.$filename)) { throw new AlphanoProfileException('Caricamento non riuscito'); }
             $sets[]='`'.$field.'`=?'; $params[]='/profili/pg/'.$idpg.'/'.$filename;
         }
     }

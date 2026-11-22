@@ -71,10 +71,9 @@ if (
     && $statuto !== ''
     && ($admin || $admincorp)
     && isset($_POST['statuto'])
+    && alphanoGroupStatuteProposal('corporazioni',$corpId,$idpg,$statuto,$_POST['_request_key'] ?? null)
 ) {
-    if (alphanoGroupStatuteProposal('corporazioni',$corpId,$idpg,$statuto,$_POST['_request_key'] ?? null)) {
-        $msg = 'Lo statuto è stato inviato all\'accademia.';
-    }
+    $msg = 'Lo statuto è stato inviato all\'accademia.';
 }
 
 // Carica statuto corrente (nuovo se in modify)

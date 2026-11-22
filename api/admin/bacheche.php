@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once dirname(__DIR__,2).'/libs/exceptions.inc.php';
 const ALPHANO_MSG_ID_NON_VALIDO_B62E = 'ID non valido';
 const ALPHANO_MSG_SELECT_ID_FROM_LUOGHI_WHERE_ID_7250 = 'SELECT id FROM luoghi WHERE id=?';
 const ALPHANO_MSG_BACHECA_NON_TROVATA_6CD1 = 'Bacheca non trovata';
@@ -31,13 +32,13 @@ try {
     // Connessione + autenticazione
     $db   = getDB();
     $idpg = alphanoRequireLogin(true);
-    if (!$idpg) { throw new \Exception('Non autenticato', 401); }
+    if (!$idpg) { throw new AlphanoBachecaException('Non autenticato', 401); }
 
     // Permessi
     $u = $db->query('SELECT admin, sindaco FROM utenti WHERE id = ?', [$idpg])[0] ?? [];
     $isAdmin   = (bool)($u['admin'] ?? false);
     $isSindaco = (bool)($u['sindaco'] ?? false);
-    if (!$isAdmin && !$isSindaco) { throw new \Exception('Permessi insufficienti', 403); }
+    if (!$isAdmin && !$isSindaco) { throw new AlphanoBachecaException('Permessi insufficienti', 403); }
 
     // Se sei solo sindaco, filtro per la tua città
     $cityFilter = null;
@@ -50,7 +51,7 @@ try {
              WHERE utenti.id = ?',
             [$idpg]
         )[0] ?? null;
-        if (!$r) { throw new \Exception('Città non trovata', 404); }
+        if (!$r) { throw new AlphanoBachecaException('Città non trovata', 404); }
         $cityFilter = $r['c'];
     }
 
@@ -67,7 +68,7 @@ try {
     $act = (string)($in['azione'] ?? '');
     $msg = null;
     if ($act !== '') {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') { throw new Exception('Usa POST',405); }
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') { throw new AlphanoBachecaException('Usa POST',405); }
         alphanoRequireCsrf(true);
     }
 
@@ -79,11 +80,11 @@ try {
         switch ($act) {
             case 'svuota':
                 $id = (int)($in['id'] ?? 0);
-                if ($id <= 0) { throw new \Exception(ALPHANO_MSG_ID_NON_VALIDO_B62E, 400); }
-                if (!$db->query(ALPHANO_MSG_SELECT_ID_FROM_LUOGHI_WHERE_ID_7250,[$id])) { throw new \Exception(ALPHANO_MSG_BACHECA_NON_TROVATA_6CD1,404); }
+                if ($id <= 0) { throw new AlphanoBachecaException(ALPHANO_MSG_ID_NON_VALIDO_B62E, 400); }
+                if (!$db->query(ALPHANO_MSG_SELECT_ID_FROM_LUOGHI_WHERE_ID_7250,[$id])) { throw new AlphanoBachecaException(ALPHANO_MSG_BACHECA_NON_TROVATA_6CD1,404); }
                 if ($cityFilter !== null) {
                     $loc = $db->query(ALPHANO_MSG_SELECT_LOCATION_FROM_LUOGHI_WHER_EE6B, [$id])[0]['location'] ?? '';
-                    if ($loc !== $cityFilter) { throw new \Exception(ALPHANO_MSG_VIOLAZIONE_DIRITTI_E970, 403); }
+                    if ($loc !== $cityFilter) { throw new AlphanoBachecaException(ALPHANO_MSG_VIOLAZIONE_DIRITTI_E970, 403); }
                 }
                 $db->beginTransaction();
                 $db->execute(ALPHANO_MSG_DELETE_FROM_STORICOBACHECHE_WHER_8EE4,[$id]);
@@ -99,11 +100,11 @@ try {
                 $desc = alphanoSanitizeHtml(trim((string)($in['descrizione'] ?? '')));
                 $clr  = !empty($in['clear']) ? 1 : 0;
                 if ($id <= 0 || $loc === '' || $nome === '' || trim(strip_tags($desc)) === '') {
-                    throw new \Exception('Parametri mancanti', 400);
+                    throw new AlphanoBachecaException('Parametri mancanti', 400);
                 }
-                if (!$db->query(ALPHANO_MSG_SELECT_ID_FROM_LUOGHI_WHERE_ID_7250,[$id])) { throw new Exception(ALPHANO_MSG_BACHECA_NON_TROVATA_6CD1,404); }
+                if (!$db->query(ALPHANO_MSG_SELECT_ID_FROM_LUOGHI_WHERE_ID_7250,[$id])) { throw new AlphanoBachecaException(ALPHANO_MSG_BACHECA_NON_TROVATA_6CD1,404); }
                 if ($cityFilter !== null && ($loc !== $cityFilter || ($act==='modifica' && ($db->query('SELECT location FROM luoghi WHERE id=?',[$id])[0]['location'] ?? null) !== $cityFilter))) {
-                    throw new \Exception(ALPHANO_MSG_VIOLAZIONE_DIRITTI_E970, 403);
+                    throw new AlphanoBachecaException(ALPHANO_MSG_VIOLAZIONE_DIRITTI_E970, 403);
                 }
                 $db->execute(
                     'UPDATE luoghi
@@ -117,11 +118,11 @@ try {
 
             case 'permessi':
                 $id = (int)($in['id'] ?? 0);
-                if ($id <= 0) { throw new \Exception(ALPHANO_MSG_ID_NON_VALIDO_B62E, 400); }
-                if (!$db->query(ALPHANO_MSG_SELECT_ID_FROM_LUOGHI_WHERE_ID_7250,[$id])) { throw new \Exception(ALPHANO_MSG_BACHECA_NON_TROVATA_6CD1,404); }
+                if ($id <= 0) { throw new AlphanoBachecaException(ALPHANO_MSG_ID_NON_VALIDO_B62E, 400); }
+                if (!$db->query(ALPHANO_MSG_SELECT_ID_FROM_LUOGHI_WHERE_ID_7250,[$id])) { throw new AlphanoBachecaException(ALPHANO_MSG_BACHECA_NON_TROVATA_6CD1,404); }
                 if ($cityFilter !== null) {
                     $loc = $db->query(ALPHANO_MSG_SELECT_LOCATION_FROM_LUOGHI_WHER_EE6B, [$id])[0]['location'] ?? '';
-                    if ($loc !== $cityFilter) { throw new \Exception(ALPHANO_MSG_VIOLAZIONE_DIRITTI_E970, 403); }
+                    if ($loc !== $cityFilter) { throw new AlphanoBachecaException(ALPHANO_MSG_VIOLAZIONE_DIRITTI_E970, 403); }
                 }
                 $flags = [
                     !empty($in['all']),
@@ -153,7 +154,7 @@ try {
                 // Cancellazione di un gruppo dal menu: elimina tutte le relative bacheche.
                 if (!$id && !empty($in['location'])) {
                     $group = (string)$in['location'];
-                    if (!$isAdmin) { throw new Exception('Privilegi amministrativi richiesti',403); }
+                    if (!$isAdmin) { throw new AlphanoBachecaException('Privilegi amministrativi richiesti',403); }
                     $db->beginTransaction();
                     foreach ($db->query('SELECT id FROM luoghi WHERE location=?',[$group]) as $board) {
                         $db->execute(ALPHANO_MSG_DELETE_FROM_STORICOBACHECHE_WHER_8EE4,[$board['id']]);
@@ -166,11 +167,11 @@ try {
                     break;
                 }
                 $all = !empty($in['all']) ? 1 : 0;
-                if ($id <= 0) { throw new \Exception(ALPHANO_MSG_ID_NON_VALIDO_B62E, 400); }
-                if (!$db->query(ALPHANO_MSG_SELECT_ID_FROM_LUOGHI_WHERE_ID_7250,[$id])) { throw new \Exception(ALPHANO_MSG_BACHECA_NON_TROVATA_6CD1,404); }
+                if ($id <= 0) { throw new AlphanoBachecaException(ALPHANO_MSG_ID_NON_VALIDO_B62E, 400); }
+                if (!$db->query(ALPHANO_MSG_SELECT_ID_FROM_LUOGHI_WHERE_ID_7250,[$id])) { throw new AlphanoBachecaException(ALPHANO_MSG_BACHECA_NON_TROVATA_6CD1,404); }
                 if ($cityFilter !== null) {
                     $loc = $db->query(ALPHANO_MSG_SELECT_LOCATION_FROM_LUOGHI_WHER_EE6B, [$id])[0]['location'] ?? '';
-                    if ($loc !== $cityFilter) { throw new \Exception(ALPHANO_MSG_VIOLAZIONE_DIRITTI_E970, 403); }
+                    if ($loc !== $cityFilter) { throw new AlphanoBachecaException(ALPHANO_MSG_VIOLAZIONE_DIRITTI_E970, 403); }
                 }
                 $db->beginTransaction();
                 $ok = true;
@@ -187,10 +188,10 @@ try {
                 $desc = alphanoSanitizeHtml(trim((string)($in['descrizione'] ?? '')));
                 $clr  = !empty($in['clear']) ? 1 : 0;
                 if ($loc === '' || $nome === '' || trim(strip_tags($desc)) === '') {
-                    throw new \Exception('Parametri mancanti', 400);
+                    throw new AlphanoBachecaException('Parametri mancanti', 400);
                 }
                 if ($cityFilter !== null && ($loc !== $cityFilter || ($act==='modifica' && ($db->query('SELECT location FROM luoghi WHERE id=?',[$id])[0]['location'] ?? null) !== $cityFilter))) {
-                    throw new \Exception(ALPHANO_MSG_VIOLAZIONE_DIRITTI_E970, 403);
+                    throw new AlphanoBachecaException(ALPHANO_MSG_VIOLAZIONE_DIRITTI_E970, 403);
                 }
                 $db->beginTransaction();
                 $db->execute(
@@ -205,7 +206,7 @@ try {
                 break;
 
             default:
-                throw new \Exception('Azione sconosciuta', 400);
+                throw new AlphanoBachecaException('Azione sconosciuta', 400);
         }
     }
 

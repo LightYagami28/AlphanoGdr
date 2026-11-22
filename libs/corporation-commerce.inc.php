@@ -5,10 +5,19 @@ require_once __DIR__.'/libeconomia.inc.php';
 require_once __DIR__.'/libequip.inc.php';
 
 /** Staff can select a corporation explicitly; members can only use their own mandate. */
+function alphanoCorporationRequestedId(array $user,mixed $requested) {
+ $own=(int)($user['corporazione']??0);
+ if($requested===null||$requested===''){ return [$own,$requested===null||$requested==='']; }
+ return [filter_var($requested,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]),false];
+}
 function alphanoCorporationContext(array $user,mixed $requested=null):int {
  if(!alphanoConfig('corporations_enabled')){ throw new DomainException('Corporazioni e produzione di oggetti disabilitate dalla gestione.',403); }
- $own=(int)($user['corporazione']??0);$id=$requested===null||$requested===''?$own:filter_var($requested,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
- if(!$id){ throw new DomainException('Seleziona una corporazione.',($requested===null||$requested==='')&&empty($user['admin'])?403:400); }
+ $own=(int)($user['corporazione']??0);
+ [$id,$implicit]=alphanoCorporationRequestedId($user,$requested);
+ if(!$id){
+  if($implicit&&empty($user['admin'])){ throw new DomainException('Seleziona una corporazione.',403); }
+  throw new DomainException('Seleziona una corporazione.',400);
+ }
  if(empty($user['admin'])&&(int)$id!==$own){ throw new DomainException('Non puoi gestire questa corporazione.',403); }
  if(!connectDB()->query('SELECT id FROM corporazioni WHERE id=?',[$id])){ throw new DomainException('Corporazione non trovata.',404); }
  return (int)$id;

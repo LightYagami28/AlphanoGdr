@@ -35,7 +35,7 @@ try{
  require_once __DIR__.'/../templates/sessions/manager.php';
 }catch(Throwable $error){
  $code=(int)$error->getCode();
- $status=($error instanceof DomainException||($error instanceof RuntimeException&&in_array($code,[400,409,422],true)))?$code:($error instanceof JsonException?400:500);
+ if($error instanceof DomainException||($error instanceof RuntimeException&&in_array($code,[400,409,422],true))){ $status=$code; }elseif($error instanceof JsonException){ $status=400; }else{ $status=500; }
  if(!in_array($status,[400,401,403,404,405,409,422,429,503],true)){ $status=500; }
  if($status===500){error_log('[Session control] '.$error->getMessage());alphanoErrorReference($error,'session-control');}
  if(($_SERVER['REQUEST_METHOD']??'GET')==='POST'||isset($_GET['status'])){

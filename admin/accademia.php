@@ -28,7 +28,7 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 }
 
 // --- AUTENTICAZIONE & PERMESSI ---
-$pgId = GetIDPG(false, true);
+$pgId = GetIDPG(false);
 if ($pgId === null) {
     header('Location: /login.php');
     exit;
@@ -129,7 +129,7 @@ if ($azione === 'showvoti') {
 $msg = '';
 switch ($azione) {
     case 'modifyvoto':
-        $column=$org ? 'org' : ($corp ? 'corp' : ($obj ? 'obj' : 'giocata'));
+        if ($org) { $column='org'; } elseif ($corp) { $column='corp'; } elseif ($obj) { $column='obj'; } else { $column='giocata'; }
         $target=(int)($org ?: ($corp ?: ($obj ?: $giocata)));
         if ($target>0 && in_array($voto,['0','1'],true) && ($voto==='1' || $motivo!=='')) {
             getDB()->execute("UPDATE accademia SET voto=?,motivo=? WHERE idpg=? AND {$column}=?",[$voto==='1' ? 'vpos' : 'vneg',$motivo,$pgId,$target]);
@@ -183,7 +183,7 @@ switch ($azione) {
 
 $academyAfter=$academyState();
 if ($academyBefore!==$academyAfter && in_array($azione,['vota','modifyvoto','approva','cancella','approvamodif','cancellamodif','setflagorg'],true)) {
-    $section=$azione==='setflagorg' ? 'funzioni-organizzazioni' : (in_array($azione,['approvamodif','cancellamodif'],true)?'modifiche':'proposte');
+    if ($azione==='setflagorg') { $section='funzioni-organizzazioni'; } elseif (in_array($azione,['approvamodif','cancellamodif'],true)) { $section='modifiche'; } else { $section='proposte'; }
     $audiences=[['scope'=>'accademia','id'=>0,'section'=>$section,'role'=>'admin']];
     $owner=(int)($academyProposal['idmaster'] ?? $academyProposal['idcreatore'] ?? $academyProposal['idpg'] ?? 0);
     if ($owner>0 && !in_array($azione,['vota','modifyvoto'],true)) { $audiences[]=['scope'=>'personale','id'=>$owner,'section'=>'accademia','role'=>'member']; }
@@ -224,8 +224,8 @@ $collections = [
 foreach ($collections as $collection) {
     foreach ($collection['rows'] as $item) {
         $id=(int)$item['id']; $kind=$collection['parameter']; $modified=$collection['modified'];
-        $title=$kind==='obj' ? $item['shortDesc'] : ($kind==='giocata' ? getNomeGiocata($id,$item['nome']) : $item['nome']);
-        $owner=(int)($kind==='giocata' ? $item['idpg'] : ($kind==='obj' ? $item['idcreatore'] : ($modified ? $item['newidmaster'] : $item['idmaster'])));
+        if ($kind==='obj') { $title=$item['shortDesc']; } elseif ($kind==='giocata') { $title=getNomeGiocata($id,$item['nome']); } else { $title=$item['nome']; }
+        if ($kind==='giocata') { $owner=(int)$item['idpg']; } elseif ($kind==='obj') { $owner=(int)$item['idcreatore']; } elseif ($modified) { $owner=(int)$item['newidmaster']; } else { $owner=(int)$item['idmaster']; }
         $url = match($kind) {
             'org'=>'/organizzazioni/'.($modified?'shownewstatuto.php':'showstatuto.php').'?org='.$id,
             'corp'=>'/corporazioni/'.($modified?'shownewstatuto.php':'showstatuto.php').'?corp='.$id,

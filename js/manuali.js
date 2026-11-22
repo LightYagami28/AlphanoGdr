@@ -13,6 +13,11 @@
   function toast(text,error=false){const el=byId('toast');el.textContent=text;el.dataset.state=error?'error':'success';el.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove('show'),4500);}
   function setRoute(rule) {const url=new URL(location.href);url.searchParams.delete('section');url.searchParams.delete('chapter');if(rule){url.searchParams.set(rule.key?'chapter':'section',rule.key||rule.id);}history.replaceState(null,'',url);}
   function accept(value){data=value;const select=byId('manual-group'),old=select.value;renderHTML(select, '<option value="0">Tutti i capitoli</option>'+data.groups.map(g=>'<option value="' + (g.id) + '">' + (esc(g.nome)) + '</option>').join(''));select.value=old||'0';if(!select.value){select.value='0';}}
+  function groupActions(group,editable){
+    if(!editable){return '';}
+    const remove=group.legacy?btn('Elimina raccolta','delete-group',group.id):'';
+    return '<div class="ui-row-actions">' + btn('Nuovo capitolo','new-rule',group.id) + btn('Rinomina','edit-group',group.id) + remove + '</div>';
+  }
   function renderIndex(updateRoute=true) {
     ++requestNumber;active=null;byId('manual-detail').hidden=true;const index=byId('manual-index');index.hidden=false;if(updateRoute){setRoute(null);}
     const query=byId('manual-search').value.trim().toLocaleLowerCase('it'),group=Number(byId('manual-group').value),kind=byId('manual-audience').value;
@@ -20,7 +25,7 @@
     byId('manual-status').textContent=(selected.length) + ' ' + (selected.length===1?'capitolo disponibile':'capitoli disponibili') + ' ┬À ' + (config.public?'Consultazione libera, anche senza account.':'Le guide riservate compaiono secondo i tuoi incarichi.');
     renderHTML(index, data.groups.filter(g=>selected.some(r=>r.sezione===g.id)||(group===g.id&&config.adminAccademia)).map(g=>{
       const chapters=selected.filter(r=>r.sezione===g.id),editable=config.adminAccademia&&data.rules.filter(r=>r.sezione===g.id).every(r=>r.can_edit);
-      return '<section class="manual-collection' + (g.key==='personaggi-storici'?' manual-historical-collection':'') + '"><header><div><span class="manual-eyebrow">' + (g.legacy?'ARCHIVIO ┬À APPROFONDIMENTI':'LA GUIDA DI ALPHANO') + '</span><h2>' + (esc(g.nome)) + '</h2></div><span class="manual-counter">' + (chapters.length) + ' ' + (chapters.length===1?'capitolo':'capitoli') + '</span>' + (editable?'<div class="ui-row-actions">' + (btn('Nuovo capitolo','new-rule',g.id)) + (btn('Rinomina','edit-group',g.id)) + (g.legacy?btn('Elimina raccolta','delete-group',g.id):'') + '</div>':'') + '</header>' + (g.legacy?'<p class="manual-archive-note">Testi di ambientazione e materiali precedenti. Per costi e procedure attuali consulta i capitoli della guida centrale.</p>':'') + '<div class="manual-card-grid">' + (chapters.map(r=>{
+      return '<section class="manual-collection' + (g.key==='personaggi-storici'?' manual-historical-collection':'') + '"><header><div><span class="manual-eyebrow">' + (g.legacy?'ARCHIVIO ┬À APPROFONDIMENTI':'LA GUIDA DI ALPHANO') + '</span><h2>' + (esc(g.nome)) + '</h2></div><span class="manual-counter">' + (chapters.length) + ' ' + (chapters.length===1?'capitolo':'capitoli') + '</span>' + groupActions(g,editable) + '</header>' + (g.legacy?'<p class="manual-archive-note">Testi di ambientazione e materiali precedenti. Per costi e procedure attuali consulta i capitoli della guida centrale.</p>':'') + '<div class="manual-card-grid">' + (chapters.map(r=>{
         let badge='GUIDA DI GIOCO';
         if(r.audience!=='public'){badge='RISERVATO ┬À '+esc(r.audience_label);}
         else if(g.legacy){badge='APPROFONDIMENTO';}

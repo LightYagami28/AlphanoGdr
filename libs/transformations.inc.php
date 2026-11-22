@@ -27,6 +27,13 @@ function alphanoTransformationInChat(array $user,int $now):bool {
     if(preg_match('/^(?:rent_|pvt_)[a-f0-9]{40}$/D',$chat)){ return true; }
     return (bool)connectDB()->query('SELECT 1 FROM mappe WHERE chat_key=? AND chat=1 AND public_enabled=1 LIMIT 1',[$chat]);
 }
+function alphanoTransformationChatNotice(array $user,int $now,array $state,string $requested,int $id):void {
+ if(!alphanoTransformationInChat($user,$now)){ return; }
+ require_once __DIR__.'/libchat.inc.php';
+ $config=alphanoTransformationConfig($state['native_race_id']);
+ $text=strtr($requested==='human'?$config['human_text']:$config['special_text'],['{nome}'=>(string)$user['nome'],'{razza}'=>alphanoTransformationRaceLabel($state['native_race_id']),'{forma}'=>$requested==='human'?'ordinaria':'alternativa']);
+ insertIntoChat((string)$user['chat'],'<div class="MasterKey scene-note transformation-event"><strong>Trasformazione</strong><p>'.nl2br(htmlspecialchars($text,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8')).'</p></div>',['kind'=>'transformation','actor_id'=>$id,'native_race_id'=>$state['native_race_id'],'visible_race_id'=>$state['native_race_id'],'form'=>$requested,'text'=>$text]);
+}
 function alphanoTransformationSync(int $id,?string $requested=null,?int $now=null):array {
     $now??=time();$db=connectDB();$own=!$db->inTransaction();if($own){ $db->beginTransaction(); }
     try{
@@ -38,10 +45,7 @@ function alphanoTransformationSync(int $id,?string $requested=null,?int $now=nul
         if($changed){
             $db->execute('UPDATE utenti SET alternate_form=?,ultimatrasformazione=? WHERE id=?',[(int)($requested==='native'),$now,$id]);$user['alternate_form']=(int)($requested==='native');
             $db->execute('INSERT INTO logs_adminpg(azione,data,chat,esecutore,destinatario,qta,obj,descr) VALUES(?,?,?,?,?,0,0,?)',['metamorfosi',$now,(string)($user['chat']??''),$id,$id,'Forma '.$state['form'].' → '.$requested]);
-            if(alphanoTransformationInChat($user,$now)){
-                require_once __DIR__.'/libchat.inc.php';$config=alphanoTransformationConfig($state['native_race_id']);$text=strtr($requested==='human'?$config['human_text']:$config['special_text'],['{nome}'=>(string)$user['nome'],'{razza}'=>alphanoTransformationRaceLabel($state['native_race_id']),'{forma}'=>$requested==='human'?'ordinaria':'alternativa']);
-                insertIntoChat((string)$user['chat'],'<div class="MasterKey scene-note transformation-event"><strong>Trasformazione</strong><p>'.nl2br(htmlspecialchars($text,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8')).'</p></div>',['kind'=>'transformation','actor_id'=>$id,'native_race_id'=>$state['native_race_id'],'visible_race_id'=>$state['native_race_id'],'form'=>$requested,'text'=>$text]);
-            }
+            alphanoTransformationChatNotice($user,$now,$state,$requested,$id);
         }
         if($own){ $db->commit(); }return alphanoTransformationState($user,$now)+['changed'=>$changed];
     }catch(Throwable $e){if($own&&$db->inTransaction()){ $db->rollBack(); }throw $e;}

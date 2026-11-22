@@ -85,6 +85,8 @@ if ($days > 0 && $puntif < MAXPUNTIF) {
             case 5:
                 $puntif += $days * (int)(MAXPUNTIF / (1000/75));
                 break;
+            default:
+                break;
         }
     }
     $puntif = min($puntif, MAXPUNTIF);

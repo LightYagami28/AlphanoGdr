@@ -47,12 +47,12 @@ function checkQuality(pass) {
 			lastType.value = membership[index];
 		}
 	}
-	if (hasPunctuation) score++;
-	if (hasNumber) score++;
-	if (hasUppercase) score++;
-	if (hasLowercase) score++;
-	
   const levels=[[8,'Ottima'],[7,'Molto Buona'],[6,'Buona'],[5,'Discreta'],[4,'Decente']];
+	if (hasPunctuation) {score++;}
+	if (hasNumber) {score++;}
+	if (hasUppercase) {score++;}
+	if (hasLowercase) {score++;}
+	
   for(const [minimum,label] of levels){
     if(score>minimum){return label+' ('+score+')';}
   }

@@ -22,7 +22,6 @@ body .pan-ctrl button:hover {background: var(--panel);transform: scale(1.08);}
 body .pan-ctrl button:active {transform: scale(.9);}
 body[data-view=map] .map-label {fill: var(--text);stroke: var(--bg);}
 /* Atlas 2026: the image and hit areas share one coordinate system, never cover/slice. */
-body[data-view="map"]{padding:0;margin:0;width:100%;height:100dvh;overflow:hidden;background:var(--bg);}
 
 body[data-view="map"] img[data-fullcover][hidden]{display:none;}
 body[data-view="map"] .map-atlas{position:fixed;inset:0;overflow:hidden;background:radial-gradient(ellipse at 50% 40%,var(--panel),var(--bg) 80%);isolation:isolate;}

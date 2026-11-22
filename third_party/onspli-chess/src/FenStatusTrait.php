@@ -118,15 +118,15 @@ trait FenStatusTrait
     private function resolveShredderRight(string $right, string $castling, ?string $kingsFile, ?string $kingsRook, ?string $queensRook) : array
     {
       $lower = strtolower($right);
-      $kingsFile = $this->board->findSquareWithPiece(Board::getPieceOfColor('K', ctype_upper($right) ? 'w' : 'b'), true)->getFile();
-      if ($lower < $kingsFile) {
+      $actualKingFile = $this->board->findSquareWithPiece(Board::getPieceOfColor('K', ctype_upper($right) ? 'w' : 'b'), true)->getFile();
+      if ($lower < $actualKingFile) {
         $type = ctype_upper($right) ? 'Q' : 'q';
         $queensRook = $this->assertUniqueRook($queensRook, $lower, $castling, "queen's");
       } else {
         $type = ctype_upper($right) ? 'K' : 'k';
         $kingsRook = $this->assertUniqueRook($kingsRook, $lower, $castling, "king's");
       }
-      return [$type, $kingsFile, $kingsRook, $queensRook];
+      return [$type, $actualKingFile, $kingsRook, $queensRook];
     }
 
     private function assertUniqueRook(?string $current, string $rookFile, string $castling, string $side) : string

@@ -242,13 +242,13 @@ function buildChatMessage(
                 'UPDATE utenti SET puntif=puntif-?,ferite=? WHERE id=?',
                 [MAXPUNTIF/10,$ferite,$idpg]
             );
-            vampireDamage($chat,$pg['nome'],$sesso,false);
+            vampireDamage($chat,$pg['nome'],false);
         } else {
             $db->execute(
                 'UPDATE utenti SET puntif=?,razza=7,ferite="" WHERE id=?',
                 [MAXPUNTIF,$idpg]
             );
-            vampireDamage($chat,$pg['nome'],$sesso,true);
+            vampireDamage($chat,$pg['nome'],true);
         }
     }
 

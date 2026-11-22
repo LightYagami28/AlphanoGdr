@@ -38,7 +38,7 @@ function aiAdjudicationAbility(array $action,int $session,int $round):?array {
 function aiAdjudicationScore(array $actor,string $test,?array $ability=null):int {
  $stats=$actor['stats']??rpg_actor_stats($actor['kind'],(int)$actor['id']);$score=rpgCombatScore($stats,$test);
  if($ability&&!isset($ability['human_rules'])){$effect=$ability['effect'];$score=(int)round($score*.75+(int)($stats[$effect['stat']]??0)*.25);$abilityBonus=(int)$effect['bonus'];}
- $score+=max($abilityBonus??0,rpgHumanBonus($actor,$test,$ability));$score-=rpgMalusEvaluate((int)($actor['native_race_id']??$actor['razza']),$actor['_racial_malus']??[],in_array($test,['attack','defence'],true)?'physical':'mental')['penalty'];return (int)round($score*itemScoreModifier($actor['_item_effects']??[],$test,$stats));
+ $score+=max($abilityBonus??0,rpgHumanBonus($actor,$test,$ability));$score-=rpgMalusEvaluate((int)($actor['native_race_id']??$actor['razza']),$actor['_racial_malus']??[],in_array($test,['attack','defence'],true)?'physical':'mental')['penalty'];return (int)round($score*itemScoreModifier($actor['_item_effects']??[],$test));
 }
 /** Applies bounded damage to the in-memory verdict only, preserving the established racial exceptions. */
 function aiAdjudicationDamage(array &$result,array $actor,array $target,string $targetKey,int $damage,string $wound,array $cfg,array $room,bool $training,int $round,array &$hp,array &$wounds,array &$conditions,array &$deaths,array $states,int $session=0):void {

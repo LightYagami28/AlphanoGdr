@@ -75,7 +75,7 @@ array_splice($sheet['sections'],1,0,[['id'=>'progressione','title'=>'Caratterist
 if (!empty($viewer['admin'])) { $sheet['actions'][] = ['title' => 'Modifica personaggio', 'icon' => 'settings', 'url' => '/admin/master-ia.php?chat=' . rawurlencode($npc['chat_key']) . '&npc=' . $id]; }
 $sheet['sections']=alphanoProfileCompactSections($sheet['sections']);
 array_unshift($sheet['sections'],['id'=>'conoscenza','title'=>'Conoscenza','icon'=>'users','rows'=>[],'template'=>'npc-knowledge']);
-$banner=alphanoProfileDefaultBanner((int)$profile['race_id'],(string)$profile['sex']);$sheet['art']=['url'=>$banner,'default'=>$banner];
-$sheet['seal']=alphanoProfileRaceSeal((int)$profile['race_id'],(string)$profile['sex']);
+$banner=alphanoProfileDefaultBanner();$sheet['art']=['url'=>$banner,'default'=>$banner];
+$sheet['seal']=alphanoProfileRaceSeal();
 require __DIR__ . '/../templates/profiles/sheet.php';
 closePage();

@@ -31,7 +31,7 @@ function alphanoCityDirectory(array $viewer, int $selected = 0): array
         $city['mayors'] = array_values(array_filter($mayors, static fn(array $mayor): bool => (int)$mayor['city'] === $id));
         $city['can_manage'] = !empty($viewer['admin']) || (!empty($viewer['sindaco']) && $viewerCity === $id);
         $city['is_citizen'] = $viewerCity === $id;
-        $city['artwork']=alphanoCityArtwork((string)$city['city']);
+        $city['artwork']=alphanoCityArtwork();
         $city['pending_application']=$pending===$id;
         $city['can_apply']=!$city['is_citizen']&&$pending===0;
         if ($id === $selected) { $chosen = $city; }

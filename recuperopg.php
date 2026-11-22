@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         $db->beginTransaction();
         $locked=$db->query('SELECT id,query FROM recuperopg WHERE id=? AND token_hash=? FOR UPDATE',[$backup['id'],$backup['token_hash']])[0]??null;
         if (!$locked || $db->query('SELECT id FROM utenti WHERE id=?',[$backup['id']])) { throw new DomainException('Il personaggio è già stato ripristinato o non è disponibile.'); }
-        set_error_handler(static function ($severity,$message) { throw new DomainException('Il backup non è valido.'); });
+        set_error_handler(static function () { throw new DomainException('Il backup non è valido.'); });
         try { $queries=unserialize($locked['query'],['allowed_classes'=>false,'max_depth'=>32]); }
         finally { restore_error_handler(); }
         if (!is_array($queries) || !$queries) { throw new DomainException('Il backup non è valido.'); }

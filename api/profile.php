@@ -114,7 +114,7 @@ foreach ($notesRaw as $n) {
 // ────────────────────────────────────────────────────────────────────
 $lineageRace = alphanoProfileLineageRace($row);
 $output = [
-    'sidebar_art_url' => alphanoProfileDefaultBanner($lineageRace, (string)$row['sesso']),
+    'sidebar_art_url' => alphanoProfileDefaultBanner(),
     'lineage_race_label' => GetRazza($lineageRace),
     'id'           => (int)$row['id'],
     'nome'         => $row['nome'],

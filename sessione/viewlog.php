@@ -69,8 +69,7 @@ switch ($azione) {
 
         // chat name
         $tmp  = $db->query("SELECT COALESCE(m.title,s.chat) AS chat FROM sessioni s LEFT JOIN mappe m ON m.chat_key=s.chat WHERE s.id=?", [$id]);
-        $chat = is_array($tmp) ? ($tmp[0]['chat'] ?? '')
-               : ($tmp instanceof PDOStatement ? (string)$tmp->fetchColumn() : '');
+        if (is_array($tmp)) { $chat = $tmp[0]['chat'] ?? ''; } elseif ($tmp instanceof PDOStatement) { $chat = (string)$tmp->fetchColumn(); } else { $chat = ''; }
 
         $replay=alphanoSessionReplay(file_get_contents($file),$session);
         require __DIR__.'/../templates/sessions/log.php';
@@ -85,8 +84,7 @@ switch ($azione) {
     default:
         // prendo sessioni
         $q = $db->query("SELECT s.*, m.scene_thumbnail, COALESCE(m.title, s.chat) AS location_label FROM sessioni s LEFT JOIN mappe m ON m.chat_key=s.chat LEFT JOIN session_archive_deletions d ON d.session_id=s.id WHERE d.session_id IS NULL ORDER BY s.id DESC", []);
-        $rows = is_array($q) ? $q
-              : ($q instanceof PDOStatement ? $q->fetchAll(PDO::FETCH_ASSOC) : []);
+        if (is_array($q)) { $rows = $q; } elseif ($q instanceof PDOStatement) { $rows = $q->fetchAll(PDO::FETCH_ASSOC); } else { $rows = []; }
 
         foreach($rows as &$row){$image=(string)($row['scene_thumbnail']??'');$row['location_thumbnail']=$image!==''&&alphanoMediaFile($image)?$image:'';}unset($row);
         $archiveNotice=$_SESSION['session_archive_notice']??null;unset($_SESSION['session_archive_notice']);

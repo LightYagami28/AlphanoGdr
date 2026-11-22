@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once dirname(__DIR__,2).'/libs/exceptions.inc.php';
 require_once __DIR__ . '/../../libs/player-runtime.inc.php';
 require_once __DIR__ . '/../../libs/libposta.inc.php';
 require_once __DIR__ . '/../../libs/forum-presentation.inc.php';
@@ -51,12 +52,13 @@ playerApi(function (): array {
             $thread['id']=(int)$thread['id']; $thread['idpg']=(int)$thread['idpg']; $thread['chiusa']=(string)(int)$thread['chiusa'];
             $thread['message_raw']=$thread['messaggio']; $thread['messaggio']=processText($thread['messaggio']);
         }
+        unset($thread);
         $info=$db->query('SELECT * FROM luoghi WHERE id=?',[$board])[0];$info['image']=alphanoBoardImage($info);return ['success'=>true,'threads'=>$threads,'board'=>$info];
     }
     if (in_array($action, ['getPosts','postReply'], true)) {
         $threadId=(int)($input['thread'] ?? 0);
         $thread=$db->query('SELECT * FROM bacheche WHERE id=? AND bacheca=? AND replyid=0', [$threadId,$board])[0] ?? null;
-        if (!$thread) { throw new RuntimeException('Thread non trovato',404); }
+        if (!$thread) { throw new AlphanoBachecaException('Thread non trovato',404); }
     }
     if ($action === 'getPosts') {
         $db->execute('UPDATE bacheche SET visite=visite+1 WHERE id=?', [$threadId]);
@@ -76,8 +78,8 @@ playerApi(function (): array {
         try {
             if ($action === 'postReply') {
                 $locked=$db->query('SELECT chiusa,segnalazione,idpg,oggetto FROM bacheche WHERE id=? AND bacheca=? AND replyid=0 FOR UPDATE',[$threadId,$board])[0] ?? null;
-                if (!$locked) { throw new RuntimeException('Thread non trovato',404); }
-                if (!empty($locked['chiusa'])) { throw new RuntimeException('Thread chiuso',409); }
+                if (!$locked) { throw new AlphanoBachecaException('Thread non trovato',404); }
+                if (!empty($locked['chiusa'])) { throw new AlphanoBachecaException('Thread chiuso',409); }
             }
             $db->execute('INSERT INTO bacheche(replyid,data,oggetto,messaggio,idpg,bacheca,chiusa,segnalazione) VALUES(?,?,?,?,?,?,0,?)',[$action === 'postThread' ? 0 : $threadId,time(),$subject,$message,$idpg,$board,$action==='postThread'&&$notify ? 1 : 0]);
             $newId=(int)$db->lastInsertId();
@@ -90,7 +92,7 @@ playerApi(function (): array {
     }
     $messageId=(int)($input['id'] ?? 0);
     $original=$db->query('SELECT * FROM bacheche WHERE id=?',[$messageId])[0] ?? null;
-    if (!$original) { throw new RuntimeException('Messaggio non trovato',404); }
+    if (!$original) { throw new AlphanoBachecaException('Messaggio non trovato',404); }
     playerRequireBoard($db,(int)$original['bacheca'],$user);
     if ($action === 'getHistory') {
         $history=$db->query('SELECT s.*,u.nome FROM storicobacheche s LEFT JOIN utenti u ON u.id=s.idpg WHERE oldid=? ORDER BY s.id',[$messageId]);
@@ -98,12 +100,12 @@ playerApi(function (): array {
         return ['success'=>true,'history'=>$history];
     }
     if (in_array($action,['close','open'],true)) {
-        if (!$admin) { throw new RuntimeException('Permesso negato',403); }
-        if ((int)$original['replyid'] !== 0) { throw new RuntimeException('Non è un thread',400); }
+        if (!$admin) { throw new AlphanoBachecaException('Permesso negato',403); }
+        if ((int)$original['replyid'] !== 0) { throw new AlphanoBachecaException('Non è un thread',400); }
         $db->execute('UPDATE bacheche SET chiusa=? WHERE id=?',[$action === 'close' ? '1':'0',$messageId]);
         return ['success'=>true,'message'=>$action === 'close' ? 'Thread chiuso':'Thread riaperto'];
     }
-    if ((int)$original['idpg'] !== $idpg && !$admin) { throw new RuntimeException('Permesso negato',403); }
+    if ((int)$original['idpg'] !== $idpg && !$admin) { throw new AlphanoBachecaException('Permesso negato',403); }
     if ($action === 'modify') {
         $subject=playerText($input,'subject',255) ?: $original['oggetto'];
         $message=playerText($input,'message',100000,true);
@@ -112,7 +114,7 @@ playerApi(function (): array {
         $db->beginTransaction();
         try {
             $original=$db->query('SELECT * FROM bacheche WHERE id=? FOR UPDATE',[$messageId])[0] ?? null;
-            if (!$original) { throw new RuntimeException('Messaggio non trovato',404); }
+            if (!$original) { throw new AlphanoBachecaException('Messaggio non trovato',404); }
             $db->execute('INSERT INTO storicobacheche(oldid,data,oggetto,messaggio,idpg) VALUES(?,?,?,?,?)',[$messageId,time(),$original['oggetto'],$original['messaggio'],$original['idpg']]);
             $db->execute('UPDATE bacheche SET oggetto=?,messaggio=? WHERE id=?',[$subject,$message,$messageId]);
             $db->commit();
@@ -124,5 +126,5 @@ playerApi(function (): array {
         $db->execute('DELETE FROM bacheche WHERE id=? OR replyid=?',[$messageId,$messageId]);
         return ['success'=>true,'message'=>'Cancellazione eseguita'];
     }
-    throw new RuntimeException('Azione sconosciuta',400);
+    throw new AlphanoBachecaException('Azione sconosciuta',400);
 });

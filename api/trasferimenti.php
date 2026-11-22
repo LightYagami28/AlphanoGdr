@@ -349,7 +349,8 @@ try {
               'prezzo'=>(float)$r['prezzo'],
               'stato'=>(int)$r['stato'],
               'statoText'=>statoTransf((int)$r['stato'],(int)$r['verso']),
-            ]; }
+            ];
+        }
 
         /* 3) cronologia denaro */
         $cronDenaro = [];
@@ -388,7 +389,8 @@ try {
               'stato'=>(int)$r['stato'],
               'verso'=>(int)$r['verso'],
               'statoText'=>statoTransf((int)$r['stato'],(int)$r['verso']),
-            ]; }
+            ];
+        }
 
         respond([
           'success'=>true,

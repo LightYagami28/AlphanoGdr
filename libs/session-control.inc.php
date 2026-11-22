@@ -77,7 +77,8 @@ function alphanoSessionValidateTurns(mixed $value,string $chat,int $owner):array
     if(!is_array($value)||!array_is_list($value)||count($value)>60){ throw new DomainException('Puoi ordinare fino a 60 partecipanti.',422); }
     $present=[];foreach(alphanoSessionTurnCandidates($chat,$owner) as $m){ $present[$m['kind'].':'.$m['id']]=true; }
     $seen=[];$out=[];foreach($value as $m){if(!is_array($m)||!in_array($m['kind']??'',['pg','npc'],true)||filter_var($m['id']??0,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]])===false){ throw new DomainException('Partecipante non valido.',422); }
-        $id=(int)$m['id'];$key=$m['kind'].':'.$id;if(isset($seen[$key])||!isset($present[$key])){ throw new DomainException('Un partecipante è duplicato, assente o non può agire.',409); }$seen[$key]=true;$out[]=['kind'=>$m['kind'],'id'=>$id];}
+        $id=(int)$m['id'];$key=$m['kind'].':'.$id;if(isset($seen[$key])||!isset($present[$key])){ throw new DomainException('Un partecipante è duplicato, assente o non può agire.',409); }$seen[$key]=true;$out[]=['kind'=>$m['kind'],'id'=>$id];
+}
     return $out;
 }
 function alphanoSessionInvalidateWork(string $chat,int $sid,string $reason):void {

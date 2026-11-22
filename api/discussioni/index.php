@@ -1,8 +1,6 @@
 <?php
 declare(strict_types=1);
-
-if (!defined('S1192_API_DISCUSSIONI_INDEX_PHP_B8D9CB_NESSUN_OGGETTO')) { define('S1192_API_DISCUSSIONI_INDEX_PHP_B8D9CB_NESSUN_OGGETTO', 'Nessun Oggetto'); }
-if (!defined('S1192_API_DISCUSSIONI_INDEX_PHP_69CD7E_THREAD_NON_TROVATO')) { define('S1192_API_DISCUSSIONI_INDEX_PHP_69CD7E_THREAD_NON_TROVATO', 'Thread non trovato'); }
+require_once dirname(__DIR__,2).'/libs/exceptions.inc.php';
 require_once __DIR__ . '/../../libs/player-runtime.inc.php';
 
 playerApi(function (): array {
@@ -21,28 +19,28 @@ playerApi(function (): array {
         return ['threads'=>array_map($format,$rows),'can_moderate'=>$moderator];
     }
     if ($action==='create') {
-        $subject=playerText($in,'oggetto',255) ?: S1192_API_DISCUSSIONI_INDEX_PHP_B8D9CB_NESSUN_OGGETTO; $message=playerText($in,'messaggio',100000,true);
+        $subject=playerText($in,'oggetto',255) ?: 'Nessun Oggetto'; $message=playerText($in,'messaggio',100000,true);
         $db->execute('INSERT INTO discussioni(data,oggetto,messaggio,tipo,idpg,ontop,chiusa) VALUES(?,?,?,?,?,?,?)',[time(),$subject,$message,$type,$idpg,$moderator && !empty($in['ontop']) ? '1':'0',$moderator && !empty($in['chiudi']) ? '1':'0']);
         return ['new_id'=>(int)$db->lastInsertId()];
     }
     $id=(int)($action==='reply' ? ($in['replyID'] ?? 0) : ($in['id'] ?? 0));
     $row=$db->query('SELECT d.*,u.nome AS author FROM discussioni d LEFT JOIN utenti u ON u.id=d.idpg WHERE d.id=? AND d.tipo=?',[$id,$type])[0] ?? null;
-    if (!$row) { throw new RuntimeException('Messaggio non trovato',404); }
+    if (!$row) { throw new AlphanoBachecaException('Messaggio non trovato',404); }
     if ($action==='show') {
-        if ((int)$row['replyid']!==0) { throw new RuntimeException(S1192_API_DISCUSSIONI_INDEX_PHP_69CD7E_THREAD_NON_TROVATO,404); }
+        if ((int)$row['replyid']!==0) { throw new AlphanoBachecaException('Thread non trovato',404); }
         $posts=$db->query('SELECT d.*,u.nome AS author FROM discussioni d LEFT JOIN utenti u ON u.id=d.idpg WHERE d.replyid=? AND d.tipo=? ORDER BY d.id',[$id,$type]);
         return ['thread'=>$format($row),'posts'=>array_map($format,$posts)];
     }
     if ($action==='reply') {
-        if ((int)$row['replyid']!==0) { throw new RuntimeException(S1192_API_DISCUSSIONI_INDEX_PHP_69CD7E_THREAD_NON_TROVATO,404); }
-        if (!empty($row['chiusa'])) { throw new RuntimeException('Thread chiuso',409); }
-        $subject=playerText($in,'oggetto',255) ?: S1192_API_DISCUSSIONI_INDEX_PHP_B8D9CB_NESSUN_OGGETTO; $message=playerText($in,'messaggio',100000,true);
+        if ((int)$row['replyid']!==0) { throw new AlphanoBachecaException('Thread non trovato',404); }
+        if (!empty($row['chiusa'])) { throw new AlphanoBachecaException('Thread chiuso',409); }
+        $subject=playerText($in,'oggetto',255) ?: 'Nessun Oggetto'; $message=playerText($in,'messaggio',100000,true);
         $db->beginTransaction();
         try {
             // Recheck under the same row lock used by close/delete.
             $locked=$db->query('SELECT chiusa FROM discussioni WHERE id=? AND tipo=? FOR UPDATE',[$id,$type])[0] ?? null;
-            if (!$locked) { throw new RuntimeException(S1192_API_DISCUSSIONI_INDEX_PHP_69CD7E_THREAD_NON_TROVATO,404); }
-            if (!empty($locked['chiusa'])) { throw new RuntimeException('Thread chiuso',409); }
+            if (!$locked) { throw new AlphanoBachecaException('Thread non trovato',404); }
+            if (!empty($locked['chiusa'])) { throw new AlphanoBachecaException('Thread chiuso',409); }
             $db->execute('INSERT INTO discussioni(replyid,data,oggetto,messaggio,tipo,idpg) VALUES(?,?,?,?,?,?)',[$id,time(),$subject,$message,$type,$idpg]);
             $newId=(int)$db->lastInsertId();
             if ($moderator && !empty($in['chiudi'])) { $db->execute('UPDATE discussioni SET chiusa=1 WHERE id=? AND tipo=?',[$id,$type]); }
@@ -51,14 +49,14 @@ playerApi(function (): array {
         return ['post_id'=>$newId];
     }
     if ($action==='close' || $action==='open') {
-        if (!$moderator) { throw new RuntimeException('Permesso negato',403); }
-        if ((int)$row['replyid']!==0) { throw new RuntimeException('Non è un thread',400); }
+        if (!$moderator) { throw new AlphanoBachecaException('Permesso negato',403); }
+        if ((int)$row['replyid']!==0) { throw new AlphanoBachecaException('Non è un thread',400); }
         $db->execute('UPDATE discussioni SET chiusa=? WHERE id=? AND tipo=?',[$action==='close'?'1':'0',$id,$type]);
         return [$action==='close'?'closed':'opened'=>true];
     }
-    if (!$moderator && (int)$row['idpg']!==$idpg) { throw new RuntimeException('Permesso negato',403); }
+    if (!$moderator && (int)$row['idpg']!==$idpg) { throw new AlphanoBachecaException('Permesso negato',403); }
     if ($action==='modify') {
-        $subject=playerText($in,'oggetto',255) ?: S1192_API_DISCUSSIONI_INDEX_PHP_B8D9CB_NESSUN_OGGETTO; $message=playerText($in,'messaggio',100000,true);
+        $subject=playerText($in,'oggetto',255) ?: 'Nessun Oggetto'; $message=playerText($in,'messaggio',100000,true);
         $db->execute('UPDATE discussioni SET oggetto=?,messaggio=? WHERE id=? AND tipo=?',[$subject,$message,$id,$type]);
         return ['modified'=>true];
     }
@@ -66,5 +64,5 @@ playerApi(function (): array {
         $db->execute('DELETE FROM discussioni WHERE (id=? OR replyid=?) AND tipo=?',[$id,$id,$type]);
         return ['deleted'=>true];
     }
-    throw new RuntimeException('Azione non valida',400);
+    throw new AlphanoBachecaException('Azione non valida',400);
 });

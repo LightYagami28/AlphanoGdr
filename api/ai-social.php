@@ -9,7 +9,7 @@ $db=aiDb();
 try{
     $uid=alphanoRequireLogin(true);$viewer=alphanoUser();$admin=!empty($viewer['admin']);$method=$_SERVER['REQUEST_METHOD'];
     if(!in_array($method,['GET','POST'],true)){ throw new DomainException('Metodo non consentito.',405); }
-    $in=$method==='POST'?(str_contains($_SERVER['CONTENT_TYPE']??'','application/json')?alphanoRequestJson():$_POST):$_GET;
+    if($method!=='POST'){ $in=$_GET; }elseif(str_contains($_SERVER['CONTENT_TYPE']??'','application/json')){ $in=alphanoRequestJson(); }else{ $in=$_POST; }
     if($method==='POST'){ alphanoRequireCsrf(true); }
     $action=aiField($in,'action',40,true);
     if($action==='preferences'&&$method==='GET'){

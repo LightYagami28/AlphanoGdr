@@ -16,7 +16,7 @@ function aiExpressionExcerpt(string $text,int $budget):string {
     }
     if($complete!==''){ return $complete; }
     $cut=mb_substr($text,0,$budget);$next=mb_substr($text,$budget,1);
-    if($next!==''&&!preg_match('/\s|[.!?;,):]/u',$next)&&preg_match('/[\p{L}\p{N}]$/u',$cut)){ $cut=preg_replace('/(?:^|\s)\S*$/u','',$cut)??''; }
+    if($next!==''&&!preg_match('/[\s.!?;,):]/u',$next)&&preg_match('/[\p{L}\p{N}]$/u',$cut)){ $cut=preg_replace('/(?:^|\s)\S*$/u','',$cut)??''; }
     $cut=preg_replace('/[\s,;:–—-]+$/u','',$cut)??'';
     // Do not leave a dangling qualification such as "senza " or "non ".
     $tail='/\s+(?:e|o|ma|con|senza|di|del|dello|della|dei|degli|delle|a|al|allo|alla|ai|agli|alle|da|dal|dallo|dalla|dai|dagli|dalle|in|nel|nello|nella|nei|negli|nelle|su|sul|sullo|sulla|per|tra|fra|un|uno|una|il|lo|la|i|gli|le|non|che|si|è)$/iu';

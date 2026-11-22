@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once dirname(__DIR__,2).'/libs/exceptions.inc.php';
 const ALPHANO_MSG_SELECT_FROM_UTENTI_WHERE_NOME_2BCE = 'SELECT * FROM utenti WHERE nome=?';
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
@@ -630,7 +631,7 @@ try {
         case 'statosociale':
             if (trim((string)($data['stato'] ?? '')) === '' || mb_strlen((string)$data['stato'])>60) { throw new InvalidArgumentException('Stato sociale non valido'); }
             if (!($admin||$adminstatosociale)) {
-                throw new RuntimeException('Non autorizzato');
+                throw new AlphanoAdminException('Non autorizzato');
             }
             $db->execute(
                 "UPDATE utenti SET statosociale=:stato WHERE nome=:nome",
@@ -688,7 +689,8 @@ try {
     if ($db->inTransaction()) { $db->rollBack(); }
     if($action==='salvaincarichi'&&$admin){try{$db->execute("INSERT INTO logs_adminpg(data,esecutore,destinatario,azione,descr,chat) VALUES(?,?,?,'incarichi-rifiutati',?,'')",[time(),$idpg,(int)(filter_var($data['id']??0,FILTER_VALIDATE_INT)?:0),mb_substr($e instanceof DomainException?$e->getMessage():'Operazione non completata',0,255)]);}catch(Throwable $logError){error_log('[audit incarichi] '.$logError->getMessage());}}
     $domain=$e instanceof DomainException&&$e->getCode()>=400&&$e->getCode()<500;
-    http_response_code($domain?$e->getCode():($e instanceof InvalidArgumentException?400:500));
+    if ($domain) { $status=(int)$e->getCode(); } elseif ($e instanceof InvalidArgumentException) { $status=400; } else { $status=500; }
+    http_response_code($status);
     error_log('[admin utenti] '.$e->getMessage());
     $response = ['success'=>false,'message'=>($domain||$e instanceof InvalidArgumentException)?$e->getMessage():'Operazione non completata'];
 }

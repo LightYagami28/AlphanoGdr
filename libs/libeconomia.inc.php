@@ -801,7 +801,8 @@ function finalizeTransf(int $id, int $pg): string
             $db->execute("UPDATE equippg SET idpadre=0,slot='' WHERE idpg=? AND idpadre IN ($ph)",array_merge([$seller],$deleted));
             $db->execute("DELETE FROM equippg WHERE idpg=? AND id IN ($ph)",array_merge([$seller],$deleted));
             $db->execute('UPDATE trasferimenti SET stato=5 WHERE id=?',[$id]);
-            commercioAttivita('purchase-completed',$pg,$d,'Acquisto completato',alphano_currency_text("La corporazione ha acquistato {$qta}× {$d['nomeobj']} per {$price} Corone totali. Materiali recuperati in magazzino."),['before'=>['stato'=>(int)$d['stato']],'after'=>['stato'=>5],'extra'=>['totale'=>$price,'venditore'=>(int)$d['pg'],'materie_recuperate'=>$materia!=='' ? [$materia=>$qta] : array_map(static fn($n)=>(int)$n*$qta,GetMateriePrime($item) ?: [])]]);
+            $materie=GetMateriePrime($item) ?: [];
+            commercioAttivita('purchase-completed',$pg,$d,'Acquisto completato',alphano_currency_text("La corporazione ha acquistato {$qta}× {$d['nomeobj']} per {$price} Corone totali. Materiali recuperati in magazzino."),['before'=>['stato'=>(int)$d['stato']],'after'=>['stato'=>5],'extra'=>['totale'=>$price,'venditore'=>(int)$d['pg'],'materie_recuperate'=>$materia!=='' ? [$materia=>$qta] : array_map(static fn($n)=>(int)$n*$qta,$materie)]]);
             $remaining=array_slice(array_column($stock,'id'),$qta); $left=count($remaining);
             foreach ($others as $other) {
                 if (!$left) {$db->execute(ECON_CANCEL_TRANSFER_SQL,[$other['id']]);}

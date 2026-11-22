@@ -35,14 +35,20 @@ function aiIdentityIntroduction(string $name,string $raw):bool {
 
 /** One projection shared by social context and the priority identity prompts. */
 function aiIdentityKnownName(array $npc,array $job,?array $player=null,?array $authority=null,?array $relation=null):string {
-    $uid=(int)($job['user_id']??0);$nid=(int)($npc['id']??0);
-    if($uid<1||$nid<1||aiRecognitionAnonymous($npc,$job)){ return ''; }
-    $player??=aiIdentityPlayer($uid);$name=trim((string)($player['nome']??''));if($name===''){ return ''; }
-    $authority??=aiNpcAuthority($nid,$uid,$job);
-    if(!empty($authority['recognized'])){ return $name; }
-    $relation??=aiRelation($nid,$uid);
-    if(trim((string)($relation['known_name']??''))!==''){ return (string)$relation['known_name']; }
-    return aiIdentityIntroduction($name,(string)($job['prompt']??''))?$name:'';
+    $uid=(int)($job['user_id']??0);$nid=(int)($npc['id']??0);$result='';
+    if($uid>=1&&$nid>=1&&!aiRecognitionAnonymous($npc,$job)){
+        $player??=aiIdentityPlayer($uid);$name=trim((string)($player['nome']??''));
+        if($name!==''){
+            $authority??=aiNpcAuthority($nid,$uid,$job);
+            if(!empty($authority['recognized'])){ $result=$name; }
+            else{
+                $relation??=aiRelation($nid,$uid);$known=trim((string)($relation['known_name']??''));
+                if($known!==''){ $result=$known; }
+                elseif(aiIdentityIntroduction($name,(string)($job['prompt']??''))){ $result=$name; }
+            }
+        }
+    }
+    return $result;
 }
 
 /** Technical IDs/names stay in the backend; an unintroduced name cannot leak

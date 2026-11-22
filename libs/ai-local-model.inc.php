@@ -2,21 +2,25 @@
 declare(strict_types=1);
 
 /** Explicit private opt-in for a specific local database; a forged Host cannot enable it. */
+function aiLocalModelRequestAllowed():bool {
+    $host=parse_url((string)alphanoConfig('base_url'),PHP_URL_HOST);
+    if(!in_array($host,['localhost','127.0.0.1','[::1]','::1'],true))return false;
+    if(PHP_SAPI==='cli')return true;
+    return in_array($_SERVER['REMOTE_ADDR']??'',['127.0.0.1','::1'],true)
+        && (bool)preg_match('/^(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/D',$_SERVER['HTTP_HOST']??'');
+}
+function aiLocalModelConfigValid(mixed $value):bool {
+    if(!is_array($value)||empty($value['enabled'])||!preg_match('~^http://127\.0\.0\.1:\d{2,5}$~D',$value['url']??''))return false;
+    foreach(['state_file','token_file'] as $key)if(!is_string($value[$key]??null)||!str_starts_with($value[$key],'/'))return false;
+    return true;
+}
 function aiLocalModelConfig():?array {
     if(!alphanoConfig('ai_enabled'))return null;
     $path=(string)alphanoConfig('ai_local_control_file');
-    if($path===''||!is_file($path))return null;
-    $host=parse_url((string)alphanoConfig('base_url'),PHP_URL_HOST);
-    if(!in_array($host,['localhost','127.0.0.1','[::1]','::1'],true))return null;
-    if(PHP_SAPI!=='cli'){
-        if(!in_array($_SERVER['REMOTE_ADDR']??'',['127.0.0.1','::1'],true))return null;
-        if(!preg_match('/^(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/D',$_SERVER['HTTP_HOST']??''))return null;
-    }
+    if($path===''||!is_file($path)||!aiLocalModelRequestAllowed())return null;
     $all=json_decode((string)file_get_contents($path),true);
     $value=$all['environments'][(string)alphanoConfig('db_db')]??null;
-    if(!is_array($value)||empty($value['enabled'])||!preg_match('~^http://127\.0\.0\.1:\d{2,5}$~D',$value['url']??''))return null;
-    foreach(['state_file','token_file'] as $key)if(!is_string($value[$key]??null)||!str_starts_with($value[$key],'/'))return null;
-    return $value;
+    return aiLocalModelConfigValid($value) ? $value : null;
 }
 
 /** One immutable model pin per worker job, including template, tokenizer and generation. */
@@ -26,8 +30,7 @@ function aiLocalModelPin(bool $reset=false):?array {
     if($read)return $pin;$read=true;
     $config=aiLocalModelConfig();if(!$config||!is_file($config['state_file']))return null;
     $value=json_decode((string)file_get_contents($config['state_file']),true);
-    if(!is_array($value)||!preg_match('~^http://127\.0\.0\.1:\d{2,5}$~D',$value['url']??'')||!preg_match('/^[a-zA-Z0-9_.-]{1,100}$/D',$value['model']??''))return null;
-    return $pin=$value;
+    return (is_array($value)&&preg_match('~^http://127\.0\.0\.1:\d{2,5}$~D',$value['url']??'')&&preg_match('/^[a-zA-Z0-9_.-]{1,100}$/D',$value['model']??'')) ? $pin=$value : null;
 }
 function aiModelName():string{return (string)(aiLocalModelPin()['model']??alphanoConfig('ai_model'));}
 function aiModelContext():int{return max(1536,min(4096,(int)(aiLocalModelPin()['settings']['context']??alphanoConfig('ai_context'))));}

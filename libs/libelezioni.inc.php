@@ -61,28 +61,38 @@ function voteTime(int $city): bool
  */
 function inserisciCandidato(int $budget, int $costo, int $pg, int $city, string $programma, int $org): true|string
 {
-    if(alphanoElectionsReady()){if((int)(alphanoUser()['id']??0)!==$pg){ return 'La candidatura deve essere confermata personalmente dal cittadino.'; }try{alphanoElectionsCandidate($city,$pg,$programma);return true;}catch(DomainException $e){return $e->getMessage();}}
-    if ($costo < 0 || trim($programma) === '' || !electionTime($city)) { return 'Candidature non aperte o parametri non validi'; }
-    $db = connectDB();
-    $pdo = $db->getConnection();
-    try {
-        $pdo->beginTransaction();
-        $current = $db->query('SELECT budget FROM organizzazioni WHERE id=? FOR UPDATE', [$org])[0] ?? null;
-        $member = $db->query('SELECT u.id FROM utenti u JOIN araldiche a ON a.id=u.araldica WHERE u.id=? AND u.organizzazione=? AND a.city=?', [$pg,$org,$city]);
-        if (!$current || !$member || (int)$current['budget'] < $costo || $db->query('SELECT 1 FROM candidati WHERE idpg=?', [$pg])) {
-            $pdo->rollBack();
-            return 'Candidato non valido, già presente o fondi insufficienti';
+    $result = 'Candidature non aperte o parametri non validi';
+    if (alphanoElectionsReady()) {
+        if ((int)(alphanoUser()['id']??0) !== $pg) {
+            $result = 'La candidatura deve essere confermata personalmente dal cittadino.';
+        } else {
+            try { alphanoElectionsCandidate($city,$pg,$programma); $result = true; }
+            catch (DomainException $e) { $result = $e->getMessage(); }
         }
-        $db->execute('INSERT INTO candidati(idpg,organizzazione,city,programma) VALUES(?,?,?,?)', [$pg,$org,$city,$programma]);
-        $db->execute('UPDATE organizzazioni SET budget=budget-? WHERE id=?', [$costo,$org]);
-        $db->execute('UPDATE city SET budget=budget+? WHERE id=?', [$costo,$city]);
-        $pdo->commit();
-        return true;
-    } catch (Throwable $e) {
-        if ($pdo->inTransaction()) { $pdo->rollBack(); }
-        error_log('[elezioni] '.$e->getMessage());
-        return 'Errore nell’inserimento del candidato';
+    } elseif ($costo >= 0 && trim($programma) !== '' && electionTime($city)) {
+        $db = connectDB();
+        $pdo = $db->getConnection();
+        try {
+            $pdo->beginTransaction();
+            $current = $db->query('SELECT budget FROM organizzazioni WHERE id=? FOR UPDATE', [$org])[0] ?? null;
+            $member = $db->query('SELECT u.id FROM utenti u JOIN araldiche a ON a.id=u.araldica WHERE u.id=? AND u.organizzazione=? AND a.city=?', [$pg,$org,$city]);
+            if (!$current || !$member || (int)$current['budget'] < $costo || $db->query('SELECT 1 FROM candidati WHERE idpg=?', [$pg])) {
+                $pdo->rollBack();
+                $result = 'Candidato non valido, già presente o fondi insufficienti';
+            } else {
+                $db->execute('INSERT INTO candidati(idpg,organizzazione,city,programma) VALUES(?,?,?,?)', [$pg,$org,$city,$programma]);
+                $db->execute('UPDATE organizzazioni SET budget=budget-? WHERE id=?', [$costo,$org]);
+                $db->execute('UPDATE city SET budget=budget+? WHERE id=?', [$costo,$city]);
+                $pdo->commit();
+                $result = true;
+            }
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) { $pdo->rollBack(); }
+            error_log('[elezioni] '.$e->getMessage());
+            $result = 'Errore nell’inserimento del candidato';
+        }
     }
+    return $result;
 }
 
 /**

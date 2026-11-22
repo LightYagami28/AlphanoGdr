@@ -27,8 +27,10 @@ function alphanoHierarchyMember(array $u):array {
 
 /** Keep old 25px emblems crisp while displaying modern rank artwork at full size. */
 function alphanoHierarchySmallBadge(string $url):bool {
- static $cache=[];if(isset($cache[$url])){ return $cache[$url]; }$path=(string)parse_url($url,PHP_URL_PATH);
- if(!str_starts_with($path,'/')||str_contains($path,'..')){ return false; }
- foreach([HTMLROOT,dirname(__DIR__)] as $root){ if(is_file($root.$path)){$size=@getimagesize($root.$path);return $cache[$url]=$size&&max($size[0],$size[1])<64;} }
- return $cache[$url]=false;
+ static $cache=[];if(isset($cache[$url])){ return $cache[$url]; }
+ $path=(string)parse_url($url,PHP_URL_PATH);$result=false;
+ if(str_starts_with($path,'/')&&!str_contains($path,'..')){
+  foreach([HTMLROOT,dirname(__DIR__)] as $root){ if(is_file($root.$path)){$size=@getimagesize($root.$path);$result=$size&&max($size[0],$size[1])<64;break;} }
+ }
+ return $cache[$url]=$result;
 }

@@ -9,10 +9,12 @@ function alphanoLycanContagionAttempt(string $raw): bool
 {
     if(preg_match('/^\s*\/\//u',$raw)){ return false; }
     $action=preg_replace('/«[^»]*»|"[^"]*"|\([^)]*\)/u','',$raw);
-    if(!preg_match('/mord\p{L}*|morso|azzann\p{L}*|affond\p{L}*.{0,16}denti/iu',$action)){ return false; }
-    if(preg_match('/\bnon\s+(?:(?:vuole|voglio|intende|intendo|tenta|cerca di)\s+)?(?:mord\p{L}*|azzann\p{L}*)/iu',$action)){ return false; }
-    if(preg_match('/\b(?:senza|non\s+(?:(?:lo|la|vuole|voglio|intende|intendo|tenta|cerca di)\s+)*)\s*(?:infett\p{L}*|contagi\p{L}*|trasmett\p{L}*)/iu',$action)){ return false; }
-    return (bool)preg_match('/infett\p{L}*|infezion\p{L}*|contagi\p{L}*|trasmett\p{L}*.{0,55}maledizion/iu',$action);
+    return match(true){
+        !preg_match('/mord\p{L}*|morso|azzann\p{L}*|affond\p{L}*.{0,16}denti/iu',$action) => false,
+        (bool)preg_match('/\bnon\s+(?:(?:vuole|voglio|intende|intendo|tenta|cerca di)\s+)?(?:mord\p{L}*|azzann\p{L}*)/iu',$action) => false,
+        (bool)preg_match('/\b(?:senza|non\s+(?:(?:lo|la|vuole|voglio|intende|intendo|tenta|cerca di)\s+)*)\s*(?:infett\p{L}*|contagi\p{L}*|trasmett\p{L}*)/iu',$action) => false,
+        default => (bool)preg_match('/infett\p{L}*|infezion\p{L}*|contagi\p{L}*|trasmett\p{L}*.{0,55}maledizion/iu',$action)
+    };
 }
 
 /** Compatibility permissions for the optional lineage module. */

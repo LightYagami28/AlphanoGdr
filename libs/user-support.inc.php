@@ -29,7 +29,7 @@ function alphanoSupportGuard():void {
  // Assistance may inspect the account, never silently replace its credentials or privileges.
  $path=(string)(parse_url($_SERVER['REQUEST_URI']??'/',PHP_URL_PATH)?:'/');
  if(($_SERVER['REQUEST_METHOD']??'GET')!=='GET'&&$path!=='/admin/assistenza.php'){
-  if(str_contains($_SERVER['CONTENT_TYPE']??'','application/json')){try{$input=json_decode(file_get_contents('php://input'),true)??[];}catch(Throwable){}}
+  if(str_contains($_SERVER['CONTENT_TYPE']??'','application/json')){try{$input=json_decode(file_get_contents('php://input'),true)??[];}catch(Throwable){ $input=[]; }}
   $sensitive=false;foreach($input??$_POST as $key=>$value){ if(preg_match('/^(?:txtpass|current_password|password|passwd|email|mail|newpass|admin|fatepower)$/i',(string)$key)&&$value!==''&&$value!==null){ $sensitive=true; } }
   if($sensitive||preg_match('#^/(?:admin/|recuperopasswd|adduser|api/registration|api/auth)#',$path)){ alphanoFail('Operazione riservata al titolare dell’account. Termina l’assistenza per tornare al tuo account.',403,str_starts_with($path,'/api/')); }
  }

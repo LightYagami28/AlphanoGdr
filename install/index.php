@@ -28,7 +28,8 @@ if(($_SERVER['REQUEST_METHOD']??'GET')==='POST'){
   session_name('alphano_'.substr(hash('sha256',$root),0,16));session_start(['cookie_httponly'=>true,'cookie_samesite'=>'Lax','cookie_secure'=>alphanoHttpsContext((string)$input['base_url'])]);session_regenerate_id(true);$_SESSION['user_id']=1;$_SESSION['csrf_token']=bin2hex(random_bytes(32));
   session_write_close();
   header('Location: /install/complete.php',true,303);exit;
- }catch(DomainException $e){http_response_code(422);$error=$e->getMessage();}}
+ }catch(DomainException $e){http_response_code(422);$error=$e->getMessage();}
+ }
 }
 $detectedHost=preg_match('/^[a-z0-9.-]+(?::\d+)?$/iD',$_SERVER['HTTP_HOST']??'')?$_SERVER['HTTP_HOST']:'localhost';
 $values=array_replace($defaults,['base_url'=>(alphanoHttpsContext()?'https':'http').'://'.$detectedHost,'db_host'=>'localhost','db_name'=>'','admin_name'=>'Admin','mail_transport'=>'disabled','support_email'=>'','mail_from'=>''],array_filter($_POST,static fn($k)=>!in_array($k,['db_pass','admin_password','admin_password_confirm','smtp_pass'],true),ARRAY_FILTER_USE_KEY));

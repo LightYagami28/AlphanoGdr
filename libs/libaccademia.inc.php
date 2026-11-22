@@ -363,7 +363,9 @@ function votaOrg(int $org, int $idpg, bool $positivo, string $motivo): bool
 function getStatutoOrg(int $org, bool $new = false): string
 {
     $row = getDB()->query('SELECT statuto, newstatuto FROM organizzazioni WHERE id = ?', [$org])[0] ?? [];
-    return (string)($new && !empty($row['newstatuto']) ? $row['newstatuto'] : ($row['statuto'] ?? ''));
+    $statuto=$row['statuto'] ?? '';
+    if($new && !empty($row['newstatuto'])){ $statuto=$row['newstatuto']; }
+    return (string)$statuto;
 }
 
 /** Salva bozza di statuto per un’organizzazione. */
@@ -706,7 +708,9 @@ function votaCorp(int $corp, int $idpg, bool $positivo, string $motivo): bool
 function getStatutoCorp(int $corp, bool $new = false): string
 {
     $row = getDB()->query('SELECT statuto, newstatuto FROM corporazioni WHERE id = ?', [$corp])[0] ?? [];
-    return (string)($new && !empty($row['newstatuto']) ? $row['newstatuto'] : ($row['statuto'] ?? ''));
+    $statuto=$row['statuto'] ?? '';
+    if($new && !empty($row['newstatuto'])){ $statuto=$row['newstatuto']; }
+    return (string)$statuto;
 }
 
 /** Salva bozza di statuto per una corporazione. */

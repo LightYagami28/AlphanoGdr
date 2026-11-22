@@ -96,7 +96,10 @@ function aiNarrativeFreeSegments(string $text,string $prior='auto',string $sourc
         if(!$cue&&$previousKind==='action'&&aiNarrativeDescriptiveClaim($part)){ $cue=true; }
         if($prior!=='action'&&preg_match('/^(?:perché|come|che|chi|dove|quando|quanto|cosa|potete|potreste|puoi|vorresti|volete)\b.+\?\s*$/iu',$part)){ $cue=false; }
         $kind=$thought?'thought':(($prior==='action'||$cue)?'action':'speech');
-        $out[]=['kind'=>$kind,'text'=>$part,'source'=>$source,'confidence'=>$thought?.88:($cue?.88:($prior==='action'?.86:.75))];
+        $confidence=.75;
+        if($thought||$cue){ $confidence=.88; }
+        elseif($prior==='action'){ $confidence=.86; }
+        $out[]=['kind'=>$kind,'text'=>$part,'source'=>$source,'confidence'=>$confidence];
         $previousKind=$kind;
     }
     return $out;
@@ -257,5 +260,7 @@ function aiNarrativeResolve(array $analysis,array $present,array $context=[]):ar
     $opponents=[];foreach($context['opponents']??[] as $key){if(is_array($key)){ $key=aiNarrativeActorKey($key); }if(isset($actors[$key])){ $opponents[$key]=$actors[$key]; }}
     if($purpose==='action'&&count($opponents)===1){ return $resolved(reset($opponents),.9,'unico_avversario_attivo'); }
     if(count($actors)===1){ return $resolved(reset($actors),$purpose==='action'?.84:.75,'unico_presente'); }
-    return $purpose==='action'||$sharedRole?$ambiguous($actors,$sharedRole?'descrizione_condivisa':'bersaglio_non_distinguibile'):$none();
+    if($purpose!=='action'&&!$sharedRole){ return $none(); }
+    $role=$sharedRole?'descrizione_condivisa':'bersaglio_non_distinguibile';
+    return $ambiguous($actors,$role);
 }

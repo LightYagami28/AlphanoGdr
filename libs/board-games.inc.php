@@ -63,7 +63,7 @@ function bgComplete(array &$m,int $winner,string $reason,bool $void=false):void 
  $sameNetwork=$m['a_net']!==''&&hash_equals($m['a_net'],$m['b_net']);$pairCount=(int)$d->query("SELECT COUNT(*) n FROM board_games WHERE status='finished' AND JSON_EXTRACT(result_json,'$.rated')=true AND ((a=? AND b=?) OR (a=? AND b=?)) AND finished_at>?",[$m['a'],$m['b'],$m['b'],$m['a'],$now-86400])[0]['n'];
  $rated=!$void&&$s['allow_rated']&&!empty($t['rated'])&&$count>=$s['min_rating_plies']&&($now-(int)$m['started_at'])>=$s['min_rating_seconds']&&$pairCount<$s['pair_rated_daily']&&(!$sameNetwork||$s['reward_shared_network']);
  $scores=[];$points=[];foreach([$m['a'],$m['b']] as $pid){ $d->execute('INSERT IGNORE INTO board_game_ratings(player_id,game_key) VALUES(?,?)',[$pid,$m['game_key']]); }$ratings=$d->query('SELECT * FROM board_game_ratings WHERE game_key=? AND player_id IN (?,?) ORDER BY player_id FOR UPDATE',[$m['game_key'],$m['a'],$m['b']]);$ratings=array_column($ratings,null,'player_id');
- foreach([$m['a'],$m['b']] as $pid){$other=$pid==$m['a']?$m['b']:$m['a'];$score=$winner===0?.5:($winner===$pid?1:0);$delta=$rated?(int)round($s['elo_k']*($score-1/(1+pow(10,($ratings[$other]['elo']-$ratings[$pid]['elo'])/400)))):0;$scores[$pid]=$delta;
+ foreach([$m['a'],$m['b']] as $pid){$other=$pid==$m['a']?$m['b']:$m['a'];$score=0; if($winner===0){ $score=.5; } elseif($winner===$pid){ $score=1; }$delta=$rated?(int)round($s['elo_k']*($score-1/(1+pow(10,($ratings[$other]['elo']-$ratings[$pid]['elo'])/400)))):0;$scores[$pid]=$delta;
   $reward=0;$rewardCount=(int)$d->query('SELECT COUNT(*) n FROM board_game_rewards WHERE player_id=? AND opponent_id=? AND points>0 AND created_at>?',[$pid,$other,$now-86400])[0]['n'];$daily=(int)$d->query('SELECT COALESCE(SUM(points),0) n FROM board_game_rewards WHERE player_id=? AND created_at>?',[$pid,$now-86400])[0]['n'];
   $unique=count(array_unique(array_column($moves,'position')));$each=min(count(array_filter($moves,static fn($v)=>$v['player']==$m['a'])),count(array_filter($moves,static fn($v)=>$v['player']==$m['b'])));
   if(!$void&&$s['reward_enabled']&&(!$sameNetwork||$s['reward_shared_network'])&&$each>=$s['reward_min_each']&&$unique>=max(1,$count*.6)&&$rewardCount<$s['reward_pair_daily']){ $reward=max(0,min(3,(int)floor($count/$s['reward_step_plies']),(int)floor($m['active_seconds']/$s['reward_step_active']),$s['reward_daily']-$daily)); }
@@ -105,7 +105,12 @@ function bgView(array $m,int $uid):array{
  $computer=bg_computer_info($m);$players=bgPlayers($m);$participant=in_array($uid,[(int)$m['a'],(int)$m['b']],true);$state=rpg_decode($m['state_json']);if(!$participant){ $state['legal']=[]; }
  // Older matches acquire presentation metadata without rewriting their moves or clocks.
  if($m['game_key']==='scacchi'&&!empty($state['fen'])&&!array_key_exists('check',$state)){ $state['check']=(new Onspli\Chess\FEN($state['fen']))->is_check(); }
- $turnPlayer=isset($state['turn'])?($state['turn']===0?(int)$m['white_id']:((int)$m['a']===(int)$m['white_id']?(int)$m['b']:(int)$m['a'])):0;
+ $turnPlayer=0;
+ if(isset($state['turn'])){
+   if($state['turn']===0){ $turnPlayer=(int)$m['white_id']; }
+   elseif((int)$m['a']===(int)$m['white_id']){ $turnPlayer=(int)$m['b']; }
+   else{ $turnPlayer=(int)$m['a']; }
+ }
  $moves=rpg_decode($m['moves_json']);return ['computer'=>$computer,'viewer'=>$uid,'turn_player'=>$turnPlayer,'can_move'=>$participant&&$m['status']==='active'&&$turnPlayer===$uid,'id'=>(int)$m['id'],'game'=>$m['game_key'],'chat'=>$m['chat_key'],'a'=>(int)$m['a'],'b'=>(int)$m['b'],'proposer'=>(int)$m['proposer'],'players'=>$players,'status'=>$m['status'],'version'=>(int)$m['version'],'terms'=>rpg_decode($m['terms_json']),'state'=>$state,'white_id'=>(int)$m['white_id'],'clock_white'=>(int)$m['clock_white'],'clock_black'=>(int)$m['clock_black'],'turn_at'=>(int)$m['turn_at'],'expires_at'=>(int)$m['created_at']+bg_invite_lifetime($m),'server_now'=>bgNow(),'participant'=>$participant,'moves'=>$moves,'draw_by'=>(int)$m['draw_by'],'result'=>rpg_decode($m['result_json']),'assets'=>bgAssets($m),'stakes'=>ConnectDB()->query('SELECT owner_id,asset_id,coins,released_to,released_at FROM board_game_escrow WHERE game_id=?',[$m['id']])];
 }
 function bgAction(int $uid,array $in):array{
@@ -145,7 +150,11 @@ function bgCommitMove(array &$m,int $actor,string $move):void{
  $d=ConnectDB();$id=(int)$m['id'];$st=rpg_decode($m['state_json']);$t=rpg_decode($m['terms_json']);if(!in_array($move,array_column($st['legal'],'id'),true)){ throw new BoardGameDomainException('Mossa illegale.',422); }
   $moves=rpg_decode($m['moves_json']);$next=bg_engine($m['game_key'],[...array_column($moves,'move'),$move]);$elapsed=max(0,bgNow()-(int)$m['turn_at']);$clockKey=$st['turn']===0?'clock_white':'clock_black';$m[$clockKey]=max(0,(int)$m[$clockKey]-$elapsed)+$t['increment']*1000;$m['active_seconds']+=(int)min(30,floor($elapsed/1000));$moves[]=['move'=>$move,'player'=>$actor,'at'=>time(),'spent_ms'=>$elapsed,'position'=>$m['game_key']==='scacchi'?implode(' ',array_slice(explode(' ',$next['fen']),0,4)):$next['fen']];$m['state_json']=rpg_json($next);$m['moves_json']=rpg_json($moves);$m['version']++;
   $d->execute('UPDATE board_games SET state_json=?,moves_json=?,version=?,'.$clockKey.'=?,active_seconds=?,turn_at=?,draw_by=0 WHERE id=?',[$m['state_json'],$m['moves_json'],$m['version'],$m[$clockKey],$m['active_seconds'],bgNow(),$id]);$m['turn_at']=bgNow();$m['draw_by']=0;bgAudit($id,$actor,'move',['move'=>$move,'ply'=>count($moves)]);
-  if($next['result']!==null){$winner=$next['result']==='draw'?0:($next['result']==='white'?(int)$m['white_id']:((int)$m['white_id']===(int)$m['a']?(int)$m['b']:(int)$m['a']));bgComplete($m,$winner,$winner?'Vittoria sulla scacchiera':'Patta regolamentare');}elseif(count($moves)>=512){ bgComplete($m,0,'Limite di sicurezza delle mosse'); }
+  if($next['result']!==null){$winner=0;
+ if($next['result']==='white'){
+   if((int)$m['white_id']===(int)$m['a']){ $winner=(int)$m['b']; }
+   else{ $winner=(int)$m['a']; }
+ }bgComplete($m,$winner,$winner?'Vittoria sulla scacchiera':'Patta regolamentare');}elseif(count($moves)>=512){ bgComplete($m,0,'Limite di sicurezza delle mosse'); }
 }
 function bgLobby(int $uid,string $chat):array{
  bgActor($uid,$chat);$s=bgSettings();$room=bgRoom($chat);$rows=ConnectDB()->query("SELECT g.id,g.a,g.b,g.proposer,g.status,g.game_key AS game,(g.b<0) AS computer,g.version,g.created_at,u.nome AS name_a,COALESCE(v.nome,CONCAT(JSON_UNQUOTE(JSON_EXTRACT(g.terms_json,'$.computer.name')),' · PNG')) AS name_b FROM board_games g JOIN utenti u ON u.id=g.a LEFT JOIN utenti v ON v.id=g.b WHERE g.chat_key=? AND (g.status IN('pending','active') OR g.finished_at>?) ORDER BY g.id DESC LIMIT 60",[$chat,time()-3600]);return ['npcs'=>bg_computer_npcs($chat),'viewer'=>$uid,'settings'=>$s,'room'=>$room,'games'=>$rows,'players'=>ConnectDB()->query('SELECT id,nome FROM utenti WHERE chat=? AND id<>? AND bloccato=0 ORDER BY nome',[$chat,$uid]),'inventory'=>bgInventory($uid)];

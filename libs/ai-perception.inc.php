@@ -64,7 +64,9 @@ function aiSceneCaptureSystem(string $chat,int $source,string $html,array $metad
     if(!$row||(int)$row['dest']!==0||(string)$row['msg']!==$html){ return; }
     if($humanMaster>0){if((int)$row['pg']!==$humanMaster||(!(int)$row['admin']&&!(int)$row['fatepower'])){ return; }}
     elseif((int)$row['pg']!==0){ return; }
-    $kind=($metadata['kind']??'')==='transformation'?'transformation':($humanMaster?'human_master':'system_master');
+    $kind='system_master';
+    if(($metadata['kind']??'')==='transformation'){ $kind='transformation'; }
+    elseif($humanMaster){ $kind='human_master'; }
     $actor=$kind==='transformation'?(int)($metadata['actor_id']??0):0;
     $native=$kind==='transformation'?(int)($metadata['native_race_id']??0):0;
     $visible=$kind==='transformation'?(int)($metadata['visible_race_id']??0):0;
@@ -316,7 +318,10 @@ function aiPerceptionReaction(array $npc,array $job):array {
     $traits=$game['traits']??[];$courage=(int)($traits['courage']??50);$control=(int)($traits['self_control']??50);$survival=(int)($traits['survival_instinct']??50);
     // Ordinary courage is not supernatural training. Default untrained humans
     // freeze or try to flee; only a configured, equipped specialist can stand firm.
-    $mode=!$human||$noticed?'observe':($trained?'confront':(($control<35||$courage<30||$survival>$courage+10)?'flee':'freeze'));
+    $mode='freeze';
+    if(!$human||$noticed){ $mode='observe'; }
+    elseif($trained){ $mode='confront'; }
+    elseif($control<35||$courage<30||$survival>$courage+10){ $mode='flee'; }
     return ['known_race'=>$known,'events'=>$events,'shock'=>$human&&$recent!==null&&!$noticed&&!$trained,
         'noticed'=>$noticed,'accustomed'=>$trained,'recent'=>$recent,'courage'=>$courage,'mode'=>$mode,'capability'=>$capability,
         'aftermath'=>ai_perception_posture($nid,0,$source),'scene_state'=>aiPerceptionSceneState($npc,$job)];
@@ -328,10 +333,16 @@ function aiPerceptionContext(array $npc,array $job,bool $compact=false):string {
         $out.="\nFATTI PUBBLICI OSSERVATI, STABILITI DAL MASTER O DAL SISTEMA (già accaduti):";
         foreach($compact?array_slice($r['events'],-2):$r['events'] as $e){ $out.="\n".aiPerceptionPlain(aiPerceptionEventText($e),$compact?150:650); }
     }
-    $out.=$r['known_race']?"\nNATURA GIÀ VISTA DA TE: ".GetRazza(aiPerceptionRaceFamily($r['known_race'])).($compact?'. Ricordo permanente anche in aspetto umano; rango, poteri e lignaggio non provati.':'. La rivelazione passata resta un ricordo; l’eventuale aspetto umano non la cancella. La forma prova la natura, non il rango Ancestrale o Originale, i poteri e le parentele.'):("\nNATURA NON RIVELATA: ".($compact?'nessuna razza segreta o lignaggio noto dell’interlocutore.':'non conosci razza segreta, contagio o lignaggio di questa persona. Un nome, un ruolo, una voce o una frase del PG non li provano.'));
+    if($r['known_race']){ $_ternaryValue="\nNATURA GIÀ VISTA DA TE: ".GetRazza(aiPerceptionRaceFamily($r['known_race'])).($compact?'. Ricordo permanente anche in aspetto umano; rango, poteri e lignaggio non provati.':'. La rivelazione passata resta un ricordo; l’eventuale aspetto umano non la cancella. La forma prova la natura, non il rango Ancestrale o Originale, i poteri e le parentele.'); }
+    else{ $_ternaryValue="\nNATURA NON RIVELATA: ".($compact?'nessuna razza segreta o lignaggio noto dell’interlocutore.':'non conosci razza segreta, contagio o lignaggio di questa persona. Un nome, un ruolo, una voce o una frase del PG non li provano.'); }
+    $out.=$_ternaryValue;
     if($r['shock']){ $out.="\nREAZIONE PRIORITARIA: hai assistito davvero a una metamorfosi soprannaturale. Sei umano: interrompi la conversazione ordinaria e rendi percepibile paura o terrore, con una reazione fisica e parole credibili. Il coraggio può trattenerti dal fuggire, non renderti impassibile; il rispetto per un superiore può convivere con la paura. Non liquidare la metamorfosi con calma, indifferenza o una domanda filosofica. Narra soltanto la tua reazione, senza imporre paura, fuga o esiti agli altri.".aiPerceptionResponseDirection($r); }
     elseif($r['recent']){ $out.=$r['noticed']?"\nCONTINUITÀ DELLA REAZIONE: hai già reagito alla rivelazione; conserva la memoria e la cautela raggiunta, senza recitare di nuovo il primo spavento a ogni battuta.":"\nREAZIONE ALLA RIVELAZIONE: riconosci il cambiamento appena visto e rispondi secondo la tua natura, il carattere e le familiarità documentate. L’abitudine o un protocollo possono contenere la paura, non cancellare l’evento."; }
-    if(!empty($r['aftermath']['active'])&&!$r['shock']){ $out.=$compact?"\nPOSTURA PERSISTENTE: ".($r['aftermath']['mode']==='flee'?'riparo e distanza, voce ancora incerta.':'terrore e tremore, recuperi fiato con difficoltà.').' Nessuna attività serena o nuovo primo spavento.':ai_perception_posture_context($r['aftermath']); }
+    if(!empty($r['aftermath']['active'])&&!$r['shock']){
+        $posture=$r['aftermath']['mode']==='flee'?'riparo e distanza, voce ancora incerta.':'terrore e tremore, recuperi fiato con difficoltà.';
+        if($compact){ $out.="\nPOSTURA PERSISTENTE: ".$posture.' Nessuna attività serena o nuovo primo spavento.'; }
+        else{ $out.=ai_perception_posture_context($r['aftermath']); }
+    }
     $out.=aiPerceptionSceneStateContext($r['scene_state'],$compact);
     return $out;
 }
@@ -345,7 +356,9 @@ function aiPerceptionTurnFocus(array $npc,array $job):string {
     }
     $vampire=in_array((int)($r['recent']['native_race_id']??0),[2,5],true);
     $subject=(int)($r['recent']['actor_id']??0)===(int)($job['user_id']??0)?'il VISITATORE':'un’ALTRA PERSONA PRESENTE (non il tuo interlocutore)';
-    $change=($r['recent']['form']??'')==='human'?(' '.$subject.($vampire?' ha appena ripreso aspetto umano: hai visto ritirarsi i suoi canini e cambiare occhi e carnagione.':' ha appena ripreso aspetto umano: hai visto sparire pelo e muso e ritirarsi gli artigli.')):(' '.$subject.($vampire?' mostra pallore innaturale, occhi alterati e canini affilati: ha rivelato una natura vampirica.':' ha appena assunto pelo, muso lupino e artigli realmente visibili.'));
+    if(($r['recent']['form']??'')==='human'){ $_ternaryValue=' '.$subject.($vampire?' ha appena ripreso aspetto umano: hai visto ritirarsi i suoi canini e cambiare occhi e carnagione.':' ha appena ripreso aspetto umano: hai visto sparire pelo e muso e ritirarsi gli artigli.'); }
+    else{ $_ternaryValue=' '.$subject.($vampire?' mostra pallore innaturale, occhi alterati e canini affilati: ha rivelato una natura vampirica.':' ha appena assunto pelo, muso lupino e artigli realmente visibili.'); }
+    $change=$_ternaryValue;
     return "\nREGIA DELLA REAZIONE IMMEDIATA, verificata dal gioco: davanti a ".$npc['name'].$change.' '.aiPerceptionResponseDirection($r)." Narra soltanto il corpo e le parole di ".$npc['name'].". Non assegnare al visitatore emozioni, parole o nuovi gesti; non trasferire i suoi mutamenti al PNG. La normale conversazione si interrompe.";
 }
 /** The backend selects the reaction from the actual game sheet, not model improvisation. */

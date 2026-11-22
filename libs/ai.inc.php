@@ -156,7 +156,13 @@ function aiAfterMessage(string $chat, int $source, int $user, string $html, stri
         $npcs=ai_dialogue_npcs($chat,$user);
         ai_recognition_capture($chat,$source,$user,$raw,$npcs);
         foreach($npcs as $witness){ aiPerceptionObservePlayer((int)$witness['id'],$user,$source); }
-        if(aiQuestAfterMessage($room,$source,$user,$raw,$npcId,$abilityId,$npcs)){if($owned){ $db->commit(); }return ['ai_notice'=>str_starts_with(trim($raw),'+')||aiQuestIntent($raw)?'Azione acquisita nella quest.':($reading['speech']!==''?'Intervento verbale acquisito nella quest.':'Quest in corso: i PNG seguono la turnazione.')];}
+        if(aiQuestAfterMessage($room,$source,$user,$raw,$npcId,$abilityId,$npcs)){
+            if($owned){ $db->commit(); }
+            $notice='Quest in corso: i PNG seguono la turnazione.';
+            if(str_starts_with(trim($raw),'+')||aiQuestIntent($raw)){ $notice='Azione acquisita nella quest.'; }
+            elseif($reading['speech']!==''){ $notice='Intervento verbale acquisito nella quest.'; }
+            return ['ai_notice'=>$notice];
+        }
         if($ability){
             if(in_array($ability['effect']['type'],['attack','defence','mental','heal'],true)){ throw new AiEngineDomainException('Per questa abilità serve una quest attiva e un bersaglio presente. Scegli il destinatario o indica il suo nome nell’azione.',422); }
             $reserved=rpg_use_ability('pg',$user,$abilityId,['event_key'=>'chat:'.$source,'session_id'=>0,'round'=>0]);if(isset($reserved['human_rules'])){$activation=$reserved['activated']?'attivata: '.$reserved['human_rules']['bonus_text']:'attivazione fallita, nessun bonus';$text.=' [ESITO VERIFICATO ATTIVAZIONE: '.$activation.'. Richiede '.$reserved['human_rules']['requirement_text'].' Non implica riuscita automatica dell’azione.]';$db->execute('UPDATE ai_events SET content=? WHERE chat_key=? AND source_id=?',[$text,$chat,$source]);$activationHtml=rpg_activation_public_html($reserved,$speaker);$db->execute('INSERT INTO chat(pg,chat,ora,msg,dest,lican) VALUES(0,?,?,?,0,0)',[$chat,time(),$activationHtml]);$db->execute('INSERT INTO registrazionichat(registrazione,testo) SELECT id,? FROM registrazioni WHERE chat=?',[$activationHtml,$chat]);}
@@ -185,7 +191,10 @@ function aiAfterMessage(string $chat, int $source, int $user, string $html, stri
         if(!$owned){ throw $e; }
         if ($db->inTransaction()) { if ($e instanceof DomainException) { $db->commit(); } else { $db->rollBack(); } }
         if (!$e instanceof DomainException) { error_log('[Master IA hook] '.$e->getMessage()); }
-        return $requested?['ai_notice'=>$e instanceof DomainException?$e->getMessage():'Master temporaneamente non disponibile. Il messaggio è stato inviato.']:[];
+        if(!$requested){ return []; }
+        $message='Master temporaneamente non disponibile. Il messaggio è stato inviato.';
+        if($e instanceof DomainException){ $message=$e->getMessage(); }
+        return ['ai_notice'=>$message];
     }
 }
 /** One total inference budget per worker job, including tokenization and retries. */

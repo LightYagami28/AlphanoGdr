@@ -66,7 +66,10 @@ function aiRelationSummary(array $relation,bool $romance=false,bool $hidden=fals
     $value=max(0,min(100,50+(int)round($net)));
     $love=$romance&&(!$hidden||in_array('love',$revealed,true))&&in_array($relation['state']??'',['innamoramento','relazione','riconciliazione'],true)&&(int)($relation['love']??0)>=50;
     $label=match(true){$value===0=>'Nemico',$value<25=>'Ostilità',$value<45=>'Diffidenza',$value<=55=>'Neutro',$value<70=>'Fiducia crescente',$value<85=>'Legame solido',$value<100=>'Grande fiducia',default=>$love?'Innamorato':'Leale'};
-    return ['value'=>$value,'signed_value'=>($value-50)*2,'label'=>$label,'tone'=>$value<45?'hostile':($value>55?'friendly':'neutral'),'romantic'=>$love,'min_label'=>'Nemico','mid_label'=>'Neutro','max_label'=>$love?'Innamorato':'Leale'];
+    $tone='neutral';
+    if($value<45){ $tone='hostile'; }
+    elseif($value>55){ $tone='friendly'; }
+    return ['value'=>$value,'signed_value'=>($value-50)*2,'label'=>$label,'tone'=>$tone,'romantic'=>$love,'min_label'=>'Nemico','mid_label'=>'Neutro','max_label'=>$love?'Innamorato':'Leale'];
 }
 /** Repeated evidence cannot be farmed by changing the NPC's generated wording. */
 function aiSocialEvidenceKey(string $text):string {
@@ -184,7 +187,9 @@ function aiSocialContext(array $npc,array $job,float $scale): string {
         $out.=ai_authority_context((int)$npc['id'],(int)$player['id'],true,$job);
         $out.=$rules['recognize_vampires']&&$vampire?'Vampiro riconosciuto dal presidio: deferenza. ':'Non dedurre razze o lignaggi segreti. ';
         $out.='Rapporto '.$rel['state'].($present?', contesto attuale ridefinito dallo staff. ':', '.(int)$rel['encounters'].' incontri. ');
-        $out.=$romance?($feelings['romantic']?'Il legame romantico è già stabilito: conserva il sentimento attuale, senza ricominciare ogni volta il corteggiamento. ':'Corteggiamento solo consensuale e graduale; rispetto di ogni rifiuto. '):'Nessun corteggiamento: età, consenso o disponibilità non lo consentono. ';
+        if($romance){ $_ternaryValue=$feelings['romantic']?'Il legame romantico è già stabilito: conserva il sentimento attuale, senza ricominciare ogni volta il corteggiamento. ':'Corteggiamento solo consensuale e graduale; rispetto di ogni rifiuto. '; }
+        else{ $_ternaryValue='Nessun corteggiamento: età, consenso o disponibilità non lo consentono. '; }
+        $out.=$_ternaryValue;
         if($rules['economy_enabled']){
             $debt=aiDb()->query(AI_SOCIAL_DEBT_BALANCES_SQL,[(int)$npc['id'],(int)$player['id']])[0]??[];
             $out.='Cassa '.aiNpcBalance((int)$npc['id']).'; max proposta '.$rules['max_amount'].', max/giorno '.$rules['daily_limit'].alphano_currency_text(' Corone; debiti PG/PNG ').(int)($debt['player_owes']??0).'/'.(int)($debt['npc_owes']??0).'. '.($rules['allow_loans']?'Prestiti abilitati. ':'Niente prestiti. ').'Solo proposte, mai trasferimenti già avvenuti. ';
@@ -198,7 +203,9 @@ function aiSocialContext(array $npc,array $job,float $scale): string {
     $out.="\nDOVERE DEL PNG: ".aiText($rules['duty'],160)."\nOBIETTIVI: ".aiText($rules['goals'],160)."\nCODICE E LIMITI: ".aiText($rules['honor_code'],200).' '.aiText($rules['boundaries'],250);
     if($rules['voice_example']){ $out.="\nVOCE DI RIFERIMENTO (non copiarla): ".$rules['voice_example']; }
     $out.="\nRAPPORTO PERSONALE CON QUESTO INTERLOCUTORE: ".$rel['state'].($present?', contesto attuale ridefinito dallo staff. ':', incontri '.(int)$rel['encounters'].', interazioni '.(int)$rel['interactions'].'. ');
-    $out.=$romance?($feelings['romantic']?'Il sentimento romantico è già stabilito e va rappresentato coerentemente con i valori attuali; non tornare a un primo corteggiamento. Rispetta i limiti del momento.':'Corteggiamento possibile ma mai dovuto: rispetta preferenze e rifiuti; i doni non comprano affetto.'):'Nessun corteggiamento o proposta romantica: età, consenso o disponibilità non lo consentono. Puoi parlare di amicizia e rifiutare con rispetto.';
+    if($romance){ $_ternaryValue=$feelings['romantic']?'Il sentimento romantico è già stabilito e va rappresentato coerentemente con i valori attuali; non tornare a un primo corteggiamento. Rispetta i limiti del momento.':'Corteggiamento possibile ma mai dovuto: rispetta preferenze e rifiuti; i doni non comprano affetto.'; }
+    else{ $_ternaryValue='Nessun corteggiamento o proposta romantica: età, consenso o disponibilità non lo consentono. Puoi parlare di amicizia e rifiutare con rispetto.'; }
+    $out.=$_ternaryValue;
     $out.=ai_personality_context($npc,$job,$scale,$rel).ai_social_development_context($npc,$job,$rules,$scale);
     if($rules['economy_enabled']){
         $debt=aiDb()->query(AI_SOCIAL_DEBT_BALANCES_SQL,[(int)$npc['id'],(int)$player['id']])[0]??[];
@@ -350,7 +357,11 @@ function aiSocialApply(array $npc,array $job,array $proposal): void {
     $after['revealed']=json_encode(array_values(array_unique($revealed)));$after['updated_at']=$now;
     $keys=[...array_keys(AI_RELATION_METRICS),'state','meaningful','revealed','updated_at'];
     $db->execute('UPDATE ai_relationships SET '.implode(',',array_map(static fn($k)=>$k.'=?',$keys)).' WHERE npc_id=? AND player_id=?',[...array_map(static fn($k)=>$after[$k],$keys),$nid,$uid]);
-    $reason=$grounded?($meaningful?'Evoluzione da episodio significativo · ':($repeated?'Evidenza già registrata, nessun incremento · ':($significant?'Storia conservata, limite di crescita della scena · ':'Dialogo registrato senza variazione · '))).$category.': '.$pe.' / '.$ne:'Nessun cambiamento: proposta priva di riscontro testuale osservabile.';
+    $prefix='Dialogo registrato senza variazione · ';
+    if($meaningful){ $prefix='Evoluzione da episodio significativo · '; }
+    elseif($repeated){ $prefix='Evidenza già registrata, nessun incremento · '; }
+    elseif($significant){ $prefix='Storia conservata, limite di crescita della scena · '; }
+    $reason=$grounded?$prefix.$category.': '.$pe.' / '.$ne:'Nessun cambiamento: proposta priva di riscontro testuale osservabile.';
     $eventAfter=$after;$eventAfter['_evolution']=['category'=>$category,'evidence'=>$grounded?aiSocialEvidenceKey($pe):'','meaningful'=>$meaningful&&empty($episode['counted']),'romantic'=>$reciprocal,'source_id'=>(int)($job['source_id']??0)];
     ai_relation_event($nid,$uid,$before,$eventAfter,$reason,$job,$id);
     if($significant){ $db->execute('INSERT IGNORE INTO ai_personal_memories(npc_id,player_id,chat_key,job_id,category,summary,evidence,source,epistemic,created_at,updated_at) VALUES(?,?,?,?,?,?,?,\'interpreted\',\'interpretation\',?,?)',[$nid,$uid,$job['chat_key'],$id,$category,'Percezione maturata da parole/tentativi del PG: «'.$pe.'». Risposta di '.$npc['name'].': «'.$ne.'». Non certifica esiti o veridicità dei racconti.',$pe.' / '.$ne,$now,$now]); }

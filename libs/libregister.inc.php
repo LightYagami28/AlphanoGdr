@@ -10,7 +10,7 @@ function alphanoRegistrationIsLocal(): bool
 {
     $localHosts=['localhost','127.0.0.1','::1'];
     $configured=trim(strtolower((string)parse_url((string)alphanoConfig('base_url'),PHP_URL_HOST)),'[]');
-    $requested=trim(strtolower((string)parse_url('http://'.(string)($_SERVER['HTTP_HOST']??''),PHP_URL_HOST)),'[]');
+    $requested=trim(strtolower((string)parse_url('https://'.(string)($_SERVER['HTTP_HOST']??''),PHP_URL_HOST)),'[]');
     return in_array($configured,$localHosts,true)
         && in_array($requested,$localHosts,true)
         && in_array($_SERVER['REMOTE_ADDR']??'',['127.0.0.1','::1','::ffff:127.0.0.1'],true);

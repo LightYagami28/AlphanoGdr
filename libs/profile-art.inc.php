@@ -3,7 +3,7 @@ declare(strict_types=1);
 const PROFILE_ART_INC_ASSETS_PLACEHOLDER_SVG = '/assets/placeholder.svg';
 require_once __DIR__.'/transformations.inc.php';
 /** One artwork selection for sheets, editor and equipment; an empty override follows race and sex. */
-function alphanoProfileDefaultBanner(int $race,string $sex):string {
+function alphanoProfileDefaultBanner():string {
  return PROFILE_ART_INC_ASSETS_PLACEHOLDER_SVG;
 }
 /** Shared circular portrait source, including the transformed form and gender fallback. */
@@ -19,8 +19,7 @@ function alphanoProfilePortrait(array $player):array {
  return ['url'=>playerMediaUrl($custom,$id,$default),'default'=>$default];
 }
 function alphanoProfileBanner(array $player):array {
- $race=alphanoVisibleRace($player);$sex=(string)($player['sesso']??'Maschio');
- $default=alphanoProfileDefaultBanner($race,$sex);
+ $default=alphanoProfileDefaultBanner();
  $custom=(string)($player[alphanoProfileUsesAltArt($player)?'banner2':'banner']??'');
  // Both forms may share the main banner until a separate image is chosen.
  if($custom===''){ $custom=(string)($player['banner']??''); }
@@ -34,6 +33,6 @@ function alphanoProfileLineageRace(array $player):int {
  return $race===8?4:$race;
 }
 /** Generic, sex-specific emblem, independent of custom portraits and banners. */
-function alphanoProfileRaceSeal(int $race,string $sex):string {
+function alphanoProfileRaceSeal():string {
  return PROFILE_ART_INC_ASSETS_PLACEHOLDER_SVG;
 }

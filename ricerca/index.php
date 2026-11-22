@@ -7,10 +7,10 @@
 // ------------------------------------------------------------------
 // 1. Inclusioni
 // ------------------------------------------------------------------
-require("../libs/kernel.inc.php");
-require("../libs/libgrafica.inc.php");
-require("../libs/libpg.inc.php");
-require("../libs/libtext.inc.php");
+require "../libs/kernel.inc.php";
+require "../libs/libgrafica.inc.php";
+require "../libs/libpg.inc.php";
+require "../libs/libtext.inc.php";
 require_once __DIR__."/../libs/player-runtime.inc.php";
 require_once __DIR__."/../libs/search-filters.inc.php";
 
@@ -25,7 +25,7 @@ $db      = connectDB();
 $pgid    = GetIDPG();
 
 // Titolo del sito (cambia se vuoi)
-function TITOLO_SITO(): string { return 'Alphano'; }
+function titoloSito(): string { return 'Alphano'; }
 
 // ------------------------------------------------------------------
 // 2. Setup variabili di base

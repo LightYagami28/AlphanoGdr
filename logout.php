@@ -7,7 +7,7 @@ $idpg = GetIDPG(false);
 require_once __DIR__.'/libs/web-push.inc.php';
 if ($idpg && isset($_SESSION['push_endpoint_hash'])) { alphanoPushDisable((int)$idpg, (string)$_SESSION['push_endpoint_hash']); }
 if ($idpg) { connectDB()->execute("UPDATE utenti SET posizione='off',chat='',ultimauscita=? WHERE id=?", [time(),$idpg]); }
-foreach (['utente','utonto','utanto'] as $cookie) { setcookie($cookie,'',time()-3600,'/'); }
+foreach (['utente','utonto','utanto'] as $cookie) { setcookie($cookie,'',['expires'=>time()-3600,'path'=>'/','secure'=>true,'httponly'=>true,'samesite'=>'Lax']); }
 doLogout();
 header('Location: /',true,303);
 exit;

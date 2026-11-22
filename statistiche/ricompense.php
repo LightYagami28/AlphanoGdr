@@ -33,8 +33,11 @@
         $sessioni[$dati["id"]]["nome"]=$dati["nome"];
         $sessioni[$dati["id"]]["master"][$dati["master"]]["nome"]=$dati["nomemaster"];
         $sessioni[$dati["id"]]["master"][$dati["master"]]["ricompense"][$dati["destinatario"]]["nome"]=$dati["nomedestinatario"];
-        if($dati["azione"]=="ricompensa(oggetto)") $sessioni[$dati["id"]]["master"][$dati["master"]]["ricompense"][$dati["destinatario"]]["obj"][$dati["obj"]] = ($sessioni[$dati["id"]]["master"][$dati["master"]]["ricompense"][$dati["destinatario"]]["obj"][$dati["obj"]] ?? 0) + 1;
-        else $sessioni[$dati["id"]]["master"][$dati["master"]]["ricompense"][$dati["destinatario"]]["soldi"] = ($sessioni[$dati["id"]]["master"][$dati["master"]]["ricompense"][$dati["destinatario"]]["soldi"] ?? 0) + (int)$dati["qta"];
+        if($dati["azione"]=="ricompensa(oggetto)") {
+            $sessioni[$dati["id"]]["master"][$dati["master"]]["ricompense"][$dati["destinatario"]]["obj"][$dati["obj"]] = ($sessioni[$dati["id"]]["master"][$dati["master"]]["ricompense"][$dati["destinatario"]]["obj"][$dati["obj"]] ?? 0) + 1;
+        } else {
+            $sessioni[$dati["id"]]["master"][$dati["master"]]["ricompense"][$dati["destinatario"]]["soldi"] = ($sessioni[$dati["id"]]["master"][$dati["master"]]["ricompense"][$dati["destinatario"]]["soldi"] ?? 0) + (int)$dati["qta"];
+        }
     }
 ?>
 <!DOCTYPE html>

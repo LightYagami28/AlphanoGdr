@@ -17,17 +17,20 @@ function aiAdultInvitationGate(int $npc,int $player,?array $n):?array {
  }
  return null;
 }
-function aiAdultInvitationRelation(int $npc,int $player,array $n):?array {
- $no=static fn($reason)=>['allowed'=>false,'reason'=>$reason];
+function aiAdultInvitationRelationReason(int $npc,int $player,array $n):string {
  $partner=aiAdultPartner($npc);
- if($partner&&$partner!==$player){ return $no('Il personaggio resta fedele al legame che ha già scelto e declina l’invito.'); }
- if(!aiRomanceAllowed($n,aiPlayerIdentity($player),aiSocialRules($npc))){ return $no('Le sue preferenze e la sua disponibilità attuale non coincidono con questo invito.'); }
+ if($partner&&$partner!==$player){ return 'Il personaggio resta fedele al legame che ha già scelto e declina l’invito.'; }
+ if(!aiRomanceAllowed($n,aiPlayerIdentity($player),aiSocialRules($npc))){ return 'Le sue preferenze e la sua disponibilità attuale non coincidono con questo invito.'; }
  $r=aiRelation($npc,$player);$traits=aiNpcGame($npc)['traits'];
- if((int)$r['fear']>=20||(int)$r['hostility']>=20||(int)$r['respect']<20||(int)$r['trust']<35){ return $no('Non si sente ancora abbastanza al sicuro per raggiungerti in privato. Preferisce conoscervi meglio.'); }
+ if((int)$r['fear']>=20||(int)$r['hostility']>=20||(int)$r['respect']<20||(int)$r['trust']<35){ return 'Non si sente ancora abbastanza al sicuro per raggiungerti in privato. Preferisce conoscervi meglio.'; }
  $threshold=25+(int)floor(max(0,(int)($traits['distrust']??50)-50)/5);
  $close=aiRelationFeelings($r)['close'];
- if((int)$r['affection']<$threshold||(!$close&&((int)$r['meaningful']<4||(int)$r['encounters']<2))){ return $no('Apprezza l’invito, ma il vostro rapporto non ha ancora la confidenza che cerca.'); }
- return null;
+ if((int)$r['affection']<$threshold||(!$close&&((int)$r['meaningful']<4||(int)$r['encounters']<2))){ return 'Apprezza l’invito, ma il vostro rapporto non ha ancora la confidenza che cerca.'; }
+ return '';
+}
+function aiAdultInvitationRelation(int $npc,int $player,array $n):?array {
+ $reason=aiAdultInvitationRelationReason($npc,$player,$n);
+ return $reason===''?null:['allowed'=>false,'reason'=>$reason];
 }
 function aiAdultInvitationDecision(int $npc,int $player):array{
  $n=aiDb()->query('SELECT * FROM ai_npcs WHERE id=? AND active=1',[$npc])[0]??null;

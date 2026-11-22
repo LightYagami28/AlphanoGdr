@@ -4,4 +4,4 @@ require_once __DIR__.'/../libs/presence.inc.php';
 alphanoRequireLogin();
 $presence=alphanoPresence();
 function presence_h(mixed $v): string { return htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8'); }
-require __DIR__.'/../templates/presence/index.php';
+require_once __DIR__.'/../templates/presence/index.php';

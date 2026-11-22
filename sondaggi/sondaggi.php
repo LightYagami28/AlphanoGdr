@@ -36,4 +36,4 @@ foreach ($db->query('SELECT id,tema,risposte,attivo FROM sondaggi ORDER BY id DE
         'active'=>$active,'canVote'=>$active && !isset($ownVotes[$id]),'ownVote'=>$ownVotes[$id] ?? null,
         'total'=>$total,'answers'=>$answers];
 }
-require __DIR__ . '/../templates/polls/index.php';
+require_once __DIR__ . '/../templates/polls/index.php';

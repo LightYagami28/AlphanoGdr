@@ -11,4 +11,4 @@ $dest=$scope==='citta'?'/admin/city.php?city='.$id:($scope==='corporazioni'?'/co
 $rolesUrl=$scope==='citta'?'/admin/cariche.php':$dest.($scope==='corporazioni'?'#iscritti':'#tab-iscritti');
 $memberUrl=$scope==='citta'?'/admin/city.php?city='.$id.'#richieste-cittadinanza':$dest.($scope==='corporazioni'?'#iscritti':'#tab-iscritti');
 $requestCount=$manage?count(match($scope){'citta'=>GetRichiesteCity($id),'corporazioni'=>GetRichiesteCorp($id),default=>GetRichiesteOrg($id)}):0;
-require __DIR__.'/../templates/admin/governance.php';
+require_once __DIR__.'/../templates/admin/governance.php';

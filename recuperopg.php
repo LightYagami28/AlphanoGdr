@@ -51,5 +51,5 @@ $recovery = [
     'error' => '', 'message' => $message,
     'mode' => $backup ? 'restore' : 'info', 'identity' => $identity,
 ];
-require __DIR__ . '/templates/account/recovery.php';
+require_once __DIR__ . '/templates/account/recovery.php';
 closePage();

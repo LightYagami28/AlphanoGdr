@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once dirname(__DIR__).'/libs/config-loader.inc.php';
 require_once dirname(__DIR__).'/libs/branding.inc.php';
 $root=dirname(__DIR__);
 if(is_file($root.'/config/local.php')||is_file($root.'/private/installed.lock')){
@@ -17,7 +18,7 @@ alphanoCreditsGuard();
 require __DIR__.'/installer.php';
 header('Cache-Control: no-store');header('X-Content-Type-Options: nosniff');header("Content-Security-Policy: default-src 'self'; style-src 'self'; script-src 'self'; frame-ancestors 'none'; form-action 'self'");header('Referrer-Policy: no-referrer');
 session_name('alphano_setup_'.substr(hash('sha256',$root),0,12));session_start(['cookie_httponly'=>true,'cookie_samesite'=>'Strict','cookie_secure'=>alphanoHttpsContext()]);$_SESSION['setup_csrf']??=bin2hex(random_bytes(32));
-$error='';$defaults=require $root.'/config/app.php';
+$error='';$defaults=alphanoLoadConfig($root.'/config/app.php');
 if(($_SERVER['REQUEST_METHOD']??'GET')==='POST'){
  if(!is_string($_POST['_csrf']??null)||!hash_equals($_SESSION['setup_csrf'],$_POST['_csrf'])){http_response_code(403);$error='Sessione scaduta. Ricarica la pagina.';}
  else{try{

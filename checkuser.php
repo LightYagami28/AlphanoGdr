@@ -3,8 +3,8 @@ declare(strict_types=1);
 
 
 // 1) Dipendenze
-require __DIR__ . '/libs/kernel.inc.php';   // connectDB(), closePage(), TITOLO_SITO, MAXPUNTIF
-require __DIR__ . '/libs/libpg.inc.php';    // doLogin(), GetIDPG(), setPosizione()
+require_once __DIR__ . '/libs/kernel.inc.php';   // connectDB(), closePage(), TITOLO_SITO, MAXPUNTIF
+require_once __DIR__ . '/libs/libpg.inc.php';    // doLogin(), GetIDPG(), setPosizione()
 
 use Alphano\Database\PDOMySQLDriver;
 

@@ -1,10 +1,11 @@
 <?php
 declare(strict_types=1);
+require_once dirname(__DIR__).'/libs/config-loader.inc.php';
 require_once __DIR__.'/../libs/player-runtime.inc.php';
 require_once __DIR__.'/../libs/fortune.inc.php';
 playerApi(static function():array{
  $id=alphanoRequireLogin(true);
- if($_SERVER['REQUEST_METHOD']==='GET'){ return ['state'=>alphanoFortuneState($id),'catalog'=>alphanoFortuneCatalog(),'multipliers'=>(require __DIR__.'/../config/fortune.php')['multipliers']]; }
+ if($_SERVER['REQUEST_METHOD']==='GET'){ return ['state'=>alphanoFortuneState($id),'catalog'=>alphanoFortuneCatalog(),'multipliers'=>alphanoLoadConfig(__DIR__.'/../config/fortune.php')['multipliers']]; }
  playerMutation();$in=playerInput();
  if(playerText($in,'action',12,true)==='welcome'){
   $state=alphanoFortuneState($id);$login=(string)($_SESSION['fortune_login_id']??'');

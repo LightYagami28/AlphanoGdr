@@ -38,7 +38,7 @@ $race=$races['selected'];
 <section id="race-shop" class="race-pane" hidden>
  <div class="race-section-heading"><h2>Abilità innate e altre discipline</h2><p>Un solo catalogo per tutta la stirpe: innate in ambra, altre discipline in azzurro ed eredità speciali in viola. Scegli quattro innate umane gratuite alla creazione; in seguito puoi acquistare anche quelle non scelte con i PE indicati, rispettando requisiti e compatibilità.</p></div>
  <div class="rpg-learning-toolbar"><span class="rpg-learning-balance" data-rpg-learning-balance aria-live="polite">Caricamento dei PE…</span><p data-ability-feedback aria-live="polite"></p></div>
- <?php $abilities=$races['abilities']['all']; $grimoireTitle='Grimorio della stirpe'; if($abilities){ require __DIR__.'/abilities.php'; } ?>
+ <?php $abilities=$races['abilities']['all']; $grimoireTitle='Grimorio della stirpe'; if($abilities){ require_once __DIR__.'/abilities.php'; } ?>
  <?php if(!$abilities): ?><p class="rpg-empty">Non sono previste capacità per questa forma.</p><?php endif; ?>
 </section>
 <?php endif; ?>

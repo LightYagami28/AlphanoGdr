@@ -5,7 +5,7 @@ require_once dirname(__DIR__).'/libs/experience.inc.php';
 playerApi(function():array{
  $user=alphanoRequireLogin(true);
  if($_SERVER['REQUEST_METHOD']==='GET'){
-  $experienceSettings=alphanoExperienceSettings($user);ob_start();require dirname(__DIR__).'/templates/partials/game-preferences.php';$form=ob_get_clean();
+  $experienceSettings=alphanoExperienceSettings($user);ob_start();require_once dirname(__DIR__).'/templates/partials/game-preferences.php';$form=ob_get_clean();
   return ['settings'=>$experienceSettings,'environment'=>alphanoMapEnvironment(),'confirmed'=>alphanoExperienceConfirmed($user),'form'=>$form];
  }
  if($_SERVER['REQUEST_METHOD']!=='POST'){ alphanoFail('Metodo non consentito.',405,true); }

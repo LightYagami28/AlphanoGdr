@@ -1,11 +1,14 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/libs/config-loader.inc.php';
+require_once __DIR__.'/libs/config-loader.inc.php';
+require_once __DIR__.'/libs/config-loader.inc.php';
 require_once dirname(__DIR__).'/libs/kernel.inc.php';
 $uid=alphanoRequireLogin();if(!alphanoCan('admin')){alphanoFail('Accesso riservato agli amministratori completi.',403);}
 $sections=['defaults'=>'Colori e disposizione','home'=>'Homepage e manuali','groups'=>'Immagini dei menu','items'=>'Immagini dei sottomenu','pages'=>'Sfondi di tutte le pagine'];
 $section=$_GET['section']??'defaults';if(!is_string($section)||!isset($sections[$section])){$section='defaults';}
 $target=$_GET['target']??'';if(!is_string($target)){$target='';}
-$groups=require dirname(__DIR__).'/config/navigation.php';$catalog=alphanoAppearanceCatalog();$menu=alphanoAppearanceMenuCatalog();$error='';
+$groups=alphanoLoadConfig(dirname(__DIR__).'/config/navigation.php');$catalog=alphanoAppearanceCatalog();$menu=alphanoAppearanceMenuCatalog();$error='';
 if($_SERVER['REQUEST_METHOD']==='POST'){
     if(empty($_POST)&&(int)($_SERVER['CONTENT_LENGTH']??0)>0){alphanoFail('Caricamento troppo grande per il server. Carica un’immagine alla volta (limite complessivo: '.ini_get('post_max_size').').',413);}
     alphanoRequireCsrf();
@@ -19,13 +22,13 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
         header('Location: /admin/appearance.php?'.http_build_query(['section'=>$section,'target'=>$target,'saved'=>1]),true,303);exit;
     }catch(Throwable $e){$error=$e instanceof DomainException?$e->getMessage():'Salvataggio non riuscito. Controlla il log del server.';if(!$e instanceof DomainException){error_log('[Appearance] '.$e->getMessage());}http_response_code(422);}
 }
-$a=alphanoAppearance();$config=require dirname(__DIR__).'/config/app.php';$selection=null;
+$a=alphanoAppearance();$config=alphanoLoadConfig(dirname(__DIR__).'/config/app.php');$selection=null;
 if($section==='groups'&&isset($groups[$target])){$selection=['label'=>$groups[$target]['title']];}
 if($section==='items'&&isset($menu[$target])){$selection=$menu[$target];}
 if($section==='pages'&&isset($catalog[$target])){$selection=$catalog[$target];}
 $values=in_array($section,['defaults','home'],true)?($a[$section]??[]):($a[$section][$target]??[]);
 if($section==='groups'&&$selection){$values['default_image']=$groups[$target]['image'];}
-if($section==='items'&&$selection){$defaults=require dirname(__DIR__).'/config/navigation-icons.php';$values['default_image']=$defaults[$selection['label']]??$groups[$selection['group']]['image'];}
+if($section==='items'&&$selection){$defaults=alphanoLoadConfig(dirname(__DIR__).'/config/navigation-icons.php');$values['default_image']=$defaults[$selection['label']]??$groups[$selection['group']]['image'];}
 if($section==='home'){$values+=['default_logo'=>'/assets/alphanogdr-logo.png','default_banner'=>alphanoAppearancePage('/')['header'],'default_scene_library'=>alphanoDefaultArt('header-library')];}
 if($section==='pages'&&$selection){$values['default_header']=alphanoAppearancePage($selection['url'])['header'];}
 if($section==='defaults'){$values['default_header']=alphanoDefaultArt('header-panorama');}

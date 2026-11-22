@@ -1,8 +1,9 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/libs/config-loader.inc.php';
 require_once __DIR__.'/../libs/media-assets.inc.php';
 $admin=alphanoRequireLogin();if(!alphanoCan('admin')){ alphanoFail('Accesso riservato agli amministratori.',403); }
-$db=connectDB();$known=require __DIR__.'/../config/weather-assets.php';$error='';$notice='';
+$db=connectDB();$known=alphanoLoadConfig(__DIR__.'/../config/weather-assets.php');$error='';$notice='';
 if($_SERVER['REQUEST_METHOD']==='POST'){
  alphanoRequireCsrf();$uploaded=null;
  try{

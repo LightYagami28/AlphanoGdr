@@ -7,10 +7,10 @@
 // ------------------------------------------------------------------
 // 1. Inclusioni
 // ------------------------------------------------------------------
-require("../libs/kernel.inc.php");
-require("../libs/libgrafica.inc.php");
-require("../libs/libpg.inc.php");
-require("../libs/libtext.inc.php");
+require_once("../libs/kernel.inc.php");
+require_once("../libs/libgrafica.inc.php");
+require_once("../libs/libpg.inc.php");
+require_once("../libs/libtext.inc.php");
 require_once __DIR__."/../libs/player-runtime.inc.php";
 require_once __DIR__."/../libs/search-filters.inc.php";
 
@@ -161,4 +161,4 @@ $posizioni = array_column($db->query($posQuery), 'posizione');
 // ------------------------------------------------------------------
 // 9. Output
 // ------------------------------------------------------------------
-require __DIR__.'/../templates/search/index.php';
+require_once __DIR__.'/../templates/search/index.php';

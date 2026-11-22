@@ -180,4 +180,4 @@ if ($o) {
     if ($o['idcreatore']) { $equipmentCreatorName = GetPGFromID($o['idcreatore']); }
 }
 $equipmentUrl=static fn(int $item=0):string=>'/equip/equip.php?pgid='.$pgid.($embedded?'&embedded=1':'').($item?'&detail_id='.$item.'#equipment-detail':'');
-require __DIR__ . '/../templates/equipment/sheet.php';
+require_once __DIR__ . '/../templates/equipment/sheet.php';

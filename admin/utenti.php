@@ -83,7 +83,7 @@ if (!$canManageUsers) { $userActions = array_intersect_key($userActions, array_f
         function panel(string $act, string $html) {
           echo "<div id=\"panel-{$act}\" class=\"panel\">{$html}</div>";
         }
-        if($canManageUsers){ob_start();require __DIR__.'/../templates/admin/incarichi.php';panel('incarichi',ob_get_clean());}
+        if($canManageUsers){ob_start();require_once __DIR__.'/../templates/admin/incarichi.php';panel('incarichi',ob_get_clean());}
         panel('resetpos',   '<button class="action-btn" data-action="resetpos">Esegui</button>');
         panel('resetcount', '<button class="action-btn" data-action="resetcount">Esegui</button>');
         panel('profile', '

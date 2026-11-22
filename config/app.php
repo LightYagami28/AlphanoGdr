@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 $root=dirname(__DIR__);
-$local=is_file(__DIR__.'/local.php')?require __DIR__.'/local.php':[];
+$local=is_file(__DIR__.'/local.php')?require_once __DIR__.'/local.php':[];
 $site=is_file($root.'/private/settings.json')?json_decode(file_get_contents($root.'/private/settings.json'),true,32,JSON_THROW_ON_ERROR):[];
 $defaults=[
  'db_host'=>'127.0.0.1','db_port'=>3306,'db_socket'=>'','db_db'=>'','db_user'=>'','db_pass'=>'',
@@ -22,4 +22,4 @@ foreach(['debug','public_demo','smtp_tls','lineages_enabled','ai_enabled','abili
 foreach(['smtp_port','db_port','initial_race','initial_points','initial_innates','ai_timeout','ai_context'] as $key){ $values[$key]=(int)$values[$key]; }
 // Public demo palettes are request-local and never overwrite the game settings.
 if($values['public_demo']&&is_string($_GET['palette']??null)&&in_array($_GET['palette'],['blue','black','brown','red','purple'],true)){ $values['theme']=$_GET['palette']; }
-return $values;
+return $GLOBALS['ALPHANO_CONFIG_CACHE'][__FILE__] = $values;

@@ -9,4 +9,4 @@ $tools = [
  ['title'=>'Segnalazione bug','description'=>'Segnala un problema e segui le risposte della gestione.','url'=>'/bug/','icon'=>'settings'],
  ['title'=>'Giocate salvate','description'=>'Apri una giocata esportata per rileggere la tua storia.','url'=>'/vari/visualizzagiocata.php','icon'=>'scroll'],
 ];
-require __DIR__ . '/../templates/tools/index.php';
+require_once __DIR__ . '/../templates/tools/index.php';

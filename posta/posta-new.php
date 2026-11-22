@@ -12,14 +12,14 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     $action = (string)($_POST['azione'] ?? '');
     if ($action === 'forward') {
         $_POST['send'] = '1';
-        require __DIR__ . '/writeto.php';
+        require_once __DIR__ . '/writeto.php';
         exit;
     }
     if (in_array($action, ['delete0', 'delete1', 'move'], true)) {
-        require __DIR__ . '/deletesel.php';
+        require_once __DIR__ . '/deletesel.php';
         exit;
     }
-    require __DIR__ . '/index.php';
+    require_once __DIR__ . '/index.php';
     exit;
 }
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {

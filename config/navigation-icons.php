@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 /** Original default images; runtime overrides remain in private/appearance.json. */
-return [
+return $GLOBALS['ALPHANO_CONFIG_CACHE'][__FILE__] = [
  'Assistenza Utenti'=>'/assets/default-nav-user.svg',
  'Giochi da tavolo'=>'/assets/default-nav-dice.svg',
  'Vulnerabilità e condizioni'=>'/assets/default-nav-heart.svg',

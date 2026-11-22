@@ -172,5 +172,5 @@ $editorMemberships = [
     'Corporazione' => h(GetCorporazione((int)$dati['corporazione'])),
     'Carica di corporazione' => GetCaricaCorp((int)$dati['corporazione'], (int)$dati['caricacorporazione']),
 ];
-require __DIR__ . '/../templates/profiles/edit.php';
+require_once __DIR__ . '/../templates/profiles/edit.php';
 closePage();

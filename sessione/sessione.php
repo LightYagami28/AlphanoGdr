@@ -10,7 +10,7 @@ try{
   if(empty($u['admin'])&&empty($u['fatepower'])||!empty($u['bloccato'])){ throw new DomainException('Accesso riservato ai Master.',403); }
   $locations=aiDb()->query("SELECT m.chat_key,m.title,s.nome AS session_name,CASE WHEN q.mode='auto' THEN 'Master IA' ELSE COALESCE(conductor.nome,opener.nome,'Nessuna regia') END AS master_name FROM mappe m LEFT JOIN sessioni s ON s.id=(SELECT MAX(x.id) FROM sessioni x WHERE BINARY x.chat=BINARY m.chat_key AND x.run=1) LEFT JOIN ai_quests q ON q.session_id=s.id LEFT JOIN utenti conductor ON conductor.id=COALESCE(NULLIF(q.conductor_id,0),NULLIF(s.conductor_id,0)) LEFT JOIN utenti opener ON opener.id=s.masterin WHERE m.chat=1 AND m.chat_key<>'' ORDER BY s.id IS NULL,m.title");
   $h=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
-  require __DIR__.'/../templates/sessions/location-picker.php';exit;
+  require_once __DIR__.'/../templates/sessions/location-picker.php';exit;
  }
  $actor=alphanoSessionActor($uid,$chat,false);
  $method=$_SERVER['REQUEST_METHOD']??'GET';
@@ -32,7 +32,7 @@ try{
  $row=alphanoSessionCurrent($chat);$quest=aiQuestRow($chat);$room=aiRoom($chat);
  $posizione=aiDb()->query('SELECT title FROM mappe WHERE chat_key=?',[$chat])[0]['title']??$chat;
  $nomeMaster=$state['conductor']['name'];$h=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
- require __DIR__.'/../templates/sessions/manager.php';
+ require_once __DIR__.'/../templates/sessions/manager.php';
 }catch(Throwable $error){
  $code=(int)$error->getCode();
  $status=($error instanceof DomainException||($error instanceof RuntimeException&&in_array($code,[400,409,422],true)))?$code:($error instanceof JsonException?400:500);

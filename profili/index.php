@@ -144,5 +144,5 @@ $sheet['seal']=alphanoProfileRaceSeal(alphanoProfileLineageRace($row),(string)$r
 $sheet['seal_label']=GetRazza(alphanoProfileLineageRace($row)).' · '.$row['sesso'];
 $sheet['equipment_url']='/equip/equip.php?pgid='.$cid.'&embedded=1';
 $sheet['sections'][]=['id'=>'equipment','title'=>'Equipaggiamento','icon'=>'shield','template'=>'equipment','rows'=>[]];
-require __DIR__ . '/../templates/profiles/sheet.php';
+require_once __DIR__ . '/../templates/profiles/sheet.php';
 closePage();

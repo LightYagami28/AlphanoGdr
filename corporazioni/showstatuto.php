@@ -161,7 +161,7 @@ global $quality;
     <?php else: ?>
         <section id="cariche" class="corporation-ranks" aria-labelledby="corporation-ranks-title">
             <h2 id="corporation-ranks-title" class="ui-visually-hidden">Cariche e membri</h2>
-            <?php $chart=$hierarchy['chart'];require __DIR__.'/../templates/shared/hierarchy-chart.php'; ?>
+            <?php $chart=$hierarchy['chart'];require_once __DIR__.'/../templates/shared/hierarchy-chart.php'; ?>
         </section>
         <section id="statuto" class="corporation-statute" aria-labelledby="corporation-statute-title"><h2 id="corporation-statute-title">Statuto</h2><div class="view"><?php renderStatuto($statuto); ?></div></section>
         <?php if ($accademia): ?>

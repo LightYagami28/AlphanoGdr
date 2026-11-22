@@ -9,11 +9,11 @@ foreach (array_merge($_GET,$_POST) as $value) {
     }
 }
 
-require __DIR__ . '/../libs/kernel.inc.php';
+require_once __DIR__ . '/../libs/kernel.inc.php';
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') { alphanoRequireCsrf(); }
-require __DIR__ . '/../libs/libpg.inc.php';
-require __DIR__ . '/../libs/libgrafica.inc.php';
-require __DIR__ . '/../libs/libtext.inc.php';
+require_once __DIR__ . '/../libs/libpg.inc.php';
+require_once __DIR__ . '/../libs/libgrafica.inc.php';
+require_once __DIR__ . '/../libs/libtext.inc.php';
 require_once __DIR__ . '/../libs/activity.inc.php';
 
 

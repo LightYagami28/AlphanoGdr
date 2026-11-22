@@ -17,7 +17,7 @@ $npc = aiDb()->query('SELECT n.*,COALESCE(m.title,n.chat_key) AS title,m.chat AS
 if(!$npc&&$death){ $npc=['id'=>$id,'name'=>$death['npc_name'],'chat_key'=>$death['chat_key'],'title'=>$death['place_name'],'active'=>0,'profile'=>$death['profile_snapshot'],'public_chat'=>0]; }
 if (!$npc || (!$death&&empty($npc['public_chat'])) || (!(int)$npc['active'] && !$death && !alphanoRelationsStaff((int)$viewer['id']) && (int)aiNpcProfile($npc)['hit_points']>0)) { alphanoFail('Personaggio non disponibile.', 404); }
 $profile = aiNpcProfile($npc);
-if($death||(int)$profile['hit_points']<=0){require __DIR__.'/../templates/profiles/npc-memorial.php';closePage();exit;}
+if($death||(int)$profile['hit_points']<=0){require_once __DIR__.'/../templates/profiles/npc-memorial.php';closePage();exit;}
 $profile['money']=aiNpcBalance($id);
 $escape = static fn(mixed $value): string => htmlspecialchars((string)($value ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 $groups = [
@@ -77,5 +77,5 @@ $sheet['sections']=alphanoProfileCompactSections($sheet['sections']);
 array_unshift($sheet['sections'],['id'=>'conoscenza','title'=>'Conoscenza','icon'=>'users','rows'=>[],'template'=>'npc-knowledge']);
 $banner=alphanoProfileDefaultBanner((int)$profile['race_id'],(string)$profile['sex']);$sheet['art']=['url'=>$banner,'default'=>$banner];
 $sheet['seal']=alphanoProfileRaceSeal((int)$profile['race_id'],(string)$profile['sex']);
-require __DIR__ . '/../templates/profiles/sheet.php';
+require_once __DIR__ . '/../templates/profiles/sheet.php';
 closePage();

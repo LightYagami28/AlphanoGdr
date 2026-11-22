@@ -24,5 +24,5 @@ $recording = [
     'html' => alphanoArchiveContent(implode("<br>\n", array_map(static fn(mixed $line): string => (string)$line, $lines))),
     'can_vote' => canVoteGiocata($idpg, $id),
 ];
-require __DIR__ . '/../templates/academy/recording.php';
+require_once __DIR__ . '/../templates/academy/recording.php';
 closePage();

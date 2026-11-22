@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 /** Stable asset keys are independent of weather drift and filenames. */
-return [
+return $GLOBALS['ALPHANO_CONFIG_CACHE'][__FILE__] = [
  'clear-day'=>['Cielo sgombro · giorno','Sole e cielo sereno durante il giorno.'],
  'clear-night'=>['Cielo sgombro · notte','Cielo notturno limpido e stellato; la fase lunare è mostrata a parte.'],
  'cloudy'=>['Cielo nuvoloso','Nuvole senza precipitazioni necessariamente presenti.'],

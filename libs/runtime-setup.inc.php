@@ -58,7 +58,7 @@ function alphanoRuntimeSetup(string $root): void
     $form = null;
     if ($fresh && $altervista) {
         http_response_code(200);
-        $error = ''; 
+        $error = '';
         session_name('alphano_php_setup_'.substr(hash('sha256', $root), 0, 12));
         session_start(['cookie_httponly'=>true,'cookie_samesite'=>'Strict','cookie_secure'=>alphanoHttpsContext()]);
         $_SESSION['runtime_csrf'] ??= bin2hex(random_bytes(32));

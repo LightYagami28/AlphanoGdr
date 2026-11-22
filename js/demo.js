@@ -22,7 +22,7 @@
   function narrative(text, sex) {
     const box = element('div', '', 'demo-narrative ' + (sex === 'Femmina' ? 'demo-female' : 'demo-male'));
     // Only text nodes: model output and player text can never introduce HTML.
-    const chunks = text.split(/(«[^»]*»|“[^”]*”|"[^"\n]*")/gu);
+    const chunks = text.split(/(«[^»]+»|“[^”]+”|"[^"\n]+")/gu);
     chunks.forEach((part, i) => box.append(element(i % 2 ? 'span' : 'strong', part)));
     return box;
   }

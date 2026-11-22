@@ -1,3 +1,10 @@
+  function formatDate(input) {
+    const d = input instanceof Date ? input : new Date(input.replace(' ', 'T'));
+    return d.toLocaleString('it-IT', {
+      year:'numeric',month:'long',day:'numeric',
+      hour:'2-digit',minute:'2-digit'
+    });
+  }
 'use strict';
 
 /*
@@ -131,7 +138,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 7) Elezioni + Candidature + Grafico + Banner vincitore
   function renderElezioni() {
-    window.location.href='/citta/elezioni.php?city='+encodeURIComponent(dataObj.cityId);return;
     const {
       yourCandidature,
       candidacyOpen,
@@ -303,13 +309,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Utils
-  function formatDate(input) {
-    const d = input instanceof Date ? input : new Date(input.replace(' ', 'T'));
-    return d.toLocaleString('it-IT', {
-      year:'numeric',month:'long',day:'numeric',
-      hour:'2-digit',minute:'2-digit'
-    });
-  }
   function showToast(msg, isError=false) {
     const t = document.getElementById('toast');
     t.textContent = msg;

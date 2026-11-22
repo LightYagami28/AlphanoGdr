@@ -34,7 +34,7 @@ function alphanoRecordActivity(string $type,int $actor,array $audiences,string $
                 ||json_decode($stored['data_json'],true,20,JSON_THROW_ON_ERROR)!=$data||$normalize($existing)!==$normalize($audiences)){ throw new AlphanoStorageException('Identificativo della ricevuta già usato con dati diversi.',409); }
         }
         if($created){ foreach($audiences as $a){ $db->execute('INSERT IGNORE INTO activity_event_audiences(event_id,audience_scope,scope_id,section_key,access_role) VALUES(?,?,?,?,?)',
-            [$event,$a['scope'],$a['id'],$a['section'],$a['role']??'member']); 
+            [$event,$a['scope'],$a['id'],$a['section'],$a['role']??'member']);
             }
             }
         if($own){ $db->commit(); }return $event;
@@ -155,7 +155,7 @@ function alphanoPersistedActivity(int $recipient,bool $includeRead=false,int $li
         if(!isset($events[$key])){ $events[$key]=['key'=>$key,'group'=>$target['group'],'section'=>$target['section'],'url'=>$target['url'],
             'title'=>$row['title'],'detail'=>$row['detail'],'created_at'=>(int)$row['created_at'],
             'actor'=>$row['actor_name'],'actor_id'=>(int)$row['actor_id'],'event_type'=>$row['event_type'],
-            'data'=>$data,'read_at'=>$row['read_at']===null?null:(int)$row['read_at'],'persistent'=>true,'destinations'=>[],'_administrative'=>false]; 
+            'data'=>$data,'read_at'=>$row['read_at']===null?null:(int)$row['read_at'],'persistent'=>true,'destinations'=>[],'_administrative'=>false];
             }
         $events[$key]['_administrative']=$events[$key]['_administrative']||$row['audience_scope']!=='personale'&&(in_array($row['access_role'],['admin','trade','catalogue'],true)||in_array($row['audience_scope'],['accademia','master','gestione'],true));
         $events[$key]['destinations'][$target['group'].':'.$target['section'].':'.$target['url']]=$target;

@@ -175,7 +175,7 @@
                 if (this._useTarget(e.target, e)) {
                     this._end();
                     this.elementFocused = null;
-                    if(e.touches && e.touches[0] && e.touches[0].target instanceof HTMLImageElement && e.touches[0].target.attributes[0]){
+                    if(e.touches?.[0]?.target instanceof HTMLImageElement && e.touches[0].target.attributes[0]){
                         window.location.href = e.touches[0].target.getAttribute('href');
                     }
                     if (e.preventDefault && e.cancelable) {

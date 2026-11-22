@@ -125,14 +125,14 @@ function aiAdjudicate(int $sid):array{
   // One declaration is one offensive manoeuvre. An attempted bite must not
   // disappear behind its preparatory grab, nor grant a free successful grapple.
   if($bite){ $grab=false; }
-  if(aiAdjudicationDifferentBiteTarget($r,$results,$a,$analysis,$q,$targetKey)){ continue; }
+  if($bite&&$a['kind']==='pg'&&aiAdjudicationDifferentBiteTarget($r,$results,$a,$analysis,$q,$targetKey)){ continue; }
   if(preg_match('/iniett\p{L}*.{0,45}veleno|veleno.{0,35}maledizion|farlo trasform/iu',$raw)&&in_array((int)$actor['razza'],[2,5],true)){$r['outcome']='la maledizione non si trasmette in questo modo';$r['reason']='Il morso precedente resta una ferita, ma i denti non iniettano un veleno capace di creare un vampiro. La trasformazione richiede il rito e le condizioni della stirpe: questa intenzione non li sostituisce e non apre una seconda ferita.';$results[]=$r;continue;}
   if($ability&&$effectType!=='attack'){$bite=false;$grab=false;}
   $attack=in_array($intent,['assalto','attacco','potere','arresto','furto'],true)||$mental||$bite||$grab;
-  aiAdjudicationResolveReload($r,$results,$conditions,compact('a','state','cfg','key','raw','round','actor'));continue;
+  if($intent==='ricarica'){ aiAdjudicationResolveReload($r,$results,$conditions,compact('a','state','cfg','key','raw','round','actor'));continue; }
   if($intent==='furto'){$r['outcome']='il tentativo viene scoperto';$r['reason']='Nel pieno dello scontro non si apre un varco sicuro per sottrarre un bene. Nessun oggetto cambia proprietario senza identificarlo e raggiungerlo.';$results[]=$r;continue;}
   if($intent==='potere'&&!$mental&&!$bite&&!$grab&&!$ability){$r['outcome']='il potere non produce l’effetto richiesto';$r['reason']='La capacità e le condizioni della sua applicazione non sono determinate nella dichiarazione e nelle regole disponibili: non nasce un effetto soprannaturale dalla sola intenzione.';$results[]=$r;continue;}
-  aiAdjudicationResolveNonAttack($r,$results,$conditions,compact('a','analysis','intent','raw','state','cast','key','round','actor','ability','d'));continue;
+  if(!$attack){ aiAdjudicationResolveNonAttack($r,$results,$conditions,compact('a','analysis','intent','raw','state','cast','key','round','actor','ability','d'));continue; }
   if(!$target||!($active[$targetKey]??false)||$targetKey===$key||($target['chat']??'')!==$q['chat_key']||($target['kind']==='npc'&&empty($target['active']))){$r['outcome']='non raggiunge un bersaglio determinabile';$r['reason']='L’azione non identifica un avversario presente: deve indicarlo prima di poterlo ferire o vincolare.';$results[]=$r;continue;}
   if(in_array((int)$target['razza'],[4,7,ALPHANO_RACE_LEGACY_SPIRIT],true)){$r['outcome']='non incontra un corpo da ferire';$r['reason']='La presenza incorporea non offre un bersaglio fisico: il tentativo non le assegna ferite corporee.';$results[]=$r;continue;}
   if($hp[$targetKey]<1){$r['outcome']='non porta un altro colpo';$r['reason']='Il bersaglio è già fuori combattimento; questa manovra non viene conteggiata una seconda volta.';$results[]=$r;continue;}

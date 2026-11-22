@@ -19,14 +19,19 @@ function aiAdultInvitationGate(int $npc,int $player,?array $n):?array {
 }
 function aiAdultInvitationRelationReason(int $npc,int $player,array $n):string {
  $partner=aiAdultPartner($npc);
- if($partner&&$partner!==$player){ return 'Il personaggio resta fedele al legame che ha già scelto e declina l’invito.'; }
- if(!aiRomanceAllowed($n,aiPlayerIdentity($player),aiSocialRules($npc))){ return 'Le sue preferenze e la sua disponibilità attuale non coincidono con questo invito.'; }
- $r=aiRelation($npc,$player);$traits=aiNpcGame($npc)['traits'];
- if((int)$r['fear']>=20||(int)$r['hostility']>=20||(int)$r['respect']<20||(int)$r['trust']<35){ return 'Non si sente ancora abbastanza al sicuro per raggiungerti in privato. Preferisce conoscervi meglio.'; }
- $threshold=25+(int)floor(max(0,(int)($traits['distrust']??50)-50)/5);
- $close=aiRelationFeelings($r)['close'];
- if((int)$r['affection']<$threshold||(!$close&&((int)$r['meaningful']<4||(int)$r['encounters']<2))){ return 'Apprezza l’invito, ma il vostro rapporto non ha ancora la confidenza che cerca.'; }
- return '';
+ $reason='';
+ if($partner&&$partner!==$player){ $reason='Il personaggio resta fedele al legame che ha già scelto e declina l’invito.'; }
+ elseif(!aiRomanceAllowed($n,aiPlayerIdentity($player),aiSocialRules($npc))){ $reason='Le sue preferenze e la sua disponibilità attuale non coincidono con questo invito.'; }
+ else{
+  $r=aiRelation($npc,$player);$traits=aiNpcGame($npc)['traits'];
+  if((int)$r['fear']>=20||(int)$r['hostility']>=20||(int)$r['respect']<20||(int)$r['trust']<35){ $reason='Non si sente ancora abbastanza al sicuro per raggiungerti in privato. Preferisce conoscervi meglio.'; }
+  else{
+   $threshold=25+(int)floor(max(0,(int)($traits['distrust']??50)-50)/5);
+   $close=aiRelationFeelings($r)['close'];
+   if((int)$r['affection']<$threshold||(!$close&&((int)$r['meaningful']<4||(int)$r['encounters']<2))){ $reason='Apprezza l’invito, ma il vostro rapporto non ha ancora la confidenza che cerca.'; }
+  }
+ }
+ return $reason;
 }
 function aiAdultInvitationRelation(int $npc,int $player,array $n):?array {
  $reason=aiAdultInvitationRelationReason($npc,$player,$n);

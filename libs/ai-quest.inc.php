@@ -277,7 +277,12 @@ function aiQuestWorkJob(array $job,bool $offline=false):bool{
   $tactical=json_decode($db->query("SELECT state FROM ai_quest_cast WHERE session_id=? AND kind='npc' AND actor_id=?",[$sid,(int)$npc['id']])[0]['state']??'{}',true)?:[];
   $observation=$db->query("SELECT a.content,a.source_id FROM ai_quest_actions a JOIN chat c ON c.id=a.source_id AND c.dest=0 AND BINARY c.chat=BINARY ? WHERE a.session_id=? AND a.round_number=? AND a.kind='pg' AND a.actor_id=? ORDER BY a.id DESC LIMIT 1",[$job['chat_key'],$sid,(int)$g['round_number'],(int)$job['user_id']])[0]??null;
   if($observation){$job['source_id']=(int)$observation['source_id'];$job['episode_input']=$observation['content'];$job['episode']=ai_episode_prepare($npc,[...$job,'prompt'=>$observation['content']]);}
-  $decision=ai_scene_kind($q)==='narrazione'?'dialogo':(ai_scene_can_finish($sid)?'negozia':(ai_scene_kind($q)==='allenamento'?'allenamento':ai_npc_decision((int)$npc['id'],(int)$job['user_id'],max(1,$enemies),$allies,(bool)$threat)));if(ai_adjudication_enabled($sid)&&$threat&&$decision==='difesa'&&(int)(json_decode($threat['details'],true)['target_id']??0)!==(int)$npc['id']&&ai_npc_game((int)$npc['id'])['stance']!=='noncombattente'&&array_filter(ai_game_inventory('npc',(int)$npc['id']),static fn($i)=>in_array($i['slot'],['armadx','armasx'],true)&&(int)$i['consumo']<(int)$i['durata'])){ $decision='attacco'; }if(ai_tactical_restrained($tactical,(int)$g['round_number'])){ $decision='fuga'; }$actions=$db->query('SELECT kind,actor_id,content,details FROM ai_quest_actions WHERE session_id=? AND round_number=? ORDER BY id',[$sid,(int)$g['round_number']]);$context=[];foreach($actions as $a){ $context[]=$a['kind']==='pg'?aiQuestAttemptSummary($a):(ai_scene_kind($q)==='narrazione'?aiQuestActor($a['kind'],(int)$a['actor_id'])['name'].': '.aiText($a['content'],180):aiQuestAttemptSummary($a,180,false)); }
+  $decision=ai_npc_decision((int)$npc['id'],(int)$job['user_id'],max(1,$enemies),$allies,(bool)$threat);
+if(ai_scene_kind($q)==='allenamento'){ $decision='allenamento'; }
+elseif(ai_scene_can_finish($sid)){ $decision='negozia'; }
+elseif(ai_scene_kind($q)==='narrazione'){ $decision='dialogo'; }if(ai_adjudication_enabled($sid)&&$threat&&$decision==='difesa'&&(int)(json_decode($threat['details'],true)['target_id']??0)!==(int)$npc['id']&&ai_npc_game((int)$npc['id'])['stance']!=='noncombattente'&&array_filter(ai_game_inventory('npc',(int)$npc['id']),static fn($i)=>in_array($i['slot'],['armadx','armasx'],true)&&(int)$i['consumo']<(int)$i['durata'])){ $decision='attacco'; }if(ai_tactical_restrained($tactical,(int)$g['round_number'])){ $decision='fuga'; }$actions=$db->query('SELECT kind,actor_id,content,details FROM ai_quest_actions WHERE session_id=? AND round_number=? ORDER BY id',[$sid,(int)$g['round_number']]);$context=[];foreach($actions as $a){ $visual=ai_scene_kind($q)==='narrazione'?aiQuestActor($a['kind'],(int)$a['actor_id'])['name'].': '.aiText($a['content'],180):aiQuestAttemptSummary($a,180,false);
+$context[]=$a['kind']==='pg'?aiQuestAttemptSummary($a):$visual;
+}
   $decision=aiPerceptionSceneDecision($npc,$job,$decision);
   if(!ai_recognition_anonymous($npc,$job)&&ai_coercion_state((int)$npc['id'],(int)$job['user_id'])&&(!$threat||!empty($job['episode']['coercive']))){ $decision='resa'; }
   $npcAbility=ai_adjudication_enabled($sid)&&in_array($decision,['attacco','difesa','allenamento'],true)?rpg_combat_choose_npc((int)$npc['id'],$sid,(int)$g['round_number'],$decision):null;$copy=$job;$copy['rpg_ability']=$npcAbility;$copy['quest_decision']=$decision;$copy['quest_threat']=$threat?[...json_decode($threat['details'],true),'content'=>$threat['content'],'verbal'=>(json_decode($threat['details'],true)['social_category']??'')==='minaccia'&&empty(aiNarrativeParse($threat['content'])['intent'])]:null;$copy['prompt']='AZIONI OSSERVABILI DEL GIRO: '.implode(' / ',$context).'. PERSONAGGIO DEL PROSSIMO TURNO: '.$npc['name'].'. CONDOTTA DEL BACKEND: '.$decision.'.';$snapshot=aiQuestSnapshot($sid,$copy,$npc);$result=$offline?['testo'=>'Io mantengo la posizione.']:aiGenerate($room,$npc,$copy);$guard=aiQuestGuardNpcText($npc,$copy,$result['testo']);if(!$offline&&!empty($guard['guardrail'])&&(int)($job['attempts']??0)<1){ throw new AiQuestRuntimeException('Il turno PNG richiede una nuova stesura prima della pubblicazione.'); }$result=array_replace($result,$guard);$result['nome']=$npc['name'];$result['sent_at']=time();$encoded=aiQuestJson($result);
@@ -420,9 +425,11 @@ function aiQuestCompactNpcPrompt(array $room,array $npc,array $job,float $scale)
   'allenamento'=>'Prepara una tecnica leale e controllata, senza colpi riusciti o danni.',
   'aiuto'=>'Chiedi aiuto; non dichiarare rinforzi già arrivati.',
   default=>'Descrivi solo il tentativo scelto, senza dichiararne il successo.'};
+ $isSelfTarget=false;
  if(!empty($job['quest_threat'])){
   $threat=$job['quest_threat'];$targetKind=$threat['target_kind']??'npc';$targetId=(int)($threat['target_id']??0);
-  $self=$targetKind==='npc'&&$targetId===$nid;
+  $isSelfTarget=$targetKind==='npc'&&$targetId===$nid;
+  $self=$isSelfTarget;
   $system.=(!empty($threat['verbal'])?"\nMINACCIA VERBALE CONTRO ":"\nATTACCO DICHIARATO CONTRO ").($self?'DI TE':$clip(aiQuestName($targetKind,$targetId),60)).': '.($self?'reagisci a questo tentativo.':'sei testimone; non attribuirti il ruolo della vittima e conserva la condotta scelta.');
  }
  if(!empty($job['rpg_ability'])){ $system.="\nCAPACITÀ VERIFICATA DA TENTARE: ".$clip($job['rpg_ability']['name'].'; '.$job['rpg_ability']['description'],180).'.'; }
@@ -432,7 +439,8 @@ function aiQuestCompactNpcPrompt(array $room,array $npc,array $job,float $scale)
  $narrative=ai_scene_kind(aiQuestRow((string)$job['chat_key'])??[])==='narrazione';
  $actions=aiDb()->query("SELECT kind,actor_id,content,details FROM ai_quest_actions WHERE session_id=? AND round_number=? AND status='submitted'".($narrative?'':" AND kind='pg'").' ORDER BY id DESC LIMIT 8',[$sid,(int)$guidance['round_number']]);
  $lines=[];foreach(array_reverse($actions) as $action){
-  $lines[]=$action['kind']==='npc'&&$narrative?aiQuestName('npc',(int)$action['actor_id']).': '.$clip($action['content'],180):aiQuestAttemptSummary($action,$small?210:300);
+  $limit=$small?210:300;
+$lines[]=$action['kind']==='npc'&&$narrative?aiQuestName('npc',(int)$action['actor_id']).': '.$clip($action['content'],180):aiQuestAttemptSummary($action,$limit);
  }
  if(!$lines){ $lines[]=ai_turn_reading((string)$job['prompt'],$small?350:600); }
  return [['role'=>'system','content'=>$system],['role'=>'user','content'=>"ULTIME AZIONI PUBBLICHE, NON ANCORA RISOLTE:\n".implode("\n",$lines)."\nOra reagisce soltanto ".$npc['name'].': conserva la tua voce e rispondi al gesto o alla parola attuale.']];
@@ -457,7 +465,11 @@ function aiQuestNpcPrompt(array $room,array $npc,array $job,float $scale):array{
  if(in_array($job['quest_decision']??'',['dialogo','negozia'],true)){ $system.=ai_background_context($npc,$job,$scale); }
  $system.=ai_npc_game_context($npc,$job,$scale);
  $system.=' La tua razza effettiva è '.GetRazza((int)$profile['race_id']).'. Non inventare abilità, magie, velocità o resistenze estranee alla tua stirpe. Le capacità dichiarate dal PG sono tentativi da valutare, non risultati già accertati.';
- if(!empty($job['quest_threat'])){$target=(int)($job['quest_threat']['target_id']??0);$system.=' AGGRESSIONE GIÀ DICHIARATA: non limitarti a nuovi ammonimenti. Il rispetto del rango non impedisce la legittima difesa. '.($target===$nid?'Sei il bersaglio: tenta una difesa fisica concreta.':(($job['quest_decision']??'')==='attacco'?'Un collega è il bersaglio: sostienilo con il contrattacco scelto dal backend e con l’arma realmente impugnata.':'Un collega è il bersaglio: tenta di sostenerlo con una posizione o una difesa concreta.')).' Non inventare armi, rinforzi già arrivati o azioni dei colleghi.';}
+ $defence='';
+ $threatTarget=(int)($job['quest_threat']['target_id']??0);
+ if($threatTarget>0 && $threatTarget===$nid){ $defence='Sei il bersaglio: tenta una difesa fisica concreta.'; }
+ elseif(($job['quest_decision']??'')==='attacco'){ $defence='Un collega è il bersaglio: sostienilo con il contrattacco scelto dal backend e con l’arma realmente impugnata.'; }
+ $system.=' AGGRESSIONE GIÀ DICHIARATA: non limitarti a nuovi ammonimenti. Il rispetto del rango non impedisce la legittima difesa. '.$defence;
  if(($job['quest_decision']??'')==='dialogo'){ $system.=' Scena narrativa: prosegui il dialogo concreto, senza inventare una battaglia o nuovi avversari.'; }
  if(($job['quest_decision']??'')==='allenamento'){ $system.=' Allenamento consensuale e leale: rispondi con collaborazione e prepara una tecnica controllata, senza dichiarare colpi riusciti. La cautela è attenzione tecnica, non sospetto verso il PG.'; }
  if(!empty($job['rpg_ability'])){ $system.=' ABILITÀ SCELTA E VERIFICATA DAL BACKEND: '.aiText($job['rpg_ability']['name'],90).'. '.aiText($job['rpg_ability']['description'],180).'. Metti in scena questo tentativo con l’equipaggiamento reale, senza confermarne gli effetti prima del verdetto.'; }

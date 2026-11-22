@@ -159,7 +159,7 @@ function alphanoChatRoleCommands($db,int $idpg,array &$ctx,callable $render): vo
 /** Applies sunlight damage for a vampire character. */
 function alphanoChatSunlight($db,int $idpg,array $ctx): void
 {
-    $chat=$ctx['chat'];$nome=$ctx['pg']['nome'];$sesso=$ctx['sesso'];$ferite=$ctx['ferite'];
+    $chat=$ctx['chat'];$pg=$ctx['pg'];$nome=$pg['nome'];$out=$ctx['out'];$sesso=$ctx['sesso'];$ferite=$ctx['ferite'];
     $razza=$ctx['razza'];$meteo=$ctx['meteo'];$vampiredamage=$ctx['vampiredamage'];
     if ((!function_exists('rpgCreationReady')||!rpgCreationReady()) && $vampiredamage && $out && $razza===2 && !licanTime() && $meteo===0) {
         if (!str_contains($ferite,'Bruciature solari')) {
@@ -206,7 +206,7 @@ function alphanoChatRecordings($db,string $chat,string $out): void
 /** Writes the running session log and rewards its spectators. */
 function alphanoChatSessionLog($db,array $ctx): void
 {
-    $chat=$ctx['chat'];$sessionName=$ctx['sessionName'];$out=$ctx['out'];
+    $chat=$ctx['chat'];$sessionName=$ctx['sessionName'];$out=$ctx['out'];$SessionIsRunning=$ctx['SessionIsRunning'];
     $scriviPart=$ctx['scriviPart'];$partecipanti=$ctx['partecipanti'];$idpg=$ctx['idpg'];
     if ($SessionIsRunning) {
         $logFile = HTMLROOT . "/sessione/log/{$sessionName}.html";
@@ -351,7 +351,7 @@ function buildChatMessage(
     if($out!==''){$type=str_starts_with($str,'//')?'ooc':match($first){'+'=>'action','$'=>'whisper','&'=>'animal','#'=>'master',default=>'speech'};$out='<div data-message-type="'.$type.'">'.$out.'</div>';}
 
     // 8) vampireDamage
-    alphanoChatSunlight($db,$idpg,compact('chat','pg','sesso','ferite','razza','meteo','vampiredamage'));
+    alphanoChatSunlight($db,$idpg,compact('chat','pg','sesso','ferite','razza','meteo','vampiredamage','out'));
 
     // 9) Conta azioni lican
     alphanoChatInfectedActions($db,$idpg,(bool)$inf,$OnGame);
@@ -360,7 +360,7 @@ function buildChatMessage(
     alphanoChatRecordings($db,$chat,$out);
 
     // 11) Log sessione in HTML
-    alphanoChatSessionLog($db,compact('chat','sessionName','out','scriviPart','partecipanti','idpg'));
+    alphanoChatSessionLog($db,compact('chat','sessionName','out','scriviPart','partecipanti','idpg','SessionIsRunning'));
 
     return [$out, $dest, $newLoc, $l];
 }

@@ -126,7 +126,7 @@
   function pageTitle(old,view,category){
     if(view==='corporazioni-index'){return 'Corporazioni';}
     if(view==='organizzazioni-index'){return 'Organizzazioni';}
-    const full=document.title,parts=full.split(/\s+-/)[0].split('.::')[0].trim();
+    const full=document.title,parts=full.split(/ +-/)[0].split('.::')[0].trim();
     return old?.textContent.trim()||parts||category.title;
   }
   function buildHeading(body,view,category){

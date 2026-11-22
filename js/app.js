@@ -125,7 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
         pane.classList.toggle('is-visual-map',visualMap);
         const heading = pane.querySelector('h1');
         if (heading && frame.contentDocument?.title) {
-          const fullTitle=frame.contentDocument.title,separator=/\s+-\s+/.exec(fullTitle);
+          const fullTitle=frame.contentDocument.title,separator=/ + - +/.exec(fullTitle);
           const cleanTitle=separator&&fullTitle.slice(separator.index).toLowerCase().includes('alphano')?fullTitle.slice(0,separator.index):fullTitle;
           heading.textContent = frame.contentDocument.querySelector('.ui-page-heading h1')?.textContent || cleanTitle;
         }

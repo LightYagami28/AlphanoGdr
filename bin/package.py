@@ -24,7 +24,7 @@ if __name__=='__main__':
  with zipfile.ZipFile(target,'w',zipfile.ZIP_DEFLATED,compresslevel=9) as archive:
   for p in publish_files(args.include_vendor):archive.write(p,p.relative_to(ROOT).as_posix())
  version=(ROOT/'VERSION').read_text().strip()
- if not re.fullmatch(r'V[0-9]+(?:\.[0-9]+){1,2}',version):raise SystemExit('Invalid release version.')
+ if not re.fullmatch(r'V\d+(?:\.\d+){1,2}',version):raise SystemExit('Invalid release version.')
  versioned=out/('AlphanoGdr-'+version+('-hosting.zip' if args.include_vendor else '-source.zip'))
  shutil.copyfile(target,versioned)
  print(target);print(versioned);print('SHA256',hashlib.sha256(target.read_bytes()).hexdigest())

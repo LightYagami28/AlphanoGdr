@@ -89,7 +89,7 @@ function aiSocialManifestedEmotions(array $npc,string $reply,bool $physical=true
         if(!in_array($kind,['speech','action'],true)){ continue; }
         foreach(preg_split('/(?<=[.!?;])\\s+/u',$text,-1,PREG_SPLIT_NO_EMPTY)?:[] as $sentence){
             if($kind==='speech'){
-                if(preg_match('/\\b(?:se|forse|ipoteticamente|diceva|ha\\s+detto|ripeti|ripetete)\\b|\\?$/iu',$sentence)){ continue; }
+                if(preg_match('/(?:\\b(?:se|forse|ipoteticamente|diceva|ha\\s+detto|ripeti|ripetete)\\b|\\?$)/iu',$sentence)){ continue; }
                 foreach($speechPatterns as $key=>$pattern){ if(preg_match('/(?:'.$pattern.')/iu',$sentence)){
                     // A negated feeling can be stated, but it is not proof of the opposite
                     // score. Trust's explicit refusal is itself a public stance.

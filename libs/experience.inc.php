@@ -14,16 +14,17 @@ function alphanoExperienceSettings(int $user):array {
  $row=connectDB()->query('SELECT * FROM user_experience_settings WHERE user_id=?',[$user])[0]??[];
  $settings=alphanoExperienceDefaults();$email=json_decode($row['email_preferences']??'{}',true)??[];foreach($email as $key=>$value){ if(array_key_exists($key,$settings)&&str_starts_with($key,'email_')){ $row[$key]=$value; } }foreach($settings as $key=>$default){ if(array_key_exists($key,$row)){ $settings[$key]=alphanoExperienceCast($default,$row[$key]); } }return $settings;
 }
+function alphanoExperienceCheckBool($value):void { if(!is_bool($value)){ throw new DomainException('Valore della preferenza non valido.',400); } }
+function alphanoExperienceCheckVolume($value):void { if(!is_int($value)||$value<0||$value>100){ throw new DomainException('Il volume deve essere compreso tra 0 e 100.',400); } }
+function alphanoExperienceCheckSkin($value):void { if(!is_string($value)||!in_array($value,['classic'],true)){ throw new DomainException('Skin degli scacchi non valida.',400); } }
+function alphanoExperienceCheckRelationship($value):void { if(!is_string($value)||!in_array($value,['private','public','off'],true)){ throw new DomainException('Visibilità delle emozioni non valida.',400); } }
+function alphanoExperienceCheckSound($value):void { if(!is_string($value)||!in_array($value,['castle','bell','chime','soft'],true)){ throw new DomainException('Suono non valido.',400); } }
 function alphanoExperienceValidateValue(string $key,$value):void {
- if(str_starts_with($key,'email_')||in_array($key,['map_effects','map_lighting','ambient_sound','notification_sound'],true)){
-  if(!is_bool($value)){ throw new DomainException('Valore della preferenza non valido.',400); }
- }elseif(in_array($key,['ambient_volume','notification_volume'],true)){
-  if(!is_int($value)||$value<0||$value>100){ throw new DomainException('Il volume deve essere compreso tra 0 e 100.',400); }
- }elseif($key==='chess_skin'){
-  if(!is_string($value)||!in_array($value,['classic'],true)){ throw new DomainException('Skin degli scacchi non valida.',400); }
- }elseif($key==='relationship_effects'){
-  if(!is_string($value)||!in_array($value,['private','public','off'],true)){ throw new DomainException('Visibilità delle emozioni non valida.',400); }
- }elseif(!is_string($value)||!in_array($value,['castle','bell','chime','soft'],true)){ throw new DomainException('Suono non valido.',400); }
+ if(str_starts_with($key,'email_')||in_array($key,['map_effects','map_lighting','ambient_sound','notification_sound'],true)){ alphanoExperienceCheckBool($value); }
+ elseif(in_array($key,['ambient_volume','notification_volume'],true)){ alphanoExperienceCheckVolume($value); }
+ elseif($key==='chess_skin'){ alphanoExperienceCheckSkin($value); }
+ elseif($key==='relationship_effects'){ alphanoExperienceCheckRelationship($value); }
+ else{ alphanoExperienceCheckSound($value); }
 }
 function alphanoExperienceValidate(array $input,array $current):array {
  $allowed=array_keys(alphanoExperienceDefaults());

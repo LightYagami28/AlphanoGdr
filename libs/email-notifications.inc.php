@@ -27,12 +27,14 @@ function alphanoEmailMailNotice(int $recipient,int $sender,string $subject,strin
  alphanoEmailEnqueue($recipient,'mail:'.$id,$category,$title,'/posta/',$created??time());
 }
 function alphanoEmailNoticeCategory(string $group,string $section,string $key):string {
- if($section==='giochi'){ return 'games'; }
- if(in_array($group,['organizzazioni','corporazioni','accademia'],true)){ return 'groups'; }
- if($group==='citta'){ return 'civic'; }
- if($group==='bacheche'){ return 'boards'; }
- if($group==='master'){ return 'quests'; }
- return 'alerts';
+ return match(true){
+  $section==='giochi'=>'games',
+  in_array($group,['organizzazioni','corporazioni','accademia'],true)=>'groups',
+  $group==='citta'=>'civic',
+  $group==='bacheche'=>'boards',
+  $group==='master'=>'quests',
+  default=>'alerts'
+ };
 }
 function alphanoEmailCollectMails($db,int $uid,int $since):void {
  foreach($db->query('SELECT m.id,m.idmittente,m.oggetto,m.messaggio,m.data,d.event_id AS civic_event FROM mail m LEFT JOIN civic_election_deliveries d ON d.mail_id=m.id WHERE m.iddestinatario=? AND m.idmittente<>? AND m.data>=? AND m.letto=0 AND m.deldest=0 ORDER BY m.id DESC LIMIT 200',[$uid,$uid,max($since,time()-86400)]) as $mail){

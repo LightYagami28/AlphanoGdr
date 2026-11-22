@@ -25,5 +25,5 @@ with tempfile.TemporaryDirectory(prefix='alphano-package-') as directory:
   if not source.read('LICENSE').decode().startswith('GNU AFFERO GENERAL PUBLIC LICENSE'):raise SystemExit('Missing disclosed attribution license.')
   source.extractall(destination)
  print('PASS complete upload package: root entry, installer, bundled dependencies and no installed state',flush=True)
- result=subprocess.run([sys.executable,str(destination/'tests/smoke.py')],cwd=destination,env=os.environ.copy())
+ result=subprocess.run([sys.executable,str(destination/'tests/smoke.py')],cwd=destination,env=os.environ.copy(),check=False)
  raise SystemExit(result.returncode)

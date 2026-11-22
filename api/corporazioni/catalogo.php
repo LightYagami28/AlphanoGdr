@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+if (!defined('S1192_API_CORPORAZIONI_CATALOGO_PHP_4C8579_PARAMETRI_NON_ESAURIENTI')) { define('S1192_API_CORPORAZIONI_CATALOGO_PHP_4C8579_PARAMETRI_NON_ESAURIENTI', 'Parametri non esaurienti'); }
+
 foreach (array_merge($_GET,$_POST) as $value) {
     if (is_array($value) || is_object($value)) {
         http_response_code(400);
@@ -214,7 +216,7 @@ try {
                 $message=riparaOggetto($id,$idpg,$corp);
                 respond(['success'=>$message==='Oggetto riparato correttamente','msg'=>$message]);
             }
-            respond(['success'=>false,'msg'=>'Parametri non esaurienti']);
+            respond(['success'=>false,'msg'=>S1192_API_CORPORAZIONI_CATALOGO_PHP_4C8579_PARAMETRI_NON_ESAURIENTI]);
             break;
 
         // ─ modifica ───────────────────────────────────────────────────────────────
@@ -290,7 +292,7 @@ try {
 
                 respond(['success'=>true,'msg'=>'Oggetto modificato correttamente']);
             }
-            respond(['success'=>false,'msg'=>'Parametri non esaurienti']);
+            respond(['success'=>false,'msg'=>S1192_API_CORPORAZIONI_CATALOGO_PHP_4C8579_PARAMETRI_NON_ESAURIENTI]);
             break;
 
         // ─ aggiungi ───────────────────────────────────────────────────────────────
@@ -353,7 +355,7 @@ try {
 
                 respond(['success'=>true,'msg'=>'Oggetto creato correttamente']);
             }
-            respond(['success'=>false,'msg'=>'Parametri non esaurienti']);
+            respond(['success'=>false,'msg'=>S1192_API_CORPORAZIONI_CATALOGO_PHP_4C8579_PARAMETRI_NON_ESAURIENTI]);
             break;
 
         // ─ cancellaobj ────────────────────────────────────────────────────────────
@@ -375,7 +377,7 @@ try {
                 $db->execute('DELETE FROM newequip WHERE id = ?',[$id]);
                 respond(['success'=>true,'msg'=>'Oggetto eliminato correttamente']);
             }
-            respond(['success'=>false,'msg'=>'Parametri non esaurienti']);
+            respond(['success'=>false,'msg'=>S1192_API_CORPORAZIONI_CATALOGO_PHP_4C8579_PARAMETRI_NON_ESAURIENTI]);
             break;
 
         // ─ getMeta ────────────────────────────────────────────────────────────────

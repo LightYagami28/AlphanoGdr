@@ -224,20 +224,20 @@ function getAzioniLavoro(string $chat): array
 }
 
 /** Compatibility adapters publish neutral events; configured races use transformations.inc.php. */
-function licanMetamorphosis(string $chat, string $nome, string $sesso, bool $verso): void
+function licanMetamorphosis(string $chat, string $nome, bool $verso): void
 {
     $name=htmlspecialchars($nome,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
     insertIntoChat($chat,'<div class="Fato">'.$name.($verso?' cambia forma.':' ritorna alla forma iniziale.').'</div>');
 }
-function ancestralMetamorphosis(string $chat, string $nome, string $sesso, bool $verso): void
+function ancestralMetamorphosis(string $chat, string $nome, bool $verso): void
 {
-    licanMetamorphosis($chat,$nome,$sesso,$verso);
+    licanMetamorphosis($chat,$nome,$verso);
 }
 function frasiLican(int $pg): string
 {
     return htmlspecialchars(GetPGFromID($pg),ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8').' non può parlare nella forma attuale.';
 }
-function vampireDamage(string $chat, string $nome, string $sesso, bool $morto): void
+function vampireDamage(string $chat, string $nome, bool $morto): void
 {
     $name=htmlspecialchars($nome,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
     insertIntoChat($chat,'<div class="Fato">'.$name.($morto?' non ha più punti ferita.':' subisce danni ambientali.').'</div>');

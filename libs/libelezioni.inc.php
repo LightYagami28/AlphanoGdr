@@ -59,7 +59,7 @@ function voteTime(int $city): bool
  * Inserisce un candidato, aggiorna budget di org e città.
  * Restituisce true o stringa di errore.
  */
-function inserisciCandidato(int $budget, int $costo, int $pg, int $city, string $programma, int $org): true|string
+function inserisciCandidato(int $costo, int $pg, int $city, string $programma, int $org): true|string
 {
     if(alphanoElectionsReady()){if((int)(alphanoUser()['id']??0)!==$pg){ return 'La candidatura deve essere confermata personalmente dal cittadino.'; }try{alphanoElectionsCandidate($city,$pg,$programma);return true;}catch(DomainException $e){return $e->getMessage();}}
     if ($costo < 0 || trim($programma) === '' || !electionTime($city)) { return 'Candidature non aperte o parametri non validi'; }

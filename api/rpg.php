@@ -1,5 +1,7 @@
 <?php
 declare(strict_types=1);
+
+if (!defined('S1192_API_RPG_PHP_5A543A_PERMESSI_AMMINISTRATIVI_RICHIESTI')) { define('S1192_API_RPG_PHP_5A543A_PERMESSI_AMMINISTRATIVI_RICHIESTI', 'Permessi amministrativi richiesti.'); }
 require_once __DIR__.'/../libs/player-runtime.inc.php';
 require_once __DIR__.'/../libs/rpg.inc.php';
 playerApi(function():array {
@@ -11,9 +13,9 @@ playerApi(function():array {
   $sheet['can_manage_malus']=$admin||!empty($user['fatepower']);$sheet['is_owner']=$own;$sheet['can_edit']=$edit;$sheet['is_admin']=$admin;return $sheet;
  };
  if($_SERVER['REQUEST_METHOD']==='GET'){
-  if($action==='admin'){if(!$admin){ throw new DomainException('Permessi amministrativi richiesti.',403); }return rpg_admin_data();}
+  if($action==='admin'){if(!$admin){ throw new DomainException(S1192_API_RPG_PHP_5A543A_PERMESSI_AMMINISTRATIVI_RICHIESTI,403); }return rpg_admin_data();}
   if($action==='malus_targets'){if(!$admin&&empty($user['fatepower'])){ throw new DomainException('Permessi Master richiesti.',403); }return ['players'=>getDB()->query('SELECT id,nome AS name FROM utenti ORDER BY nome LIMIT 1000'),'npcs'=>getDB()->query('SELECT id,name FROM ai_npcs ORDER BY name LIMIT 1000')];}
-  if($action==='players'){if(!$admin){ throw new DomainException('Permessi amministrativi richiesti.',403); }$q=playerText($in,'q',50);return ['players'=>getDB()->query('SELECT id,nome AS name,razza AS race_id FROM utenti WHERE nome LIKE ? ORDER BY nome LIMIT 50',[$q.'%'])];}
+  if($action==='players'){if(!$admin){ throw new DomainException(S1192_API_RPG_PHP_5A543A_PERMESSI_AMMINISTRATIVI_RICHIESTI,403); }$q=playerText($in,'q',50);return ['players'=>getDB()->query('SELECT id,nome AS name,razza AS race_id FROM utenti WHERE nome LIKE ? ORDER BY nome LIMIT 50',[$q.'%'])];}
   if($action==='creation_catalog'){ return rpgCreationCatalog(); }
   if($action==='catalog'){ return rpg_catalog()+['settings'=>['stat_cap'=>100,'initial_points'=>(int)alphanoConfig('initial_points'),'xp_per_stat'=>1]]; }
   if($action==='history'){if(!$edit){ throw new DomainException('Questo registro è personale.',403); }return rpg_history($kind,$id,rpg_int($in['before']??0,0,PHP_INT_MAX,'Pagina'));}
@@ -22,13 +24,13 @@ playerApi(function():array {
  playerMutation();
  if($action==='save_malus'){if(!$admin&&empty($user['fatepower'])){ throw new DomainException('Permessi Master richiesti.',403); }return $profileView(rpgSaveMalus($kind,$id,$in['conditions']??null,playerText($in,'reason',500,true),$actor));}
  if($action==='upload_ability_image'){
-  if(!$admin){ throw new DomainException('Permessi amministrativi richiesti.',403); }
+  if(!$admin){ throw new DomainException(S1192_API_RPG_PHP_5A543A_PERMESSI_AMMINISTRATIVI_RICHIESTI,403); }
   require_once __DIR__.'/../libs/media-assets.inc.php';
   $path=alphanoMediaUpload($_FILES['image']??[],'rpg/abilities/uploads',null,[1024,1024]);
   rpg_admin_audit($actor,'upload_ability_image',$path,null,['image'=>$path]);return ['image'=>$path];
  }
  if(in_array($action,['save_race','save_stat','save_ability','save_settings','grant_xp'],true)){
-  if(!$admin){ throw new DomainException('Permessi amministrativi richiesti.',403); }
+  if(!$admin){ throw new DomainException(S1192_API_RPG_PHP_5A543A_PERMESSI_AMMINISTRATIVI_RICHIESTI,403); }
   $result=match($action){'save_race'=>rpg_admin_save_race($in,$actor),'save_stat'=>rpg_admin_save_stat($in,$actor),'save_ability'=>rpg_admin_save_ability($in,$actor),'save_settings'=>rpg_admin_save_settings($in['settings']??null,$actor),'grant_xp'=>rpg_grant_xp($kind,$id,rpg_int($in['amount']??0,1,1000000,'Esperienza'),playerText($in,'reason',500,true),'admin:'.rpg_request_key($in['request_id']??''),$actor)};return ['success'=>true,'result'=>$result];
  }
  if(!$edit){ throw new DomainException('Puoi gestire soltanto il tuo personaggio.',403); }

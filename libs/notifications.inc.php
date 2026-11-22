@@ -62,22 +62,10 @@ function alphanoActivityKey(string $source, int|string $identity, array $version
     return $source.':'.$identity.':'.hash('sha256',json_encode($version,JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE));
 }
 
-/**
- * Read current source records, never a copied private notification payload.
- * Revoking a membership/role therefore revokes both counters and message titles.
- * The only state stored by notifications is the recipient's acknowledgement.
- */
-function alphanoActivityNotifications(int $recipient): array
-{
-    $db=connectDB();
-    $user=$db->query('SELECT * FROM utenti WHERE id=?',[$recipient])[0] ?? null;
-    if(!$user){ return []; }
-    $activity=[];
-    $add=static function(string $key,string $group,string $title,string $detail,string $url,int $created=0,int $priority=0)use(&$activity):void{
-        $activity[$key]=['key'=>$key,'title'=>$title,'detail'=>$detail,'url'=>$url,'group'=>$group,
-            'created_at'=>$created,'priority'=>$priority,'section'=>alphanoNotificationSection($group,$key,$url),'persistent'=>false,'read_at'=>null];
-    };
 
+/** Split from alphanoActivityNotifications: keeps each source area independent. */
+function alphanoDiscussionActivity($db,array $user,int $recipient,callable $add): void
+{
     // The permission expression is the same OR policy as player_board_permissions.
     $boardAcl="(NOT EXISTS(SELECT 1 FROM diritti r WHERE r.bacheca=b.bacheca)
         OR ?=1 OR EXISTS(SELECT 1 FROM diritti r WHERE r.bacheca=b.bacheca AND
@@ -124,7 +112,11 @@ function alphanoActivityNotifications(int $recipient): array
             ($row['author'] ?: 'Sistema').' · '.$label,
             '/discussioni/?tipo='.rawurlencode($row['tipo']).'&thread='.(int)$row['thread_id'],(int)$row['data'],$reply?2:0);
     }
+}
 
+/** Split from alphanoActivityNotifications: keeps each source area independent. */
+function alphanoCivicActivity($db,array $user,int $recipient,callable $add): void
+{
     // Group administration is tied to the actual membership, not global admin.
     $org=!empty($user['adminorganizzazione'])?(int)$user['organizzazione']:0;
     $corp=!empty($user['admincorporazione'])?(int)$user['corporazione']:0;
@@ -168,6 +160,11 @@ function alphanoActivityNotifications(int $recipient): array
             $add($key,$target[1],$target[2],$row['nome'].' · In attesa di valutazione',$target[3],(int)$row['data'],1);
         }
     }
+}
+
+/** Split from alphanoActivityNotifications: keeps each source area independent. */
+function alphanoCommerceActivity($db,array $user,callable $add): void
+{
     if($org || $corp){
         $loans=$db->query('SELECT p.*,o.nome AS org_name,c.nome AS corp_name FROM prestiti p
             JOIN organizzazioni o ON o.id=p.org JOIN corporazioni c ON c.id=p.corp
@@ -196,7 +193,11 @@ function alphanoActivityNotifications(int $recipient): array
                 ($row['customer'] ?: 'Giocatore').' · Quantità '.$row['qta'],'/corporazioni/trasferimenti.php#'.((int)$row['stato']===5?'produzione':'corp'),(int)$row['data'],1);
         }
     }
+}
 
+/** Split from alphanoActivityNotifications: keeps each source area independent. */
+function alphanoAcademyActivity($db,array $user,callable $add): void
+{
     $isAcademy=!empty($user['admin']) || !empty($user['adminaccademia']);
     $catalogCorp=(!empty($user['admincatalogo']) || !empty($user['admincorporazione']))?(int)$user['corporazione']:0;
     if($isAcademy || $catalogCorp){
@@ -233,7 +234,11 @@ function alphanoActivityNotifications(int $recipient): array
                 'Giocata da valutare: '.($row['nome'] ?: '#'.$row['id']),'Valutazione Accademia','/admin/accademia.php#proposte',(int)$row['data'],1);
         }
     }
+}
 
+/** Split from alphanoActivityNotifications: keeps each source area independent. */
+function alphanoFinalizeActivity($db,int $recipient,array $activity): array
+{
     foreach(alphanoPersistedActivity($recipient,false,0,0,null,null,true) as $event){$event['priority']=1;$activity[$event['key']]=$event;}
 
     // Forum reads were filtered by their indexed join; this also filters pending
@@ -245,6 +250,44 @@ function alphanoActivityNotifications(int $recipient): array
     $activity=array_values($activity);
     usort($activity,static fn(array $a,array $b):int=>($b['priority']<=>$a['priority']) ?: ($b['created_at']<=>$a['created_at']) ?: ((str_starts_with($a['key'],'event:')&&str_starts_with($b['key'],'event:'))?((int)substr($b['key'],6)<=>(int)substr($a['key'],6)):strcmp($a['key'],$b['key'])));
     foreach($activity as &$notice){ unset($notice['priority']); }
+    return $activity;
+    return $activity;
+}
+/**
+ * Read current source records, never a copied private notification payload.
+ * Revoking a membership/role therefore revokes both counters and message titles.
+ * The only state stored by notifications is the recipient's acknowledgement.
+ */
+function alphanoActivityNotifications(int $recipient): array
+{
+    $db=connectDB();
+    $user=$db->query('SELECT * FROM utenti WHERE id=?',[$recipient])[0] ?? null;
+    if(!$user){ return []; }
+    $activity=[];
+    $add=static function(string $key,string $group,string $title,string $detail,string $url,int $created=0,int $priority=0)use(&$activity):void{
+        $activity[$key]=['key'=>$key,'title'=>$title,'detail'=>$detail,'url'=>$url,'group'=>$group,
+            'created_at'=>$created,'priority'=>$priority,'section'=>alphanoNotificationSection($group,$key,$url),'persistent'=>false,'read_at'=>null];
+    };
+
+    // The permission expression is the same OR policy as player_board_permissions.
+    $boardAcl="(NOT EXISTS(SELECT 1 FROM diritti r WHERE r.bacheca=b.bacheca)
+        OR ?=1 OR EXISTS(SELECT 1 FROM diritti r WHERE r.bacheca=b.bacheca AND
+          (r.`all`=1 OR (r.needadmin=1 AND ?=1) OR (r.needfatepower=1 AND ?=1)
+           OR (r.needadminferiti=1 AND ?=1) OR (r.needaccademia=1 AND ?=1))))";
+    $forum=$db->query("SELECT b.id,b.replyid,b.data,b.idpg,root.id AS thread_id,root.idpg AS owner,
+          root.oggetto,l.id AS board_id,l.nome AS board_name,l.location,u.nome AS author
+        FROM bacheche b JOIN luoghi l ON l.id=b.bacheca
+        JOIN bacheche root ON root.id=IF(b.replyid=0,b.id,b.replyid) AND root.replyid=0 AND root.bacheca=b.bacheca
+        LEFT JOIN utenti u ON u.id=b.idpg
+        LEFT JOIN activity_notification_reads nr ON nr.recipient=? AND nr.notice_key=CONCAT('board:',b.id)
+        WHERE b.idpg<>? AND nr.notice_key IS NULL AND $boardAcl",
+        [$recipient,$recipient,(int)!empty($user['admin']),(int)!empty($user['admin']),
+            (int)!empty($user['fatepower']),(int)!empty($user['adminferite']),(int)!empty($user['adminaccademia'])]);
+    alphanoDiscussionActivity($db,$user,$recipient,$add);
+    alphanoCivicActivity($db,$user,$recipient,$add);
+    alphanoCommerceActivity($db,$user,$add);
+    alphanoAcademyActivity($db,$user,$add);
+    return alphanoFinalizeActivity($db,$recipient,$activity);
     return $activity;
 }
 

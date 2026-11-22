@@ -4,6 +4,174 @@ declare(strict_types=1);
 use Alphano\Database\PDOMySQLDriver;
 require_once __DIR__.'/../../libs/chat-format.inc.php';
 
+
+/** Applies sunlight damage without changing message rendering. */
+function alphanoChatVampireDamage(PDOMySQLDriver $db,int $idpg,string $chat,array $pg,string $sesso,string $ferite,int $razza,int $meteo,bool $vampiredamage): void
+{
+    // 8) vampireDamage
+    if ((!function_exists('rpgCreationReady')||!rpgCreationReady()) && $vampiredamage && $out && $razza===2 && !licanTime() && $meteo===0) {
+        if (!str_contains($ferite,'Bruciature solari')) {
+            $ferite .= ' Bruciature solari';
+        }
+        if ((int)$pg['puntif'] > MAXPUNTIF/10) {
+            $db->execute(
+                'UPDATE utenti SET puntif=puntif-?,ferite=? WHERE id=?',
+                [MAXPUNTIF/10,$ferite,$idpg]
+            );
+            vampireDamage($chat,$pg['nome'],$sesso,false);
+        } else {
+            $db->execute(
+                'UPDATE utenti SET puntif=?,razza=7,ferite="" WHERE id=?',
+                [MAXPUNTIF,$idpg]
+            );
+            vampireDamage($chat,$pg['nome'],$sesso,true);
+        }
+    }
+}
+
+/** Persists the rendered message in live recordings and the running session log. */
+function alphanoChatSessionLog(PDOMySQLDriver $db,string $chat,int $sessionName,string $out,bool $scriviPart,string $partecipanti,int $idpg): void
+{
+    // 11) Log sessione in HTML
+    if ($SessionIsRunning) {
+        $logFile = HTMLROOT . "/sessione/log/{$sessionName}.html";
+        if(!empty($GLOBALS['alphano_defer_chat_log'])){ $GLOBALS['alphano_deferred_chat_session']=(int)$sessionName; }
+        else { file_put_contents($logFile, $out."<br>\n", FILE_APPEND|LOCK_EX); }
+        if ($scriviPart) {
+            $db->execute(
+                'UPDATE sessioni SET partecipanti=? WHERE id=?',
+                [$partecipanti.$idpg.';',$sessionName]
+            );
+        }
+        // reward spettatori…
+        $ids = array_filter(explode(';',$partecipanti), fn($v)=>$v!=='' && $v!=$idpg);
+        if ($ids && !$db->query('SELECT session_id FROM ai_quests WHERE session_id=?',[$sessionName])) {
+            $ph = implode(',', array_fill(0,count($ids),'?'));
+            $db->execute(
+                "UPDATE utenti SET denari=denari+10 WHERE id IN ($ph) AND chat=?",
+                [...$ids,$chat]
+            );
+        }
+    }
+}
+/** Renders a single chat command; early returns carry an immediate reply. */
+function alphanoChatRenderCommand(PDOMySQLDriver $db,int $idpg,string $str,string $ora,string $razImg,string $fPar,string $fAzo,string $name,string $araldica,callable $render,bool $SessionIsRunning,bool $NeedsDadi,bool $incog,array $pg,string &$out,int &$dest,string &$newLoc,string &$l,bool &$OnGame,string &$location): ?array
+{
+        $first = $str[0] ?? '';
+    switch ($first) {
+        case '/':
+            if(str_starts_with($str,'//')){$OnGame=false;$out='<span class="String">'.$ora.'</span> '.$razImg.$fPar.$name.'</B></SPAN> <span class="chat-ooc-text">'.htmlspecialchars(substr($str,2),ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8').'</span>';break;}
+            // A single slash is ordinary speech.
+            $out='<span class="String">'.$ora.'</span> '.$razImg.$name.' '.$render(substr($str,1));break;
+        case '+': {
+            // rimuovo il ‘+’ dalla stringa
+            $azione = substr($str, 1);
+
+            // Resource work is confirmed and committed by the HTTP action engine.
+            // The shared text renderer never awards inventory or penalizes accounts.
+
+            // fallback “azione normale”
+            if ($pg['imprigionato']) {
+                $location = 'prigione';
+                $azione   = '[Prigione]' . $azione;
+            } elseif (preg_match('/^\s*(\[[^\]]+\])/', $azione, $m)) {
+                $newLoc = strtolower(trim($m[1]));
+            }
+
+            // **Qui ricreo correttamente time + nome + azione**
+            $out = $fAzo . $ora . '</SPAN>'
+                . $fAzo . $razImg . $name . ' ' . $render($azione,true) . '</SPAN>';
+            if ($SessionIsRunning && $NeedsDadi) {
+                $out .= '&nbsp;<img height="10" width="10" src="/chatimg/dadod20.gif">&nbsp;' . rand(1,20);
+            }
+            $out .= '</SPAN>';
+
+            break;
+        }
+
+
+        case '#':
+            if (($pg['fatepower']||$pg['admin']) && ($SessionIsRunning||$pg['admin'])) {
+                $cmd = htmlentities(substr($str,1));
+                $out = "<TABLE class=\"column-width-100\"><TR>"
+                     . "<TD class=\"MasterKey\">{$cmd}</TD>"
+                     . "</TR></TABLE>";
+                $OnGame = false;
+            }
+            break;
+
+        case '%':
+            if ($pg['fatepower'] || !empty($GLOBALS['private_chat'])) {
+                $txt = htmlentities(substr($str,1));
+                $out = "<TABLE class=\"column-width-100\"><TR>"
+                     . "<TD class=\"DescrKey\">{$txt}</TD>"
+                     . "</TR></TABLE>";
+                $OnGame = false;
+            }
+            break;
+
+        case '@':
+            if ($pg['fatepower'] || !empty($GLOBALS['private_chat'])) {
+                $url = substr($str,1);
+                if (!preg_match('~^(https?://|/(?!/))~i', $url)) { return ['',0,$location,'0']; }
+                $out = "<DIV class=\"align-center\"><img src=\"" . htmlspecialchars($url) . "\" /></DIV>";
+                $OnGame = false;
+            }
+            break;
+
+        case '$':
+            if (str_contains($str,';')) {
+                [$dst,$msg2] = explode(';',substr($str,1),2);
+                $dest = GetPGID(trim($dst)) ?: 0;
+                if ($dest) {
+                    $out = '<EM>'.$razImg.$araldica
+                         . $fPar.$name.'</B></SPAN>'
+                         . '<SPAN class="String"><U>'.$render($msg2).'</U></SPAN></EM>';
+                }
+            }
+            break;
+
+        case '&':
+            if (str_contains($str,';')) {
+                [$anim,$act] = explode(';',substr($str,1),2);
+                $row = $db->query(
+                    "SELECT ea.shortDesc,epg.nome,epgm.id
+                       FROM equip ea
+                       JOIN equippg epg ON epg.uid=ea.id
+                       JOIN equippg epgm ON epgm.idpg=epg.idpg
+                      WHERE epg.idpg=? AND epg.nome=? LIMIT 1",
+                    [$idpg,$anim]
+                )[0]??null;
+                if ($row) {
+                    consuma($idpg,(int)$row['id']);
+                    $out = $fAzo.$ora.'&nbsp;'
+                         .htmlentities($row['nome']).', '
+                         .htmlentities($row['shortDesc']).' di '
+                         .$name.', '.htmlentities($act).'</SPAN>';
+                }
+            }
+            break;
+
+        case '|':
+            if ($incog) {
+                $out = '<span class="StringN">'.$ora.' <strong>PNG</strong> '.htmlentities(substr($str,1),ENT_QUOTES|ENT_SUBSTITUTE).'</span>';
+            }
+            break;
+
+        default:
+            // parlato normale
+            if (preg_match('/^\s*(\[[^\]]+\])/',$str,$m)) {
+                $newLoc = strtolower(trim($m[1]));
+            }
+            $out = '<SPAN class="String">'.$ora.'</SPAN>'
+                 .$razImg.$araldica
+                 .$fPar.$name.'</B></SPAN> '
+                 .'<SPAN class="String">'.$render($str).'</SPAN>';
+            break;
+    }
+    return null;
+}
+
 /**
  * buildChatMessage() – logica pari‐pari di addLchat.inc.php
  * restituisce [html, dest, location, lican]
@@ -117,140 +285,15 @@ function buildChatMessage(
     $out   = '';
 
     // 7) SWITCH sui comandi
-    switch ($first) {
-        case '/':
-            if(str_starts_with($str,'//')){$OnGame=false;$out='<span class="String">'.$ora.'</span> '.$razImg.$fPar.$name.'</B></SPAN> <span class="chat-ooc-text">'.htmlspecialchars(substr($str,2),ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8').'</span>';break;}
-            // A single slash is ordinary speech.
-            $out='<span class="String">'.$ora.'</span> '.$razImg.$name.' '.$render(substr($str,1));break;
-        case '+': {
-            // rimuovo il ‘+’ dalla stringa
-            $azione = substr($str, 1);
 
-            // Resource work is confirmed and committed by the HTTP action engine.
-            // The shared text renderer never awards inventory or penalizes accounts.
+    if ($early !== null) { return $early; }
 
-            // fallback “azione normale”
-            if ($pg['imprigionato']) {
-                $location = 'prigione';
-                $azione   = '[Prigione]' . $azione;
-            } elseif (preg_match('/^\s*(\[[^\]]+\])/', $azione, $m)) {
-                $newLoc = strtolower(trim($m[1]));
-            }
-
-            // **Qui ricreo correttamente time + nome + azione**
-            $out = $fAzo . $ora . '</SPAN>'
-                . $fAzo . $razImg . $name . ' ' . $render($azione,true) . '</SPAN>';
-            if ($SessionIsRunning && $NeedsDadi) {
-                $out .= '&nbsp;<img height="10" width="10" src="/chatimg/dadod20.gif">&nbsp;' . rand(1,20);
-            }
-            $out .= '</SPAN>';
-
-            break;
-        }
-
-
-        case '#':
-            if (($pg['fatepower']||$pg['admin']) && ($SessionIsRunning||$pg['admin'])) {
-                $cmd = htmlentities(substr($str,1));
-                $out = "<TABLE class=\"column-width-100\"><TR>"
-                     . "<TD class=\"MasterKey\">{$cmd}</TD>"
-                     . "</TR></TABLE>";
-                $OnGame = false;
-            }
-            break;
-
-        case '%':
-            if ($pg['fatepower'] || !empty($GLOBALS['private_chat'])) {
-                $txt = htmlentities(substr($str,1));
-                $out = "<TABLE class=\"column-width-100\"><TR>"
-                     . "<TD class=\"DescrKey\">{$txt}</TD>"
-                     . "</TR></TABLE>";
-                $OnGame = false;
-            }
-            break;
-
-        case '@':
-            if ($pg['fatepower'] || !empty($GLOBALS['private_chat'])) {
-                $url = substr($str,1);
-                if (!preg_match('~^(https?://|/(?!/))~i', $url)) { return ['',0,$location,'0']; }
-                $out = "<DIV class=\"align-center\"><img src=\"" . htmlspecialchars($url) . "\" /></DIV>";
-                $OnGame = false;
-            }
-            break;
-
-        case '$':
-            if (str_contains($str,';')) {
-                [$dst,$msg2] = explode(';',substr($str,1),2);
-                $dest = GetPGID(trim($dst)) ?: 0;
-                if ($dest) {
-                    $out = '<EM>'.$razImg.$araldica
-                         . $fPar.$name.'</B></SPAN>'
-                         . '<SPAN class="String"><U>'.$render($msg2).'</U></SPAN></EM>';
-                }
-            }
-            break;
-
-        case '&':
-            if (str_contains($str,';')) {
-                [$anim,$act] = explode(';',substr($str,1),2);
-                $row = $db->query(
-                    "SELECT ea.shortDesc,epg.nome,epgm.id
-                       FROM equip ea
-                       JOIN equippg epg ON epg.uid=ea.id
-                       JOIN equippg epgm ON epgm.idpg=epg.idpg
-                      WHERE epg.idpg=? AND epg.nome=? LIMIT 1",
-                    [$idpg,$anim]
-                )[0]??null;
-                if ($row) {
-                    consuma($idpg,(int)$row['id']);
-                    $out = $fAzo.$ora.'&nbsp;'
-                         .htmlentities($row['nome']).', '
-                         .htmlentities($row['shortDesc']).' di '
-                         .$name.', '.htmlentities($act).'</SPAN>';
-                }
-            }
-            break;
-
-        case '|':
-            if ($incog) {
-                $out = '<span class="StringN">'.$ora.' <strong>PNG</strong> '.htmlentities(substr($str,1),ENT_QUOTES|ENT_SUBSTITUTE).'</span>';
-            }
-            break;
-
-        default:
-            // parlato normale
-            if (preg_match('/^\s*(\[[^\]]+\])/',$str,$m)) {
-                $newLoc = strtolower(trim($m[1]));
-            }
-            $out = '<SPAN class="String">'.$ora.'</SPAN>'
-                 .$razImg.$araldica
-                 .$fPar.$name.'</B></SPAN> '
-                 .'<SPAN class="String">'.$render($str).'</SPAN>';
-            break;
-    }
-
+    $early = alphanoChatRenderCommand($db,$idpg,$str,$ora,$razImg,$fPar,$fAzo,$name,$araldica,$render,$SessionIsRunning,$NeedsDadi,$incog,$pg,$out,$dest,$newLoc,$l,$OnGame,$location);
+    if ($early !== null) { return $early; }
     // Persist a semantic presentation type; no schema change, also retained in saved logs.
     if($out!==''){$type=str_starts_with($str,'//')?'ooc':match($first){'+'=>'action','$'=>'whisper','&'=>'animal','#'=>'master',default=>'speech'};$out='<div data-message-type="'.$type.'">'.$out.'</div>';}
 
-    // 8) vampireDamage
-    if ((!function_exists('rpgCreationReady')||!rpgCreationReady()) && $vampiredamage && $out && $razza===2 && !licanTime() && $meteo===0) {
-        if (!str_contains($ferite,'Bruciature solari')) {
-            $ferite .= ' Bruciature solari';
-        }
-        if ((int)$pg['puntif'] > MAXPUNTIF/10) {
-            $db->execute(
-                'UPDATE utenti SET puntif=puntif-?,ferite=? WHERE id=?',
-                [MAXPUNTIF/10,$ferite,$idpg]
-            );
-            vampireDamage($chat,$pg['nome'],$sesso,false);
-        } else {
-            $db->execute(
-                'UPDATE utenti SET puntif=?,razza=7,ferite="" WHERE id=?',
-                [MAXPUNTIF,$idpg]
-            );
-            vampireDamage($chat,$pg['nome'],$sesso,true);
-        }
-    }
+    alphanoChatVampireDamage($db,$idpg,$chat,$pg['nome'],$sesso,$ferite,$razza,$meteo,$vampiredamage);
 
     // 9) Conta azioni lican
     if ($inf && $OnGame) {
@@ -268,27 +311,7 @@ function buildChatMessage(
         );
     }
 
-    // 11) Log sessione in HTML
-    if ($SessionIsRunning) {
-        $logFile = HTMLROOT . "/sessione/log/{$sessionName}.html";
-        if(!empty($GLOBALS['alphano_defer_chat_log'])){ $GLOBALS['alphano_deferred_chat_session']=(int)$sessionName; }
-        else { file_put_contents($logFile, $out."<br>\n", FILE_APPEND|LOCK_EX); }
-        if ($scriviPart) {
-            $db->execute(
-                'UPDATE sessioni SET partecipanti=? WHERE id=?',
-                [$partecipanti.$idpg.';',$sessionName]
-            );
-        }
-        // reward spettatori…
-        $ids = array_filter(explode(';',$partecipanti), fn($v)=>$v!=='' && $v!=$idpg);
-        if ($ids && !$db->query('SELECT session_id FROM ai_quests WHERE session_id=?',[$sessionName])) {
-            $ph = implode(',', array_fill(0,count($ids),'?'));
-            $db->execute(
-                "UPDATE utenti SET denari=denari+10 WHERE id IN ($ph) AND chat=?",
-                [...$ids,$chat]
-            );
-        }
-    }
+    alphanoChatSessionLog($db,$chat,$sessionName,$out,$scriviPart,$partecipanti,$idpg);
 
     return [$out, $dest, $newLoc, $l];
 }

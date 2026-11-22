@@ -102,21 +102,7 @@ function aiAdjudicate(int $sid):array{
 
   if(in_array((int)$actor['razza'],[4,7,ALPHANO_RACE_LEGACY_SPIRIT],true)&&!in_array($effectType,['narrative','perception','passive'],true)){$r['outcome']='resta una presenza incorporea';$r['reason']='Questa forma non possiede un corpo con cui attaccare, afferrare o guarire ferite fisiche.';$results[]=$r;continue;}
   if($ability){try{rpg_combat_assert_equipment($a['kind'],(int)$a['actor_id'],$ability);}catch(DomainException $e){$r['outcome']='non può usare l’abilità dichiarata';$r['reason']=$e->getMessage();$results[]=$r;continue;}}
-  if(in_array($effectType,['narrative','passive','perception'],true)){
-   $r['outcome']=$effectType==='perception'?'coglie meglio i movimenti visibili':'dà seguito alla propria capacità narrativa';
-   $r['reason']=isset($ability['human_rules'])?'Attivazione riuscita: '.$ability['human_rules']['bonus_text'].' '.$ability['human_rules']['mechanic'].' Richiede: '.$ability['human_rules']['requirement_text']:'Con '.$ability['name'].' il gesto resta entro ciò che il personaggio può osservare e conoscere: non rivela pensieri o segreti e non infligge ferite.';
-   if($effectType==='perception'&&!in_array((int)$actor['razza'],[4,7,ALPHANO_RACE_LEGACY_SPIRIT],true)){$conditions[$key]['perception_until']=$round+1;$conditions[$key]['perception_bonus']=(int)$effect['bonus'];$r['reason'].=' L’attenzione raccolta favorisce la lettura della prossima manovra.';}
-   $results[]=$r;continue;
-  }
-  if($effectType==='heal'){
-   $r['target']=$actor['name'];$gain=max(0,min((int)$effect['heal'],maxpuntif-$hp[$key]));
-   if($training){$r['outcome']='simula il recupero durante l’allenamento';$r['reason']='La dimostrazione di '.$ability['name'].' non modifica i punti vita reali.';}
-   elseif($hp[$key]<1||isset($deaths[$key])){$r['outcome']='non riesce a rigenerarsi';$r['reason']='La capacità non resuscita un personaggio già caduto.';}
-   elseif(rpg_malus_evaluate((int)($actor['native_race_id']??$actor['razza']),$actor['_racial_malus']??[])['regeneration_blocked']){$r['outcome']='la rigenerazione è ostacolata dall’argento';$r['reason']='Prima occorre rimuovere l’argento trattenuto nella ferita e risolvere le cure.';}
-   elseif($gain===0){$r['outcome']='non ha ferite vitali da recuperare';$r['reason']='I punti vita sono già al massimo: non viene attribuita una cura fittizia.';}
-   else{$hp[$key]+=$gain;$r['healing']=$gain;$r['outcome']='rimargina parte delle proprie ferite';$r['reason']=$ability['name'].' restituisce '.$gain.' punti vita: il recupero è registrato e non supera la salute massima.';}
-   $results[]=$r;continue;
-  }
+   if(aiAdjudicationApplyEffect($r,$conditions,$hp,$actor,$ability,$effect,$effectType,$key,$round,$training,isset($deaths[$key]))){ $results[]=$r;continue; }
   $intent=$ability?rpg_combat_ability_intent($ability):($d['intent']??'azione');if(!$ability&&$a['kind']==='pg'){ $intent=$analysis['intent']??'azione'; }
   $maneuver=aiTacticalManeuver($analysis);
   if($maneuver==='maintain'&&!$ability){
@@ -144,30 +130,10 @@ function aiAdjudicate(int $sid):array{
   if(preg_match('/iniett\p{L}*.{0,45}veleno|veleno.{0,35}maledizion|farlo trasform/iu',$raw)&&in_array((int)$actor['razza'],[2,5],true)){$r['outcome']='la maledizione non si trasmette in questo modo';$r['reason']='Il morso precedente resta una ferita, ma i denti non iniettano un veleno capace di creare un vampiro. La trasformazione richiede il rito e le condizioni della stirpe: questa intenzione non li sostituisce e non apre una seconda ferita.';$results[]=$r;continue;}
   if($ability&&$effectType!=='attack'){$bite=false;$grab=false;}
   $attack=in_array($intent,['assalto','attacco','potere','arresto','furto'],true)||$mental||$bite||$grab;
-  if($intent==='ricarica'){
-   $items=aiGameInventory($a['kind'],(int)$a['actor_id']);$held=rpg_declared_weapon($items,$raw,true);$ammo=$held?array_values(array_filter($items,static fn($i)=>rpg_ranged_ammo($i,$held)&&(int)$i['consumo']<(int)$i['durata'])):[];
-   if($held&&($weaponReason=rpg_weapon_lineage_reason(['race_id'=>(int)$actor['razza'],'native_race_id'=>(int)($actor['native_race_id']??$actor['razza'])],$held))){$r['outcome']='non può usare l’arma da fuoco';$r['reason']=$weaponReason;}
-   elseif(!$held||!$ammo){$r['outcome']='non riesce a preparare il tiro';$r['reason']='Manca un’arma da tiro impugnata o una munizione utilizzabile nell’inventario reale.';}
-   elseif(!empty($state['loaded'])&&(!isset($state['loaded_weapon'])||(int)$state['loaded_weapon']===(int)$held['id'])){$r['outcome']='mantiene l’arma già pronta';$r['reason']='La munizione è già caricata: non viene consumata né duplicata.';}
-   elseif($round-(int)($state['last_shot_round']??0)<$cfg['reload_rounds']){$r['outcome']='la ricarica non è ancora conclusa';$r['reason']='È necessario il tempo della preparazione prima di un altro tiro.';}
-   else{$conditions[$key]['ammo_instance']=(int)$ammo[0]['id'];$conditions[$key]['ammo']=(int)$ammo[0]['durata']-(int)$ammo[0]['consumo'];$conditions[$key]['loaded']=true;$conditions[$key]['loaded_weapon']=(int)$held['id'];$r['outcome']='prepara una nuova munizione';$r['reason']='L’arma impugnata e la munizione sono presenti: questa azione completa il caricamento, senza scoccare nello stesso istante.';}
-   $results[]=$r;continue;
-  }
+   if($intent==='ricarica'){ aiAdjudicationPrepareReload($r,$conditions,$a,$actor,$state,$cfg,$raw,$round,$key);$results[]=$r;continue; }
   if($intent==='furto'){$r['outcome']='il tentativo viene scoperto';$r['reason']='Nel pieno dello scontro non si apre un varco sicuro per sottrarre un bene. Nessun oggetto cambia proprietario senza identificarlo e raggiungerlo.';$results[]=$r;continue;}
   if($intent==='potere'&&!$mental&&!$bite&&!$grab&&!$ability){$r['outcome']='il potere non produce l’effetto richiesto';$r['reason']='La capacità e le condizioni della sua applicazione non sono determinate nella dichiarazione e nelle regole disponibili: non nasce un effetto soprannaturale dalla sola intenzione.';$results[]=$r;continue;}
-  if(!$attack){
-   if($a['kind']==='pg'&&aiEpisodeInterpret($a['content'])['category']==='minaccia'){$r['outcome']='formula una minaccia concreta';$r['reason']='Le parole esercitano pressione sul rapporto personale e ricevono una risposta di sopravvivenza secondo la credibilità del pericolo. Non costituiscono un nuovo colpo, un potere mentale o un danno automatico.';$results[]=$r;continue;}
-   if($a['kind']==='pg'&&$analysis['speech']!==''&&$analysis['action']===''){$r['outcome']='si rivolge agli altri nella contesa';$r['reason']='Le parole e la richiesta entrano nel turno e nel rapporto personale. Non infliggono un colpo né impongono automaticamente la decisione degli altri.';$results[]=$r;continue;}
-   if($intent==='resa'){$r['outcome']='cede per salvaguardare la propria vita';$r['reason']='La resa riguarda la propria condotta: non certifica amore, fiducia, una fuga già riuscita o il controllo delle azioni altrui.';$results[]=$r;continue;}
-   $escaping=in_array($intent,['ritirata','fuga'],true)||(bool)preg_match('/\b(?:si libera|mi libero|liberarsi|divincola|svincola|strattona|sciogliere la presa)\b/iu',$raw);
-   if($escaping&&aiTacticalRestrained($conditions[$key]??[],$round)){$holder=$cast[$conditions[$key]['restrained_by']]??[];$score=aiAdjudicationScore($actor,'attack',$ability)+(int)($d['roll']??10);$opp=$holder?aiAdjudicationScore($holder,'defence')+10:10;if($score>$opp){aiTacticalRelease($conditions[$key]);$r['outcome']='si libera dalla presa';$r['reason']='La torsione del corpo e la spinta delle gambe superano la tenuta dell’avversario.';}else{$r['outcome']='non riesce ancora a liberarsi';$r['reason']='La presa già chiusa limita il movimento; la forza impiegata non basta a scioglierla.';}}
-   elseif($escaping&&aiTacticalRestrained($state,$round)){$r['outcome']='non è più trattenuto';$r['reason']='La presa è stata sciolta nel corso del giro: non deve vincere un nuovo confronto contro un vincolo già rilasciato.';aiTacticalRetreat($conditions,$key,$round);}
-   elseif($intent==='fine'){$r['outcome']='interrompe il proprio assalto';$r['reason']='La scelta di fermarsi è accolta, senza imporre la resa agli altri.';if(!aiTacticalRestrained($state,$round)&&preg_match('/\b(?:arretra|arretro|si allontana|mi allontano)\b/iu',$analysis['action'])){ aiTacticalRetreat($conditions,$key,$round); }}
-   elseif(in_array($intent,['ritirata','fuga'],true)){$r['outcome']='guadagna spazio e si ritira';$r['reason']='Nessuna presa già accertata impedisce di arretrare; non infligge un attacco mentre si allontana.';aiTacticalRetreat($conditions,$key,$round);}
-   elseif($intent==='difesa'){$r['outcome']='copre il settore minacciato';$r['reason']='La guardia resta concentrata su una difesa concreta e rende più difficile superarla; non ottiene un colpo gratuito.';}
-   else{$r['outcome']='porta a termine il gesto non contrastato';$r['reason']='Nella dichiarazione non emerge un ostacolo concreto né un attacco da risolvere; il gesto può trovare seguito nella scena.';}
-   $results[]=$r;continue;
-  }
+   if(!$attack){ aiAdjudicationNonAttackOutcome($r,$conditions,$cast,$a,$analysis,$state,$d,$actor,$ability,$intent,$raw,$key,$round);$results[]=$r;continue; }
   if(!$target||!($active[$targetKey]??false)||$targetKey===$key||($target['chat']??'')!==$q['chat_key']||($target['kind']==='npc'&&empty($target['active']))){$r['outcome']='non raggiunge un bersaglio determinabile';$r['reason']='L’azione non identifica un avversario presente: deve indicarlo prima di poterlo ferire o vincolare.';$results[]=$r;continue;}
   if(in_array((int)$target['razza'],[4,7,ALPHANO_RACE_LEGACY_SPIRIT],true)){$r['outcome']='non incontra un corpo da ferire';$r['reason']='La presenza incorporea non offre un bersaglio fisico: il tentativo non le assegna ferite corporee.';$results[]=$r;continue;}
   if($hp[$targetKey]<1){$r['outcome']='non porta un altro colpo';$r['reason']='Il bersaglio è già fuori combattimento; questa manovra non viene conteggiata una seconda volta.';$results[]=$r;continue;}
@@ -216,16 +182,7 @@ function aiAdjudicate(int $sid):array{
   if($atk<=$def){$conditions[$targetKey]['defended_round']=$round;$r['outcome']=$grab?'la presa non si chiude':($bite?'il morso non raggiunge la carne':'il colpo viene contenuto');$r['reason']=$support?'L’avversario si sottrae alla traiettoria e il sostegno del collega restringe il varco disponibile. La maggiore forza da sola non garantisce il successo.':'La risposta difensiva arriva in tempo e nega l’apertura cercata, pur lasciando intatta la tensione dello scontro.';$results[]=$r;continue;}
   if($grab&&($gate=aiNpcSuperEncounterCheck($sid,$actor,$target))){$r['specialist_encounter']=$gate;if(!$gate['allowed']){$conditions[$key]['super_withdrawn'][$targetKey]=['round'=>$round,'policy'=>$gate['policy']];$r['outcome']='il tentativo decisivo fallisce e il PNG ripiega';$r['reason']='La presa non riesce a contenere la forza del bersaglio: il PNG perde il varco e ripiega, senza immobilizzarlo.';$results[]=$r;continue;}}
   if($grab){$conditions[$targetKey]['restrained_by']=$key;$conditions[$targetKey]['restrained_until']=0;$conditions[$targetKey]['restrained_kind']='grapple';aiTacticalContact($conditions,$key,$targetKey,$round);$r['outcome']='la presa si chiude e limita il movimento';$r['reason']='La spinta supera la tenuta avversaria e blocca il busto. La presa permane fino a un rilascio o una liberazione accertati; non infligge automaticamente ferite.';$results[]=$r;continue;}
-  if($maneuver==='push'){
-   aiTacticalContact($conditions,$key,$targetKey,$round);$position=preg_match('/contro\s+(?:il\s+|la\s+|un[ao]?\s+|l[’\x{27}])?(muro|parete|porta|banco|tavolo)/iu',$raw,$anchor)?'contro '.(in_array(mb_strtolower($anchor[1]),['parete','porta'],true)?'la ':'il ').mb_strtolower($anchor[1]):'spostato all’indietro';
-   $conditions[$targetKey]['position']=$position;$r['outcome']='la spinta sposta il bersaglio';$r['reason']='Il confronto supera la resistenza: '.$target['name'].' si trova '.$position.'. Le prese già accertate restano attive; non viene inflitta una ferita automatica.';$results[]=$r;continue;
-  }
-  if(isset($ability['human_rules'])&&in_array((int)$ability['human_rules']['number'],[4,10,11],true)){
-   $n=(int)$ability['human_rules']['number'];if($n===10){$conditions[$targetKey]['restrained_by']=$key;$conditions[$targetKey]['restrained_until']=0;$conditions[$targetKey]['restrained_kind']='grapple';$r['outcome']='la presa riesce';}
-   elseif($n===11){$conditions[$targetKey]['position']='sbilanciato';$r['outcome']='sbilancia l’avversario';}
-   else{$held=rpg_declared_weapon(aiGameInventory($target['kind'],(int)$target['id']),'');if($held){$ammoEffects[]=['type'=>'disarm','kind'=>$target['kind'],'id'=>(int)$target['id'],'instance'=>(int)$held['id']];$r['outcome']='disarma l’avversario';}else{$r['outcome']='non trova un’arma da disarmare';}}
-   $r['reason']='La prova contrapposta è risolta: la manovra non infligge una ferita aggiuntiva.';$results[]=$r;continue;
-  }
+   if(aiAdjudicationManeuverOutcome($r,$conditions,$ammoEffects,$maneuver,$raw,$target,$targetKey,$ability,$key,$round)){ $results[]=$r;continue; }
   $nativeTarget=(int)($target['native_race_id']??$target['razza']);if(in_array($nativeTarget,[3,6],true)&&!rpg_weapon_silver($weapon)){$r['outcome']='l’impatto non lascia una ferita persistente';$r['reason']='La resistenza mannara impedisce alle armi ordinarie di produrre lesioni autentiche. Serve argento sulla superficie offensiva verificato nell’oggetto.';$results[]=$r;continue;}
   $armor=(bool)array_filter(aiGameInventory($target['kind'],(int)$target['id']),static fn($i)=>$i['slot']==='armatura'&&(int)$i['consumo']<(int)$i['durata']);
   $actorStats=$actor['stats']??rpg_actor_stats($actor['kind'],(int)$actor['id']);$rpgCfg=rpg_settings();$baseDamage=(int)round(((int)$actorStats['strength']*$rpgCfg['damage_strength']+(int)$actorStats['constitution']*$rpgCfg['damage_constitution'])/100);$damage=max($cfg['damage_min'],min($cfg['damage_max'],$baseDamage*(($weapon&&!$bite)?$cfg['weapon_multiplier']:$cfg['unarmed_multiplier'])+($atk-$def)*$cfg['margin_multiplier']+(int)($effect['damage']??0)-($armor?$cfg['armor_absorption']:0)));
@@ -254,6 +211,60 @@ function aiAdjudicate(int $sid):array{
   $changes[]=['type'=>'infection','kind'=>'pg','id'=>(int)$cast[$key]['id'],'actor_kind'=>$infection['actor_kind'],'actor_id'=>$infection['actor_id']];
  }
  return ['engine'=>'alphano_scene_v1','scene_kind'=>aiSceneKind($q),'round'=>$round,'review'=>false,'reasons'=>[],'results'=>$results,'allowed_changes'=>$changes,'can_finish'=>aiSceneCanFinish($sid),'rule'=>'Regolamento di regia Alphano v1'];
+}
+/** Applies narrative, perception and healing effects; returns true when the action is resolved. */
+function aiAdjudicationApplyEffect(array &$r,array &$conditions,array &$hp,array $actor,?array $ability,array $effect,string $effectType,string $key,int $round,bool $training,bool $dead):bool{
+  if(in_array($effectType,['narrative','passive','perception'],true)){
+   $r['outcome']=$effectType==='perception'?'coglie meglio i movimenti visibili':'dà seguito alla propria capacità narrativa';
+   $r['reason']=isset($ability['human_rules'])?'Attivazione riuscita: '.$ability['human_rules']['bonus_text'].' '.$ability['human_rules']['mechanic'].' Richiede: '.$ability['human_rules']['requirement_text']:'Con '.$ability['name'].' il gesto resta entro ciò che il personaggio può osservare e conoscere: non rivela pensieri o segreti e non infligge ferite.';
+   if($effectType==='perception'&&!in_array((int)$actor['razza'],[4,7,ALPHANO_RACE_LEGACY_SPIRIT],true)){$conditions[$key]['perception_until']=$round+1;$conditions[$key]['perception_bonus']=(int)$effect['bonus'];$r['reason'].=' L’attenzione raccolta favorisce la lettura della prossima manovra.';}
+  return true;
+ }
+ if($effectType!=='heal'){ return false; }
+   $r['target']=$actor['name'];$gain=max(0,min((int)$effect['heal'],maxpuntif-$hp[$key]));
+   if($training){$r['outcome']='simula il recupero durante l’allenamento';$r['reason']='La dimostrazione di '.$ability['name'].' non modifica i punti vita reali.';}
+   elseif($hp[$key]<1||$dead){$r['outcome']='non riesce a rigenerarsi';$r['reason']='La capacità non resuscita un personaggio già caduto.';}
+   elseif(rpg_malus_evaluate((int)($actor['native_race_id']??$actor['razza']),$actor['_racial_malus']??[])['regeneration_blocked']){$r['outcome']='la rigenerazione è ostacolata dall’argento';$r['reason']='Prima occorre rimuovere l’argento trattenuto nella ferita e risolvere le cure.';}
+   elseif($gain===0){$r['outcome']='non ha ferite vitali da recuperare';$r['reason']='I punti vita sono già al massimo: non viene attribuita una cura fittizia.';}
+   else{$hp[$key]+=$gain;$r['healing']=$gain;$r['outcome']='rimargina parte delle proprie ferite';$r['reason']=$ability['name'].' restituisce '.$gain.' punti vita: il recupero è registrato e non supera la salute massima.';}
+ return true;
+}
+/** Resolves a reload declaration without duplicating ammunition. */
+function aiAdjudicationPrepareReload(array &$r,array &$conditions,array $a,array $actor,array $state,array $cfg,string $raw,int $round,string $key):void{
+   $items=aiGameInventory($a['kind'],(int)$a['actor_id']);$held=rpg_declared_weapon($items,$raw,true);$ammo=$held?array_values(array_filter($items,static fn($i)=>rpg_ranged_ammo($i,$held)&&(int)$i['consumo']<(int)$i['durata'])):[];
+   if($held&&($weaponReason=rpg_weapon_lineage_reason(['race_id'=>(int)$actor['razza'],'native_race_id'=>(int)($actor['native_race_id']??$actor['razza'])],$held))){$r['outcome']='non può usare l’arma da fuoco';$r['reason']=$weaponReason;}
+   elseif(!$held||!$ammo){$r['outcome']='non riesce a preparare il tiro';$r['reason']='Manca un’arma da tiro impugnata o una munizione utilizzabile nell’inventario reale.';}
+   elseif(!empty($state['loaded'])&&(!isset($state['loaded_weapon'])||(int)$state['loaded_weapon']===(int)$held['id'])){$r['outcome']='mantiene l’arma già pronta';$r['reason']='La munizione è già caricata: non viene consumata né duplicata.';}
+   elseif($round-(int)($state['last_shot_round']??0)<$cfg['reload_rounds']){$r['outcome']='la ricarica non è ancora conclusa';$r['reason']='È necessario il tempo della preparazione prima di un altro tiro.';}
+   else{$conditions[$key]['ammo_instance']=(int)$ammo[0]['id'];$conditions[$key]['ammo']=(int)$ammo[0]['durata']-(int)$ammo[0]['consumo'];$conditions[$key]['loaded']=true;$conditions[$key]['loaded_weapon']=(int)$held['id'];$r['outcome']='prepara una nuova munizione';$r['reason']='L’arma impugnata e la munizione sono presenti: questa azione completa il caricamento, senza scoccare nello stesso istante.';}
+}
+/** Resolves a declaration that carries no attack. */
+function aiAdjudicationNonAttackOutcome(array &$r,array &$conditions,array $cast,array $a,array $analysis,array $state,array $d,array $actor,?array $ability,string $intent,string $raw,string $key,int $round):void{
+   if($a['kind']==='pg'&&aiEpisodeInterpret($a['content'])['category']==='minaccia'){$r['outcome']='formula una minaccia concreta';$r['reason']='Le parole esercitano pressione sul rapporto personale e ricevono una risposta di sopravvivenza secondo la credibilità del pericolo. Non costituiscono un nuovo colpo, un potere mentale o un danno automatico.';return;}
+   if($a['kind']==='pg'&&$analysis['speech']!==''&&$analysis['action']===''){$r['outcome']='si rivolge agli altri nella contesa';$r['reason']='Le parole e la richiesta entrano nel turno e nel rapporto personale. Non infliggono un colpo né impongono automaticamente la decisione degli altri.';return;}
+   if($intent==='resa'){$r['outcome']='cede per salvaguardare la propria vita';$r['reason']='La resa riguarda la propria condotta: non certifica amore, fiducia, una fuga già riuscita o il controllo delle azioni altrui.';return;}
+   $escaping=in_array($intent,['ritirata','fuga'],true)||(bool)preg_match('/\b(?:si libera|mi libero|liberarsi|divincola|svincola|strattona|sciogliere la presa)\b/iu',$raw);
+   if($escaping&&aiTacticalRestrained($conditions[$key]??[],$round)){$holder=$cast[$conditions[$key]['restrained_by']]??[];$score=aiAdjudicationScore($actor,'attack',$ability)+(int)($d['roll']??10);$opp=$holder?aiAdjudicationScore($holder,'defence')+10:10;if($score>$opp){aiTacticalRelease($conditions[$key]);$r['outcome']='si libera dalla presa';$r['reason']='La torsione del corpo e la spinta delle gambe superano la tenuta dell’avversario.';}else{$r['outcome']='non riesce ancora a liberarsi';$r['reason']='La presa già chiusa limita il movimento; la forza impiegata non basta a scioglierla.';}}
+   elseif($escaping&&aiTacticalRestrained($state,$round)){$r['outcome']='non è più trattenuto';$r['reason']='La presa è stata sciolta nel corso del giro: non deve vincere un nuovo confronto contro un vincolo già rilasciato.';aiTacticalRetreat($conditions,$key,$round);}
+   elseif($intent==='fine'){$r['outcome']='interrompe il proprio assalto';$r['reason']='La scelta di fermarsi è accolta, senza imporre la resa agli altri.';if(!aiTacticalRestrained($state,$round)&&preg_match('/\b(?:arretra|arretro|si allontana|mi allontano)\b/iu',$analysis['action'])){ aiTacticalRetreat($conditions,$key,$round); }}
+   elseif(in_array($intent,['ritirata','fuga'],true)){$r['outcome']='guadagna spazio e si ritira';$r['reason']='Nessuna presa già accertata impedisce di arretrare; non infligge un attacco mentre si allontana.';aiTacticalRetreat($conditions,$key,$round);}
+   elseif($intent==='difesa'){$r['outcome']='copre il settore minacciato';$r['reason']='La guardia resta concentrata su una difesa concreta e rende più difficile superarla; non ottiene un colpo gratuito.';}
+   else{$r['outcome']='porta a termine il gesto non contrastato';$r['reason']='Nella dichiarazione non emerge un ostacolo concreto né un attacco da risolvere; il gesto può trovare seguito nella scena.';}
+   return;
+}
+/** Resolves push and human manoeuvre outcomes; returns true when the action is resolved. */
+function aiAdjudicationManeuverOutcome(array &$r,array &$conditions,array &$ammoEffects,string $maneuver,string $raw,array $target,string $targetKey,?array $ability,string $key,int $round):bool{
+  if($maneuver==='push'){
+   aiTacticalContact($conditions,$key,$targetKey,$round);$position=preg_match('/contro\s+(?:il\s+|la\s+|un[ao]?\s+|l[’\x{27}])?(muro|parete|porta|banco|tavolo)/iu',$raw,$anchor)?'contro '.(in_array(mb_strtolower($anchor[1]),['parete','porta'],true)?'la ':'il ').mb_strtolower($anchor[1]):'spostato all’indietro';
+   $conditions[$targetKey]['position']=$position;$r['outcome']='la spinta sposta il bersaglio';$r['reason']='Il confronto supera la resistenza: '.$target['name'].' si trova '.$position.'. Le prese già accertate restano attive; non viene inflitta una ferita automatica.';return true;
+ }
+  if(isset($ability['human_rules'])&&in_array((int)$ability['human_rules']['number'],[4,10,11],true)){
+   $n=(int)$ability['human_rules']['number'];if($n===10){$conditions[$targetKey]['restrained_by']=$key;$conditions[$targetKey]['restrained_until']=0;$conditions[$targetKey]['restrained_kind']='grapple';$r['outcome']='la presa riesce';}
+   elseif($n===11){$conditions[$targetKey]['position']='sbilanciato';$r['outcome']='sbilancia l’avversario';}
+   else{$held=rpg_declared_weapon(aiGameInventory($target['kind'],(int)$target['id']),'');if($held){$ammoEffects[]=['type'=>'disarm','kind'=>$target['kind'],'id'=>(int)$target['id'],'instance'=>(int)$held['id']];$r['outcome']='disarma l’avversario';}else{$r['outcome']='non trova un’arma da disarmare';}}
+   $r['reason']='La prova contrapposta è risolta: la manovra non infligge una ferita aggiuntiva.';return true;
+ }
+ return false;
 }
 function aiAdjudicationFallback(array $technical):string{
  $parts=[];

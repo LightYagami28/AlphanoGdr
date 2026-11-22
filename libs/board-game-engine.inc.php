@@ -10,10 +10,10 @@ function bg_engine(string $game,array $moves):array {
  if(count($moves)>512){ throw new DomainException('Limite di mosse raggiunto.',409); }
  if($game==='dama'){require_once __DIR__.'/draughts-engine.inc.php';return ad_engine($moves);}
  if($game!=='scacchi'){ throw new DomainException('Gioco non valido.',422); }
- $fen=new Onspli\Chess\FEN();$history=[$fen->export_short()];foreach($moves as $san){if(!in_array($san,$fen->get_legal_moves(),true)){ throw new DomainException('Mossa non consentita.',422); }$fen->move($san);$history[]=$fen->export_short();}
- $board=[];for($r=1;$r<=8;$r++){ foreach(range('a','h') as $f){ $board[$f.$r]=$fen->get_square($f.$r); } }
- $legal=[];foreach($fen->get_legal_moves() as $san){$after=clone $fen;$after->move($san);$move=new Onspli\Chess\Move($san);$to=$move->get_target();$from='';if($move->get_castling()){$from=$fen->get_active_color()==='w'?'e1':'e8';$to=($move->get_castling()==='O-O'?'g':'c').($fen->get_active_color()==='w'?'1':'8');}else{foreach($board as $sq=>$piece){ if($piece!==''&&strtolower($piece)===strtolower($move->get_piece_type())&&($fen->get_active_color()==='w'?ctype_upper($piece):ctype_lower($piece))&&$after->get_square($sq)!==$piece&&$sq!==$to){$from=$sq;break;} }}$legal[]=['id'=>$san,'from'=>$from,'to'=>$to,'promotion'=>$move->get_promotion(),'path'=>[$from,$to]];}
- $result=$fen->is_mate()?($fen->get_active_color()==='w'?'black':'white'):null;
- if(!$result&&($fen->is_stalemate()||$fen->is_fifty_move()||bg_dead($board)||count(array_filter($history,static fn($p)=>$p===$fen->export_short()))>=3)){ $result='draw'; }
- return ['fen'=>$fen->export(),'board'=>$board,'turn'=>$fen->get_active_color()==='w'?0:1,'check'=>$fen->is_check(),'legal'=>$legal,'result'=>$result];
+ $fen=new Onspli\Chess\FEN();$history=[$fen->exportShort()];foreach($moves as $san){if(!in_array($san,$fen->getLegalMoves(),true)){ throw new DomainException('Mossa non consentita.',422); }$fen->move($san);$history[]=$fen->exportShort();}
+ $board=[];for($r=1;$r<=8;$r++){ foreach(range('a','h') as $f){ $board[$f.$r]=$fen->getSquare($f.$r); } }
+ $legal=[];foreach($fen->getLegalMoves() as $san){$after=clone $fen;$after->move($san);$move=new Onspli\Chess\Move($san);$to=$move->getTarget();$from='';if($move->getCastling()){$from=$fen->getActiveColor()==='w'?'e1':'e8';$to=($move->getCastling()==='O-O'?'g':'c').($fen->getActiveColor()==='w'?'1':'8');}else{foreach($board as $sq=>$piece){ if($piece!==''&&strtolower($piece)===strtolower($move->getPieceType())&&($fen->getActiveColor()==='w'?ctype_upper($piece):ctype_lower($piece))&&$after->getSquare($sq)!==$piece&&$sq!==$to){$from=$sq;break;} }}$legal[]=['id'=>$san,'from'=>$from,'to'=>$to,'promotion'=>$move->getPromotion(),'path'=>[$from,$to]];}
+ $result=$fen->isMate()?($fen->getActiveColor()==='w'?'black':'white'):null;
+ if(!$result&&($fen->isStalemate()||$fen->isFiftyMove()||bg_dead($board)||count(array_filter($history,static fn($p)=>$p===$fen->exportShort()))>=3)){ $result='draw'; }
+ return ['fen'=>$fen->export(),'board'=>$board,'turn'=>$fen->getActiveColor()==='w'?0:1,'check'=>$fen->isCheck(),'legal'=>$legal,'result'=>$result];
 }

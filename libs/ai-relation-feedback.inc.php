@@ -8,7 +8,10 @@ function aiRelationRevision(array $relation):string {
     $context=aiRelationContextCurrent((int)($relation['npc_id']??0),(int)($relation['player_id']??0));
     return hash('sha256',json_encode([...$values,'state'=>$relation['state']??'conoscenza','context_id'=>(int)($context['id']??0)],JSON_THROW_ON_ERROR));
 }
-function aiRelationEvent(int $npc,int $player,array $before,array $after,string $reason,array $context=[],int $job=0,int $actor=0):int {
+function aiRelationEvent(int $npc,int $player,array $before,array $after,string $reason,array $options=[]):int {
+    $context=$options['context']??[];
+    $job=(int)($options['job']??0);
+    $actor=(int)($options['actor']??0);
     $db=aiDb();$changes=[];foreach(AI_RELATION_METRICS as $key=>$_){$delta=(int)($after[$key]??0)-(int)($before[$key]??0);if($delta){ $changes[$key]=$delta; }}
     $chat=(string)($context['chat_key']??'');$source=(int)($context['source_id']??0);
     if($changes&&$chat!==''){

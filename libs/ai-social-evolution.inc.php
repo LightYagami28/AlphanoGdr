@@ -21,8 +21,10 @@ function aiSocialPolicyDefaults():array {
     return array_map(static fn($rule)=>$rule['default'],AI_SOCIAL_POLICY);
 }
 /** One shared rate limiter for immediate perception and later reciprocal feelings. */
-function aiSocialBoundedDelta(string $key,int $raw,string $category,array $before,array $rules,bool $significant,bool $bond,bool $romance,string $evidence,array $day):int {
-    $delta=aiSocialDelta($key,$raw,$category,$before,$rules,$significant,$bond,$romance,$evidence);$used=0;
+function aiSocialBoundedDelta(string $key,int $raw,string $category,array $before,array $rules,array $ctx):int {
+    $significant=(bool)$ctx['significant'];$bond=(bool)$ctx['bond'];$romance=(bool)$ctx['romance'];
+    $evidence=(string)$ctx['evidence'];$day=$ctx['day'];
+    $delta=aiSocialDelta($key,$raw,$category,$before,$rules,['significant'=>$significant,'bond_episode'=>$bond,'romance'=>$romance,'npc_evidence'=>$evidence]);$used=0;
     foreach($day as $event){$a=$event['_decoded_after']??(json_decode($event['after_state']??'{}',true)?:[]);$b=$event['_decoded_before']??(json_decode($event['before_state']??'{}',true)?:[]);$change=(int)($a[$key]??0)-(int)($b[$key]??0);if(($delta>0&&$change>0)||($delta<0&&$change<0)){ $used+=abs($change); }}
     $daily=match($key){'love'=>9,'attraction','jealousy'=>12,'affection'=>min(24,(int)$rules['bond_daily_limit']),'fear','hostility'=>(int)$rules['emotion_daily_limit'],default=>$delta<0?(int)$rules['emotion_daily_limit']:(int)$rules['bond_daily_limit']};
     $limit=max(0,$daily-$used);return max(-$limit,min($limit,$delta));
@@ -145,7 +147,9 @@ function aiSocialReassuredSince(int $npc,int $player,int $time,int $source=0,int
     return false;
 }
 /** Reactive harm is not suppressed when a scene's positive-bond budget has been used. */
-function aiSocialDelta(string $key,int $raw,string $category,array $before,array $rules,bool $significant,bool $bondEpisode,bool $romance,string $npcEvidence):int {
+function aiSocialDelta(string $key,int $raw,string $category,array $before,array $rules,array $ctx):int {
+    $significant=(bool)$ctx['significant'];$bondEpisode=(bool)$ctx['bond_episode'];$romance=(bool)$ctx['romance'];
+    $npcEvidence=(string)$ctx['npc_evidence'];
     if(!$significant){ return 0; }
     $negative=in_array($category,['offesa','minaccia','tradimento','rifiuto','separazione'],true);
     $reactive=($negative&&(($raw<0&&in_array($key,['sympathy','trust','respect','honor','affection','attraction','love'],true))||($raw>0&&in_array($key,['fear','hostility'],true))))||($category==='rassicurazione'&&$key==='fear'&&$raw<0)||($category==='riconciliazione'&&in_array($key,['fear','hostility'],true)&&$raw<0);
@@ -175,7 +179,9 @@ function aiSocialAspiration(string $raw):?array {
     }
     return null;
 }
-function aiSocialDevelopmentRecord(array $npc,array $job,array $before,array $after,array $rules,bool $significant,string $playerEvidence,string $npcEvidence,bool $declarationEligible=false,string $episodeCategory=''):void {
+function aiSocialDevelopmentRecord(array $npc,array $job,array $before,array $after,array $rules,array $ctx):void {
+    $significant=(bool)$ctx['significant'];$playerEvidence=(string)$ctx['player_evidence'];$npcEvidence=(string)$ctx['npc_evidence'];
+    $declarationEligible=(bool)($ctx['declaration_eligible']??false);$episodeCategory=(string)($ctx['episode_category']??'');
     if(!$significant&&!$declarationEligible){ return; }
     $db=aiDb();$nid=(int)$npc['id'];$uid=(int)$job['user_id'];$now=time();$changes=[];$harm=0;
     foreach(AI_RELATION_METRICS as $key=>$label){$delta=(int)$after[$key]-(int)$before[$key];if($delta){ $changes[]=($delta>0?'maggiore ':'minore ').mb_strtolower($label); }if(($delta<0&&in_array($key,['trust','respect','sympathy'],true))||($delta>0&&in_array($key,['fear','hostility'],true))){ $harm+=abs($delta); }}
@@ -248,6 +254,6 @@ function aiSocialSurvivalEffect(array $effect,array $context):void {
     foreach(['fear'=>1,'hostility'=>1,'trust'=>-1] as $metric=>$sign){ $after[$metric]=max($metric==='trust'?-100:0,min(100,(int)$before[$metric]+$impact*$sign)); }
     $after['updated_at']=$now;$db->execute('UPDATE ai_relationships SET fear=?,hostility=?,trust=?,updated_at=? WHERE npc_id=? AND player_id=?',[$after['fear'],$after['hostility'],$after['trust'],$now,$nid,$uid]);
     $after['_survival']=['effect_key'=>$key,'source_id'=>(int)($context['source_id']??0),'before_hp'=>$beforeHp,'after_hp'=>$hp,'event_time'=>$eventTime,'historical'=>!empty($context['historical'])];
-    aiRelationEvent($nid,$uid,$before,$after,'Sopravvissuto a ferita risolta dal gioco: paura, ostilità e diffidenza verso l’aggressore verificato.',$context);
+    aiRelationEvent($nid,$uid,$before,$after,'Sopravvissuto a ferita risolta dal gioco: paura, ostilità e diffidenza verso l’aggressore verificato.',['context'=>$context]);
     $db->execute("INSERT INTO ai_personal_memories(npc_id,player_id,chat_key,category,summary,evidence,source,epistemic,visible,active,created_at,updated_at) VALUES(?,?,?,'trauma',?,?,'system','verified',?,?,?,?)",[$nid,$uid,(string)($context['chat_key']??''),'È sopravvissuto a una ferita causata da questo personaggio. Il ricordo alimenta paura e risentimento; potrà cercare protezione o giustizia, senza ottenere vendette o poteri automatici.','Esito verificato '.$key.'; fonte #'.(int)($context['source_id']??0).'; salute '.$beforeHp.' → '.$hp.'.',empty($rules['hidden_emotions'])?1:0,$superseded?0:1,$eventTime,$now]);
 }

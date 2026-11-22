@@ -134,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$canMaster) { throw new DomainException(ALPHANO_MSG_QUESTA_AZIONE_RISERVATA_AI_MASTE_66EF,403); }
             if ($target && $target !== $idpg && $canMaster && $sessionRunning
                 && in_array((string)$target, $partecipanti, true) && $soldi > 0) {
-                $msg = ricompensa($target, $soldi, $idpg, $chatRoom,$requestKey,$replayed)
+                $msg = ricompensa($target, $soldi, $idpg, $chatRoom,['request_key'=>$requestKey,'replayed'=>&$replayed])
                      ? alphanoCurrencyText("ricompensa di $soldi Corone inviata")
                      : 'Impossibile ricompensare il personaggio';
             } else { throw new DomainException('Il premio richiede una sessione attiva e un partecipante diverso dal Master',400); }
@@ -146,7 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$canMaster) { throw new DomainException(ALPHANO_MSG_QUESTA_AZIONE_RISERVATA_AI_MASTE_66EF,403); }
             if ($target && $target !== $idpg && $canMaster && $sessionRunning
                 && in_array((string)$target, $partecipanti, true) && $objId > 0) {
-                $msg = daiOggetto($target, $objId, $idpg, $chatRoom,$requestKey,$replayed)
+                $msg = daiOggetto($target, $objId, $idpg, $chatRoom,['request_key'=>$requestKey,'replayed'=>&$replayed])
                      ? 'Oggetto consegnato con successo'
                      : 'Impossibile consegnare l’oggetto';
             } else { throw new DomainException('Il premio richiede una sessione attiva e un partecipante diverso dal Master',400); }
@@ -159,7 +159,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($objId===null || $qty===null) { throw new InvalidArgumentException('Oggetto e quantità devono essere numeri interi validi'); }
             if (!$canMaster) { throw new DomainException(ALPHANO_MSG_QUESTA_AZIONE_RISERVATA_AI_MASTE_66EF,403); }
             if ($target && $objId > 0 && $qty > 0 && $canMaster) {
-                $msg = consumaMaster($target,$objId,$qty,$idpg,$chatRoom,$requestKey,$replayed)
+                $msg = consumaMaster($target,$objId,$qty,$idpg,$chatRoom,['request_key'=>$requestKey,'replayed'=>&$replayed])
                      ? 'Oggetto consumato con successo'
                      : 'Impossibile consumare l’oggetto';
             } else { $msg = ALPHANO_MSG_PARAMETRI_NON_ESAURIENTI_B98C; }
@@ -169,7 +169,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         case 'addnote':
             $nota = trim($_POST['nota'] ?? '');
             if ($target && $nota !== '' && $canMaster) {
-                $msg = notaMaster($target,$idpg,$chatRoom,$nota,$requestKey,$replayed,'Nota inserita dal pannello del Master')
+                $msg = notaMaster($target,$idpg,$chatRoom,$nota,['request_key'=>$requestKey,'replayed'=>&$replayed,'reason'=>'Nota inserita dal pannello del Master'])
                      ? 'Nota inserita con successo'
                      : 'Impossibile inserire la nota';
             } else { $msg = ALPHANO_MSG_PARAMETRI_NON_ESAURIENTI_B98C; }

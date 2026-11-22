@@ -15,9 +15,10 @@ function buildChatMessage(
     string         $rawMsg,
     int            $umore,
     string         $location,
-    bool           $vampiredamage,
-    string         $position = ''
+    array          $options = []
 ): array {
+    $vampiredamage=(bool)($options['vampiredamage']??false);
+    $position=(string)($options['position']??'');
     initSession();
 
     $now     = time();

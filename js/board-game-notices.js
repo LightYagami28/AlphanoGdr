@@ -4,35 +4,52 @@
  const memory=new Map(),inflight=new Map();
  function storage(key,value){try{if(value!==undefined){sessionStorage.setItem(key,value);const keys=Object.keys(sessionStorage).filter(k=>k.startsWith('alphano:board-overlay:'));keys.slice(0,Math.max(0,keys.length-150)).forEach(k=>sessionStorage.removeItem(k));}return sessionStorage.getItem(key);}catch{return memory.get(key);}}
  function urlOf(g){return g.url||'/chat/index.php?'+new URLSearchParams({chat:g.chat||'',board_game:g.id});}
- function options(g){
-  const viewer=Number(g.viewer),r=g.result||{},winner=Number(r.winner)||0,own=viewer===Number(g.a)||viewer===Number(g.b),game=g.game==='dama'?'Dama italiana':'Scacchi';
-  const who=id=>g.players?.find(p=>Number(p.id)===Number(id))?.nome||'LÔÇÖavversario';
-  const toneFor=(won,own,viewer)=>{if(!won){return 'draw';}if(!own){return 'victory';}return won===viewer?'victory':'defeat';};
-  const symbolFor=tone=>{if(tone==='victory'){return 'ÔÖø';}if(tone==='draw'){return 'ÔÜû';}return 'ÔÖÜ';};
-  const titleFor=(won,own,viewer,who)=>{if(!won){return 'Una partita alla pari';}if(!own){return who(won)+' vince';}return won===viewer?'Vittoria!':'La partita ├¿ conclusa';};
-  const prizeFor=(r,won)=>{if(!r.prizes?.length){return 'Nessuna posta da trasferire.';}return won?'Le poste sono state assegnate al vincitore.':'Le poste sono state restituite ai rispettivi proprietari.';};
-  let tone='update',title='Un aggiornamento al tavolo',message=g.detail||'',symbol='ÔÖ£',button='Apri il tavolo';
+  function outcomePresentation(ctx,base){
+   const {g,r,winner,own,viewer,who,toneFor,symbolFor,titleFor}=ctx;
+  if(g.status==='finished'){
+   base.tone=toneFor(winner,own,viewer);base.symbol=symbolFor(tone);
+   base.title=titleFor(winner,own,viewer,who);
+   base.message=(winner?who(winner)+' si aggiudica la partita. ':'Il confronto termina in parit├á. ')+(r.reason||'');
+   base.button='Rivedi esito e rivincita';
+  }else if(g.status==='expired'){base.title='LÔÇÖinvito ├¿ scaduto';base.message='Il tempo per rispondere ├¿ terminato. Nessuna posta ├¿ stata impegnata: puoi proporre una nuova sfida.';}
+  else if(g.status==='declined'){base.title='La sfida si chiude qui';base.message='LÔÇÖinvito ├¿ stato rifiutato o ritirato. Nessuna posta ├¿ stata addebitata.';}
+  else if(g.status==='cancelled'){base.title='Partita annullata';base.message=r.reason||g.detail||'Le eventuali poste sono state restituite ai proprietari.';}
+
+   return base;
+  }
+  function statusPresentation(ctx){
+   const {g,viewer,who}=ctx;
+   const base={tone:'update',title:'Un aggiornamento al tavolo',message:g.detail||'',symbol:'ÔÖ£',button:'Apri il tavolo'};
   if(g.status==='pending'){
-   tone='invite';symbol='ÔÖ×';title=viewer===Number(g.proposer)?'La sfida ├¿ stata inviata':'Un invito al tuo tavolo';
-   message=viewer===Number(g.proposer)?'La proposta attende una risposta. Le poste rimangono disponibili fino allÔÇÖaccettazione.':who(g.proposer)+' ti invita a giocare. Esamina tempi e poste prima di accettare: puoi anche rifiutare o proporre modifiche.';
-   button=viewer===Number(g.proposer)?'Rivedi la proposta':'Esamina e rispondi';
-  }else if(g.status==='active'&&g.draw_by&&Number(g.draw_by)!==viewer){tone='invite';symbol='ÔÜû';title='Una proposta di patta';message=who(g.draw_by)+' propone di concludere il confronto in parit├á. Valuta la proposta dal tavolo: nessuna decisione viene presa automaticamente.';button='Esamina la proposta';}
-  else if(g.status==='active'){tone='start';title='La partita ha inizio';message='Il tavolo ├¿ pronto. Rispetta il turno indicato e continua a raccontare la tua scena nella chat.';symbol='ÔÖƒ';}
-  else if(g.status==='finished'){
-   tone=toneFor(winner,own,viewer);symbol=symbolFor(tone);
-   title=titleFor(winner,own,viewer,who);
-   message=(winner?who(winner)+' si aggiudica la partita. ':'Il confronto termina in parit├á. ')+(r.reason||'');
-   button='Rivedi esito e rivincita';
-  }else if(g.status==='expired'){title='LÔÇÖinvito ├¿ scaduto';message='Il tempo per rispondere ├¿ terminato. Nessuna posta ├¿ stata impegnata: puoi proporre una nuova sfida.';}
-  else if(g.status==='declined'){title='La sfida si chiude qui';message='LÔÇÖinvito ├¿ stato rifiutato o ritirato. Nessuna posta ├¿ stata addebitata.';}
-  else if(g.status==='cancelled'){title='Partita annullata';message=r.reason||g.detail||'Le eventuali poste sono state restituite ai proprietari.';}
+   base.tone='invite';base.symbol='ÔÖ×';base.title=viewer===Number(g.proposer)?'La sfida ├¿ stata inviata':'Un invito al tuo tavolo';
+   base.message=viewer===Number(g.proposer)?'La proposta attende una risposta. Le poste rimangono disponibili fino allÔÇÖaccettazione.':who(g.proposer)+' ti invita a giocare. Esamina tempi e poste prima di accettare: puoi anche rifiutare o proporre modifiche.';
+   base.button=viewer===Number(g.proposer)?'Rivedi la proposta':'Esamina e rispondi';
+  }else if(g.status==='active'&&g.draw_by&&Number(g.draw_by)!==viewer){base.tone='invite';base.symbol='ÔÜû';base.title='Una proposta di patta';base.message=who(g.draw_by)+' propone di concludere il confronto in parit├á. Valuta la proposta dal tavolo: nessuna decisione viene presa automaticamente.';base.button='Esamina la proposta';}
+  else if(g.status==='active'){base.tone='start';base.title='La partita ha inizio';base.message='Il tavolo ├¿ pronto. Rispetta il turno indicato e continua a raccontare la tua scena nella chat.';base.symbol='ÔÖƒ';}
+
+   else { return outcomePresentation(ctx,base); }
+   return base;
+  }
+  function chipsFor(g,r,viewer,own){
   const chips=[];
   if(g.status==='pending'&&g.terms){chips.push(Math.round(Number(g.terms.total||0)/60)+' min a testa','+'+Number(g.terms.increment||0)+' s per mossa');if(g.expires_at){chips.push('Scade alle '+new Date(g.expires_at*1000).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}));}}
   if(g.status==='finished'){chips.push(Math.floor(Number(r.duration||0)/60)+' min '+Number(r.duration||0)%60+' s',Number(r.plies||0)+(Number(r.plies)===1?' mossa individuale':' mosse individuali'));if(r.computer){chips.push('Allenamento ┬À senza premi o ELO');}else if(own){chips.push('Intelligenza +'+Number(r.intelligence?.[viewer]||0));const elo=Number(r.elo?.[viewer]||0);chips.push('ELO '+(elo>=0?'+':'')+elo);}}
+    return chips;
+  }
+  function options(g){
+   const viewer=Number(g.viewer),r=g.result||{},winner=Number(r.winner)||0,own=viewer===Number(g.a)||viewer===Number(g.b),game=g.game==='dama'?'Dama italiana':'Scacchi';
+   const who=id=>g.players?.find(p=>Number(p.id)===Number(id))?.nome||'LÔÇÖavversario';
+   const toneFor=(won,own,viewer)=>{if(!won){return 'draw';}if(!own){return 'victory';}return won===viewer?'victory':'defeat';};
+   const symbolFor=tone=>{if(tone==='victory'){return 'ÔÖø';}if(tone==='draw'){return 'ÔÜû';}return 'ÔÖÜ';};
+   const titleFor=(won,own,viewer,who)=>{if(!won){return 'Una partita alla pari';}if(!own){return who(won)+' vince';}return won===viewer?'Vittoria!':'La partita ├¿ conclusa';};
+   const prizeFor=(r,won)=>{if(!r.prizes?.length){return 'Nessuna posta da trasferire.';}return won?'Le poste sono state assegnate al vincitore.':'Le poste sono state restituite ai rispettivi proprietari.';};
+   const ctx={g,viewer,r,winner,own,who,toneFor,symbolFor,titleFor};
+   const {tone,title,message,symbol,button}=statusPresentation(ctx);
+   const chips=chipsFor(g,r,viewer,own);
   return {variant:'board-game',gameTone:tone,gameSymbol:symbol,eyebrow:'Alphano ┬À '+game+' ┬À Tavolo #'+Number(g.id),title,message,gamePlayers:g.players||[],gameChips:chips,
    detail:g.status==='finished'&&!r.computer?prizeFor(r,winner):undefined,
    iconImage:'/assets/placeholder.svg',buttonLabel:g.onTable?'Torna al tavolo':button,cancelLabel:g.onTable?undefined:'Pi├╣ tardi',actionUrl:g.onTable?undefined:urlOf(g)};
- }
+  }
  async function show(game){
   try{if(window.parent!==window&&window.parent.location.origin===location.origin&&window.parent.alphanoBoardNotices){return window.parent.alphanoBoardNotices.show(game);}}catch{}
   if(!window.alphanoDialog){return 'unavailable';}

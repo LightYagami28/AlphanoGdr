@@ -2,6 +2,25 @@ import {patchLiveList} from './live-list.js';
 /* La lettura è salvata sul server; nessun avviso viene ricreato dal polling. */
 (() => {
   'use strict';
+  function dropBoardGames(batch){
+    for(let i=batch.length-1;i>=0;i--)if(batch[i].event_type==='board-game'){batch.splice(i,1);}
+  }
+  function noticeOptions(trade,single,batch){
+    const noticeTitle=(trade,single)=>{if(trade){return single.title;}return single?'Nuova notifica':'Nuove notifiche';};
+    const noticeMessage=(trade,batch,single)=>{if(trade){return single.detail;}return batch.length+(single?' aggiornamento da leggere.':' aggiornamenti da leggere.');};
+    const noticeSymbol=n=>{if(n.event_type==='board-game'){return '\u265c';}return n.key==='mail'?'\u2709':'\u2726';};
+    return {
+      variant:'activity',iconImage:trade?'/assets/placeholder.svg':undefined,title:noticeTitle(trade,single),eyebrow:'Alphano · Cronaca',
+      message:noticeMessage(trade,batch,single),
+      items:trade?undefined:batch.slice(0,12).map(n=>({label:n.title,meta:n.detail,image:n.data?.order_id||n.commerce?'/assets/placeholder.svg':undefined,symbol:noticeSymbol(n),actionUrl:n.url||'/notifiche/?notice='+encodeURIComponent(n.key),actionLabel:n.event_type==='board-game'?'Apri il tavolo':'Leggi'})),
+      itemsTitle:'Ultimi aggiornamenti',contentUrl:trade?'/commercio/?id='+Number(single.data.order_id):undefined,
+      actionUrl:trade?undefined:'/notifiche/',buttonLabel:trade?'Chiudi trattativa':'Apri la cronaca',cancelLabel:'Più tardi'
+    };
+  }
+  function openedTarget(decision,trade,single,batch){
+    const openedFrom=(decision,trade,single,batch)=>{if(decision.startsWith('item:')){return batch[Number(decision.slice(5))];}return decision==='ack'&&trade?single:null;};
+    return openedFrom(decision,trade,single,batch);
+  }
   document.addEventListener('DOMContentLoaded', () => {
     const mail=document.getElementById('mail-open'),badge=document.getElementById('mail-unread');
     const list=document.getElementById('quest-notifications'),count=document.getElementById('quest-count');
@@ -19,25 +38,6 @@ import {patchLiveList} from './live-list.js';
       const games=batch.filter(n=>n.event_type==='board-game');
       const latest=new Map();games.forEach(n=>{const id=n.data?.game_id||n.key,old=latest.get(id);if(!old||Number(n.data?.presentation?.version||n.created_at||0)>Number(old.data?.presentation?.version||old.created_at||0)){latest.set(id,n);}});
       await Promise.all([...latest.values()].map(async n=>{const decision=await window.alphanoBoardNotices.fromNotice(n,Number(document.getElementById('app-script')?.dataset.idpg||0));if(decision==='ack'){await request({keys:[n.key]});}}));
-    }
-    function dropBoardGames(batch){
-      for(let i=batch.length-1;i>=0;i--)if(batch[i].event_type==='board-game'){batch.splice(i,1);}
-    }
-    function noticeOptions(trade,single,batch){
-      const noticeTitle=(trade,single)=>{if(trade){return single.title;}return single?'Nuova notifica':'Nuove notifiche';};
-      const noticeMessage=(trade,batch,single)=>{if(trade){return single.detail;}return batch.length+(single?' aggiornamento da leggere.':' aggiornamenti da leggere.');};
-      const noticeSymbol=n=>{if(n.event_type==='board-game'){return '\u265c';}return n.key==='mail'?'\u2709':'\u2726';};
-      return {
-        variant:'activity',iconImage:trade?'/assets/placeholder.svg':undefined,title:noticeTitle(trade,single),eyebrow:'Alphano · Cronaca',
-        message:noticeMessage(trade,batch,single),
-        items:trade?undefined:batch.slice(0,12).map(n=>({label:n.title,meta:n.detail,image:n.data?.order_id||n.commerce?'/assets/placeholder.svg':undefined,symbol:noticeSymbol(n),actionUrl:n.url||'/notifiche/?notice='+encodeURIComponent(n.key),actionLabel:n.event_type==='board-game'?'Apri il tavolo':'Leggi'})),
-        itemsTitle:'Ultimi aggiornamenti',contentUrl:trade?'/commercio/?id='+Number(single.data.order_id):undefined,
-        actionUrl:trade?undefined:'/notifiche/',buttonLabel:trade?'Chiudi trattativa':'Apri la cronaca',cancelLabel:'Più tardi'
-      };
-    }
-    function openedTarget(decision,trade,single,batch){
-      const openedFrom=(decision,trade,single,batch)=>{if(decision.startsWith('item:')){return batch[Number(decision.slice(5))];}return decision==='ack'&&trade?single:null;};
-      return openedFrom(decision,trade,single,batch);
     }
     async function markOpened(opened){
       if(opened?.key?.startsWith('quest:')){await request({ids:[Number(opened.key.slice(6))]});}

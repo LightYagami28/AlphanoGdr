@@ -15,8 +15,8 @@ namespace Onspli\Chess;
 */
 class Square
 {
-  private $rank_index;
-  private $file_index;
+  private $rankIndex;
+  private $fileIndex;
 
   /**
   * Create square.
@@ -31,14 +31,14 @@ class Square
   * Throws `ParseException` if SAN is invalid or if indices are not integers.
   * Creates null square if file or rank index is out of bounds.
   */
-  function __construct($san_or_file_index = null, $rank_index = null)
+  public function __construct($san_or_file_index = null, $rankIndex = null)
   {
     if (is_string($san_or_file_index)) {
-      $this->parse_san($san_or_file_index);
+      $this->parseSan($san_or_file_index);
     } else {
-      $this->file_index = $san_or_file_index;
-      $this->rank_index = $rank_index;
-      $this->validate_indices();
+      $this->fileIndex = $san_or_file_index;
+      $this->rankIndex = $rankIndex;
+      $this->validateIndices();
     }
   }
 
@@ -52,13 +52,9 @@ class Square
   *
   * For square 'e4' it returns 3.
   */
-  public function get_rank_index() : int
+  public function getRankIndex() : int
   {
-    // 10% better performance
-    /*if ($this->is_null() || $this->is_file()) {
-      throw new \OutOfBoundsException;
-    }*/
-    return $this->rank_index;
+    return $this->rankIndex;
   }
 
   /**
@@ -67,15 +63,15 @@ class Square
   * For square 'e4' it returns '4'. Throws `\OutOfBoundsException` for null squares.
   * Returns empty string for files.
   */
-  public function get_rank() : string
+  public function getRank() : string
   {
-    if ($this->is_null()) {
+    if ($this->isNull()) {
       throw new \OutOfBoundsException;
     }
-    if ($this->is_file()) {
+    if ($this->isFile()) {
       return '';
     }
-    return $this->rank_index + 1;
+    return $this->rankIndex + 1;
   }
 
   /**
@@ -83,13 +79,9 @@ class Square
   *
   * For square 'e4' it returns 4.
   */
-  public function get_file_index() : int
+  public function getFileIndex() : int
   {
-    // 10% better performance
-    /*if ($this->is_null() || $this->is_rank()) {
-      throw new \OutOfBoundsException;
-    }*/
-    return $this->file_index;
+    return $this->fileIndex;
   }
 
   /**
@@ -98,15 +90,15 @@ class Square
   * For square 'e4' it returns 'e'. Throws `\OutOfBoundsException` for null squares.
   * Returns empty string for ranks.
   */
-  public function get_file() : string
+  public function getFile() : string
   {
-    if ($this->is_null()) {
+    if ($this->isNull()) {
       throw new \OutOfBoundsException;
     }
-    if ($this->is_rank()) {
+    if ($this->isRank()) {
       return '';
     }
-    return chr(ord('a') + $this->file_index);
+    return chr(ord('a') + $this->fileIndex);
   }
 
   /**
@@ -120,43 +112,43 @@ class Square
   */
   public function export() : string
   {
-    if ($this->is_null()) {
+    if ($this->isNull()) {
       return '-';
     }
 
-    return $this->get_file() . $this->get_rank();
+    return $this->getFile() . $this->getRank();
   }
 
   /**
   * Check wether square is regular square.
   */
-  public function is_regular() : bool
+  public function isRegular() : bool
   {
-    return $this->rank_index !== null && $this->file_index !== null;
+    return $this->rankIndex !== null && $this->fileIndex !== null;
   }
 
   /**
   * Check wether square is null.
   */
-  public function is_null() : bool
+  public function isNull() : bool
   {
-    return $this->rank_index === null && $this->file_index === null;
+    return $this->rankIndex === null && $this->fileIndex === null;
   }
 
   /**
   * Check wether square is rank.
   */
-  public function is_rank() : bool
+  public function isRank() : bool
   {
-    return $this->rank_index !== null && $this->file_index === null;
+    return $this->rankIndex !== null && $this->fileIndex === null;
   }
 
   /**
   * Check wether square is file.
   */
-  public function is_file() : bool
+  public function isFile() : bool
   {
-    return $this->rank_index === null && $this->file_index !== null;
+    return $this->rankIndex === null && $this->fileIndex !== null;
   }
 
   /**
@@ -164,9 +156,9 @@ class Square
   *
   * Regular squares and ranks has rank.
   */
-  public function has_rank() : bool
+  public function hasRank() : bool
   {
-    return $this->rank_index !== null;
+    return $this->rankIndex !== null;
   }
 
 
@@ -175,9 +167,9 @@ class Square
   *
   * Regular squares and files has file.
   */
-  public function has_file() : bool
+  public function hasFile() : bool
   {
-    return $this->file_index !== null;
+    return $this->fileIndex !== null;
   }
 
   /**
@@ -187,12 +179,12 @@ class Square
   * regular squares. Returns null square if relative coordinates are outside
   * the board.
   */
-  public function get_relative_square(int $east, int $north)
+  public function getRelativeSquare(int $east, int $north)
   {
-    if (!$this->is_regular()) {
+    if (!$this->isRegular()) {
       throw new \OutOfBoundsException;
     }
-    return new Square($this->get_file_index() + $east, $this->get_rank_index() + $north);
+    return new Square($this->getFileIndex() + $east, $this->getRankIndex() + $north);
   }
 
   /**
@@ -201,9 +193,9 @@ class Square
   * Method ignores nonregular squares.
   * @param bool $as_object Add square as an object rather than SAN string.
   */
-  public function push_to_array(array &$array, bool $as_object = false) : void
+  public function pushToArray(array &$array, bool $as_object = false) : void
   {
-    if (!$this->is_regular()) {
+    if (!$this->isRegular()) {
       return;
     }
     if ($as_object) {
@@ -213,38 +205,28 @@ class Square
     }
   }
 
-  private function set_to_null() : void
+  private function setToNull() : void
   {
-    $this->file_index = null;
-    $this->rank_index = null;
+    $this->fileIndex = null;
+    $this->rankIndex = null;
   }
 
-  /*
-  private static function is_index_valid($index) : bool
-  {
-    return $index === null || intval($index) === $index;
-  }*/
-
-  private static function is_index_in_range($index) : bool
+  private static function isIndexInRange($index) : bool
   {
     return $index >= 0 && $index <= 7;
   }
 
-  private function validate_indices() : void
+  private function validateIndices() : void
   {
-    // 10% better performance
-    /*if (!self::is_index_valid($this->file_index) || !self::is_index_valid($this->rank_index)) {
-      throw new ParseException;
-    }*/
-    if (!self::is_index_in_range($this->file_index) || !self::is_index_in_range($this->rank_index)) {
-      $this->set_to_null();
+    if (!self::isIndexInRange($this->fileIndex) || !self::isIndexInRange($this->rankIndex)) {
+      $this->setToNull();
     }
   }
 
-  private function parse_san(string $san) : void
+  private function parseSan(string $san) : void
   {
     if ($san == '-' || $san == '') {
-      $this->set_to_null();
+      $this->setToNull();
       return;
     }
     $matches = [];
@@ -252,11 +234,22 @@ class Square
       throw new ParseException;
     }
     if ($matches[1]) {
-      $this->file_index = ord($matches[1]) - ord('a');
+      $this->fileIndex = ord($matches[1]) - ord('a');
     }
     if ($matches[2]) {
-      $this->rank_index = intval($matches[2]) - 1;
+      $this->rankIndex = intval($matches[2]) - 1;
     }
   }
 
+  /**
+   * Compatibilita' con la API storica in snake_case della libreria vendored.
+   */
+  public function __call(string $name, array $arguments): mixed
+  {
+    $camel = lcfirst(str_replace(' ', '', ucwords(str_replace('_', ' ', $name))));
+    if (method_exists($this, $camel)) {
+      return $this->$camel(...$arguments);
+    }
+    throw new \BadMethodCallException('Metodo sconosciuto: ' . $name);
+  }
 }

@@ -104,7 +104,7 @@ function bgView(array $m,int $uid):array{
  bg_access($m,$uid);if(!bgCanWatch($m,$uid)){ throw new BoardGameDomainException('Prima di osservare, interagisci narrativamente in questa chat nominando uno dei due giocatori.',403); }
  $computer=bg_computer_info($m);$players=bgPlayers($m);$participant=in_array($uid,[(int)$m['a'],(int)$m['b']],true);$state=rpg_decode($m['state_json']);if(!$participant){ $state['legal']=[]; }
  // Older matches acquire presentation metadata without rewriting their moves or clocks.
- if($m['game_key']==='scacchi'&&!empty($state['fen'])&&!array_key_exists('check',$state)){ $state['check']=(new Onspli\Chess\FEN($state['fen']))->is_check(); }
+ if($m['game_key']==='scacchi'&&!empty($state['fen'])&&!array_key_exists('check',$state)){ $state['check']=(new Onspli\Chess\FEN($state['fen']))->isCheck(); }
  $turnPlayer=0;
  if(isset($state['turn'])){
    if($state['turn']===0){ $turnPlayer=(int)$m['white_id']; }

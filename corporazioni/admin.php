@@ -774,7 +774,7 @@ $lista2     = listaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
           <thead><tr><th>Data</th><th>Da</th><th>Org</th><th>Interlocutore</th><th>Quantità</th><th>Interessi</th><th>Stato</th><th>Rimanente</th></tr></thead>
           <tbody>
             <?php foreach($lista1 as $d):
-              $rim = (int)$d['stato']===5 ? calcolaInteressi((int)$d['quantita'],(int)$d['interessi'],(int)$d['data'])-(int)$d['restituiti'] : ((int)$d['stato']<5 ? (int)$d['quantita'] : 0);
+              if ((int)$d['stato']===5) { $rim=calcolaInteressi((int)$d['quantita'],(int)$d['interessi'],(int)$d['data'])-(int)$d['restituiti']; } elseif ((int)$d['stato']<5) { $rim=(int)$d['quantita']; } else { $rim=0; }
             ?>
               <tr>
                 <td><?= htmlspecialchars(formatTimestamp($d['data']), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></td>

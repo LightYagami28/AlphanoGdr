@@ -23,7 +23,7 @@ function buildChatMessage(
     $now     = time();
     $str     = trim($rawMsg);
     $stanga  = ord('|');
-    $OnGame  = true;
+    $onGame  = true;
     $dest    = 0;
     $l      = '0';
     $newLoc  = $location;
@@ -59,10 +59,10 @@ function buildChatMessage(
           WHERE chat = ? AND run = 1",
         [$chat]
     )[0] ?? [];
-    $SessionIsRunning = (bool)($run['run'] ?? false);
+    $sessionIsRunning = (bool)($run['run'] ?? false);
     if (!empty($run['lock']) && empty($pg['fatepower'])) { return ['', 0, $location, '0']; }
     $sessionName      = (int)($run['id'] ?? 0);
-    $NeedsDadi        = (bool)($run['dadi'] ?? false);
+    $needsDadi        = (bool)($run['dadi'] ?? false);
     $partecipanti     = (string)($run['partecipanti'] ?? '');
     if ($partecipanti === '') {
         $partecipanti = ';';
@@ -97,7 +97,7 @@ function buildChatMessage(
     };
     $razImg   = processRazza(alphanoVisibleRace($pg),(int)$pg['etnia']);
     $razImg   = $link . $razImg . '</a>&nbsp;';
-    $incog    = ($str[0] ?? '') === '|' && $pg['fatepower'] && $SessionIsRunning;
+    $incog    = ($str[0] ?? '') === '|' && $pg['fatepower'] && $sessionIsRunning;
     $alline   = $incog ? 'N' : ($pg['allineamento'][1] ?? 'N');
     $araldica = '';
     if (! $incog) {
@@ -119,7 +119,7 @@ function buildChatMessage(
     // 7) SWITCH sui comandi
     switch ($first) {
         case '/':
-            if(str_starts_with($str,'//')){$OnGame=false;$out='<span class="String">'.$ora.'</span> '.$razImg.$fPar.$name.'</B></SPAN> <span class="chat-ooc-text">'.htmlspecialchars(substr($str,2),ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8').'</span>';break;}
+            if(str_starts_with($str,'//')){$onGame=false;$out='<span class="String">'.$ora.'</span> '.$razImg.$fPar.$name.'</B></SPAN> <span class="chat-ooc-text">'.htmlspecialchars(substr($str,2),ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8').'</span>';break;}
             // A single slash is ordinary speech.
             $out='<span class="String">'.$ora.'</span> '.$razImg.$name.' '.$render(substr($str,1));break;
         case '+': {
@@ -140,8 +140,8 @@ function buildChatMessage(
             // **Qui ricreo correttamente time + nome + azione**
             $out = $fAzo . $ora . '</SPAN>'
                 . $fAzo . $razImg . $name . ' ' . $render($azione,true) . '</SPAN>';
-            if ($SessionIsRunning && $NeedsDadi) {
-                $out .= '&nbsp;<img height="10" width="10" src="/chatimg/dadod20.gif">&nbsp;' . random_int(1,20);
+            if ($sessionIsRunning && $needsDadi) {
+                $out .= '&nbsp;<img height="10" width="10" src="/chatimg/dadod20.gif">&nbsp;' . rand(1,20);
             }
             $out .= '</SPAN>';
 
@@ -150,12 +150,12 @@ function buildChatMessage(
 
 
         case '#':
-            if (($pg['fatepower']||$pg['admin']) && ($SessionIsRunning||$pg['admin'])) {
+            if (($pg['fatepower']||$pg['admin']) && ($sessionIsRunning||$pg['admin'])) {
                 $cmd = htmlentities(substr($str,1));
                 $out = "<TABLE class=\"column-width-100\"><TR>"
                      . "<TD class=\"MasterKey\">{$cmd}</TD>"
                      . "</TR></TABLE>";
-                $OnGame = false;
+                $onGame = false;
             }
             break;
 
@@ -165,7 +165,7 @@ function buildChatMessage(
                 $out = "<TABLE class=\"column-width-100\"><TR>"
                      . "<TD class=\"DescrKey\">{$txt}</TD>"
                      . "</TR></TABLE>";
-                $OnGame = false;
+                $onGame = false;
             }
             break;
 
@@ -174,7 +174,7 @@ function buildChatMessage(
                 $url = substr($str,1);
                 if (!preg_match('~^(https?://|/(?!/))~i', $url)) { return ['',0,$location,'0']; }
                 $out = "<DIV class=\"align-center\"><img src=\"" . htmlspecialchars($url) . "\" /></DIV>";
-                $OnGame = false;
+                $onGame = false;
             }
             break;
 
@@ -253,7 +253,7 @@ function buildChatMessage(
     }
 
     // 9) Conta azioni lican
-    if ($inf && $OnGame) {
+    if ($inf && $onGame) {
         $db->execute(
             'UPDATE utenti SET azionilican=azionilican+1 WHERE id=?',
             [$idpg]
@@ -269,7 +269,7 @@ function buildChatMessage(
     }
 
     // 11) Log sessione in HTML
-    if ($SessionIsRunning) {
+    if ($sessionIsRunning) {
         $logFile = HTMLROOT . "/sessione/log/{$sessionName}.html";
         if(!empty($GLOBALS['alphano_defer_chat_log'])){ $GLOBALS['alphano_deferred_chat_session']=(int)$sessionName; }
         else { file_put_contents($logFile, $out."<br>\n", FILE_APPEND|LOCK_EX); }

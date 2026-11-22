@@ -211,5 +211,5 @@ if (PHP_SAPI !== 'cli') { set_exception_handler(static function (Throwable $exce
     foreach (headers_list() as $header) { if (stripos($header, 'Content-Type: application/json') === 0) { $json = true; } }
     alphanoFail('Operazione non completata. Riprova tra poco. Codice assistenza: '.$reference, 500, $json);
 }
-); 
+);
 }

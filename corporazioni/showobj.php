@@ -134,7 +134,7 @@ if (!$object && !$newObject) {
                     $items[$k] = (int)$v;
                 }
             }
-            if ($items):
+            if ($items) {
             ?>
             <div class="primes">
                 <?php foreach ($items as $mat => $val): ?>
@@ -144,7 +144,7 @@ if (!$object && !$newObject) {
                 </div>
                 <?php endforeach; ?>
             </div>
-            <?php endif; ?>
+            <?php } ?>
         </section>
         <?php endif; ?>
 
@@ -204,7 +204,7 @@ if (!$object && !$newObject) {
                     $itemsNew[$k] = (int)$v;
                 }
             }
-            if ($itemsNew):
+            if ($itemsNew) {
             ?>
             <div class="primes">
                 <?php foreach ($itemsNew as $mat => $val): ?>
@@ -214,7 +214,7 @@ if (!$object && !$newObject) {
                 </div>
                 <?php endforeach; ?>
             </div>
-            <?php endif; ?>
+            <?php } ?>
         </section>
         <?php endif; ?>
     </div>

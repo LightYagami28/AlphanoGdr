@@ -141,7 +141,7 @@ function aiPerceptionReactionState(array $job):array {
 }
 /** Same publication/logging receipts as ordinary dialogue, without pretending a PG spoke. */
 function aiPerceptionWorkJob(array $job):bool {
-    [$room,$npc,$event]=aiPerceptionReactionState($job);$db=aiDb();
+    [$room,$npc]=aiPerceptionReactionState($job);$db=aiDb();
     $snapshot=aiGameSnapshot($job,$npc);aiHeartbeat('generating');
     $result=aiGenerate($room,$npc,$job);$result['nome']=$npc['name'];$result['sent_at']=time();
     $result['character']=['id'=>(int)$npc['id'],'name'=>$npc['name'],'profile'=>array_intersect_key(aiNpcProfile($npc),array_flip(['sex','race_id','ethnicity_id']))];

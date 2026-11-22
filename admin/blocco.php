@@ -26,7 +26,7 @@ $db      = connectDB();  // PDOMySQLDriver
 // ———————————————————————————
 // 3) UTENTE & SICUREZZA
 // ———————————————————————————
-$pgid = GetIDPG(0,1) ?: die('❗ Devi essere loggato');
+$pgid = GetIDPG(0) ?: die('❗ Devi essere loggato');
 
 // **uso query() per leggere**
 $userRows = $db->query(

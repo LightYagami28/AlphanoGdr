@@ -9,7 +9,7 @@ if(!lineage_vampire_can_infect($user)){ alphano_fail('Poteri riservati ai vampir
 $message='';$error='';
 if($_SERVER['REQUEST_METHOD']==='POST'){
  alphano_require_csrf();
- try{$target=filter_var($_POST['target']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);if(!$target){ throw new DomainException('Scegli un personaggio.',422); }$key=player_text($_POST,'_request_key',100,true);lineage_infect($id,(int)$target,$key);$message='Il contagio è stato annunciato in chat. La metamorfosi avverrà dopo sei ore.';}
+ try{$target=filter_var($_POST['target']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);if(!$target){ throw new DomainException('Scegli un personaggio.',422); }$key=playerText($_POST,'_request_key',100,true);lineage_infect($id,(int)$target,$key);$message='Il contagio è stato annunciato in chat. La metamorfosi avverrà dopo sei ore.';}
  catch(DomainException $e){$error=$e->getMessage();http_response_code($e->getCode()>=400?$e->getCode():400);}
 }
 $targets=[];

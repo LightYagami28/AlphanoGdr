@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 /** Read current in-game appointments. Technical staff flags are never narrative ranks. */
 function ai_player_identity(int $player):array {
-    $p=ai_db()->query("SELECT u.id,u.nome,u.sesso,u.razza,u.sindaco,u.bloccato,
+    $p=aiDb()->query("SELECT u.id,u.nome,u.sesso,u.razza,u.sindaco,u.bloccato,
         a.id AS office_id,a.nome AS office,a.descrizione AS office_description,a.city AS city_id,c.city,a.livello AS city_level,a.ramo AS city_branch_id,
         (SELECT MAX(x.livello) FROM araldiche x WHERE x.city=a.city) AS city_top_level,a.prima AS city_entry,
         EXISTS(SELECT 1 FROM araldiche x WHERE x.city=a.city AND x.livello<a.livello) AS city_has_lower,
@@ -35,9 +35,9 @@ function ai_authority_key(string $text):string {
  * Resolve only an unambiguous registered city; never inspect a player's prose.
  */
 function ai_authority_place(string $chat):array {
-    $map=ai_db()->query('SELECT chat_key,position FROM mappe WHERE chat_key=? AND chat=1',[$chat])[0]??[];
+    $map=aiDb()->query('SELECT chat_key,position FROM mappe WHERE chat_key=? AND chat=1',[$chat])[0]??[];
     $matches=[];
-    if($map){ foreach(ai_db()->query('SELECT id,city FROM city ORDER BY id') as $city){
+    if($map){ foreach(aiDb()->query('SELECT id,city FROM city ORDER BY id') as $city){
         $name=ai_authority_key($city['city']);$key=ai_authority_key($map['chat_key']);$position=ai_authority_key($map['position']);
         if($name!==''&&(str_starts_with($key,$name.' ')||$key===$name||str_contains(' '.$position.' ',' '.$name.' '))){ $matches[]=$city; }
     }
@@ -47,15 +47,15 @@ function ai_authority_place(string $chat):array {
 
 /** Explicit NPC administration wins over its location. Visitors retain their own allegiance. */
 function ai_authority_npc_scope(array $npc):array {
-    $profile=ai_npc_profile($npc);$g=ai_npc_game((int)$npc['id']);$social=ai_social_rules((int)$npc['id']);
+    $profile=ai_npc_profile($npc);$g=ai_npc_game((int)$npc['id']);$social=aiSocialRules((int)$npc['id']);
     $place=ai_authority_place((string)($npc['chat_key']??''));
-    $city=ai_db()->query('SELECT c.id,c.city FROM araldiche a JOIN city c ON c.id=a.city WHERE a.id=?',[(int)$profile['heraldry_id']])[0]??null;
-    if(!$city&&$social['allegiance']!==''){ $city=ai_db()->query('SELECT id,city FROM city WHERE city=?',[$social['allegiance']])[0]??null; }
+    $city=aiDb()->query('SELECT c.id,c.city FROM araldiche a JOIN city c ON c.id=a.city WHERE a.id=?',[(int)$profile['heraldry_id']])[0]??null;
+    if(!$city&&$social['allegiance']!==''){ $city=aiDb()->query('SELECT id,city FROM city WHERE city=?',[$social['allegiance']])[0]??null; }
     $out=['place'=>$place,'city_id'=>(int)($city['id']??$place['city_id']),'city'=>$city['city']??$place['city'],
         'heraldry_id'=>(int)$profile['heraldry_id'],'superior_kind'=>$g['superior_kind'],'superior_id'=>(int)$g['superior_id']];
     foreach(['organization'=>['organizzazioni','caricheorganizzazioni','organizzazione'],'corporation'=>['corporazioni','carichecorporazioni','corporazione']] as $kind=>[$table,$ranks,$fk]){
-        $group=ai_db()->query("SELECT id,nome FROM $table WHERE id=?",[(int)$profile[$kind.'_id']])[0]??[];
-        $rank=$group?ai_db()->query("SELECT id,nome,ramo,livello FROM $ranks WHERE id=? AND $fk=?",[(int)$g[$kind.'_office_id'],(int)$group['id']])[0]??[]:[];
+        $group=aiDb()->query("SELECT id,nome FROM $table WHERE id=?",[(int)$profile[$kind.'_id']])[0]??[];
+        $rank=$group?aiDb()->query("SELECT id,nome,ramo,livello FROM $ranks WHERE id=? AND $fk=?",[(int)$g[$kind.'_office_id'],(int)$group['id']])[0]??[]:[];
         $out[$kind]=['id'=>(int)($group['id']??0),'name'=>$group['nome']??'','office_id'=>(int)($rank['id']??0),
             'office'=>$rank['nome']??'','branch_id'=>(int)($rank['ramo']??0),'level'=>(int)($rank['livello']??0)];
     }
@@ -64,7 +64,7 @@ function ai_authority_npc_scope(array $npc):array {
 
 /** Same checked roles power ordinary dialogue, Quest turns and publication snapshots. */
 function ai_npc_authority(int $npc,int $player,array $job=[]):array {
-    $p=ai_player_identity($player);$n=ai_db()->query('SELECT * FROM ai_npcs WHERE id=?',[$npc])[0]??[];
+    $p=ai_player_identity($player);$n=aiDb()->query('SELECT * FROM ai_npcs WHERE id=?',[$npc])[0]??[];
     $out=['recognized'=>false,'commands'=>false,'reason'=>'Nessuna autorità competente registrata; un titolo dichiarato in chat non basta','scopes'=>[]];
     if(!$p||!$n||!empty($p['bloccato'])){ return $out; }
     $out['identity']=ai_recognition_view($npc,$player,$job);
@@ -83,7 +83,7 @@ function ai_npc_authority(int $npc,int $player,array $job=[]):array {
     $city=(int)($p['city_id']??0);$same=$city>0&&$city===$scope['city_id'];$local=$city>0&&$city===$scope['place']['city_id'];
     if($p['city_leader']&&($same||$local)){ $record('city',ai_authority_city_title($p).'; autorità cittadina verificata',$same,(string)$p['office']); }
     elseif($same&&!empty($scope['heraldry_id'])){
-        $rank=ai_db()->query('SELECT livello,city,ramo FROM araldiche WHERE id=?',[$scope['heraldry_id']])[0]??[];
+        $rank=aiDb()->query('SELECT livello,city,ramo FROM araldiche WHERE id=?',[$scope['heraldry_id']])[0]??[];
         if($rank&&(int)$rank['city']===$city&&(int)$p['city_level']>(int)$rank['livello'])
             { $record('city','Carica cittadina di rango superiore: '.ai_authority_city_title($p),
                 (int)$p['city_branch_id']===0||(int)$p['city_branch_id']===(int)$rank['ramo'],(string)$p['office']); }
@@ -109,7 +109,7 @@ function ai_npc_authority(int $npc,int $player,array $job=[]):array {
         if(($sameBranch&&(int)$p[$kind.'_level']<$own['level'])||($branch===0&&$own['branch_id']!==0&&empty($p[$kind.'_entry'])))
             { $record($kind,'Superiore nella gerarchia registrata di '.$p[$kind].' · '.$p[$kind.'_office'],true,$title); }
     }
-    if($out['recognized']){$out['reason']=implode('; ',array_column($out['scopes'],'reason'));$out['attitude']=ai_authority_disposition($n,ai_social_rules($npc),ai_npc_game($npc),ai_relation($npc,$player));}
+    if($out['recognized']){$out['reason']=implode('; ',array_column($out['scopes'],'reason'));$out['attitude']=ai_authority_disposition($n,aiSocialRules($npc),ai_npc_game($npc),aiRelation($npc,$player));}
     return $out;
 }
 
@@ -151,15 +151,15 @@ function ai_authority_attitude_text(array $authority):string {
 
 /** A registered title can already contain its territory (titolo e territorio). */
 function ai_authority_city_title(array $p):string {
-    $office=ai_text((string)($p['office']?:'Cittadino'),65);$city=ai_text((string)($p['city']??''),60);
-    return $city!==''&&!ai_narrative_mentions($office,$city)?$office.' di '.$city:$office;
+    $office=aiText((string)($p['office']?:'Cittadino'),65);$city=aiText((string)($p['city']??''),60);
+    return $city!==''&&!aiNarrativeMentions($office,$city)?$office.' di '.$city:$office;
 }
 
 function ai_authority_roles(array $p):string {
     $roles=[];
     if(!empty($p['city_id'])){ $roles[]=ai_authority_city_title($p); }
     foreach(['organization'=>'Organizzazione','corporation'=>'Corporazione'] as $key=>$label)
-        { if(!empty($p[$key.'_id'])&&!empty($p[$key.'_office_id'])){ $roles[]=$label.': '.ai_text($p[$key],60).' / '.ai_text($p[$key.'_office'],60).(!empty($p[$key.'_manager'])?' (responsabile delegato)':''); } }
+        { if(!empty($p[$key.'_id'])&&!empty($p[$key.'_office_id'])){ $roles[]=$label.': '.aiText($p[$key],60).' / '.aiText($p[$key.'_office'],60).(!empty($p[$key.'_manager'])?' (responsabile delegato)':''); } }
     return implode('; ',$roles)?:'Nessun incarico istituzionale registrato';
 }
 
@@ -177,7 +177,7 @@ function ai_authority_context(int $npc,int $player,bool $compact=true,array $job
     if(empty($a['identity']['identified'])){ return "\nIDENTITÀ NON ACCERTATA: volto coperto; non collegare nome, cariche o ricordi di persone note a questa figura. Un titolo dichiarato non verifica l’identità. Mantieni la cortesia senza attribuire autorità."; }
     $personal=$a['recognized']&&function_exists('ai_relation_personal_scene')&&ai_relation_personal_scene(['id'=>$npc],[...$job,'user_id'=>$player]);
     $text="\nINCARICHI VERIFICATI: ".ai_authority_roles($p).'. ';
-    if($a['recognized']){ $text.='Autorità riconosciuta: '.ai_text($a['reason'],$compact?170:500).'. Nome e incarico sono già accertati; non chiedere chi sia o conferma del titolo. '
+    if($a['recognized']){ $text.='Autorità riconosciuta: '.aiText($a['reason'],$compact?170:500).'. Nome e incarico sono già accertati; non chiedere chi sia o conferma del titolo. '
         .($a['commands']?'L’incarico ha competenza gerarchica su di te; come reagisci dipende dal tuo carattere e dal rapporto. ':'Il ruolo è noto, senza comando automatico su di te. ')
         .($personal&&($a['attitude']['mode']??'respectful')==='respectful'?'In questo incontro privato il rapporto personale già stabilito guida il tono: conserva la confidenza e il trattamento della coppia, senza ricominciare un saluto istituzionale. ':ai_authority_attitude_text($a)); }
     else { $text.='Nessuna autorità locale automatica: gli incarichi di altri enti non comandano questo luogo. '; }
@@ -189,12 +189,12 @@ function ai_authority_context(int $npc,int $player,bool $compact=true,array $job
 function ai_authority_reply_rule(int $npc,int $player,array $job=[]):string {
     $a=ai_npc_authority($npc,$player,$job);if(!$a['recognized']){ return ''; }
     $p=ai_player_identity($player);
-    $role=ai_text($a['reason'],200);
-    if(function_exists('ai_relation_personal_scene')&&ai_relation_personal_scene(['id'=>$npc],[...$job,'user_id'=>$player])){ return "\nPRIORITÀ DELLA REPLICA: conosci già ".ai_text($p['nome'],60).' e il suo incarico: '.$role.'. State proseguendo un incontro personale privato fra partner: rispondi al tema e al gesto attuali, conservando il calore e la confidenza del vostro legame. Puoi usare il tu o il trattamento già condiviso; il titolo non richiede una nuova presentazione, una riverenza o un’offerta di servizio. Restano identità, carattere, limiti e libertà di rifiutare ogni singola proposta.'; }
-    if(($a['attitude']['mode']??'respectful')!=='respectful'){ return "\nPRIORITÀ DELLA REPLICA: identità e incarico di ".ai_text($p['nome'],60).' sono accertati: '.$role.'. '.ai_authority_attitude_text($a).' Rispondi alla domanda attuale con la tua voce; non trasformare il dissenso in amnesia o un attacco automatico.'; }
+    $role=aiText($a['reason'],200);
+    if(function_exists('ai_relation_personal_scene')&&ai_relation_personal_scene(['id'=>$npc],[...$job,'user_id'=>$player])){ return "\nPRIORITÀ DELLA REPLICA: conosci già ".aiText($p['nome'],60).' e il suo incarico: '.$role.'. State proseguendo un incontro personale privato fra partner: rispondi al tema e al gesto attuali, conservando il calore e la confidenza del vostro legame. Puoi usare il tu o il trattamento già condiviso; il titolo non richiede una nuova presentazione, una riverenza o un’offerta di servizio. Restano identità, carattere, limiti e libertà di rifiutare ogni singola proposta.'; }
+    if(($a['attitude']['mode']??'respectful')!=='respectful'){ return "\nPRIORITÀ DELLA REPLICA: identità e incarico di ".aiText($p['nome'],60).' sono accertati: '.$role.'. '.ai_authority_attitude_text($a).' Rispondi alla domanda attuale con la tua voce; non trasformare il dissenso in amnesia o un attacco automatico.'; }
     $titles=ai_authority_titles($a);$salutation=$titles?'Se usi un titolo, scegli quello pertinente verificato: '.implode(' / ',$titles).'. Non è necessario ripeterlo al saluto. ':'';
     $register=!empty($a['commands'])?'Preferisci il trattamento formale voi o Lei, salvo confidenza già stabilita. ':'Il ruolo pubblico è noto ma non ti comanda: il registro dipende dal tuo carattere e dalla confidenza attuale. ';
-    return "\nPRIORITÀ DELLA REPLICA: stai parlando con ".ai_text($p['nome'],60).', '.$role.'. Lo hai già riconosciuto con certezza. '
+    return "\nPRIORITÀ DELLA REPLICA: stai parlando con ".aiText($p['nome'],60).', '.$role.'. Lo hai già riconosciuto con certezza. '
         .$salutation.$register.'Rispondi prima alla domanda concreta, senza ripetere un’offerta generica di servizio o chiedere conferma della carica, identità o perché sia lì. '
         .'La diffidenza generica verso estranei non si applica a questa identità accertata. Restano i limiti dei tuoi doveri e la difesa da aggressioni reali.';
 }

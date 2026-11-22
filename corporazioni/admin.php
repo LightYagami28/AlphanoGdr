@@ -85,7 +85,7 @@ foreach (GetListaCity() as $r) {
 }
 
 // Totale stipendi
-$stipendiTot = $hasStipendio ? GetStipendi($corpId) : 0;
+$stipendiTot = $hasStipendio ? getStipendi($corpId) : 0;
 
 // Carica tipologie e qualità produzioni
 $subtipi = [];
@@ -164,10 +164,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
 
         case 'addcarica':
             $nomeCar = trim($_POST['carica'] ?? '');
-            $salaryInput=EconomiaIntero($_POST['stipendio'] ?? 0,0,2147483647);
-            $commissionInput=EconomiaPercentuale($_POST['provvigione'] ?? 0);
-            $levelInput=EconomiaIntero($_POST['livello'] ?? '',0,2147483647);
-            $branchInput=EconomiaIntero($_POST['ramo'] ?? '',0,2147483647);
+            $salaryInput=economiaIntero($_POST['stipendio'] ?? 0,0,2147483647);
+            $commissionInput=economiaPercentuale($_POST['provvigione'] ?? 0);
+            $levelInput=economiaIntero($_POST['livello'] ?? '',0,2147483647);
+            $branchInput=economiaIntero($_POST['ramo'] ?? '',0,2147483647);
             if ($nomeCar!=='' && $salaryInput!==null && $commissionInput!==null && $levelInput!==null && $branchInput!==null) {
                 $_POST['stipendio']=$salaryInput;$_POST['provvigione']=$commissionInput;
                 if ($hasStipendio && ! $hasProvvigione) {
@@ -211,28 +211,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
             break;
 
         case 'makerichiesta':
-            $orgId = EconomiaIntero($_POST['org'] ?? '',1);
-            $qta = EconomiaIntero($_POST['quantita'] ?? '',1,2147483647);
-            $int = EconomiaIntero($_POST['interessi'] ?? '',0,100);
+            $orgId = economiaIntero($_POST['org'] ?? '',1);
+            $qta = economiaIntero($_POST['quantita'] ?? '',1,2147483647);
+            $int = economiaIntero($_POST['interessi'] ?? '',0,100);
             if ($orgId && $qta!==null && $int!==null) {
-                $ok = EconomiaAzioneModulo(static fn(): bool => CreatePrestito($pgid,$corpId,$orgId,$qta,$int,$_POST['_request_key'] ?? null));
+                $ok = economiaAzioneModulo(static fn(): bool => createPrestito($pgid,$corpId,$orgId,$qta,$int,$_POST['_request_key'] ?? null));
                 $msg = $ok ? 'Richiesta creata correttamente' : 'Richiesta non consentita o già inviata';
             } else $msg = 'Inserisci quantità intere positive e interessi tra 0 e 100';
             break;
 
         case 'adminprestito':
-            $pid = EconomiaIntero($_POST['prestito'] ?? '',1);
+            $pid = economiaIntero($_POST['prestito'] ?? '',1);
             $acc = !empty($_POST['accetta']);
             $canc = !empty($_POST['cancella']);
-            $qta = EconomiaIntero($_POST['quantita'] ?? '',1,2147483647);
-            $int = EconomiaIntero($_POST['interessi'] ?? '',0,100);
-            $pag = EconomiaIntero($_POST['pagamento'] ?? '',1);
+            $qta = economiaIntero($_POST['quantita'] ?? '',1,2147483647);
+            $int = economiaIntero($_POST['interessi'] ?? '',0,100);
+            $pag = economiaIntero($_POST['pagamento'] ?? '',1);
             if ($pid && ($acc || $canc || $pag!==null || ($qta!==null && $int!==null))) {
-                $ok = EconomiaAzioneModulo(static function() use($pid,$pgid,$acc,$canc,$qta,$int,$pag): bool {
-                    if ($acc) return AcceptPrestito($pid,$pgid,$_POST['_request_key'] ?? null);
-                    if ($canc) return DeletePrestito($pid,$pgid,$_POST['_request_key'] ?? null);
-                    if ($pag!==null) return PagaPrestito($pid,$pgid,(float)$pag,$_POST['_request_key'] ?? null);
-                    return UpdatePrestito($pid,$pgid,$qta,$int,2,$_POST['_request_key'] ?? null);
+                $ok = economiaAzioneModulo(static function() use($pid,$pgid,$acc,$canc,$qta,$int,$pag): bool {
+                    if ($acc) return acceptPrestito($pid,$pgid,$_POST['_request_key'] ?? null);
+                    if ($canc) return deletePrestito($pid,$pgid,$_POST['_request_key'] ?? null);
+                    if ($pag!==null) return pagaPrestito($pid,$pgid,(float)$pag,$_POST['_request_key'] ?? null);
+                    return updatePrestito($pid,$pgid,$qta,$int,2,$_POST['_request_key'] ?? null);
                 });
                 $msg = $ok ? 'Prestito aggiornato correttamente' : 'Operazione non consentita, già inviata o fondi insufficienti';
             } else $msg = 'Inserisci importi interi positivi e interessi tra 0 e 100';
@@ -299,28 +299,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
             break;
 
         case 'modifycarica':
-            $cid=EconomiaIntero($_POST['carica'] ?? '',1);
+            $cid=economiaIntero($_POST['carica'] ?? '',1);
             if ($cid && !isset($_POST['nome'])) {
                 $daticarica=$db->query('SELECT * FROM carichecorporazioni WHERE id=? AND corporazione=?',[$cid,$corpId])[0] ?? [];
                 break;
             }
             $existing=$cid?$db->query('SELECT * FROM carichecorporazioni WHERE id=? AND corporazione=?',[$cid,$corpId])[0] ?? null:null;
             $name=trim((string)($_POST['nome'] ?? ''));
-            $salary=EconomiaIntero($_POST['stipendio'] ?? $existing['stipendio'] ?? 0,0,2147483647);
-            $commission=EconomiaPercentuale($_POST['provvigione'] ?? $existing['provvigione'] ?? 0);
-            $level=EconomiaIntero($_POST['livello'] ?? '',0,2147483647);
-            $branch=EconomiaIntero($_POST['ramo'] ?? '',0,2147483647);
+            $salary=economiaIntero($_POST['stipendio'] ?? $existing['stipendio'] ?? 0,0,2147483647);
+            $commission=economiaPercentuale($_POST['provvigione'] ?? $existing['provvigione'] ?? 0);
+            $level=economiaIntero($_POST['livello'] ?? '',0,2147483647);
+            $branch=economiaIntero($_POST['ramo'] ?? '',0,2147483647);
             if (!$existing || $name==='' || $salary===null || $commission===null || $level===null || $branch===null) {
                 http_response_code(400);$msg='Inserisci stipendio e livello interi non negativi e provvigione tra 0 e 100';break;
             }
             $first=!empty($_POST['prima']);$description=trim((string)($_POST['descrizione'] ?? ''));
             $file=$_FILES['immagine'] ?? ['error'=>UPLOAD_ERR_NO_FILE];
-            $ok=EconomiaAzioneModulo(static fn(): bool => EconomiaBool(static function() use($db,$corpId,$pgid,$cid,$name,$salary,$commission,$level,$branch,$first,$description,$file): bool {
+            $ok=economiaAzioneModulo(static fn(): bool => economiaBool(static function() use($db,$corpId,$pgid,$cid,$name,$salary,$commission,$level,$branch,$first,$description,$file): bool {
                 if (!alphano_operation_once('corporation-role-update',$pgid,$_POST['_request_key'] ?? null,[$corpId,$cid,$name,$salary,$commission,$level,$branch,$first,$description])) return true;
                 $before=$db->query('SELECT * FROM carichecorporazioni WHERE id=? AND corporazione=? FOR UPDATE',[$cid,$corpId])[0];
                 if ((int)($file['error'] ?? UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_NO_FILE) {
                     $result=ModifyCaricaCorp($corpId,$cid,$name,$first,$branch,$level,$description,(float)$salary,$commission,$file);
-                    EconomiaVerifica($result==='Carica corporazione aggiornata',$result);
+                    economiaVerifica($result==='Carica corporazione aggiornata',$result);
                 } else $db->execute('UPDATE carichecorporazioni SET nome=?,prima=?,stipendio=?,provvigione=?,livello=?,ramo=?,descrizione=? WHERE id=? AND corporazione=?',[$name,$first?1:0,$salary,$commission,$level,$branch,$description,$cid,$corpId]);
                 $after=$db->query('SELECT * FROM carichecorporazioni WHERE id=? AND corporazione=?',[$cid,$corpId])[0];
                 if ($before!==$after) alphano_record_activity('corporation-role-updated',$pgid,[['scope'=>'corporazioni','id'=>$corpId,'section'=>'iscritti','role'=>'admin']],
@@ -331,7 +331,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
             break;
 
         case 'consegnastipendi':
-            $ok=EconomiaAzioneModulo(static fn(): bool => Consegnastipendi($corpId,$_POST['_request_key'] ?? null));
+            $ok=economiaAzioneModulo(static fn(): bool => consegnastipendi($corpId,$_POST['_request_key'] ?? null));
             $msg=$ok ? 'Stipendi consegnati correttamente' : 'Stipendi non consegnati: controlla fondi, cariche e metodo di pagamento';
             break;
 
@@ -363,7 +363,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
         case 'setmetodo':
             $st=!empty($_POST['stipendi'])?1:0;$pv=!empty($_POST['provvigioni'])?1:0;
             if (!$st && !$pv) {$msg='Devi selezionare almeno un metodo di pagamento';break;}
-            $ok=EconomiaAzioneModulo(static fn(): bool => EconomiaBool(static function() use($db,$corpId,$pgid,$st,$pv): bool {
+            $ok=economiaAzioneModulo(static fn(): bool => economiaBool(static function() use($db,$corpId,$pgid,$st,$pv): bool {
                 if (!alphano_operation_once('corporation-payment-method',$pgid,$_POST['_request_key'] ?? null,[$corpId,$st,$pv])) return true;
                 $old=$db->query('SELECT stipendio,provvigione FROM corporazioni WHERE id=? FOR UPDATE',[$corpId])[0];
                 $db->execute('UPDATE corporazioni SET stipendio=?,provvigione=? WHERE id=?',[$st,$pv,$corpId]);
@@ -377,12 +377,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
         case 'setproduction':
             $selection=[];$valid=true;
             foreach ($subtipi as $sid=>$sname) {
-                $value=EconomiaIntero($_POST['produzione'.$sid] ?? 0,0);
+                $value=economiaIntero($_POST['produzione'.$sid] ?? 0,0);
                 if ($value===null || !isset($quality[$value])) {$valid=false;break;}
                 $selection[$sid]=$value;
             }
             if (!$valid) {http_response_code(400);$msg='Qualità non valida';break;}
-            $ok=EconomiaAzioneModulo(static fn(): bool => ImpostaProduzioniCorp($corpId,$pgid,$selection,$_POST['_request_key'] ?? null));
+            $ok=economiaAzioneModulo(static fn(): bool => impostaProduzioniCorp($corpId,$pgid,$selection,$_POST['_request_key'] ?? null));
             $msg=$ok ? 'Produzioni aggiornate con successo' : 'Produzioni non aggiornate: controlla i punti disponibili';
             break;
     }
@@ -392,7 +392,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
 $currentCorp=$db->query('SELECT * FROM corporazioni WHERE id=?',[$corpId])[0];
 $budget=(int)$currentCorp['budget']; $ultimoStip=(int)$currentCorp['ultimostipendio'];
 $hasStipendio=(bool)$currentCorp['stipendio']; $hasProvvigione=(bool)$currentCorp['provvigione'];
-$stipendiTot=$hasStipendio ? GetStipendi($corpId) : 0;
+$stipendiTot=$hasStipendio ? getStipendi($corpId) : 0;
 $sitoCorp=htmlspecialchars((string)$currentCorp['sito'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); $cityCorp=(int)$currentCorp['city'];
 $pvtRoom=base64_decode((string)$currentCorp['pvt']);
 $sfondoTop=htmlspecialchars($currentCorp['sfondotop'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); $sfondoBg=htmlspecialchars($currentCorp['sfondo'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
@@ -418,8 +418,8 @@ $rami       = GetListaRamiCorp($corpId);
 $richieste  = GetRichiesteCorp($corpId);
 $membri     = GetPGInCorp($corpId);
 $lc         = GetListaCaricheCorp($corpId);
-$lista1     = ListaPrestitiCorp($corpId);          // prestiti inoltrati
-$lista2     = ListaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
+$lista1     = listaPrestitiCorp($corpId);          // prestiti inoltrati
+$lista2     = listaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
 
 
 // --- HTML + CSS + JS come nel vecchio file, solo adattato a PDO/PHP 8 ---
@@ -715,7 +715,7 @@ $lista2     = ListaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
           <thead><tr><th>Data</th><th>Da</th><th>Org</th><th>Interlocutore</th><th>Quantità</th><th>Interessi</th><th>Stato</th><th>Rimanente</th></tr></thead>
           <tbody>
             <?php foreach($lista1 as $d):
-              $rim = (int)$d['stato']===5 ? CalcolaInteressi((int)$d['quantita'],(int)$d['interessi'],(int)$d['data'])-(int)$d['restituiti'] : ((int)$d['stato']<5 ? (int)$d['quantita'] : 0);
+              $rim = (int)$d['stato']===5 ? calcolaInteressi((int)$d['quantita'],(int)$d['interessi'],(int)$d['data'])-(int)$d['restituiti'] : ((int)$d['stato']<5 ? (int)$d['quantita'] : 0);
             ?>
               <tr>
                 <td><?= htmlspecialchars(FormatTimestamp($d['data']), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></td>
@@ -724,7 +724,7 @@ $lista2     = ListaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
                 <td><?= $d['pgorg']?htmlentities(GetPGFromID($d['pgorg']), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'):'Nessuno' ?></td>
                 <td><?= $h((int)$d['quantita']) ?></td>
                 <td><?= $h((float)$d['interessi']) ?>%</td>
-                <td><?= ProcessStato($d['stato']) ?></td>
+                <td><?= processStato($d['stato']) ?></td>
                 <td><?= $rim ?></td>
               </tr>
             <?php endforeach; ?>
@@ -736,7 +736,7 @@ $lista2     = ListaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
         <?php foreach ($lista2 as $d): $state=(int)$d['stato']; if ($state>=6) continue; ?>
           <article class="ui-panel">
             <h6>Prestito #<?=$h((int)$d['id'])?> · <?=htmlspecialchars(GetOrg((int)$d['org']), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')?></h6>
-            <p><?=ProcessStato($state)?> · <?=(int)$d['quantita']?> <?=alphano_currency_html()?> · <?=(int)$d['interessi']?>% al mese</p>
+            <p><?=processStato($state)?> · <?=(int)$d['quantita']?> <?=alphano_currency_html()?> · <?=(int)$d['interessi']?>% al mese</p>
             <?php if ($state<5): ?>
               <form method="post" class="ui-form"><input type="hidden" name="corp" value="<?=$corpId?>">
                 <input type="hidden" name="action" value="adminprestito">
@@ -750,7 +750,7 @@ $lista2     = ListaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
                 <?php endif; ?>
                 <button class="btn" type="submit" name="cancella" value="1" formnovalidate>Ritira richiesta</button>
               </form>
-            <?php elseif ($state===5): $residual=max(0,CalcolaInteressi((int)$d['quantita'],(int)$d['interessi'],(int)$d['data'])-(int)$d['restituiti']); ?>
+            <?php elseif ($state===5): $residual=max(0,calcolaInteressi((int)$d['quantita'],(int)$d['interessi'],(int)$d['data'])-(int)$d['restituiti']); ?>
               <form method="post" class="ui-form"><input type="hidden" name="corp" value="<?=$corpId?>">
                 <input type="hidden" name="action" value="adminprestito">
                 <input type="hidden" name="prestito" value="<?=(int)$d['id']?>">

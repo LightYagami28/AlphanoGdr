@@ -2,7 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__.'/../libs/player-runtime.inc.php';
 require_once __DIR__.'/../libs/treasury.inc.php';
-$viewer=alphano_require_login();$input=$_GET;$scope=player_text($input,'scope',20)?:'citta';
+$viewer=alphano_require_login();$input=$_GET;$scope=playerText($input,'scope',20)?:'citta';
 try{$id=alphano_treasury_int($input['id']??0);if(!$id){$s=alphano_treasury_scope($scope);$u=alphano_user();$id=$scope==='citta'?(int)(ConnectDB()->query('SELECT city FROM araldiche WHERE id=?',[(int)$u['araldica']])[0]['city']??0):(int)$u[$s['user_scope']];if(!$id&&!empty($u['admin'])){ $first=match($scope){'citta'=>ConnectDB()->query('SELECT id FROM city ORDER BY id LIMIT 1'),'organizzazioni'=>ConnectDB()->query('SELECT id FROM organizzazioni ORDER BY id LIMIT 1'),'corporazioni'=>ConnectDB()->query('SELECT id FROM corporazioni ORDER BY id LIMIT 1')}; $id=(int)($first[0]['id']??0); }}
     $view=alphano_treasury_view($scope,$id,$viewer);
 }catch(DomainException $e){alphano_fail($e->getMessage(),$e->getCode());}

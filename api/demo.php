@@ -16,7 +16,7 @@ try{
         if(($_GET['poll']??'')!=='1'){ $out['rooms']=ai_demo_rooms(); }
         $chat=is_string($_GET['chat']??null)?$_GET['chat']:'';
         if($visit&&$chat!==''){
-            $rows=ai_db()->query('SELECT t.id,t.npc_id,t.prompt,t.result,t.created_at,n.name,j.status FROM ai_demo_turns t LEFT JOIN ai_jobs j ON j.id=t.job_id LEFT JOIN ai_npcs n ON n.id=t.npc_id WHERE t.visit_id=? AND t.chat_key=? ORDER BY t.id DESC LIMIT 60',[$visit['id'],$chat]);
+            $rows=aiDb()->query('SELECT t.id,t.npc_id,t.prompt,t.result,t.created_at,n.name,j.status FROM ai_demo_turns t LEFT JOIN ai_jobs j ON j.id=t.job_id LEFT JOIN ai_npcs n ON n.id=t.npc_id WHERE t.visit_id=? AND t.chat_key=? ORDER BY t.id DESC LIMIT 60',[$visit['id'],$chat]);
             foreach(array_reverse($rows) as $t){ $out['turns'][]=['id'=>(int)$t['id'],'npc_id'=>(int)$t['npc_id'],'text'=>$t['prompt'],'reply'=>$t['result'],'npc_name'=>$t['name'],'time'=>(int)$t['created_at'],'status'=>$t['status']??'none']; }
         }
     }else{header('Allow: GET, POST');throw new DomainException('Metodo non disponibile.',405);}

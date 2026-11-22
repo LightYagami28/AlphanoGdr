@@ -6,7 +6,7 @@ require_once __DIR__ . '/kernel.inc.php';
 require_once __DIR__ . '/libpg.inc.php';
 require_once __DIR__ . '/libtext.inc.php';
 
-function player_api(callable $action): never
+function playerApi(callable $action): never
 {
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-store');
@@ -26,7 +26,7 @@ function player_api(callable $action): never
     exit;
 }
 
-function player_input(): array
+function playerInput(): array
 {
     if (str_contains($_SERVER['CONTENT_TYPE'] ?? '', 'application/json')) {
         try { $raw = file_get_contents('php://input'); $input = json_decode($raw, true, 64, JSON_THROW_ON_ERROR); }
@@ -37,7 +37,7 @@ function player_input(): array
     return array_merge($_GET, $_POST);
 }
 
-function player_text(array $input, string $field, int $limit = 65535, bool $required = false): string
+function playerText(array $input, string $field, int $limit = 65535, bool $required = false): string
 {
     if (isset($input[$field]) && !is_scalar($input[$field])) throw new RuntimeException('Campo non valido: ' . $field, 400);
     $value = trim((string)($input[$field] ?? ''));
@@ -45,13 +45,13 @@ function player_text(array $input, string $field, int $limit = 65535, bool $requ
     return $value;
 }
 
-function player_mutation(): void
+function playerMutation(): void
 {
     if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') throw new RuntimeException('Metodo non consentito', 405);
     alphano_require_csrf(true);
 }
 
-function player_board_permissions($db, int $board, array $user): array
+function playerBoardPermissions($db, int $board, array $user): array
 {
     if (!$db->query('SELECT id FROM luoghi WHERE id=?', [$board])) throw new RuntimeException('Bacheca non trovata', 404);
     $rules = $db->query('SELECT * FROM diritti WHERE bacheca=?', [(string)$board]);
@@ -70,12 +70,12 @@ function player_board_permissions($db, int $board, array $user): array
     return ['allowed' => $allowed, 'required' => array_values(array_unique($required))];
 }
 
-function player_require_board($db, int $board, array $user): void
+function playerRequireBoard($db, int $board, array $user): void
 {
-    if (!player_board_permissions($db, $board, $user)['allowed']) throw new RuntimeException('Permesso negato', 403);
+    if (!playerBoardPermissions($db, $board, $user)['allowed']) throw new RuntimeException('Permesso negato', 403);
 }
 
-function player_discussion_access(string $type, array $user): bool
+function playerDiscussionAccess(string $type, array $user): bool
 {
     if ($type === 'M') $allowed = !empty($user['fatepower']) || !empty($user['admin']);
     elseif ($type === 'A') $allowed = !empty($user['adminaccademia']) || !empty($user['admin']);
@@ -90,11 +90,11 @@ function player_discussion_access(string $type, array $user): bool
 }
 
 /** Search filters are shared by the HTML catalogue and its JSON endpoint. */
-function player_search_query(array $input): array
+function playerSearchQuery(array $input): array
 {
     require_once __DIR__.'/race-presentation.inc.php';
     $where=[]; $params=[];
-    foreach (['nome','luogo','razza','online','araldica','caricacorporazione','caricaorganizzazione','categoria','corporazione','organizzazione','al','sesso','etnia','city'] as $key) $filters[$key]=player_text($input,$key,255);
+    foreach (['nome','luogo','razza','online','araldica','caricacorporazione','caricaorganizzazione','categoria','corporazione','organizzazione','al','sesso','etnia','city'] as $key) $filters[$key]=playerText($input,$key,255);
     if ($filters['nome']==='NULL') $where[]='u.nome IS NULL';
     elseif ($filters['nome']!=='') { $where[]='u.nome LIKE ?'; $params[]=$filters['nome'].'%'; }
     if ($filters['razza']==='3') $where[]='u.infetto=1';
@@ -114,7 +114,7 @@ function player_search_query(array $input): array
 }
 
 /** Canonicalize legacy local media names; never render a missing relative file as a broken URL. */
-function player_media_url(mixed $value, int $profile, string $fallback = ''): string
+function playerMediaUrl(mixed $value, int $profile, string $fallback = ''): string
 {
     if (!is_scalar($value)) return $fallback;
     $value=trim((string)$value);

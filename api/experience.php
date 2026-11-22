@@ -2,7 +2,7 @@
 declare(strict_types=1);
 require_once dirname(__DIR__).'/libs/player-runtime.inc.php';
 require_once dirname(__DIR__).'/libs/experience.inc.php';
-player_api(function():array{
+playerApi(function():array{
  $user=alphano_require_login(true);
  if($_SERVER['REQUEST_METHOD']==='GET'){
   $experienceSettings=alphano_experience_settings($user);ob_start();require dirname(__DIR__).'/templates/partials/game-preferences.php';$form=ob_get_clean();

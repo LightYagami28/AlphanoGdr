@@ -4,15 +4,15 @@ require_once __DIR__ . '/../../libs/player-runtime.inc.php';
 require_once __DIR__ . '/../../libs/libposta.inc.php';
 require_once __DIR__ . '/../../libs/forum-presentation.inc.php';
 
-player_api(function (): array {
+playerApi(function (): array {
     $idpg = alphano_require_login(true);
     $db = getDB();
     $user = alphano_user();
     $admin = !empty($user['admin']);
-    $input = player_input();
-    $action = player_text($input, 'action', 40, true);
+    $input = playerInput();
+    $action = playerText($input, 'action', 40, true);
     $readActions = ['getIndex','getCities','getBoards','getThreads','getPosts','getHistory'];
-    if (!in_array($action, $readActions, true)) { player_mutation(); }
+    if (!in_array($action, $readActions, true)) { playerMutation(); }
     if ($action === 'getCities') {
         $boards=$db->query('SELECT l.id,l.location,SUM(b.replyid=0) AS threadsCount,SUM(b.replyid<>0) AS postsCount FROM luoghi l LEFT JOIN bacheche b ON b.bacheca=l.id GROUP BY l.id,l.location ORDER BY l.location');
         $cities=[];
@@ -20,7 +20,7 @@ player_api(function (): array {
             $name=$board['location'];
             if (!isset($cities[$name])) { $cities[$name]=['location'=>$name,'boardsCount'=>0,'threadsCount'=>0,'postsCount'=>0]; }
             $cities[$name]['boardsCount']++;
-            if (player_board_permissions($db,(int)$board['id'],$user)['allowed']) {
+            if (playerBoardPermissions($db,(int)$board['id'],$user)['allowed']) {
                 $cities[$name]['threadsCount']+=(int)$board['threadsCount'];
                 $cities[$name]['postsCount']+=(int)$board['postsCount'];
             }
@@ -29,13 +29,13 @@ player_api(function (): array {
         return ['success'=>true,'cities'=>$cities];
     }
     if(in_array($action,['getIndex','getBoards'],true)){
-        $location=$action==='getBoards'?player_text($input,'location',255,true):'';
+        $location=$action==='getBoards'?playerText($input,'location',255,true):'';
         $boards=$db->query("SELECT l.*,(SELECT COUNT(*) FROM bacheche b WHERE b.bacheca=l.id AND b.replyid=0) AS threadsCount,(SELECT COUNT(*) FROM bacheche b WHERE b.bacheca=l.id AND b.replyid<>0) AS postsCount,(SELECT MAX(b.id) FROM bacheche b WHERE b.bacheca=l.id) AS last_id FROM luoghi l".($location!==''?' WHERE l.location=?':'').' ORDER BY l.nome,l.id',$location!==''?[$location]:[]);
         $lastIds=array_values(array_filter(array_column($boards,'last_id')));$last=[];
         if($lastIds){$marks=implode(',',array_fill(0,count($lastIds),'?'));foreach($db->query('SELECT b.id,b.replyid,b.idpg,b.data,b.oggetto,COALESCE(t.id,b.id) AS thread_id,COALESCE(t.oggetto,b.oggetto) AS subject FROM bacheche b LEFT JOIN bacheche t ON t.id=b.replyid AND t.bacheca=b.bacheca AND t.replyid=0 WHERE b.id IN ('.$marks.')',$lastIds) as $post){ $last[(int)$post['id']]=$post; }}
         $unread=[];foreach($db->query("SELECT DISTINCT p.bacheca FROM bacheche p LEFT JOIN activity_notification_reads nr ON nr.recipient=? AND nr.notice_key=CONCAT('board:',p.id) WHERE p.idpg<>? AND nr.notice_key IS NULL",[$idpg,$idpg]) as $row){ $unread[(int)$row['bacheca']]=true; }
         foreach($boards as &$board){
-            $board['id']=(int)$board['id'];$board+=player_board_permissions($db,$board['id'],$user);$board['image']=alphano_board_image($board);$post=$last[(int)$board['last_id']]??null;unset($board['last_id']);
+            $board['id']=(int)$board['id'];$board+=playerBoardPermissions($db,$board['id'],$user);$board['image']=alphano_board_image($board);$post=$last[(int)$board['last_id']]??null;unset($board['last_id']);
             $board['threadsCount']=$board['allowed']?(int)$board['threadsCount']:0;$board['postsCount']=$board['allowed']?(int)$board['postsCount']:0;$board['unread']=$board['allowed']&&isset($unread[$board['id']]);
             $board['lastPostId']=$board['allowed']&&$post?(int)$post['thread_id']:null;$board['lastPostPg']=$board['allowed']&&$post?(int)$post['idpg']:null;$board['lastPostDate']=$board['allowed']&&$post?(int)$post['data']:null;$board['lastPostSubject']=$board['allowed']&&$post?$post['subject']:null;
         }unset($board);
@@ -43,7 +43,7 @@ player_api(function (): array {
     }
     if (in_array($action, ['getThreads','getPosts','postThread','postReply'], true)) {
         $board = (int)($input['board'] ?? 0);
-        player_require_board($db, $board, $user);
+        playerRequireBoard($db, $board, $user);
     }
     if ($action === 'getThreads') {
         $threads=$db->query('SELECT b.*,EXISTS(SELECT 1 FROM bacheche p LEFT JOIN activity_notification_reads nr ON nr.recipient=? AND nr.notice_key=CONCAT(\'board:\',p.id) WHERE p.bacheca=b.bacheca AND (p.id=b.id OR p.replyid=b.id) AND p.idpg<>? AND nr.notice_key IS NULL) AS unread,(SELECT COUNT(*) FROM bacheche p WHERE p.replyid=b.id AND p.bacheca=b.bacheca) AS replyCount FROM bacheche b WHERE b.bacheca=? AND b.replyid=0 ORDER BY b.data DESC,b.id DESC', [$idpg,$idpg,$board]);
@@ -68,10 +68,10 @@ player_api(function (): array {
         return ['success'=>true,'posts'=>$posts];
     }
     if (in_array($action, ['postThread','postReply'],true)) {
-        $subject=player_text($input,'subject',255) ?: ($action === 'postThread' ? 'Nessun Oggetto' : '');
-        $message=player_text($input,'message',100000,true);
-        if (player_text($input,'firma',1)==='1') { $message.=FirmaPG($idpg); }
-        $notify=player_text($input,'segnalazione',1)==='1';
+        $subject=playerText($input,'subject',255) ?: ($action === 'postThread' ? 'Nessun Oggetto' : '');
+        $message=playerText($input,'message',100000,true);
+        if (playerText($input,'firma',1)==='1') { $message.=FirmaPG($idpg); }
+        $notify=playerText($input,'segnalazione',1)==='1';
         $db->beginTransaction();
         try {
             if ($action === 'postReply') {
@@ -91,7 +91,7 @@ player_api(function (): array {
     $messageId=(int)($input['id'] ?? 0);
     $original=$db->query('SELECT * FROM bacheche WHERE id=?',[$messageId])[0] ?? null;
     if (!$original) { throw new RuntimeException('Messaggio non trovato',404); }
-    player_require_board($db,(int)$original['bacheca'],$user);
+    playerRequireBoard($db,(int)$original['bacheca'],$user);
     if ($action === 'getHistory') {
         $history=$db->query('SELECT s.*,u.nome FROM storicobacheche s LEFT JOIN utenti u ON u.id=s.idpg WHERE oldid=? ORDER BY s.id',[$messageId]);
         foreach ($history as &$entry) { $entry['messaggio']=ProcessText($entry['messaggio']); }
@@ -105,10 +105,10 @@ player_api(function (): array {
     }
     if ((int)$original['idpg'] !== $idpg && !$admin) { throw new RuntimeException('Permesso negato',403); }
     if ($action === 'modify') {
-        $subject=player_text($input,'subject',255) ?: $original['oggetto'];
-        $message=player_text($input,'message',100000,true);
-        if (player_text($input,'firma',1)==='1') { $message.=FirmaPG($idpg); }
-        $notify=player_text($input,'segnalazione',1)==='1';
+        $subject=playerText($input,'subject',255) ?: $original['oggetto'];
+        $message=playerText($input,'message',100000,true);
+        if (playerText($input,'firma',1)==='1') { $message.=FirmaPG($idpg); }
+        $notify=playerText($input,'segnalazione',1)==='1';
         $db->beginTransaction();
         try {
             $original=$db->query('SELECT * FROM bacheche WHERE id=? FOR UPDATE',[$messageId])[0] ?? null;

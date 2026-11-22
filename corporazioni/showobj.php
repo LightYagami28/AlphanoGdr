@@ -220,7 +220,7 @@ if (!$object && !$newObject) {
     </div>
 
     <div class="vote">
-        <?php if (CanVoteObj($idpg, $objid)): ?>
+        <?php if (canVoteObj($idpg, $objid)): ?>
         <form action="../admin/accademia.php" method="POST">
             <input type="hidden" name="azione" value="vota">
             <input type="hidden" name="obj" value="<?= $objid ?>">

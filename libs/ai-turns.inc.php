@@ -8,7 +8,7 @@ class AIQuestTurnException extends DomainException {
 function ai_quest_turn_state(array $quest, ?array $guidance=null): array {
     $guidance??=ai_game_guidance((int)$quest['session_id']);
     $order=json_decode($guidance['turn_order'],true)?:[];
-    $cast=ai_db()->query('SELECT kind,actor_id,active,state FROM ai_quest_cast WHERE session_id=?',[(int)$quest['session_id']]);
+    $cast=aiDb()->query('SELECT kind,actor_id,active,state FROM ai_quest_cast WHERE session_id=?',[(int)$quest['session_id']]);
     $active=[];$joining=[];
     foreach($cast as $member){
         $key=$member['kind'].':'.$member['actor_id'];
@@ -19,13 +19,13 @@ function ai_quest_turn_state(array $quest, ?array $guidance=null): array {
     foreach($order as $index=>$member){
         if(!isset($active[$member['kind'].':'.$member['id']])){ continue; }
         if($quest['mode']==='human'&&($member['kind']==='npc'||(int)$member['id']===(int)($quest['conductor_id']??0))){ continue; }
-        $entry=['kind'=>$member['kind'],'id'=>(int)$member['id'],'name'=>ai_quest_name($member['kind'],(int)$member['id'])];
+        $entry=['kind'=>$member['kind'],'id'=>(int)$member['id'],'name'=>aiQuestName($member['kind'],(int)$member['id'])];
         $queue[]=$entry;
         if($index>=(int)$guidance['turn_index']){ $remaining[]=$entry; }
     }
     $next=$queue;
-    foreach($joining as $member){ $next[]=[...$member,'name'=>ai_quest_name($member['kind'],$member['id'])]; }
-    if((json_decode($quest['policy']??'{}',true)['initiative']??'entry')==='force'){ usort($next,static fn($a,$b)=>(int)(ai_quest_actor($b['kind'],$b['id'])['forza']??0)<=>(int)(ai_quest_actor($a['kind'],$a['id'])['forza']??0)); }
+    foreach($joining as $member){ $next[]=[...$member,'name'=>aiQuestName($member['kind'],$member['id'])]; }
+    if((json_decode($quest['policy']??'{}',true)['initiative']??'entry')==='force'){ usort($next,static fn($a,$b)=>(int)(aiQuestActor($b['kind'],$b['id'])['forza']??0)<=>(int)(aiQuestActor($a['kind'],$a['id'])['forza']??0)); }
     $paused=(bool)$guidance['paused'];$status=$quest['status'];
     $turn=(!$paused&&$status==='active')?($remaining[0]['name']??null):null;
     $label=$paused?'Regia sospesa dal Master':match($status){

@@ -17,7 +17,7 @@ foreach (array_merge($_GET,$_POST) as $value) {
 /* ─────────────────── 1) Bootstrap ─────────────────── */
 require_once __DIR__ . '/../libs/kernel.inc.php';       // initSession(), ClosePage()
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') { alphano_require_csrf(); }
-require_once __DIR__ . '/../libs/libaccademia.inc.php'; // MakeRichiestaOrg(), GetRichiesteOrgPG(), GetOrgApprovati(), GetOrgMasters()
+require_once __DIR__ . '/../libs/libaccademia.inc.php'; // MakeRichiestaOrg(), GetRichiesteOrgPG(), getOrgApprovati(), GetOrgMasters()
 require_once __DIR__ . '/../libs/libposta.inc.php';
 require_once __DIR__ . '/../libs/libgrafica.inc.php';
 require_once __DIR__ . '/../libs/libpg.inc.php';       // GetIDPG()
@@ -59,7 +59,7 @@ $denied = GetRichiesteOrgPG($pgid);
 
 // Elenco di tutte le organizzazioni approvate
 $organizzazioni = [];
-foreach (GetOrgApprovati() as $row) {
+foreach (getOrgApprovati() as $row) {
     $organizzazioni[] = $row;
 }
 

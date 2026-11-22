@@ -20,7 +20,7 @@ require_once __DIR__ . '/../libs/kernel.inc.php';       // initSession(), CloseP
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') { alphano_require_csrf(); }
 require_once __DIR__ . '/../libs/libpg.inc.php';       // GetIDPG()
 require_once __DIR__ . '/../libs/libgrafica.inc.php';
-require_once __DIR__ . '/../libs/libeconomia.inc.php'; // ConsegnaStipendiCity()
+require_once __DIR__ . '/../libs/libeconomia.inc.php'; // consegnaStipendiCity()
 require_once __DIR__ . '/../libs/libposta.inc.php';
 require_once __DIR__ . '/../libs/libelezioni.inc.php'; // ElectionTime(), VoteTime()
 require_once __DIR__ . '/../libs/activity.inc.php';
@@ -72,7 +72,7 @@ $electiontime  = ElectionTime($pgcity);
 $votetime      = VoteTime($pgcity);
 
 // Recupera solo le dimore orfane e libera le disponibilità una sola volta.
-$toFree=EconomiaAtomica(static function() use($db,$pgcity): int {
+$toFree=economiaAtomica(static function() use($db,$pgcity): int {
     $orphans=$db->query('SELECT d.id,d.indirizzo FROM dimore d LEFT JOIN utenti u ON u.id=d.pg LEFT JOIN araldiche a ON a.id=u.araldica WHERE d.city=? AND (a.city IS NULL OR a.city<>?) FOR UPDATE',[$pgcity,$pgcity]);
     $counts=[];
     foreach ($orphans as $row) { $counts[(int)$row['indirizzo']]=($counts[(int)$row['indirizzo']] ?? 0)+1; }
@@ -122,8 +122,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             break;
 
         case 'changestipendio':
-            $carica   = EconomiaIntero($_POST['carica'] ?? '',1);
-            $stipendo = EconomiaIntero($_POST['stipendio'] ?? '',1,2147483647);
+            $carica   = economiaIntero($_POST['carica'] ?? '',1);
+            $stipendo = economiaIntero($_POST['stipendio'] ?? '',1,2147483647);
             if ($carica && $stipendo!==null) {
                 try {
                     $db->execute(
@@ -140,7 +140,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             break;
 
         case 'consegnastipendi':
-            try { $msg .= ConsegnaStipendiCity($pgcity,$_POST['_request_key'] ?? null); }
+            try { $msg .= consegnaStipendiCity($pgcity,$_POST['_request_key'] ?? null); }
             catch (RuntimeException $e) {
                 if (!in_array($e->getCode(),[400,409],true)) { throw $e; }
                 http_response_code($e->getCode());$msg .= $e->getMessage();
@@ -236,7 +236,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $dimId = (int)($_POST['id'] ?? 0);
             if ($dimId) {
                 try {
-                    $freed=EconomiaAtomica(static function() use($db,$dimId,$pgcity): bool {
+                    $freed=economiaAtomica(static function() use($db,$dimId,$pgcity): bool {
                         $info=$db->query('SELECT indirizzo FROM dimore WHERE id=? AND city=? FOR UPDATE',[$dimId,$pgcity])[0] ?? null;
                         if (!$info) { return false; }
                         $db->execute(

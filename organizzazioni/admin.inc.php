@@ -166,7 +166,7 @@ foreach ($listacity as $cid => $cdata) {
 $datiflag = [];
 // Dati iniziali per template
 $requests    = GetRichiesteOrg($org);
-$prestitiOrg = ListaPrestitiOrg($org);
+$prestitiOrg = listaPrestitiOrg($org);
 $membersOrg  = GetPGInOrg($org);
 $prestitiPG  = $db->query(
     'SELECT p.data,p.qta,u.nome,u.id
@@ -315,7 +315,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         case 'prendiincarico':
             $pid = (int)($_POST['prestito'] ?? 0);
             if ($pid) {
-                $ok  = EconomiaAzioneModulo(static fn(): bool => PrendiInCarico($pid, $idpg, $_POST['_request_key'] ?? null));
+                $ok  = economiaAzioneModulo(static fn(): bool => prendiInCarico($pid, $idpg, $_POST['_request_key'] ?? null));
                 $msg = $ok
                     ? 'Transazione presa in carico con successo'
                     : 'Errore nell\'acquisizione della transazione';
@@ -325,26 +325,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             break;
 
         case 'adminprestito':
-            $pid = EconomiaIntero($_POST['prestito'] ?? '',1);
+            $pid = economiaIntero($_POST['prestito'] ?? '',1);
             $acc = !empty($_POST['accetta']);
             $canc = !empty($_POST['cancella']);
-            $qta = EconomiaIntero($_POST['quantita'] ?? '',1,2147483647);
-            $int = EconomiaIntero($_POST['interessi'] ?? '',0,100);
+            $qta = economiaIntero($_POST['quantita'] ?? '',1,2147483647);
+            $int = economiaIntero($_POST['interessi'] ?? '',0,100);
             if ($pid && ($acc || $canc || ($qta!==null && $int!==null))) {
-                $ok = EconomiaAzioneModulo(static function() use($pid,$idpg,$acc,$canc,$qta,$int): bool {
-                    if ($acc) { return AcceptPrestito($pid,$idpg,$_POST['_request_key'] ?? null); }
-                    if ($canc) { return DeletePrestito($pid,$idpg,$_POST['_request_key'] ?? null); }
-                    return UpdatePrestito($pid,$idpg,$qta,$int,3,$_POST['_request_key'] ?? null);
+                $ok = economiaAzioneModulo(static function() use($pid,$idpg,$acc,$canc,$qta,$int): bool {
+                    if ($acc) { return acceptPrestito($pid,$idpg,$_POST['_request_key'] ?? null); }
+                    if ($canc) { return deletePrestito($pid,$idpg,$_POST['_request_key'] ?? null); }
+                    return updatePrestito($pid,$idpg,$qta,$int,3,$_POST['_request_key'] ?? null);
                 });
                 $msg = $ok ? 'Richiesta aggiornata correttamente' : 'Operazione non consentita, già inviata o fondi insufficienti';
             } else { $msg = 'Inserisci quantità intere positive e interessi tra 0 e 100'; }
             break;
 
         case 'prestito':
-            $pid = EconomiaIntero($_POST['pg'] ?? '',1);
-            $qta = EconomiaIntero($_POST['qta'] ?? '',1,2147483647);
+            $pid = economiaIntero($_POST['pg'] ?? '',1);
+            $qta = economiaIntero($_POST['qta'] ?? '',1,2147483647);
             if ($pid && $qta!==null) {
-                $ok = EconomiaAzioneModulo(static fn(): bool => CreaPrestitoPG($org,$pid,$qta,$_POST['_request_key'] ?? null));
+                $ok = economiaAzioneModulo(static fn(): bool => creaPrestitoPG($org,$pid,$qta,$_POST['_request_key'] ?? null));
                 $msg = $ok ? 'Prestito creato correttamente' : 'Prestito non consentito, già inviato o fondi insufficienti';
             } else { $msg = 'Inserisci un destinatario e una quantità intera positiva'; }
             break;
@@ -465,7 +465,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // riallinea dati per template
     $requests    = GetRichiesteOrg($org);
-    $prestitiOrg = ListaPrestitiOrg($org);
+    $prestitiOrg = listaPrestitiOrg($org);
     $prestitiPG  = $db->query(
         'SELECT p.data,p.qta,u.nome,u.id
            FROM prestitipg p
@@ -510,7 +510,7 @@ foreach (GetPGInOrg($org) as $row) {
 
 // ─── Popola $prestitiPGOrg (per “Amministrazione richieste prese in carico”) ────
 // Se ListaPrestitiPGOrg restituisce un array di array, lo usi così com’è:
-$prestitiPGOrg = ListaPrestitiPGOrg($idpg, $org);
+$prestitiPGOrg = listaPrestitiPGOrg($idpg, $org);
 
 // ─── Popola $candidati (per “Candidature esistenti”) ────────────────────────────
 $candidati = [];

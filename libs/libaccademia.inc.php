@@ -11,7 +11,7 @@ require_once __DIR__ . '/libbacheca.inc.php';
 
 use Alphano\Database\PDOMySQLDriver;
 
-function AccademiaAtomica(callable $operation): bool
+function accademiaAtomica(callable $operation): bool
 {
     $pdo=getDB()->getConnection();
     $own=!$pdo->inTransaction();
@@ -28,7 +28,7 @@ function AccademiaAtomica(callable $operation): bool
 }
 
 /** L'annuncio pubblico è facoltativo: missiva, archivio ed esito restano autonomi. */
-function AccademiaAnnunciaEsito(string $subject, string $message): void
+function accademiaAnnunciaEsito(string $subject, string $message): void
 {
     $viewer=alphano_user();
     if (!$viewer) { return; }
@@ -36,7 +36,7 @@ function AccademiaAnnunciaEsito(string $subject, string $message): void
     // I numeri delle bacheche cambiano tra installazioni e importazioni.
     $boards=$db->query("SELECT id FROM luoghi WHERE LOWER(TRIM(location))='generale' AND LOWER(TRIM(nome))='annunci' ORDER BY id FOR UPDATE");
     foreach ($boards as $board) {
-        if (!player_board_permissions($db,(int)$board['id'],$viewer)['allowed']) { continue; }
+        if (!playerBoardPermissions($db,(int)$board['id'],$viewer)['allowed']) { continue; }
         try {
             InserisciThread((string)$board['id'],(int)$viewer['id'],$subject,$message,false);
         } catch (Throwable $error) {
@@ -52,7 +52,7 @@ function AccademiaAnnunciaEsito(string $subject, string $message): void
    ========================================================================== */
 
 /** Restituisce il numero di votanti (admin o adminaccademia). */
-function GetNumVotanti(): int
+function getNumVotanti(): int
 {
     $db  = getDB();
     $row = $db->query(
@@ -63,7 +63,7 @@ function GetNumVotanti(): int
 }
 
 /** Elimina in blocco i voti “inutili” da accademia. */
-function PurgeAccademia(): void
+function purgeAccademia(): void
 {
     $db=getDB();
     $db->execute("DELETE a FROM accademia a LEFT JOIN organizzazioni o ON o.id=a.org WHERE a.org>0 AND (o.id IS NULL OR (o.approvato=1 AND o.newstatuto='' AND o.newidmaster=0))");
@@ -78,7 +78,7 @@ function PurgeAccademia(): void
    ========================================================================== */
 
 /** Inserisce in votazione una nuova organizzazione. */
-function InsertOrg(string $nome, int $idmaster, ?string $sito, string $statuto, int $city): string
+function insertOrg(string $nome, int $idmaster, ?string $sito, string $statuto, int $city): string
 {
     $db = getDB();
     if (!getDB()->query('SELECT 1 FROM city WHERE id=?',[$city]) || !getDB()->query('SELECT 1 FROM utenti WHERE id=?',[$idmaster]) || mb_strlen($nome)>255) { return 'Città, fondatore o nome non validi'; }
@@ -106,7 +106,7 @@ function InsertOrg(string $nome, int $idmaster, ?string $sito, string $statuto, 
 }
 
 /** Restituisce voti positivi/negativi per un’organizzazione. */
-function GetVotiOrg(int $org): array
+function getVotiOrg(int $org): array
 {
     $db   = getDB();
     $rows = $db->query(
@@ -124,7 +124,7 @@ function GetVotiOrg(int $org): array
 }
 
 /** Elenco organizzazioni in attesa di approvazione. */
-function GetOrgNApprovati(): array
+function getOrgNApprovati(): array
 {
     return getDB()->query(
         'SELECT * FROM organizzazioni WHERE approvato = 0 ORDER BY nome ASC',
@@ -133,7 +133,7 @@ function GetOrgNApprovati(): array
 }
 
 /** Elenco organizzazioni con statuto modificato in bozza. */
-function GetOrgModificati(): array
+function getOrgModificati(): array
 {
     return getDB()->query(
         'SELECT * FROM organizzazioni WHERE newstatuto <> ? ORDER BY nome ASC',
@@ -142,7 +142,7 @@ function GetOrgModificati(): array
 }
 
 /** Elenco organizzazioni già approvate. */
-function GetOrgApprovati(): array
+function getOrgApprovati(): array
 {
     return getDB()->query(
         'SELECT o.*, c.city AS city
@@ -155,7 +155,7 @@ function GetOrgApprovati(): array
 }
 
 /** Controlla se un PG può votare un’organizzazione. */
-function CanVoteOrg(int $idpg, int $org): bool
+function canVoteOrg(int $idpg, int $org): bool
 {
     return count(
         getDB()->query(
@@ -166,9 +166,9 @@ function CanVoteOrg(int $idpg, int $org): bool
 }
 
 /** Approva un’organizzazione e notifica il master. */
-function ApprovaOrg(int $org): bool
+function approvaOrg(int $org): bool
 {
-    return AccademiaAtomica(static function() use($org): bool {
+    return accademiaAtomica(static function() use($org): bool {
         $db=getDB();
         $group=$db->query('SELECT idmaster,nome FROM organizzazioni WHERE id=? AND approvato=0 FOR UPDATE',[$org])[0] ?? null;
         if (!$group || !$db->query('SELECT 1 FROM utenti WHERE id=?',[$group['idmaster']])) { return false; }
@@ -188,9 +188,9 @@ function ApprovaOrg(int $org): bool
 }
 
 /** Cancella un’organizzazione e notifica il master. */
-function CancellaOrg(int $org): bool
+function cancellaOrg(int $org): bool
 {
-    return AccademiaAtomica(static function() use($org): bool {
+    return accademiaAtomica(static function() use($org): bool {
     if (!getDB()->query("SELECT 1 FROM organizzazioni WHERE id=? AND approvato=0",[$org])) { return false; }
     $db = getDB();
     // Recupera dati
@@ -231,9 +231,9 @@ function CancellaOrg(int $org): bool
 }
 
 /** Approva modifiche di statuto organizzazione. */
-function ApprovaModifOrg(int $org): bool
+function approvaModifOrg(int $org): bool
 {
-    return AccademiaAtomica(static function() use($org): bool {
+    return accademiaAtomica(static function() use($org): bool {
     if (!getDB()->query("SELECT 1 FROM organizzazioni WHERE id=? AND (newstatuto<>'' OR newidmaster>0)",[$org])) { return false; }
     $db = getDB();
     $row = $db->query(
@@ -283,9 +283,9 @@ function ApprovaModifOrg(int $org): bool
 }
 
 /** Cancella bozza modifiche statuto organizzazione. */
-function CancellaModifOrg(int $org): bool
+function cancellaModifOrg(int $org): bool
 {
-    return AccademiaAtomica(static function() use($org): bool {
+    return accademiaAtomica(static function() use($org): bool {
     if (!getDB()->query("SELECT 1 FROM organizzazioni WHERE id=? AND (newstatuto<>'' OR newidmaster>0)",[$org])) { return false; }
     $db = getDB();
     $row = $db->query(
@@ -328,9 +328,9 @@ function CancellaModifOrg(int $org): bool
 }
 
 /** Vota un’organizzazione. */
-function VotaOrg(int $org, int $idpg, bool $positivo, string $motivo): bool
+function votaOrg(int $org, int $idpg, bool $positivo, string $motivo): bool
 {
-    return AccademiaAtomica(static function() use($org,$idpg,$positivo,$motivo): bool {
+    return accademiaAtomica(static function() use($org,$idpg,$positivo,$motivo): bool {
     $user=getDB()->query('SELECT admin,adminaccademia FROM utenti WHERE id=? FOR UPDATE',[$idpg])[0] ?? [];
     if (empty($user['admin']) && empty($user['adminaccademia'])) { return false; }
     if (!getDB()->query("SELECT 1 FROM organizzazioni WHERE id=? AND (approvato=0 OR newstatuto<>'' OR newidmaster>0)",[$org])) { return false; }
@@ -339,7 +339,7 @@ function VotaOrg(int $org, int $idpg, bool $positivo, string $motivo): bool
     if (!$positivo && $motivo === '') {
         return false;
     }
-    if (!CanVoteOrg($idpg, $org)) {
+    if (!canVoteOrg($idpg, $org)) {
         return false;
     }
     $voto = $positivo ? 'vpos' : 'vneg';
@@ -351,17 +351,17 @@ function VotaOrg(int $org, int $idpg, bool $positivo, string $motivo): bool
 }
 
 /** Legge lo statuto (o la bozza) di un’organizzazione. */
-function GetStatutoOrg(int $org, bool $new = false): string
+function getStatutoOrg(int $org, bool $new = false): string
 {
     $row = getDB()->query('SELECT statuto, newstatuto FROM organizzazioni WHERE id = ?', [$org])[0] ?? [];
     return (string)($new && !empty($row['newstatuto']) ? $row['newstatuto'] : ($row['statuto'] ?? ''));
 }
 
 /** Salva bozza di statuto per un’organizzazione. */
-function SalvaStatutoOrg(int $org, int $master, string $statuto): bool
+function salvaStatutoOrg(int $org, int $master, string $statuto): bool
 {
     if (trim($statuto)==='') { return false; }
-    return AccademiaAtomica(static function() use($org,$statuto): bool {
+    return accademiaAtomica(static function() use($org,$statuto): bool {
         $db=getDB();
         $current=$db->query('SELECT newstatuto FROM organizzazioni WHERE id=? AND approvato=1 FOR UPDATE',[$org])[0] ?? null;
         if (!$current) { return false; }
@@ -372,7 +372,7 @@ function SalvaStatutoOrg(int $org, int $master, string $statuto): bool
 }
 
 /** Imposta i flag resurgo, cerimonia e ferite. */
-function SetFlagOrg(int $org, bool $resurgo, bool $cerimonia, bool $ferite): bool
+function setFlagOrg(int $org, bool $resurgo, bool $cerimonia, bool $ferite): bool
 {
     return (bool)getDB()->execute(
         'UPDATE organizzazioni
@@ -392,7 +392,7 @@ function SetFlagOrg(int $org, bool $resurgo, bool $cerimonia, bool $ferite): boo
 /**
  * Inserisce in votazione una nuova corporazione.
  */
-function InsertCorp(
+function insertCorp(
     string  $nome,
     int     $idmaster,
     ?string $sito,
@@ -455,7 +455,7 @@ function InsertCorp(
 }
 
 /** Restituisce voti positivi/negativi per una corporazione. */
-function GetVotiCorp(int $corp): array
+function getVotiCorp(int $corp): array
 {
     $db   = getDB();
     $rows = $db->query(
@@ -473,7 +473,7 @@ function GetVotiCorp(int $corp): array
 }
 
 /** Elenco corporazioni in attesa di approvazione. */
-function GetCorpNApprovate(): array
+function getCorpNApprovate(): array
 {
     return getDB()->query(
         'SELECT * FROM corporazioni WHERE approvato = 0 ORDER BY nome ASC',
@@ -482,7 +482,7 @@ function GetCorpNApprovate(): array
 }
 
 /** Elenco corporazioni con statuto modificato in bozza. */
-function GetCorpModificati(): array
+function getCorpModificati(): array
 {
     return getDB()->query(
         'SELECT * FROM corporazioni WHERE newstatuto <> ? ORDER BY nome ASC',
@@ -491,7 +491,7 @@ function GetCorpModificati(): array
 }
 
 /** Elenco corporazioni già approvate. */
-function GetCorpApprovate(): array
+function getCorpApprovate(): array
 {
     return getDB()->query(
         'SELECT c.*, ct.city AS city
@@ -504,7 +504,7 @@ function GetCorpApprovate(): array
 }
 
 /** Controlla se un PG può votare una corporazione. */
-function CanVoteCorp(int $idpg, int $corp): bool
+function canVoteCorp(int $idpg, int $corp): bool
 {
     return count(
         getDB()->query(
@@ -519,9 +519,9 @@ function CanVoteCorp(int $idpg, int $corp): bool
  * Approva una corporazione e notifica il master,
  * nominando il proponente come Capo Corporazione.
  */
-function ApprovaCorp(int $corp): bool
+function approvaCorp(int $corp): bool
 {
-    return AccademiaAtomica(static function() use($corp): bool {
+    return accademiaAtomica(static function() use($corp): bool {
         $db=getDB();
         $group=$db->query('SELECT idmaster,nome FROM corporazioni WHERE id=? AND approvato=0 FOR UPDATE',[$corp])[0] ?? null;
         if (!$group || !$db->query('SELECT 1 FROM utenti WHERE id=?',[$group['idmaster']])) { return false; }
@@ -547,9 +547,9 @@ function ApprovaCorp(int $corp): bool
 
 
 /** Cancella una corporazione e notifica il master. */
-function CancellaCorp(int $corp): bool
+function cancellaCorp(int $corp): bool
 {
-    return AccademiaAtomica(static function() use($corp): bool {
+    return accademiaAtomica(static function() use($corp): bool {
     if (!getDB()->query("SELECT 1 FROM corporazioni WHERE id=? AND approvato=0",[$corp])) { return false; }
     $db = getDB();
     $row      = $db->query('SELECT nome, idmaster, statuto FROM corporazioni WHERE id = ?', [$corp])[0];
@@ -588,9 +588,9 @@ function CancellaCorp(int $corp): bool
 }
 
 /** Approva modifiche di statuto corporazione. */
-function ApprovaModifCorp(int $corp): bool
+function approvaModifCorp(int $corp): bool
 {
-    return AccademiaAtomica(static function() use($corp): bool {
+    return accademiaAtomica(static function() use($corp): bool {
     if (!getDB()->query("SELECT 1 FROM corporazioni WHERE id=? AND (newstatuto<>'' OR newidmaster>0)",[$corp])) { return false; }
     $db = getDB();
     $row = $db->query(
@@ -638,9 +638,9 @@ function ApprovaModifCorp(int $corp): bool
 }
 
 /** Cancella bozza modifiche statuto corporazione. */
-function CancellaModifCorp(int $corp): bool
+function cancellaModifCorp(int $corp): bool
 {
-    return AccademiaAtomica(static function() use($corp): bool {
+    return accademiaAtomica(static function() use($corp): bool {
     if (!getDB()->query("SELECT 1 FROM corporazioni WHERE id=? AND (newstatuto<>'' OR newidmaster>0)",[$corp])) { return false; }
     $db = getDB();
     $row = $db->query(
@@ -681,9 +681,9 @@ function CancellaModifCorp(int $corp): bool
 }
 
 /** Vota una corporazione. */
-function VotaCorp(int $corp, int $idpg, bool $positivo, string $motivo): bool
+function votaCorp(int $corp, int $idpg, bool $positivo, string $motivo): bool
 {
-    return AccademiaAtomica(static function() use($corp,$idpg,$positivo,$motivo): bool {
+    return accademiaAtomica(static function() use($corp,$idpg,$positivo,$motivo): bool {
     $user=getDB()->query('SELECT admin,adminaccademia FROM utenti WHERE id=? FOR UPDATE',[$idpg])[0] ?? [];
     if (empty($user['admin']) && empty($user['adminaccademia'])) { return false; }
     if (!getDB()->query("SELECT 1 FROM corporazioni WHERE id=? AND (approvato=0 OR newstatuto<>'' OR newidmaster>0)",[$corp])) { return false; }
@@ -692,7 +692,7 @@ function VotaCorp(int $corp, int $idpg, bool $positivo, string $motivo): bool
     if (!$positivo && $motivo === '') {
         return false;
     }
-    if (!CanVoteCorp($idpg, $corp)) {
+    if (!canVoteCorp($idpg, $corp)) {
         return false;
     }
     $voto = $positivo ? 'vpos' : 'vneg';
@@ -704,17 +704,17 @@ function VotaCorp(int $corp, int $idpg, bool $positivo, string $motivo): bool
 }
 
 /** Legge lo statuto (o la bozza) di una corporazione. */
-function GetStatutoCorp(int $corp, bool $new = false): string
+function getStatutoCorp(int $corp, bool $new = false): string
 {
     $row = getDB()->query('SELECT statuto, newstatuto FROM corporazioni WHERE id = ?', [$corp])[0] ?? [];
     return (string)($new && !empty($row['newstatuto']) ? $row['newstatuto'] : ($row['statuto'] ?? ''));
 }
 
 /** Salva bozza di statuto per una corporazione. */
-function SalvaStatutoCorp(int $corp, int $master, string $statuto): bool
+function salvaStatutoCorp(int $corp, int $master, string $statuto): bool
 {
     if (trim($statuto)==='') { return false; }
-    return AccademiaAtomica(static function() use($corp,$statuto): bool {
+    return accademiaAtomica(static function() use($corp,$statuto): bool {
         $db=getDB();
         $current=$db->query('SELECT newstatuto FROM corporazioni WHERE id=? AND approvato=1 FOR UPDATE',[$corp])[0] ?? null;
         if (!$current) { return false; }
@@ -730,7 +730,7 @@ function SalvaStatutoCorp(int $corp, int $master, string $statuto): bool
    ========================================================================== */
 
 /** Restituisce voti positivi/negativi per un oggetto. */
-function GetVotiObj(int $obj): array
+function getVotiObj(int $obj): array
 {
     $db   = getDB();
     $rows = $db->query(
@@ -748,7 +748,7 @@ function GetVotiObj(int $obj): array
 }
 
 /** Elenco oggetti in attesa di approvazione. */
-function GetObjNApprovati(): array
+function getObjNApprovati(): array
 {
     return getDB()->query(
         'SELECT * FROM equip WHERE approvato = 0 ORDER BY shortDesc',
@@ -757,7 +757,7 @@ function GetObjNApprovati(): array
 }
 
 /** Elenco oggetti con modifica in bozza. */
-function GetObjModificati(): array
+function getObjModificati(): array
 {
     return getDB()->query(
         'SELECT * FROM newequip ORDER BY shortDesc',
@@ -766,7 +766,7 @@ function GetObjModificati(): array
 }
 
 /** Controlla se un PG può votare un oggetto. */
-function CanVoteObj(int $idpg, int $obj): bool
+function canVoteObj(int $idpg, int $obj): bool
 {
     return count(
         getDB()->query(
@@ -777,9 +777,9 @@ function CanVoteObj(int $idpg, int $obj): bool
 }
 
 /** Vota un oggetto. */
-function VotaObj(int $obj, int $idpg, bool $positivo, string $motivo): bool
+function votaObj(int $obj, int $idpg, bool $positivo, string $motivo): bool
 {
-    return AccademiaAtomica(static function() use($obj,$idpg,$positivo,$motivo): bool {
+    return accademiaAtomica(static function() use($obj,$idpg,$positivo,$motivo): bool {
     $user=getDB()->query('SELECT admin,adminaccademia FROM utenti WHERE id=? FOR UPDATE',[$idpg])[0] ?? [];
     if (empty($user['admin']) && empty($user['adminaccademia'])) { return false; }
     if (!getDB()->query('SELECT 1 FROM equip e LEFT JOIN newequip n ON n.id=e.id WHERE e.id=? AND (e.approvato=0 OR n.id IS NOT NULL)',[$obj])) { return false; }
@@ -788,7 +788,7 @@ function VotaObj(int $obj, int $idpg, bool $positivo, string $motivo): bool
     if (!$positivo && $motivo === '') {
         return false;
     }
-    if (!CanVoteObj($idpg, $obj)) {
+    if (!canVoteObj($idpg, $obj)) {
         return false;
     }
     $voto = $positivo ? 'vpos' : 'vneg';
@@ -800,9 +800,9 @@ function VotaObj(int $obj, int $idpg, bool $positivo, string $motivo): bool
 }
 
 /** Approva un oggetto e notifica il creatore. */
-function ApprovaObj(int $obj): bool
+function approvaObj(int $obj): bool
 {
-    return AccademiaAtomica(static function() use($obj): bool {
+    return accademiaAtomica(static function() use($obj): bool {
     if (!getDB()->query("SELECT 1 FROM equip WHERE id=? AND approvato=0",[$obj])) { return false; }
     $db = getDB();
     // Recupera dati
@@ -836,9 +836,9 @@ function ApprovaObj(int $obj): bool
 }
 
 /** Cancella un oggetto e notifica il creatore. */
-function CancellaObj(int $obj): bool
+function cancellaObj(int $obj): bool
 {
-    return AccademiaAtomica(static function() use($obj): bool {
+    return accademiaAtomica(static function() use($obj): bool {
     if (!getDB()->query("SELECT 1 FROM equip WHERE id=? AND approvato=0",[$obj])) { return false; }
     $db = getDB();
     // Recupera tutti i dati per comporre la missiva
@@ -916,9 +916,9 @@ function CancellaObj(int $obj): bool
 
 /** Approva modifiche di un oggetto. */
 /** Approva modifiche di un oggetto. */
-function ApprovaModifObj(int $obj): bool
+function approvaModifObj(int $obj): bool
 {
-    return AccademiaAtomica(static function() use($obj): bool {
+    return accademiaAtomica(static function() use($obj): bool {
     if (!getDB()->query("SELECT 1 FROM newequip WHERE id=?",[$obj])) { return false; }
     $db   = getDB();
     // Prendo i dati dalla bozza
@@ -981,9 +981,9 @@ function ApprovaModifObj(int $obj): bool
 
 
 /** Cancella bozza di modifiche di un oggetto. */
-function CancellaModifObj(int $obj): bool
+function cancellaModifObj(int $obj): bool
 {
-    return AccademiaAtomica(static function() use($obj): bool {
+    return accademiaAtomica(static function() use($obj): bool {
     if (!getDB()->query("SELECT 1 FROM newequip WHERE id=?",[$obj])) { return false; }
     $db  = getDB();
     $row = $db->query('SELECT * FROM newequip WHERE id = ?', [$obj])[0];
@@ -1025,13 +1025,13 @@ function CancellaModifObj(int $obj): bool
    ========================================================================== */
 
 /** Restituisce l'elenco di tutte le giocate in attesa. */
-function GetGiocate(): array
+function getGiocate(): array
 {
     return getDB()->query('SELECT * FROM giocate', []);
 }
 
 /** Restituisce il nome leggibile di una giocata. */
-function GetNomeGiocata(int $giocata, string $nome = ''): string
+function getNomeGiocata(int $giocata, string $nome = ''): string
 {
     if ($nome === '') {
         $row  = getDB()->query('SELECT nome FROM giocate WHERE id = ?', [$giocata])[0];
@@ -1043,7 +1043,7 @@ function GetNomeGiocata(int $giocata, string $nome = ''): string
 }
 
 /** Controlla se un PG può votare una giocata. */
-function CanVoteGiocata(int $idpg, int $giocata): bool
+function canVoteGiocata(int $idpg, int $giocata): bool
 {
     return count(
         getDB()->query(
@@ -1054,7 +1054,7 @@ function CanVoteGiocata(int $idpg, int $giocata): bool
 }
 
 /** Restituisce voti positivi/negativi per una giocata. */
-function GetVotiGiocata(int $giocata): array
+function getVotiGiocata(int $giocata): array
 {
     $db   = getDB();
     $rows = $db->query(
@@ -1072,9 +1072,9 @@ function GetVotiGiocata(int $giocata): array
 }
 
 /** Vota una giocata. */
-function VotaGiocata(int $giocata, int $idpg, bool $positivo, string $motivo): bool
+function votaGiocata(int $giocata, int $idpg, bool $positivo, string $motivo): bool
 {
-    return AccademiaAtomica(static function() use($giocata,$idpg,$positivo,$motivo): bool {
+    return accademiaAtomica(static function() use($giocata,$idpg,$positivo,$motivo): bool {
     $user=getDB()->query('SELECT admin,adminaccademia FROM utenti WHERE id=? FOR UPDATE',[$idpg])[0] ?? [];
     if (empty($user['admin']) && empty($user['adminaccademia'])) { return false; }
     if (!getDB()->query('SELECT 1 FROM giocate WHERE id=?',[$giocata])) { return false; }
@@ -1083,7 +1083,7 @@ function VotaGiocata(int $giocata, int $idpg, bool $positivo, string $motivo): b
     if (!$positivo && $motivo === '') {
         return false;
     }
-    if (!CanVoteGiocata($idpg, $giocata)) {
+    if (!canVoteGiocata($idpg, $giocata)) {
         return false;
     }
     $voto = $positivo ? 'vpos' : 'vneg';
@@ -1095,15 +1095,15 @@ function VotaGiocata(int $giocata, int $idpg, bool $positivo, string $motivo): b
 }
 
 /** Approva una giocata e la inserisce in sessioni, notifica e thread. */
-function ApprovaGiocata(int $giocata): bool
+function approvaGiocata(int $giocata): bool
 {
-    return AccademiaAtomica(static function() use($giocata): bool {
+    return accademiaAtomica(static function() use($giocata): bool {
     if (!getDB()->query("SELECT 1 FROM giocate WHERE id=?",[$giocata])) { return false; }
     $db = getDB();
     $row = $db->query('SELECT * FROM giocate WHERE id = ?', [$giocata])[0];
     $idpg   = (int)$row['idpg'];
     $data   = $row['data'];
-    $nomeG  = GetNomeGiocata($giocata, $row['nome']);
+    $nomeG  = getNomeGiocata($giocata, $row['nome']);
     $xml    = base64_decode($row['giocata']);
     $array  = GetArrayFromBZXML($xml, 'giocata');
 
@@ -1141,7 +1141,7 @@ function ApprovaGiocata(int $giocata): bool
     // Notifiche
     $oggetto = "Approvazione giocata $nomeG";
     $ok = $ok && (bool)InviaMissiva($oggetto, "La Giocata è stata approvata.\nVotazioni:$notes", $idpg);
-    if ($ok) { AccademiaAnnunciaEsito($oggetto,
+    if ($ok) { accademiaAnnunciaEsito($oggetto,
         "La giocata proposta da " . GetPGFromID($idpg) . " è stata approvata.\nVotazioni:$notes"); }
 
     return $ok;
@@ -1149,14 +1149,14 @@ function ApprovaGiocata(int $giocata): bool
 }
 
 /** Cancella una giocata e notifica/ thread. */
-function CancellaGiocata(int $giocata): bool
+function cancellaGiocata(int $giocata): bool
 {
-    return AccademiaAtomica(static function() use($giocata): bool {
+    return accademiaAtomica(static function() use($giocata): bool {
     if (!getDB()->query("SELECT 1 FROM giocate WHERE id=?",[$giocata])) { return false; }
     $db = getDB();
     $row = $db->query('SELECT * FROM giocate WHERE id = ?', [$giocata])[0];
     $idpg   = (int)$row['idpg'];
-    $nomeG  = GetNomeGiocata($giocata, $row['nome']);
+    $nomeG  = getNomeGiocata($giocata, $row['nome']);
 
     // Raccolta motivazioni
     $notes = '';
@@ -1182,7 +1182,7 @@ function CancellaGiocata(int $giocata): bool
         "La giocata proposta è stata invalidata.\nVotazioni:$notes",
         $idpg
     );
-    if ($ok) { AccademiaAnnunciaEsito($oggetto,
+    if ($ok) { accademiaAnnunciaEsito($oggetto,
         "La giocata proposta da " . GetPGFromID($idpg) . " è stata invalidata.\nVotazioni:$notes"); }
 
     return $ok;

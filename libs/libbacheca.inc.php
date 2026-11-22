@@ -10,7 +10,7 @@ function bacheca_require_message(int $id, bool $write = false): array {
     if (!$user) { alphano_fail('Devi effettuare il login.',403); }
     $message=getDB()->query('SELECT * FROM bacheche WHERE id=?',[$id])[0] ?? null;
     if (!$message) { alphano_fail('Messaggio non trovato.',404); }
-    player_require_board(getDB(),(int)$message['bacheca'],$user);
+    playerRequireBoard(getDB(),(int)$message['bacheca'],$user);
     if ($write) {
         alphano_require_csrf();
         if ((int)$message['idpg']!==(int)$user['id'] && empty($user['admin'])) { alphano_fail('Permesso negato.',403); }
@@ -38,7 +38,7 @@ function getBachecaDb(): PDOMySQLDriver
 function GetBacheca(string $bacheca, int $start = 0, int $limit = 0, int $replyId = 0): array
 {
     $db = getBachecaDb();
-    player_require_board($db,(int)$bacheca,alphano_user() ?? []);
+    playerRequireBoard($db,(int)$bacheca,alphano_user() ?? []);
     $sql = 'SELECT *
             FROM bacheche
             WHERE bacheca = :bc
@@ -130,7 +130,7 @@ function AggiornaMessaggio(int $id, string $oggetto, string $messaggio): bool
  */
 function LeggiThread(string $bacheca, int $id): ?array
 {
-    player_require_board(getDB(),(int)$bacheca,alphano_user() ?? []);
+    playerRequireBoard(getDB(),(int)$bacheca,alphano_user() ?? []);
     $db = getBachecaDb();
 
     // 1) incremento visite
@@ -172,7 +172,7 @@ function LeggiThread(string $bacheca, int $id): ?array
  */
 function LeggiPost(string $bacheca, int $replyId): array
 {
-    player_require_board(getDB(),(int)$bacheca,alphano_user() ?? []);
+    playerRequireBoard(getDB(),(int)$bacheca,alphano_user() ?? []);
     $db = getBachecaDb();
     $sql = 'SELECT bacheche.*, utenti.nome
             FROM bacheche
@@ -318,7 +318,7 @@ function InserisciPost(
     bool   $notify = false
 ): bool {
     $idpg=alphano_require_login(); alphano_require_csrf();
-    player_require_board(getDB(),(int)$bc,alphano_user());
+    playerRequireBoard(getDB(),(int)$bc,alphano_user());
     $db = getBachecaDb();
 
     if ($oggetto === '') {
@@ -366,7 +366,7 @@ function InserisciThread(
     bool   $notify = false
 ): bool {
     $idpg=alphano_require_login(); alphano_require_csrf();
-    player_require_board(getDB(),(int)$bc,alphano_user());
+    playerRequireBoard(getDB(),(int)$bc,alphano_user());
     $db = getBachecaDb();
 
     if ($oggetto === '') {
@@ -400,7 +400,7 @@ function CanReply(int $pgid, string $bc): bool
         return false;
     }
 
-    return player_board_permissions($db,(int)$bc,$u)['allowed'];
+    return playerBoardPermissions($db,(int)$bc,$u)['allowed'];
 }
 
 /**

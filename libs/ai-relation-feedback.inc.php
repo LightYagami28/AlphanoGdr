@@ -9,7 +9,7 @@ function ai_relation_revision(array $relation):string {
     return hash('sha256',json_encode([...$values,'state'=>$relation['state']??'conoscenza','context_id'=>(int)($context['id']??0)],JSON_THROW_ON_ERROR));
 }
 function ai_relation_event(int $npc,int $player,array $before,array $after,string $reason,array $context=[],int $job=0,int $actor=0):int {
-    $db=ai_db();$changes=[];foreach(AI_RELATION_METRICS as $key=>$_){$delta=(int)($after[$key]??0)-(int)($before[$key]??0);if($delta){ $changes[$key]=$delta; }}
+    $db=aiDb();$changes=[];foreach(AI_RELATION_METRICS as $key=>$_){$delta=(int)($after[$key]??0)-(int)($before[$key]??0);if($delta){ $changes[$key]=$delta; }}
     $chat=(string)($context['chat_key']??'');$source=(int)($context['source_id']??0);
     if($changes&&$chat!==''){
         $origin=$source>0?($db->query('SELECT pg,chat,dest FROM chat WHERE id=?',[$source])[0]??[]):[];
@@ -30,7 +30,7 @@ function ai_relation_event(int $npc,int $player,array $before,array $after,strin
 }
 /** Indexed PK cursor, at most 100 receipts; never disclose old history on room entry. */
 function ai_relation_notices(string $chat,int $viewer,int $since,bool $initial=false):array {
-    $db=ai_db();$last=(int)($db->query('SELECT MAX(id) AS last_id FROM ai_relationship_events')[0]['last_id']??0);
+    $db=aiDb();$last=(int)($db->query('SELECT MAX(id) AS last_id FROM ai_relationship_events')[0]['last_id']??0);
     $out=['cursor'=>$last,'events'=>[],'more'=>false];
     if($initial||$since>$last){ return $out; }
     $out['cursor']=$since;$mode=alphano_experience_settings($viewer)['relationship_effects'];

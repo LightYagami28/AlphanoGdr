@@ -63,7 +63,7 @@ $listapos = array_column(
 );
 $wantedBoards=[];
 foreach ($db->query('SELECT id,location,nome FROM luoghi ORDER BY location,nome') as $board) {
-    if (player_board_permissions($db,(int)$board['id'],alphano_user())['allowed']) { $wantedBoards[]=$board; }
+    if (playerBoardPermissions($db,(int)$board['id'],alphano_user())['allowed']) { $wantedBoards[]=$board; }
 }
 
 // ———————————————————————————

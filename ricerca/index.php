@@ -57,7 +57,7 @@ $filters = alphanoSearchFiltersFromRequest(alphanoSearchFilterNames(), $_GET, []
 // 4. Query dinamica
 // ------------------------------------------------------------------
 $categoriaMap=['Accademia'=>'adminaccademia','Master'=>'fatepower','Governatori'=>'admin','Capi Organizzazione'=>'adminorganizzazione','Capi Corporazione'=>'admincorporazione','Guaritori'=>'adminferite','Resurrettori'=>'adminmorti','Cerimonieri'=>'adminstatosociale','Sindaci'=>'sindaco'];
-[$q,$searchParameters] = player_search_query($_GET);
+[$q,$searchParameters] = playerSearchQuery($_GET);
 
 // ------------------------------------------------------------------
 // 5. Tabelle di supporto (array semplici)

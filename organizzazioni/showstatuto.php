@@ -21,7 +21,7 @@ require_once __DIR__ . '/../libs/libgrafica.inc.php';
 require_once __DIR__ . '/../libs/group-admin.inc.php';
 require_once __DIR__ . '/../libs/libpg.inc.php';         // GetIDPG(), EnsureAdmin()
 require_once __DIR__ . '/../libs/libtext.inc.php';       // ProcessText()
-require_once __DIR__ . '/../libs/libaccademia.inc.php';  // SalvaStatutoOrg(), GetStatutoOrg(), GetTitolo()
+require_once __DIR__ . '/../libs/libaccademia.inc.php';  // salvaStatutoOrg(), getStatutoOrg(), GetTitolo()
 require_once __DIR__ . '/../libs/libposta.inc.php';      // eventualmente per notifiche
 
 
@@ -72,7 +72,7 @@ if ($modify && ($admin || $adminorg) && strlen($stat) > 0) {
 }
 
 // Carico il testo (in visualizzazione o per modifica)
-$statuto = GetStatutoOrg($org, (bool)$modify);
+$statuto = getStatutoOrg($org, (bool)$modify);
 
 ?>
 <!DOCTYPE html>

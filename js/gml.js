@@ -1,21 +1,39 @@
 function CreateGMLHelper(obj)
 {
-	document.writeln("<A title=\"Titolo\" href=\"javascript:GMLT(" + obj + ")\"><IMG src=\"/assets/placeholder.svg\" border=\"0\" alt=\"Titolo\"></A>");
-	document.writeln("<A title=\"Paragrafo\" href=\"javascript:GMLP(" + obj + ")\"><IMG src=\"/assets/placeholder.svg\" border=\"0\" alt=\"Paragrafo\"></A>");
-	document.writeln("<A title=\"Grassetto\" href=\"javascript:GMLB(" + obj + ")\"><IMG src=\"/assets/placeholder.svg\" border=\"0\" alt=\"Grassetto\"></A>");
-	document.writeln("<A title=\"Corsivo\" href=\"javascript:GMLC(" + obj + ")\"><IMG src=\"/assets/placeholder.svg\" border=\"0\" alt=\"Corsivo\"></A>");
-	document.writeln("<A title=\"Centrato\" href=\"javascript:GMLCE(" + obj + ")\"><IMG src=\"/assets/placeholder.svg\" border=\"0\" alt=\"Centrato\"></A>");
-	document.writeln("<A title=\"Colore del Testo\" href=\"javascript:GMLTC(" + obj + ")\"><IMG src=\"/assets/placeholder.svg\" border=\"0\" alt=\"Colore del Testo\"></A>");
-	document.writeln("<A title=\"Immagine\" href=\"javascript:GMLI(" + obj + ")\"><IMG src=\"/assets/placeholder.svg\" border=\"0\" alt=\"Immagine\"></A>");
-	document.writeln("<A title=\"Collegamento\" href=\"javascript:GMLLNK(" + obj + ")\"><IMG src=\"/assets/placeholder.svg\" border=\"0\" alt=\"Collegamento\"></A>");
-	document.writeln("<A title=\"Colore di Sfondo\" href=\"javascript:GMLBGC(" + obj + ")\"><IMG src=\"/assets/placeholder.svg\" border=\"0\" alt=\"Colore di Sfondo\"></A>");
-	document.writeln("<A title=\"Immagine di Sfondo\" href=\"javascript:GMLBGI(" + obj + ")\"><IMG src=\"/assets/placeholder.svg\" border=\"0\" alt=\"Immagine di Sfondo\"></A>");
-	document.writeln("<A title=\"Tabella\" href=\"javascript:GMLTBL(" + obj + ")\"><IMG src=\"/assets/placeholder.svg\" border=\"0\" alt=\"Tabella\"></A>");
-	document.writeln("<A title=\"Riga di Tabella\" href=\"javascript:GMLRG(" + obj + ")\"><IMG src=\"/assets/placeholder.svg\" border=\"0\" alt=\"Riga di Tabella\"></A>");
-	document.writeln("<A title=\"Colonna di Tabella\" href=\"javascript:GMLCL(" + obj + ")\"><IMG src=\"/assets/placeholder.svg\" border=\"0\" alt=\"Colonna di Tabella\"></A>");
-	document.writeln("<A title=\"Citazione\" href=\"javascript:GMLQ(" + obj + ")\"><IMG src=\"/assets/placeholder.svg\" border=\"0\" alt=\"Citazione\"></A>");
-	document.writeln("<A title=\"Scegli Colore\" href=\"javascript:ApriScegliColore()\"><IMG src=\"/assets/placeholder.svg\" border=\"0\" alt=\"Scegli Colore\"></A>");
-	document.writeln("<A title=\"Anteprima\" href=\"javascript:ApriAnteprima(" + obj + ")\"><IMG src=\"/assets/placeholder.svg\" border=\"0\" alt=\"Anteprima\"></A>");
+	const tools=[
+		['Titolo','GMLT'],
+		['Paragrafo','GMLP'],
+		['Grassetto','GMLB'],
+		['Corsivo','GMLC'],
+		['Centrato','GMLCE'],
+		['Colore del Testo','GMLTC'],
+		['Immagine','GMLI'],
+		['Collegamento','GMLLNK'],
+		['Colore di Sfondo','GMLBGC'],
+		['Immagine di Sfondo','GMLBGI'],
+		['Tabella','GMLTBL'],
+		['Riga di Tabella','GMLRG'],
+		['Colonna di Tabella','GMLCL'],
+		['Citazione','GMLQ'],
+		['Scegli Colore','ApriScegliColore'],
+		['Anteprima','ApriAnteprima']
+	];
+	const bar=document.createElement('span');
+	bar.className='gml-toolbar';
+	for(const [title,fn] of tools)
+	{
+		const link=document.createElement('a');
+		link.title=title;
+		link.href='javascript:'+fn+'('+(fn==='ApriScegliColore'?'':obj)+')';
+		const img=document.createElement('img');
+		img.src='/assets/placeholder.svg';
+		img.setAttribute('border','0');
+		img.alt=title;
+		link.appendChild(img);
+		bar.appendChild(link);
+	}
+	const anchor=document.currentScript;
+	if(anchor){anchor.before(bar);}else {document.body.appendChild(bar);}
 }
 
 function ApriScegliColore()
@@ -38,7 +56,7 @@ function ApriAnteprima(obj)
 	objtext.value = obj.value;
 	objform.appendChild(objtext);
 	objform.submit();
-	document.body.removeChild(objform);
+	objform.remove();
 }
 
 function GMLT(obj)

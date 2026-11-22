@@ -28,7 +28,7 @@ function ai_background_persona(array $npc,array $rules,int $budget=320):string {
 
 /** Own biographical data stays bounded and topical; live pair/scene state has priority. */
 function ai_background_context(array $npc,array $job,float $scale=.5):string {
-    $reading=ai_narrative_parse((string)($job['prompt']??''));
+    $reading=aiNarrativeParse((string)($job['prompt']??''));
     $question=$reading['speech']!==''?$reading['speech']:ai_personality_observable((string)($job['prompt']??''));
     $query=ai_background_query($question);$profile=ai_npc_profile($npc);$small=$scale<=.3;$budget=$small?300:440;
     $personal=(bool)preg_match('/\b(?:ricord[oi]|infanzia|famigli\p{L}*|parent[ei]|genitor[ei]|padr[ei]|madr[ei]|fratell\p{L}*|sorell\p{L}*|origin\p{L}*|proven\p{L}*|provien\p{L}*|nat[oaie]|nascit\p{L}*|felic[ei]|vostra\s+storia|tua\s+storia|parlatemi\s+di\s+voi|parlami\s+di\s+te|vi\s+piace|ti\s+piace)\b|\b(?:da|di)\s+dove\s+(?:vieni|venite|sei|siete)\b/iu',$question);
@@ -52,7 +52,7 @@ function ai_background_context(array $npc,array $job,float $scale=.5):string {
         $units[]=['label'=>$label,'text'=>$text,'priority'=>$relevant?1:0];
     }
     foreach($profile['details'] as $detail){
-        $label=ai_text((string)($detail['label']??''),80);$text=(string)($detail['value']??'');
+        $label=aiText((string)($detail['label']??''),80);$text=(string)($detail['value']??'');
         if($text!==''&&ai_expression_related($label.' '.$text,$query)){ $units[]=['label'=>$label,'text'=>$text,'priority'=>1]; }
     }
     // A matching family/animal fact must not lose its budget to an unrelated biography.
@@ -103,7 +103,7 @@ function ai_background_master_context(array $room,array $job,float $scale=.5):st
 function ai_background_player_context(array $npc,array $job,bool $compact=false):string {
     $nid=(int)($npc['id']??0);$uid=(int)($job['user_id']??0);
     if($nid<1||$uid<1){ return ''; }
-    $reading=ai_narrative_parse((string)($job['prompt']??''));$question=(string)$reading['speech'];
+    $reading=aiNarrativeParse((string)($job['prompt']??''));$question=(string)$reading['speech'];
     if($question===''){ return ''; }
     $personal='/\b(?:famigli\p{L}*|parent[ei]|genitor[ei]|padr[ei]|madr[ei]|fratell\p{L}*|sorell\p{L}*|figli\p{L}*|infanzia|origin\p{L}*|proven\p{L}*|nascit\p{L}*|mestier\p{L}*|lavor\p{L}*|profess\p{L}*|animali|cane|cani|gatto|gatti|cavall\p{L}*)\b/iu';
     $reminder=(bool)preg_match('/\b(?:ricord[\p{L}]*|raccontat[oa]|confidat[oa])\b/iu',$question);
@@ -117,13 +117,13 @@ function ai_background_player_context(array $npc,array $job,bool $compact=false)
     $scope.=ai_relation_context_memory_scope($nid,$uid,'m');
     $source=(int)($job['source_id']??0);
     if($source>0){$scope.=' AND j.source_id<?';$params[]=$source;}
-    $rows=ai_db()->query("SELECT m.id,c.msg FROM ai_personal_memories m JOIN ai_jobs j ON j.id=m.job_id AND j.npc_id=m.npc_id AND j.user_id=m.player_id JOIN chat c ON c.id=j.source_id AND c.pg=m.player_id AND BINARY c.chat=BINARY m.chat_key WHERE m.npc_id=? AND m.player_id=? AND m.active=1 AND m.source='dialogue' AND j.status='done' AND c.dest=0 AND $scope".(function_exists('alphano_chat_has_archive')&&alphano_chat_has_archive()?' AND c.history_only=0':'').' ORDER BY m.id DESC LIMIT 32',$params);
+    $rows=aiDb()->query("SELECT m.id,c.msg FROM ai_personal_memories m JOIN ai_jobs j ON j.id=m.job_id AND j.npc_id=m.npc_id AND j.user_id=m.player_id JOIN chat c ON c.id=j.source_id AND c.pg=m.player_id AND BINARY c.chat=BINARY m.chat_key WHERE m.npc_id=? AND m.player_id=? AND m.active=1 AND m.source='dialogue' AND j.status='done' AND c.dest=0 AND $scope".(function_exists('alphano_chat_has_archive')&&alphano_chat_has_archive()?' AND c.history_only=0':'').' ORDER BY m.id DESC LIMIT 32',$params);
     $query=ai_background_query($question);$parts=[];$seen=[];$remaining=$compact?230:360;
     foreach($rows as $row){
-        $speech=ai_narrative_parse((string)$row['msg'])['speech'];
+        $speech=aiNarrativeParse((string)$row['msg'])['speech'];
         if($speech===''||!preg_match($personal,$speech)||!ai_expression_related($speech,$query)){ continue; }
         $excerpt=ai_prompt_relevant_text($speech,$query,min(180,$remaining));
-        $excerpt=ai_text($excerpt,$remaining);$key=ai_social_evidence_key($excerpt);
+        $excerpt=aiText($excerpt,$remaining);$key=aiSocialEvidenceKey($excerpt);
         if($key===''||isset($seen[$key])){ continue; }$seen[$key]=true;$parts[]='«'.$excerpt.'»';$remaining-=mb_strlen($excerpt)+4;
         if(count($parts)>=2||$remaining<90){ break; }
     }

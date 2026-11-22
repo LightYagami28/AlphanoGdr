@@ -9,14 +9,14 @@ require_once __DIR__ . '/../libs/libgrafica.inc.php';
 
 
 
-player_api(function (): array {
+playerApi(function (): array {
 alphano_require_login(true);
 // ────────────────────────────────────────────────────────────────────
 // 3) Connessione DB e parametri GET
 // ────────────────────────────────────────────────────────────────────
 $db = ConnectDB();
 
-[$sql,$sqlParams] = player_search_query($_GET);
+[$sql,$sqlParams] = playerSearchQuery($_GET);
 $rows = $db->query($sql,$sqlParams);
 
 // ────────────────────────────────────────────────────────────────────

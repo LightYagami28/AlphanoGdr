@@ -129,7 +129,7 @@ function ai_reaction_style_compose(array $npc,array $profile,array $reaction,arr
 
 /** Read existing sheets and witnessed event membership; no new schema or write. */
 function ai_reaction_style_preface(array $npc,array $profile,array $reaction,array $event):array {
-    $db=ai_db();$nid=(int)$npc['id'];$actor=(int)($event['actor_id']??0);
+    $db=aiDb();$nid=(int)$npc['id'];$actor=(int)($event['actor_id']??0);
     static $cachedEvent='', $witnesses=[];
     $key=(string)($event['chat_key']??$npc['chat_key']??'').':'.(int)($event['source_id']??0);
     if($cachedEvent!==$key){
@@ -140,7 +140,7 @@ function ai_reaction_style_preface(array $npc,array $profile,array $reaction,arr
     // Reuse RPG formulas without the full sheet's ability/equipment/history queries.
     $race=(int)$profile['race_id'];if($race===ALPHANO_RACE_LEGACY_SPIRIT){ $race=ALPHANO_RACE_SPIRIT; }
     $stats=rpg_stat_values(['race_id'=>$race],rpg_progress('npc',$nid));
-    $relation=$actor>0?ai_relation($nid,$actor):[];$rules=ai_social_rules($nid);
+    $relation=$actor>0?aiRelation($nid,$actor):[];$rules=aiSocialRules($nid);
     return ai_reaction_style_compose($npc,$profile,$reaction,$event,['traits'=>$game['traits'],'stats'=>$stats,'relation'=>$relation,'hidden_emotions'=>!empty($rules['hidden_emotions'])],$witnesses);
 }
 

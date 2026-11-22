@@ -198,20 +198,20 @@ try {
         // ─ ordina ────────────────────────────────────────────────────────────────
         case 'ordina':
             if (in_array((int)$user['razza'],[ALPHANO_RACE_SPIRIT,ALPHANO_RACE_DEAD_VAMPIRE,ALPHANO_RACE_LEGACY_SPIRIT],true)) { http_response_code(403); respond(['success'=>false,'msg'=>'Non puoi ordinare oggetti quando sei morto']); }
-            $id=CommercioIntero($_POST['id'] ?? null);
-            $qta=CommercioIntero($_POST['qta'] ?? null,1,10000);
+            $id=commercioIntero($_POST['id'] ?? null);
+            $qta=commercioIntero($_POST['qta'] ?? null,1,10000);
             if ($id===null || $qta===null) { http_response_code(400); respond(['success'=>false,'msg'=>'Inserisci una quantità intera tra 1 e 10000']); }
             $orderId=null;
-            $ok=MakeOrdine($id,$idpg,$corp,$qta,$_POST['_request_key'] ?? null,$orderId);
+            $ok=makeOrdine($id,$idpg,$corp,$qta,$_POST['_request_key'] ?? null,$orderId);
             respond(['success'=>$ok,'orderId'=>$orderId,'msg'=>$ok ? 'Ordine creato correttamente. Seguilo in Trasferimenti.' : 'Ordine non creato: verifica se è già presente o se l’oggetto è ancora disponibile.']);
             break;
 
         // ─ ripara ────────────────────────────────────────────────────────────────
         case 'ripara':
             if (in_array((int)$user['razza'],[ALPHANO_RACE_SPIRIT,ALPHANO_RACE_DEAD_VAMPIRE,ALPHANO_RACE_LEGACY_SPIRIT],true)) { http_response_code(403); respond(['success'=>false,'msg'=>'Non puoi riparare oggetti quando sei morto']); }
-            $id=CommercioIntero($_POST['id'] ?? null);
+            $id=commercioIntero($_POST['id'] ?? null);
             if ($id !== null) {
-                $message=RiparaOggetto($id,$idpg,$corp);
+                $message=riparaOggetto($id,$idpg,$corp);
                 respond(['success'=>$message==='Oggetto riparato correttamente','msg'=>$message]);
             }
             respond(['success'=>false,'msg'=>'Parametri non esaurienti']);
@@ -395,11 +395,11 @@ try {
         // ─ list (default) ────────────────────────────────────────────────────────
         case 'list':
         default:
-            $catalogo        = GetCatalogo((int)$corp,        $admincatalogo);
-            $catalogopers    = GetCatalogoPers((int)$corp,    $admincatalogo, $idpg);
-            $catalogopersorg = GetCatalogoPersOrg((int)$corp, $admincatalogo, $org);
-            $canRepair=EconomiaImpiegato($idpg,$corp);
-            $riparazioni=$canRepair ? GetCatalogoDamaged($idpg,$corp) : [];
+            $catalogo        = getCatalogo((int)$corp,        $admincatalogo);
+            $catalogopers    = getCatalogoPers((int)$corp,    $admincatalogo, $idpg);
+            $catalogopersorg = getCatalogoPersOrg((int)$corp, $admincatalogo, $org);
+            $canRepair=economiaImpiegato($idpg,$corp);
+            $riparazioni=$canRepair ? getCatalogoDamaged($idpg,$corp) : [];
 
             respond([
                 'catalogo'        => buildJsArray($catalogo),

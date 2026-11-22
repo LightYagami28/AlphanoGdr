@@ -58,7 +58,7 @@ function InsertIntoChat(string $chat, string $html, array $metadata=[]): int
             // Serialize authoritative announcements with NPC publication before
             // assigning a chat ID. Otherwise an older in-flight reply could get
             // a later ID and appear to ignore an as-yet-uncommitted metamorphosis.
-            if(ai_perception_ready()){ $db->query('SELECT chat_key FROM ai_rooms WHERE chat_key=? FOR UPDATE',[$chat]); }
+            if(aiPerceptionReady()){ $db->query('SELECT chat_key FROM ai_rooms WHERE chat_key=? FOR UPDATE',[$chat]); }
         }
         $db->execute('INSERT INTO chat (ora,chat,msg) VALUES (?,?,?)',[time(),$chat,$html]);
         $source=(int)$db->lastInsertId();
@@ -68,7 +68,7 @@ function InsertIntoChat(string $chat, string $html, array $metadata=[]): int
         }
         // The source precedes its immediate NPC reactions in every transcript.
         if($sceneMaster){
-            ai_scene_capture_system($chat,$source,$html,$metadata);
+            aiSceneCaptureSystem($chat,$source,$html,$metadata);
         }
 
         // Tutte le query devono riuscire prima di aggiungere testo al file.

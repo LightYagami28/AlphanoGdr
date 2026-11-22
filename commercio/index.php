@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/../libs/commerce-thread.inc.php';
-$uid=alphano_require_login();$id=CommercioIntero($_GET['id']??null,1,2147483647);
+$uid=alphano_require_login();$id=commercioIntero($_GET['id']??null,1,2147483647);
 if(!$id){ alphano_fail('Trattativa non valida.',400); }
 try{alphano_trade_thread($id,$uid);}catch(DomainException $e){alphano_fail($e->getMessage(),$e->getCode());}
 ?>

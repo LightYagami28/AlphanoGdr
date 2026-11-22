@@ -42,7 +42,7 @@ try {
         $result = httpChatHistory($chat, $since, $idpg, $initial, (int)$user['razza']);
         require_once __DIR__.'/../libs/ai.inc.php';
         $result['typing']=!isset($room['private_kind'])||companionship_room_npc($chat,$idpg)?ai_pending_public($chat):[];
-        $result['quest']=isset($room['private_kind'])?null:ai_quest_public($chat,$idpg);
+        $result['quest']=isset($room['private_kind'])?null:aiQuestPublic($chat,$idpg);
         $revision=$result['quest']?($result['quest']['id'].':'.$result['quest']['version'].':'.$result['quest']['round']):'';
         if($revision!==''&&$revision!==($_GET['questVersion']??'')){require_once __DIR__.'/../libs/chat-presentation.inc.php';$result['characters']=[];foreach($db->query('SELECT kind,actor_id FROM ai_quest_cast WHERE session_id=?',[(int)$result['quest']['id']]) as $c){$sheet=alphano_chat_character($c['kind'],(int)$c['actor_id']);if($sheet){ $result['characters'][]=$sheet; }}}
         $result['questVersion']=$revision;
@@ -86,7 +86,7 @@ try {
     $workConfirmed=rpg_bool($input['work_confirmed']??false);
     if($workId&&($abilityId||$itemId||isset($room['private_kind']))){ throw new DomainException('Il lavoro richiede un’azione pubblica separata da abilità e oggetti.',422); }
     if(!$workId&&str_starts_with(ltrim($text),'+')&&$db->query('SELECT id FROM lavori WHERE chat=? AND azione=? LIMIT 1',[$chat,trim(substr(ltrim($text),1))])){ throw new DomainException('Questa è un’azione lavoro: selezionala dal menu Lavori e raccolta e conferma il tentativo.',409); }
-    if(!$workId&&!$itemId&&!$abilityId&&!isset($room['private_kind'])&&(ai_room($chat)['quest_rules']??'legacy')==='alphano_scene_v1'){ $abilityId=rpg_combat_infer_ability($idpg,$text); }
+    if(!$workId&&!$itemId&&!$abilityId&&!isset($room['private_kind'])&&(aiRoom($chat)['quest_rules']??'legacy')==='alphano_scene_v1'){ $abilityId=rpg_combat_infer_ability($idpg,$text); }
     $hasDeclaration=$abilityId||$itemId;if($itemId&&$abilityId){ throw new DomainException('Scegli un oggetto oppure un’abilità per questa azione.',422); }
     $autoAddress=array_key_exists('ai_auto',$input)?filter_var($input['ai_auto'],FILTER_VALIDATE_BOOLEAN):!array_key_exists('ai_request',$input);
     if($workId){$autoAddress=false;}
@@ -111,7 +111,7 @@ try {
       register_shutdown_function(static function()use($db,$guard){$db->query('SELECT RELEASE_LOCK(?)',[$guard]);});
       ai_quest_tick($chat);
 
-      if(str_starts_with(trim($text),'#')){ $s=alphano_session_current($chat);if($s&&!alphano_session_can_manage($idpg,$chat)){ throw new DomainException('La regia di questa sessione appartiene al Master che la dirige.',403); } $q=ai_quest_row($chat);if($q&&$q['mode']==='human'&&((int)$q['conductor_id']!==$idpg||!ai_conductor_can($idpg,$chat))){ throw new DomainException('La regia di questa quest appartiene al Master che l’ha presa in carico.',403); } }
+      if(str_starts_with(trim($text),'#')){ $s=alphano_session_current($chat);if($s&&!alphano_session_can_manage($idpg,$chat)){ throw new DomainException('La regia di questa sessione appartiene al Master che la dirige.',403); } $q=aiQuestRow($chat);if($q&&$q['mode']==='human'&&((int)$q['conductor_id']!==$idpg||!ai_conductor_can($idpg,$chat))){ throw new DomainException('La regia di questa quest appartiene al Master che l’ha presa in carico.',403); } }
     }
     if($atomicChat){
         if($hasDeclaration&&(isset($room['private_kind'])||preg_match('/^(?:\/\/|[$&#])/u',ltrim($text)))){ throw new DomainException('Seleziona un’abilità soltanto per un’azione pubblica in gioco.',422); }
@@ -120,11 +120,11 @@ try {
         $db->query('SELECT id FROM utenti WHERE id=? FOR UPDATE',[$idpg]);
         $saved=$db->query('SELECT payload_hash,response_json FROM rpg_chat_receipts WHERE player_id=? AND chat_key=? AND request_key=?',[$idpg,$chat,$requestId])[0]??null;
         if($saved){if(!hash_equals($saved['payload_hash'],$skillHash)){ throw new DomainException('Identificativo già usato per un altro messaggio.',409); }$db->commit();session_write_close();echo strip_tags(json_encode(json_decode($saved['response_json'], true, 512, JSON_THROW_ON_ERROR),JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_INVALID_UTF8_SUBSTITUTE|JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR));exit;}
-        if($abilityId){$ability=rpg_get_ability('pg',$idpg,$abilityId);rpg_combat_assert_equipment('pg',$idpg,$ability);}if($itemId){require_once __DIR__.'/../libs/item-engine.inc.php';item_instance($itemId,$idpg,true);if(!ai_quest_row($chat)){ throw new DomainException('Per dichiarare un oggetto dalla chat serve una quest attiva. Fuori quest usa l’equipaggiamento.',409); }}
+        if($abilityId){$ability=rpg_get_ability('pg',$idpg,$abilityId);rpg_combat_assert_equipment('pg',$idpg,$ability);}if($itemId){require_once __DIR__.'/../libs/item-engine.inc.php';item_instance($itemId,$idpg,true);if(!aiQuestRow($chat)){ throw new DomainException('Per dichiarare un oggetto dalla chat serve una quest attiva. Fuori quest usa l’equipaggiamento.',409); }}
         if($hasDeclaration&&!str_starts_with(ltrim($text),'+')){ $text='+'.ltrim($text); }
     }
     $workPrepared=$workId?alphano_work_prepare($idpg,$chat,$workId,$text,$workConfirmed,$workQuote):null;
-    if(!isset($room['private_kind'])){ ai_quest_check_turn($chat,$idpg,$text); }
+    if(!isset($room['private_kind'])){ aiQuestCheckTurn($chat,$idpg,$text); }
     $GLOBALS['vampiredamage'] = (bool)$room['vampiredamage'];
     $GLOBALS['private_chat'] = isset($room['private_kind']);
     if($atomicChat){ $GLOBALS['alphano_defer_chat_log']=true; }
@@ -140,18 +140,18 @@ try {
     clearOldMessages($chat);
     $messageId = insertHtml($chat, $parsed['html'], $idpg, (int)$parsed['dest'], $parsed['location'], $parsed['lican']);
     if(!isset($room['private_kind'])){ alphano_session_capture_message($chat,$messageId,$idpg,$text,(int)$parsed['dest']); }
-    require_once __DIR__.'/../libs/board-games.inc.php';bg_narrative($chat,$idpg,(int)$parsed['dest'],$text,$messageId);
+    require_once __DIR__.'/../libs/board-games.inc.php';bgNarrative($chat,$idpg,(int)$parsed['dest'],$text,$messageId);
     $result = ['ok'=>true, 'id' => $messageId, 'location' => $parsed['location']];
     if($workPrepared){$result['work']=alphano_work_complete($idpg,$chat,$requestId,$messageId,$workPrepared);}
     else { try {
         require_once __DIR__.'/../libs/ai.inc.php';
-        $result += ai_after_message($chat,$messageId,$idpg,$parsed['html'],$text,(int)$parsed['dest'],$parsed['lican'],!empty($input['ai_request']),max(0,(int)($input['ai_npc_id']??0)),$abilityId,$autoAddress);
+        $result += aiAfterMessage($chat,$messageId,$idpg,$parsed['html'],$text,(int)$parsed['dest'],$parsed['lican'],!empty($input['ai_request']),max(0,(int)($input['ai_npc_id']??0)),$abilityId,$autoAddress);
     }
     catch (Throwable $aiError) { if($atomicChat){ throw $aiError; }
     error_log('[Master IA hook] '.$aiError->getMessage()); }
     }
     if(!$workId&&$atomicChat){ alphano_work_narrated($idpg,$chat,$text,(int)$parsed['dest'],$messageId); }
-    if($atomicChat){$logSession=(int)($GLOBALS['alphano_deferred_chat_session']??(ai_quest_row($chat)['session_id']??0));if($logSession){ $db->execute('INSERT IGNORE INTO ai_quest_outbox(session_id,event_key,html,created_at,chat_id) VALUES(?,?,?,?,?)',[$logSession,'rpg:chat:'.$messageId,$parsed['html'],time(),$messageId]); }$db->execute('INSERT INTO rpg_chat_receipts(player_id,chat_key,request_key,payload_hash,response_json,created_at) VALUES(?,?,?,?,?,?)',[$idpg,$chat,$requestId,$skillHash,json_encode($result,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR),time()]);$db->commit();}
+    if($atomicChat){$logSession=(int)($GLOBALS['alphano_deferred_chat_session']??(aiQuestRow($chat)['session_id']??0));if($logSession){ $db->execute('INSERT IGNORE INTO ai_quest_outbox(session_id,event_key,html,created_at,chat_id) VALUES(?,?,?,?,?)',[$logSession,'rpg:chat:'.$messageId,$parsed['html'],time(),$messageId]); }$db->execute('INSERT INTO rpg_chat_receipts(player_id,chat_key,request_key,payload_hash,response_json,created_at) VALUES(?,?,?,?,?,?)',[$idpg,$chat,$requestId,$skillHash,json_encode($result,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR),time()]);$db->commit();}
     $_SESSION['chat_receipt_hashes'][$receiptKey]=$skillHash;
     $_SESSION['chat_receipt_hashes']=array_slice($_SESSION['chat_receipt_hashes'],-100,null,true);
     $_SESSION['chat_receipts'][$receiptKey] = $result;
@@ -176,7 +176,7 @@ try {
     if(isset($reference)){ $failure['reference']=$reference; }
     if($e instanceof AlphanoRentalExpired){ $failure['rental_expired']=$e->rental; }
     if(class_exists('AIQuestTurnException',false)&&$e instanceof AIQuestTurnException){
-        try{$failure['notice']=['kind'=>'quest_turn','quest'=>ai_quest_public($chat,$idpg)];}catch(Throwable $ignored){/* L'errore originale resta disponibile anche senza lo stato aggiornato. */}
+        try{$failure['notice']=['kind'=>'quest_turn','quest'=>aiQuestPublic($chat,$idpg)];}catch(Throwable $ignored){/* L'errore originale resta disponibile anche senza lo stato aggiornato. */}
     }
     echo json_encode($failure, JSON_UNESCAPED_UNICODE);
 }

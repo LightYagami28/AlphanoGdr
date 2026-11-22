@@ -83,7 +83,7 @@ function companionship_room_npc(string $chat,?int $player=null): ?array {
     try { companionship_player_consent($owner); } catch (DomainException) { return null; }
     $user=$db->query('SELECT * FROM utenti WHERE id=?',[$owner])[0]??null;
     $partner=companionship_partner($row);
-    if (!$user || $user['bloccato'] || $user['imprigionato'] || ($partner && $partner!==$owner) || !ai_romance_allowed($row,$user,ai_social_rules((int)$row['id']))) { return null; }
+    if (!$user || $user['bloccato'] || $user['imprigionato'] || ($partner && $partner!==$owner) || !aiRomanceAllowed($row,$user,aiSocialRules((int)$row['id']))) { return null; }
     return $row;
 }
 
@@ -101,7 +101,7 @@ function companionship_list(int $player,string $host): array {
         if (!companionship_npc_available($npc)) { continue; }
         $partner=companionship_partner($npc);
         $busy=!empty($npc['busy_until']);$quest=companionship_npc_in_quest((int)$npc['id']);
-        $compatible=!$consenting || ($viewer && ai_romance_allowed($npc,$viewer,ai_social_rules((int)$npc['id'])));
+        $compatible=!$consenting || ($viewer && aiRomanceAllowed($npc,$viewer,aiSocialRules((int)$npc['id'])));
         $available=!$busy && (!$partner || $partner===$player) && !$quest && $compatible;
         $reason=$busy?'Questa persona è impegnata in una visita.':($quest?'È impegnata in una quest.':(($partner && $partner!==$player)?'Non desidera accettare un nuovo incontro.':(!$compatible?'Le sue preferenze non consentono questo incontro.':'')));
         $npcs[]=[...ai_public_npc($npc),'available'=>$available,'status'=>$available?'available':($busy?'busy':'unavailable'),'unavailable_reason'=>$reason,'busy_until'=>(int)($npc['busy_until']??0)];
@@ -147,7 +147,7 @@ function companionship_book(int $player,string $host,int $npcId,string $request)
         if (companionship_npc_in_quest($npcId)) { throw new DomainException('Questa persona è impegnata in una quest e non può lasciare la scena.',409); }
         $partner=companionship_partner($npc);
         if ($partner && $partner!==$player) { throw new DomainException('Questa persona non desidera accettare l’incontro.',409); }
-        if (!ai_romance_allowed($npc,$user,ai_social_rules($npcId))) { throw new DomainException('Le preferenze e i limiti della persona non consentono questo incontro.',409); }
+        if (!aiRomanceAllowed($npc,$user,aiSocialRules($npcId))) { throw new DomainException('Le preferenze e i limiti della persona non consentono questo incontro.',409); }
         if ($db->query('SELECT id FROM companion_appointments WHERE active_npc_id=? OR active_player_id=?',[$npcId,$player])) { throw new DomainException('La persona è già impegnata, oppure hai già una visita in corso.',409); }
         if ((int)$user['denari']<$price) { throw new DomainException(alphano_currency_text('Non hai abbastanza Corone per questo incontro.'),409); }
         $now=time();$expires=$now+$minutes*60;$key='rent_'.bin2hex(random_bytes(20));

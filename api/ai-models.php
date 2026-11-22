@@ -3,7 +3,7 @@ declare(strict_types=1);
 require_once __DIR__.'/../libs/ai.inc.php';
 header('Content-Type: application/json; charset=utf-8');header('Cache-Control: no-store');
 try{
-    ai_admin();if(!ai_local_model_config()){ throw new DomainException('Funzione disponibile solo nella copia locale abilitata.',404); }
+    aiAdmin();if(!ai_local_model_config()){ throw new DomainException('Funzione disponibile solo nella copia locale abilitata.',404); }
     $method=$_SERVER['REQUEST_METHOD'];if(!in_array($method,['GET','POST'],true)){ throw new DomainException('Metodo non consentito.',405); }
     if($method==='POST'){ alphano_require_csrf(true); }
     $body=$method==='POST'?alphano_request_json():null;session_write_close();

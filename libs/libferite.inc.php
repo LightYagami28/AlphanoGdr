@@ -60,7 +60,7 @@ function AlphanoMasterAction(int $pg, int $executor, string $chat, string $actio
             // The shared session outbox commits with the whole multi-PG batch.
             // A later filesystem failure can be retried without phantom history.
             require_once __DIR__.'/ai.inc.php';
-            ai_quest_publish((int)$session['id'],'master:'.$executor.':'.hash('sha256',$action.':'.$pg.':'.($requestKey??bin2hex(random_bytes(16)))),'',$html);
+            aiQuestPublish((int)$session['id'],'master:'.$executor.':'.hash('sha256',$action.':'.$pg.':'.($requestKey??bin2hex(random_bytes(16)))),'',$html);
         }else { InsertIntoChat($chat,$html); }
         if ($own) { $db->commit(); }
         return true;

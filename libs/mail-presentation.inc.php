@@ -127,7 +127,7 @@ function alphano_mail_hidden_sent(int $viewer,int $other):int {
 /** Explicit recovery never resends mail or changes the recipient's flags or text. */
 function alphano_mail_restore_sent(int $viewer,int $other):int {
  if($viewer<1||$other<1){ throw new DomainException('Interlocutore non valido.',422); }
- return EconomiaAtomica(static function()use($viewer,$other){
+ return economiaAtomica(static function()use($viewer,$other){
   $d=ConnectDB();$d->query('SELECT id FROM utenti WHERE id=? FOR UPDATE',[$viewer]);
   $rows=$d->query('SELECT id FROM mail WHERE idmittente=? AND iddestinatario=? AND delmitt=1 FOR UPDATE',[$viewer,$other]);
   if(!$rows){ return 0; }

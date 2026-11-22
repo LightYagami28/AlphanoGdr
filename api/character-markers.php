@@ -7,7 +7,7 @@ require_once __DIR__.'/../libs/player-labels.inc.php';
 
 require_once __DIR__.'/../libs/online-presence.inc.php';
 /** Public character labels only: no location, last activity or private NPC profile. */
-player_api(static function():array{
+playerApi(static function():array{
  alphano_require_login(true);
  $parse=static function($raw):array{
   if(!is_string($raw)||strlen($raw)>1600||($raw!==''&&!preg_match('/^\d+(?:,\d+)*$/D',$raw))){ throw new DomainException('Elenco personaggi non valido.',422); }

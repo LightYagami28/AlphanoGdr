@@ -47,7 +47,7 @@ if (!empty($_POST['corp']) && $corporazione === 0) {
 $denied = !empty(GetRichiesteCorpPG($pgId));
 
 // Elenco corporazioni approvate
-$corporazioni = GetCorpApprovate();
+$corporazioni = getCorpApprovate();
 
 // Il controller prepara i dati; il template comune contiene soltanto la presentazione.
 $groups=[];

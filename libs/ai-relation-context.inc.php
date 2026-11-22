@@ -20,7 +20,7 @@ function ai_relation_context_current(int $npc,int $player):?array {
 }
 /** Called under the same pair lock as the numerical correction. IDs resolve same-second edits. */
 function ai_relation_context_capture(string $description):array {
-    $db=ai_db();if(!$db->inTransaction())throw new LogicException('Il nuovo contesto richiede una transazione.');
+    $db=aiDb();if(!$db->inTransaction())throw new LogicException('Il nuovo contesto richiede una transazione.');
     $out=['version'=>1,'description'=>$description];
     foreach(['chat_id'=>'chat','job_id'=>'ai_jobs','memory_id'=>'ai_personal_memories','event_id'=>'ai_relationship_events'] as $key=>$table)$out[$key]=(int)($db->query('SELECT COALESCE(MAX(id),0) AS last_id FROM '.$table)[0]['last_id']??0);
     return $out;

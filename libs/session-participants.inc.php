@@ -6,15 +6,15 @@ require_once __DIR__.'/libferite.inc.php';
 require_once __DIR__.'/session-control.inc.php';
 
 /** A Master may inspect the current public cast, never a remote/private room. */
-function alphano_participants_actor(int $actor,string $chat):array {
+function alphanoParticipantsActor(int $actor,string $chat):array {
     if($chat===''||strlen($chat)>100)throw new DomainException('Luogo non valido.',422);
     $user=ConnectDB()->query('SELECT id,nome,chat,admin,fatepower,bloccato FROM utenti WHERE id=?',[$actor])[0]??null;
     if(!$user||!empty($user['bloccato'])||(empty($user['admin'])&&empty($user['fatepower'])))throw new DomainException('Accesso riservato ai Master.',403);
     if($user['chat']!==$chat)throw new DomainException('Entra nella chat prima di gestirne i personaggi.',403);
     return $user;
 }
-function alphano_participants_state(int $actor,string $chat):array {
-    $user=alphano_participants_actor($actor,$chat);$db=ConnectDB();
+function alphanoParticipantsState(int $actor,string $chat):array {
+    $user=alphanoParticipantsActor($actor,$chat);$db=ConnectDB();
     $session=$db->query('SELECT id,nome,partecipanti FROM sessioni WHERE BINARY chat=BINARY ? AND run=1 ORDER BY id DESC LIMIT 1',[$chat])[0]??null;
     $members=$session?array_map('intval',array_filter(explode(';',(string)$session['partecipanti']))):[];
     $people=[];
@@ -29,8 +29,8 @@ function alphano_participants_state(int $actor,string $chat):array {
         'participants'=>$people,'max_targets'=>20,'max_quantity'=>100,'server_time'=>time(),
         'notice'=>$manage?'Gli interventi modificano le schede e lasciano una ricevuta nel registro.':'Puoi consultare i presenti. Apri o assumi la regia della sessione per intervenire.'];
 }
-function alphano_participants_catalog(int $actor,string $chat,array $input):array {
-    alphano_participants_actor($actor,$chat);$query=player_text($input,'q',100);$type=player_text($input,'type',20);
+function alphanoParticipantsCatalog(int $actor,string $chat,array $input):array {
+    alphanoParticipantsActor($actor,$chat);$query=playerText($input,'q',100);$type=playerText($input,'type',20);
     if(!in_array($type,['','objects','materials'],true))throw new DomainException('Filtro del catalogo non valido.',422);
     $offset=filter_var($input['offset']??0,FILTER_VALIDATE_INT);if($offset===false||$offset<0||$offset>10000)throw new DomainException('Pagina del catalogo non valida.',422);
     $where=['e.approvato=1','e.corp=0'];$parameters=[];
@@ -41,8 +41,8 @@ function alphano_participants_catalog(int $actor,string $chat,array $input):arra
         $items[]=['id'=>(int)$item['id'],'name'=>$item['shortDesc'],'image'=>alphano_equipment_image($item['immagine']),'material'=>in_array(mb_strtolower($item['materiaprima']),MATERIE_PRIME,true),'durability'=>(int)$item['durata']];
     return ['items'=>$items,'total'=>$total,'offset'=>(int)$offset,'next'=>$offset+count($items)<$total?$offset+24:null];
 }
-function alphano_participants_inventory(int $actor,string $chat,int $target):array {
-    alphano_participants_actor($actor,$chat);$db=ConnectDB();
+function alphanoParticipantsInventory(int $actor,string $chat,int $target):array {
+    alphanoParticipantsActor($actor,$chat);$db=ConnectDB();
     if(!$db->query("SELECT id FROM utenti WHERE id=? AND BINARY chat=BINARY ? AND posizione<>'off' AND bloccato=0",[$target,$chat]))throw new DomainException('Il personaggio non è più presente.',409);
     $items=[];foreach($db->query('SELECT p.id,p.uid,p.nome,p.slot,p.idpadre,p.consumo,e.shortDesc,e.immagine,e.durata,e.materiaprima FROM equippg p JOIN equip e ON e.id=p.uid WHERE p.idpg=? ORDER BY e.shortDesc,p.id',[$target]) as $item)
         $items[]=['id'=>(int)$item['id'],'model'=>(int)$item['uid'],'name'=>$item['nome']?:$item['shortDesc'],'image'=>alphano_equipment_image($item['immagine']),
@@ -50,7 +50,7 @@ function alphano_participants_inventory(int $actor,string $chat,int $target):arr
             'broken'=>(int)$item['consumo']>=(int)$item['durata'],'material'=>in_array(mb_strtolower($item['materiaprima']),MATERIE_PRIME,true)];
     return ['target'=>$target,'items'=>$items];
 }
-function alphano_participants_int(array $input,string $name,int $min,int $max):int {
+function alphanoParticipantsInt(array $input,string $name,int $min,int $max):int {
     $raw=$input[$name]??null;
     if(!is_int($raw)&&(!is_string($raw)||!preg_match('/^\d+$/D',$raw)))throw new DomainException('Valore non valido: '.$name.'.',422);
     $value=filter_var($raw,FILTER_VALIDATE_INT);
@@ -58,21 +58,21 @@ function alphano_participants_int(array $input,string $name,int $min,int $max):i
     return $value;
 }
 /** Reserve the whole batch before effects, then recheck management and presence. */
-function alphano_participants_mutate(int $actor,string $chat,array $input):array {
-    alphano_participants_actor($actor,$chat);$action=player_text($input,'action',30,true);
+function alphanoParticipantsMutate(int $actor,string $chat,array $input):array {
+    alphanoParticipantsActor($actor,$chat);$action=playerText($input,'action',30,true);
     if(!in_array($action,['health','note','crowns','item','remove','break','consume'],true))throw new DomainException('Intervento non valido.',422);
-    $reason=player_text($input,'reason',4000,true);if(mb_strlen($reason)<5||mb_strlen($reason)>1000)throw new DomainException('Descrivi la motivazione dell’intervento, da 5 a 1000 caratteri.',422);
-    $key=player_text($input,'request_id',100,true);if(!preg_match('/^[a-zA-Z0-9:_-]{16,100}$/D',$key))throw new DomainException('Identificativo della richiesta non valido.',422);
+    $reason=playerText($input,'reason',4000,true);if(mb_strlen($reason)<5||mb_strlen($reason)>1000)throw new DomainException('Descrivi la motivazione dell’intervento, da 5 a 1000 caratteri.',422);
+    $key=playerText($input,'request_id',100,true);if(!preg_match('/^[a-zA-Z0-9:_-]{16,100}$/D',$key))throw new DomainException('Identificativo della richiesta non valido.',422);
     $targets=$input['targets']??null;
     if(!is_array($targets)||!array_is_list($targets)||!$targets||count($targets)>20)throw new DomainException('Seleziona da uno a venti personaggi.',422);
-    $ids=[];foreach($targets as $target)$ids[]=alphano_participants_int(['target'=>$target],'target',1,PHP_INT_MAX);
+    $ids=[];foreach($targets as $target)$ids[]=alphanoParticipantsInt(['target'=>$target],'target',1,PHP_INT_MAX);
     if(count(array_unique($ids))!==count($ids))throw new DomainException('Un personaggio non può comparire due volte.',422);sort($ids);
-    $expectedSession=alphano_participants_int($input,'session_id',0,PHP_INT_MAX);$values=[];
-    if($action==='health'){$values['hp']=alphano_participants_int($input,'hp',1,maxpuntif);$values['wounds']=player_text($input,'wounds',1020);if(mb_strlen($values['wounds'])>255)throw new DomainException('Descrizione delle ferite troppo lunga.',422);$values['expected']=$input['expected']??null;if(!is_array($values['expected']))throw new DomainException('Ricarica le condizioni dei personaggi prima di modificarle.',409);}
-    elseif($action==='note'){$values['note']=player_text($input,'note',16000,true);if(mb_strlen($values['note'])>4000)throw new DomainException('Annotazione troppo lunga.',422);}
-    elseif($action==='crowns')$values['amount']=alphano_participants_int($input,'amount',1,1000000000);
-    elseif($action==='item'){$values['item_id']=alphano_participants_int($input,'item_id',1,PHP_INT_MAX);$values['quantity']=alphano_participants_int($input,'quantity',1,100);}
-    else{if(count($ids)!==1)throw new DomainException('Gli oggetti si gestiscono per un personaggio alla volta.',422);$values['instance']=alphano_participants_int($input,'instance',1,PHP_INT_MAX);if($action==='consume')$values['quantity']=alphano_participants_int($input,'quantity',1,2147483647);}
+    $expectedSession=alphanoParticipantsInt($input,'session_id',0,PHP_INT_MAX);$values=[];
+    if($action==='health'){$values['hp']=alphanoParticipantsInt($input,'hp',1,maxpuntif);$values['wounds']=playerText($input,'wounds',1020);if(mb_strlen($values['wounds'])>255)throw new DomainException('Descrizione delle ferite troppo lunga.',422);$values['expected']=$input['expected']??null;if(!is_array($values['expected']))throw new DomainException('Ricarica le condizioni dei personaggi prima di modificarle.',409);}
+    elseif($action==='note'){$values['note']=playerText($input,'note',16000,true);if(mb_strlen($values['note'])>4000)throw new DomainException('Annotazione troppo lunga.',422);}
+    elseif($action==='crowns')$values['amount']=alphanoParticipantsInt($input,'amount',1,1000000000);
+    elseif($action==='item'){$values['item_id']=alphanoParticipantsInt($input,'item_id',1,PHP_INT_MAX);$values['quantity']=alphanoParticipantsInt($input,'quantity',1,100);}
+    else{if(count($ids)!==1)throw new DomainException('Gli oggetti si gestiscono per un personaggio alla volta.',422);$values['instance']=alphanoParticipantsInt($input,'instance',1,PHP_INT_MAX);if($action==='consume')$values['quantity']=alphanoParticipantsInt($input,'quantity',1,2147483647);}
     $db=ConnectDB();$guard=alphano_session_guard($chat);
     if(!(int)($db->query('SELECT GET_LOCK(?,5) locked',[$guard])[0]['locked']??0))throw new DomainException('La regia sta aggiornando la scena. Riprova.',409);
     $db->beginTransaction();
@@ -80,7 +80,7 @@ function alphano_participants_mutate(int $actor,string $chat,array $input):array
         $db->query('SELECT chat_key FROM ai_rooms WHERE chat_key=? FOR UPDATE',[$chat]);
         alphano_session_current($chat,true);
         if(!alphano_operation_once('master-participants',$actor,$key,[$chat,$expectedSession,$action,$ids,$reason,$values])){
-            $db->commit();return ['success'=>true,'replayed'=>true,'message'=>'Intervento già registrato: nessun effetto ripetuto.','state'=>alphano_participants_state($actor,$chat)];
+            $db->commit();return ['success'=>true,'replayed'=>true,'message'=>'Intervento già registrato: nessun effetto ripetuto.','state'=>alphanoParticipantsState($actor,$chat)];
         }
         $session=alphano_session_require_manager($actor,$chat);
         if((int)($session['id']??0)!==$expectedSession)throw new DomainException('La sessione è cambiata. Ricarica il pannello.',409);
@@ -102,15 +102,15 @@ function alphano_participants_mutate(int $actor,string $chat,array $input):array
                 'item'=>DaiOggetto($id,$values['item_id'],$actor,$chat,$subKey,$replayed,$values['quantity'],$reason,true),
                 'remove'=>RimuoviOggettoMaster($id,$values['instance'],$actor,$chat,$subKey,$replayed,$reason,true),
                 'break'=>RompiOggettoMaster($id,$values['instance'],$actor,$chat,$subKey,$replayed,$reason,true),
-                'consume'=>alphano_participants_consume($id,$actor,$chat,$values,$subKey,$reason),
+                'consume'=>alphanoParticipantsConsume($id,$actor,$chat,$values,$subKey,$reason),
             };
             if(!$ok)throw new DomainException('L’intervento non è applicabile alla scheda selezionata.',422);
         }
-        $db->commit();ai_quest_sync_logs();return ['success'=>true,'replayed'=>false,'message'=>'Intervento registrato per '.count($ids).' '.(count($ids)===1?'personaggio.':'personaggi.'),'state'=>alphano_participants_state($actor,$chat)];
+        $db->commit();aiQuestSyncLogs();return ['success'=>true,'replayed'=>false,'message'=>'Intervento registrato per '.count($ids).' '.(count($ids)===1?'personaggio.':'personaggi.'),'state'=>alphanoParticipantsState($actor,$chat)];
     }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
     finally{$db->query('SELECT RELEASE_LOCK(?)',[$guard]);}
 }
-function alphano_participants_consume(int $target,int $actor,string $chat,array $values,string $key,string $reason):bool {
+function alphanoParticipantsConsume(int $target,int $actor,string $chat,array $values,string $key,string $reason):bool {
     $item=ConnectDB()->query('SELECT p.consumo,e.durata FROM equippg p JOIN equip e ON e.id=p.uid WHERE p.id=? AND p.idpg=? FOR UPDATE',[$values['instance'],$target])[0]??null;
     if(!$item)throw new DomainException('L’oggetto non appartiene più al personaggio selezionato.',409);
     $remaining=max(0,(int)$item['durata']-(int)$item['consumo']);$quantity=$values['quantity'];

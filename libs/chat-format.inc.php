@@ -28,7 +28,7 @@ function alphano_chat_text(string $text, string $sex, bool $action=false): strin
 /** Keep observable actions readable when a wolf form mixes gestures and its own language. */
 function alphano_chat_lupine_text(string $text,string $sex,bool $action=false):array {
     require_once __DIR__.'/ai-narrative.inc.php';
-    $reading=ai_narrative_parse($text,['channel'=>$action?'action':'speech']);$parts=[];
+    $reading=aiNarrativeParse($text,['channel'=>$action?'action':'speech']);$parts=[];
     foreach($reading['segments'] as $segment){
         $escaped=nl2br(htmlspecialchars($segment['text'],ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8'));
         $parts[]=$segment['kind']==='speech'

@@ -9,9 +9,9 @@ try {
     alphano_require_login(true);
     $in=alphano_request_json();
     alphano_require_csrf(true);
-    $chat=ai_field($in,'chat_key',100,true);
-    $prompt=ai_field($in,'prompt',1200,true);
-    $room=ai_room($chat);
+    $chat=aiField($in,'chat_key',100,true);
+    $prompt=aiField($in,'prompt',1200,true);
+    $room=aiRoom($chat);
     if (!$room || !(int)$room['enabled']) { throw new DomainException('Nessun PNG attivo in questo luogo.',404); }
     $_GET['chat']=$chat;
     $GLOBALS['alphano_legacy_ai_request']=[...$in,'msg'=>$prompt,'ai_request'=>true];

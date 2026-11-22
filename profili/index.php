@@ -101,10 +101,10 @@ if(!$contactRows){ $contactRows[]=$textRow('Recapiti','Nessun contatto offgame c
 $sections[]=['id'=>'offgame','title'=>'Contatti offgame','icon'=>'mail','rows'=>$contactRows];
 $sheet = [
     'title' => (string)$row['nome'], 'kind' => 'Personaggio giocante',
-    'portrait' => player_media_url($avatar, $cid, '/assets/placeholder.svg'),
+    'portrait' => playerMediaUrl($avatar, $cid, '/assets/placeholder.svg'),
     'identity_html' => ProcessRazza($visibleRace, (string)$row['sesso']) . ' ' . $escape(implode(' · ', array_filter([GetRazza($visibleRace), $row['sesso'], GetEtnia((int)$row['etnia'])]))),
     'subtitle' => '', 'motto_html' => ProcessText((string)($row[$isAlt ? 'motto2' : 'motto'] ?? '')),
-    'music' => player_media_url((string)($row[$isAlt ? 'musica2' : 'musica'] ?? ''), $cid),
+    'music' => playerMediaUrl((string)($row[$isAlt ? 'musica2' : 'musica'] ?? ''), $cid),
     'metrics' => ['Punti ferita' => $row['puntif'], 'Corone' => number_format((int)$row['denari'], 0, ',', '.'), 'Visite' => $visits],
     'sections' => $sections,
     'actions' => [

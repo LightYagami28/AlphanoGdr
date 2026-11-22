@@ -2,7 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__.'/../libs/player-runtime.inc.php';
 require_once __DIR__.'/../libs/race-presentation.inc.php';
-player_api(static function():array {
+playerApi(static function():array {
  alphano_require_login(true);
  $race=filter_var($_GET['race']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);$offset=filter_var($_GET['offset']??0,FILTER_VALIDATE_INT,['options'=>['min_range'=>0,'max_range'=>1000000]]);
  if($race===false||$offset===false){ throw new DomainException('Pagina non valida.',422); }

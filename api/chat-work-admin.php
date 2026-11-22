@@ -1,10 +1,10 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/../libs/player-runtime.inc.php';require_once __DIR__.'/../libs/chat-work.inc.php';
-player_api(static function():array{
+playerApi(static function():array{
  $uid=alphano_require_login(true);if(!alphano_work_staff($uid)){ throw new DomainException('Gestione riservata ad amministratori e responsabili dell’Accademia.',403); }$d=ConnectDB();
  if($_SERVER['REQUEST_METHOD']==='GET'){ return ['settings'=>alphano_work_settings(),'version'=>(int)$d->query('SELECT version FROM chat_work_settings WHERE id=1')[0]['version'],'jobs'=>alphano_work_catalog(),'resources'=>alphano_work_resources(),'rooms'=>$d->query('SELECT chat_key,title FROM mappe WHERE chat=1 ORDER BY title'),'stats'=>rpg_catalog()['stats'],'history'=>$d->query('SELECT w.id,w.player_id,u.nome,w.chat_key,w.roll,w.bonus,w.difficulty,w.quantity,w.snapshot,w.created_at FROM chat_work_attempts w LEFT JOIN utenti u ON u.id=w.player_id ORDER BY w.id DESC LIMIT 100'),'audit'=>$d->query('SELECT a.id,a.kind,a.actor_id,u.nome,a.target_id,a.created_at FROM chat_work_admin_audit a LEFT JOIN utenti u ON u.id=a.actor_id ORDER BY a.id DESC LIMIT 30')]; }
- player_mutation();$in=player_input();$action=rpg_text($in['action']??'',20,true);$version=rpg_int($in['version']??0,1,2147483647,'Versione');
+ playerMutation();$in=playerInput();$action=rpg_text($in['action']??'',20,true);$version=rpg_int($in['version']??0,1,2147483647,'Versione');
  $d->beginTransaction();try{
   $current=$d->query('SELECT * FROM chat_work_settings WHERE id=1 FOR UPDATE')[0];if((int)$current['version']!==$version){ throw new DomainException('Un altro gestore ha aggiornato il pannello. Ricarica prima di salvare.',409); }
   $before=[];$after=[];$target=0;

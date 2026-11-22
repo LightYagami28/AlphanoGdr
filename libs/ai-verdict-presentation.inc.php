@@ -18,7 +18,7 @@ function ai_verdict_public_html(array $v):string {
         }$html.='</div></section>';
     }
     if($situation){$html.='<section class="quest-verdict-situation"><h4>Situazione al termine del giro</h4><ul>';foreach($situation as $line){ $html.='<li>'.$esc($line).'</li>'; }$html.='</ul></section>';}
-    return $html.'<span hidden data-scene-effects="'.$esc(ai_quest_json($events)).'"></span></section>';
+    return $html.'<span hidden data-scene-effects="'.$esc(aiQuestJson($events)).'"></span></section>';
 }
 function ai_dice_public_html(string $name,int $roll,int $receipt):string {
     $esc=static fn($s)=>htmlspecialchars((string)$s,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
@@ -30,5 +30,5 @@ function ai_reward_public_html(string $name,int $xp,int $money,int $player):stri
     $esc=static fn($s)=>htmlspecialchars((string)$s,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
     $html='<div class="MasterKey"><section class="quest-consequences"><h4>Ricompense registrate · '.$esc($name).'</h4><div class="quest-consequence-changes">';
     foreach($changes as $c){ $html.='<div class="quest-change"><img src="'.$esc($c['icon']).'" alt="" width="45" height="45"><div><small>'.$esc($c['label']).'</small><b>'.$esc($c['value']).'</b></div></div>'; }
-    return $html.'<p>La cronaca della quest è annotata nel profilo.</p><span hidden data-scene-effects="'.$esc(ai_quest_json([['name'=>$name,'kind'=>'pg','id'=>$player,'changes'=>$changes]])).'"></span></section></div>';
+    return $html.'<p>La cronaca della quest è annotata nel profilo.</p><span hidden data-scene-effects="'.$esc(aiQuestJson([['name'=>$name,'kind'=>'pg','id'=>$player,'changes'=>$changes]])).'"></span></section></div>';
 }

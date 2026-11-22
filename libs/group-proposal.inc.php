@@ -26,7 +26,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
         if(trim(html_entity_decode(strip_tags($statute),ENT_QUOTES|ENT_HTML5,'UTF-8'))===''){ throw new DomainException('Scrivi lo statuto del gruppo.'); }
         if(mb_strlen($statute)>60000){ throw new DomainException('Lo statuto è troppo lungo.'); }
         $productions=[];foreach($subtypes as $row){ $productions[(int)$row['id']]=(int)($_POST['produzione'.$row['id']]??0); }
-        $message=$isCorporation?InsertCorp($name,$idpg,$site?:null,$statute,(int)($_POST['city']??0),$productions):InsertOrg($name,$idpg,$site?:null,$statute,(int)($_POST['city']??0));
+        $message=$isCorporation?insertCorp($name,$idpg,$site?:null,$statute,(int)($_POST['city']??0),$productions):insertOrg($name,$idpg,$site?:null,$statute,(int)($_POST['city']??0));
         $saved=(bool)$db->query("SELECT id FROM $table WHERE nome=? AND idmaster=? AND approvato=0",[$name,$idpg]);
     }catch(DomainException $e){$message=$e->getMessage();}catch(Throwable $e){error_log('[Proposta gruppo] '.$e->getMessage());$message='Impossibile inviare la proposta. Riprova.';}
 }

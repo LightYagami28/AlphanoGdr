@@ -109,7 +109,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Segnalazione Bug – <?=htmlspecialchars(TitoloSito)?></title>
+  <title>Segnalazione Bug – <?=htmlspecialchars(TITOLO_SITO)?></title>
   <!-- Carica un unico CSS globale che contiene anche i bug-card styles -->
 
   <!-- Carica un unico JS globale che gestisce menu, news, card, ecc. -->
@@ -225,7 +225,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 </main>
 
 <footer>
-  &copy; <?=date('Y')?> <?=htmlspecialchars(TitoloSito)?>
+  &copy; <?=date('Y')?> <?=htmlspecialchars(TITOLO_SITO)?>
 </footer>
 
 </body>

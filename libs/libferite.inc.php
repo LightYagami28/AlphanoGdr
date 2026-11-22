@@ -88,7 +88,7 @@ function uccidi(int $pgId,int $esecutore,int $modo,string $chat): bool
 function setFerite(int $pgId,int $pf,string $descr,int $esecutore,string $chat,?string $requestKey=null,?bool &$replayed=null,string $reason='',bool $journal=false): bool
 {
     if ($pf <= 0 || mb_strlen($descr)>255) { return false; }
-    $pf = min($pf,maxpuntif);
+    $pf = min($pf,MAXPUNTIF);
     $descr = trim($descr);
     return alphanoMasterAction($pgId,$esecutore,$chat,'impostaferite',static function($db,$target) use($pf,$descr) {
         if((int)$target['puntif']<=0||in_array((int)$target['razza'],[ALPHANO_RACE_SPIRIT,ALPHANO_RACE_DEAD_VAMPIRE,ALPHANO_RACE_LEGACY_SPIRIT],true)){ return false; }
@@ -103,7 +103,7 @@ function resuscita(int $pgId,int $esecutore,string $chat): bool
     return alphanoMasterAction($pgId,$esecutore,$chat,'resuscita',static function($db,$target) {
         if (!in_array((int)$target['razza'],[ALPHANO_RACE_SPIRIT,ALPHANO_RACE_DEAD_VAMPIRE,ALPHANO_RACE_LEGACY_SPIRIT],true)) { return false; }
         $appearance=alphanoTransformationReady()?',vampire_human_form=0':'';
-        $db->execute('UPDATE utenti SET razza=?,puntif=?,ferite=\'\',infetto=0,ancestrale=0,senziente=0'.$appearance.',datamorte=0 WHERE id=?', [alphanoHumanRaceId(),maxpuntif,$target['id']]);
+        $db->execute('UPDATE utenti SET razza=?,puntif=?,ferite=\'\',infetto=0,ancestrale=0,senziente=0'.$appearance.',datamorte=0 WHERE id=?', [alphanoHumanRaceId(),MAXPUNTIF,$target['id']]);
         return ['resuscita',0,0,''];
     });
 }

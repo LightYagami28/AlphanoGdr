@@ -42,7 +42,7 @@ SQL;
 
 /**
  * Pulisce la casella del destinatario:
- * - Mantiene massimo maxmissive messaggi letti non nel baule
+ * - Mantiene massimo MAXMISSIVE messaggi letti non nel baule
  * - Cancella i messaggi più vecchi di 14 giorni
  *
  * @param int $idpg
@@ -64,8 +64,8 @@ DELETE FROM mail
 SQL;
     $db->execute($sqlDel);
 
-    // Retain the newest maxmissive read messages with one cutoff and one update.
-    $cutoff=$db->query('SELECT id FROM mail WHERE iddestinatario=? AND deldest=0 AND letto=1 AND baule=0 ORDER BY id DESC LIMIT '.(int)maxmissive.',1',[$idpg])[0]['id'] ?? null;
+    // Retain the newest MAXMISSIVE read messages with one cutoff and one update.
+    $cutoff=$db->query('SELECT id FROM mail WHERE iddestinatario=? AND deldest=0 AND letto=1 AND baule=0 ORDER BY id DESC LIMIT '.(int)MAXMISSIVE.',1',[$idpg])[0]['id'] ?? null;
     if ($cutoff!==null) { $db->execute('UPDATE mail SET deldest=1 WHERE iddestinatario=? AND deldest=0 AND letto=1 AND baule=0 AND id<=?',[$idpg,(int)$cutoff]); }
 
 

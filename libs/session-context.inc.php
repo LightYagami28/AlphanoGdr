@@ -40,7 +40,7 @@ function alphanoSessionReadContext(array $s):array {
     // Control announcements explain ownership; they are not fictional outcomes.
     $controlEvents=[];$controlSources=[];
     foreach($db->query("SELECT id,chat_id FROM ai_quest_outbox WHERE session_id=? AND (event_key LIKE 'session:%' OR event_key LIKE 'quest:%:open')",[$sid]) as $event){$controlEvents[(int)$event['id']]=true;$controlSources[(int)$event['chat_id']]=true;}
-    $path=rtrim(htmlroot,'/').'/sessione/log/'.$sid.'.html';
+    $path=rtrim(HTMLROOT,'/').'/sessione/log/'.$sid.'.html';
     if(is_file($path)&&!is_link($path)){
         $handle=@fopen($path,'rb');if($handle){ try{
             if(flock($handle,LOCK_SH)){

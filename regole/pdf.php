@@ -45,7 +45,7 @@ try {
                 $src=html_entity_decode($match[1],ENT_QUOTES,'UTF-8');
                 if(str_ends_with(strtolower($src),'.webp')&&!function_exists('imagecreatefromwebp'))return '';
                 $source=realpath(dirname(__DIR__).'/'.ltrim($src,'/'));
-                if(!$source)$source=realpath(htmlroot.'/'.ltrim($src,'/'));
+                if(!$source)$source=realpath(HTMLROOT.'/'.ltrim($src,'/'));
                 if (str_starts_with($src,'/') && $source && (str_starts_with($source,dirname(__DIR__).'/uploads/')||str_starts_with($source,dirname(__DIR__).'/uploads/equipment/')||str_starts_with($source,dirname(__DIR__).'/profili/pg/')) && is_file($source)) {
                     return str_replace($match[1],$escape('file://'.$source),$match[0]);
                 }
@@ -62,7 +62,7 @@ try {
         $options->set('isRemoteEnabled',false);
         $options->set('isPhpEnabled',false);
         $options->set('isJavascriptEnabled',false);
-        $options->set('chroot',[dirname(__DIR__),htmlroot]);
+        $options->set('chroot',[dirname(__DIR__),HTMLROOT]);
         $options->set('tempDir',$directory);
         $options->set('fontCache',$directory);
         $pdf=new \Dompdf\Dompdf($options);

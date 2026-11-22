@@ -14,7 +14,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
   if(isset($_FILES['image'])&&($_FILES['image']['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_NO_FILE){ $path=$uploaded=alphanoMediaUpload($_FILES['image'],'meteo/uploads',100); }
   $db->execute('UPDATE weather_assets SET label=?,description=?,image_path=?,updated_by=?,updated_at=? WHERE asset_key=?',[$label,$description,$path,$admin,time(),$key]);
   $notice='Icona salvata. La barra meteo utilizzerà questa immagine al prossimo aggiornamento.';
- }catch(Throwable $e){if($uploaded&&($media=alphanoMediaFile($uploaded))&&($file=alphanoCanonicalInside(rtrim(htmlroot,'/').'/uploads/meteo/uploads',$media))){ @unlink($file); }$error=$e instanceof DomainException?$e->getMessage():'Impossibile salvare l’icona.';if(!($e instanceof DomainException)){ error_log('[Icone meteo] '.$e->getMessage()); }}
+ }catch(Throwable $e){if($uploaded&&($media=alphanoMediaFile($uploaded))&&($file=alphanoCanonicalInside(rtrim(HTMLROOT,'/').'/uploads/meteo/uploads',$media))){ @unlink($file); }$error=$e instanceof DomainException?$e->getMessage():'Impossibile salvare l’icona.';if(!($e instanceof DomainException)){ error_log('[Icone meteo] '.$e->getMessage()); }}
 }
 $assets=$db->query('SELECT * FROM weather_assets ORDER BY FIELD(asset_key,\'clear-day\',\'clear-night\',\'cloudy\',\'storm\',\'steady\',\'rain\',\'snow\',\'fog\',\'calm\',\'breeze\',\'wind\',\'gale\',\'moon-new\',\'moon-waxing\',\'moon-full\',\'moon-waning\')');
 require __DIR__.'/../templates/admin/weather-assets.php';

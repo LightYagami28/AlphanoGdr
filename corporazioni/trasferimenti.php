@@ -47,7 +47,7 @@ $admintrasf = (bool)$db->query(
 <html lang="it">
 <head>
   <meta charset="UTF-8">
-  <title><?= htmlspecialchars($nomecorp) ?> – <?= TitoloSito ?></title>
+  <title><?= htmlspecialchars($nomecorp) ?> – <?= TITOLO_SITO ?></title>
 
   <script src="/js/global.js" defer></script>
   <script src="/js/corporazioni/trasferimenti.js" defer></script>

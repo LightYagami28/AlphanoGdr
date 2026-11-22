@@ -51,7 +51,7 @@ function ai_adjudication_damage(array &$result,array $actor,array $target,string
   if(!$gate['allowed']){$conditions['npc:'.$actor['id']]['super_withdrawn'][$targetKey]=['round'=>$round,'policy'=>$gate['policy']];$result['outcome']='il tentativo decisivo fallisce e il PNG ripiega';$result['reason']='La preparazione e la tenuta dell’avversario negano il varco decisivo. Il PNG interrompe l’assalto e cerca di sottrarsi alla contesa: quel colpo non infligge altre ferite.';return;}
  }
  // An Original can fall to an Ancestral only when already gravely wounded, exactly as in the existing engine.
- if((int)$target['razza']===ALPHANO_RACE_ORIGINAL&&!((int)$actor['razza']===ALPHANO_RACE_ANCESTRAL&&(int)$target['puntif']<maxpuntif/3)){ $damage=min($damage,max(0,$hp[$targetKey]-1)); }
+ if((int)$target['razza']===ALPHANO_RACE_ORIGINAL&&!((int)$actor['razza']===ALPHANO_RACE_ANCESTRAL&&(int)$target['puntif']<MAXPUNTIF/3)){ $damage=min($damage,max(0,$hp[$targetKey]-1)); }
  if(empty($room['quest_lethal'])){ $damage=min($damage,max(0,$hp[$targetKey]-1)); }
  if($damage===0){$result['outcome']='il colpo non lo abbatte';$result['reason']='Le condizioni dello scontro e la resistenza già accertata del bersaglio impediscono una nuova conseguenza letale. Non viene aggiunta una ferita fittizia.';return;}
  $hp[$targetKey]=max(0,$hp[$targetKey]-$damage);$result['damage']=$damage;$wounds[$targetKey]=aiText(ltrim(trim($wounds[$targetKey].'; '.$wound),'; '),255);
@@ -109,7 +109,7 @@ function ai_adjudicate(int $sid):array{
    $results[]=$r;continue;
   }
   if($effectType==='heal'){
-   $r['target']=$actor['name'];$gain=max(0,min((int)$effect['heal'],maxpuntif-$hp[$key]));
+   $r['target']=$actor['name'];$gain=max(0,min((int)$effect['heal'],MAXPUNTIF-$hp[$key]));
    if($training){$r['outcome']='simula il recupero durante l’allenamento';$r['reason']='La dimostrazione di '.$ability['name'].' non modifica i punti vita reali.';}
    elseif($hp[$key]<1||isset($deaths[$key])){$r['outcome']='non riesce a rigenerarsi';$r['reason']='La capacità non resuscita un personaggio già caduto.';}
    elseif(rpgMalusEvaluate((int)($actor['native_race_id']??$actor['razza']),$actor['_racial_malus']??[])['regeneration_blocked']){$r['outcome']='la rigenerazione è ostacolata dall’argento';$r['reason']='Prima occorre rimuovere l’argento trattenuto nella ferita e risolvere le cure.';}
@@ -176,7 +176,7 @@ function ai_adjudicate(int $sid):array{
   $support=0;if($target['kind']==='npc'){$f=ai_npc_game((int)$target['id'])['faction'];foreach($actions as $ally){if($ally['kind']!=='npc'||(int)$ally['actor_id']===(int)$target['id']||$ally['status']==='skipped'){ continue; }$ad=json_decode($ally['details'],true)?:[];if($f!==''&&ai_npc_game((int)$ally['actor_id'])['faction']===$f&&in_array($ad['intent']??'',['difesa','aiuto'],true)){ $support++; }}}$def+=min($support,$cfg['max_support'])*$cfg['support_bonus'];
   if(ai_tactical_restrained($state,$round)){ $atk-=$cfg['held_penalty']; }
   if(ai_tactical_restrained($conditions[$targetKey]??[],$round)){ $def-=$cfg['held_penalty']; }
-  if(!in_array(rpgRacialFamily((int)($actor['native_race_id']??$actor['razza'])),['human','lycan'],true)){ $atk-=(int)round(min($cfg['wound_penalty_max'],(int)floor((maxpuntif-(int)$actor['puntif'])/150))*itemPainFactor($actor['_item_effects']??[])); }if(!in_array(rpgRacialFamily((int)($target['native_race_id']??$target['razza'])),['human','lycan'],true)){ $def-=(int)round(min($cfg['wound_penalty_max'],(int)floor((maxpuntif-(int)$target['puntif'])/150))*itemPainFactor($target['_item_effects']??[])); }
+  if(!in_array(rpgRacialFamily((int)($actor['native_race_id']??$actor['razza'])),['human','lycan'],true)){ $atk-=(int)round(min($cfg['wound_penalty_max'],(int)floor((MAXPUNTIF-(int)$actor['puntif'])/150))*itemPainFactor($actor['_item_effects']??[])); }if(!in_array(rpgRacialFamily((int)($target['native_race_id']??$target['razza'])),['human','lycan'],true)){ $def-=(int)round(min($cfg['wound_penalty_max'],(int)floor((MAXPUNTIF-(int)$target['puntif'])/150))*itemPainFactor($target['_item_effects']??[])); }
   if((int)($state['perception_until']??0)>=$round){ $atk+=min(10,(int)($state['perception_bonus']??0)); }if((int)($states[$targetKey]['perception_until']??0)>=$round){ $def+=min(10,(int)($states[$targetKey]['perception_bonus']??0)); }
   $r['calculation']=['attack'=>$atk,'defence'=>$def,'support'=>$support,'roll'=>(int)($d['roll']??10)];
   rpgHumanConsume($conditions[$key],$mental?'mental':'attack',$round);rpgHumanConsume($conditions[$targetKey],$mental?'resist':'defence',$round);$cast[$key]['_human_buffs']=rpgHumanValidBuffs($conditions[$key],$round,$cast[$key]);$cast[$targetKey]['_human_buffs']=rpgHumanValidBuffs($conditions[$targetKey],$round,$cast[$targetKey]);

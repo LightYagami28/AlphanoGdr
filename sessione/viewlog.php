@@ -62,7 +62,7 @@ switch ($azione) {
         }
         $session=$db->query('SELECT s.*,COALESCE(m.title,s.chat) AS location_label FROM sessioni s LEFT JOIN mappe m ON m.chat_key=s.chat WHERE s.id=?',[$id])[0]??null;
         if(!$session){ alphanoFail('Sessione non trovata.',404); }
-        $file = alphanoSessionLogPath(htmlroot, $id);
+        $file = alphanoSessionLogPath(HTMLROOT, $id);
         if ($file === null) {
             exit('Log non trovato o vuoto');
         }

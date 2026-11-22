@@ -9,7 +9,7 @@
 ?>
 <HTML>
 	<HEAD>
-		<TITLE>Anteprima <?=htmlspecialchars(getTitolo($statuto),ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8')?> <?=TitoloSito?></TITLE>
+		<TITLE>Anteprima <?=htmlspecialchars(getTitolo($statuto),ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8')?> <?=TITOLO_SITO?></TITLE>
 
 	</HEAD>
 	<BODY>

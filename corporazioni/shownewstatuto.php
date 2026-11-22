@@ -77,7 +77,7 @@ function renderStatuto(?string $raw): void {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title><?= htmlentities($corpData['nome'], ENT_QUOTES, 'UTF-8') ?> – <?= TitoloSito ?></title>
+    <title><?= htmlentities($corpData['nome'], ENT_QUOTES, 'UTF-8') ?> – <?= TITOLO_SITO ?></title>
 
 
 </head>

@@ -118,7 +118,7 @@ if ($send) {
 <html lang="it">
 <head>
   <meta charset="UTF-8">
-  <title><?= $send ? 'Risultato Inoltro' : 'Inoltra Missiva' ?> – <?= TitoloSito ?></title>
+  <title><?= $send ? 'Risultato Inoltro' : 'Inoltra Missiva' ?> – <?= TITOLO_SITO ?></title>
 
   <script src="/js/global.js"></script>
 

@@ -11,7 +11,7 @@ function ai_coercion_assess(array $npc,array $job,array $episode):?array {
     $known=aiPerceptionKnownRace($nid,$uid);$p=ai_npc_profile($npc);$traits=ai_npc_game($nid)['traits'];
     $own=rpg_actor_stats('npc',$nid);$opponent=rpg_actor_stats('pg',$uid);
     $overwhelming=in_array($known,[2,3,5,6],true)&&(int)$opponent['strength']>max((int)$own['strength']+10,(int)round($own['strength']*1.7));
-    if(!$overwhelming&&(!$hurt||((int)$opponent['strength']<(int)$own['strength']&&(int)$p['hit_points']>maxpuntif*.3))){ return null; }
+    if(!$overwhelming&&(!$hurt||((int)$opponent['strength']<(int)$own['strength']&&(int)$p['hit_points']>MAXPUNTIF*.3))){ return null; }
     $survival=(int)$traits['survival_instinct'];$resistance=(int)round(((int)$traits['courage']+(int)$traits['pride'])/2);
     $mode=$survival>=$resistance?'submission':'appeasement';
     $plan=(int)$traits['vindictiveness']>=65?'seek_revenge':((int)$traits['cunning']>=60?'seek_escape':'seek_protection');

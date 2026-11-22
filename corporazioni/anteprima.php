@@ -52,7 +52,7 @@ $valori  = array_values($mp);
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Anteprima Oggetto • <?= TitoloSito ?></title>
+  <title>Anteprima Oggetto • <?= TITOLO_SITO ?></title>
 
 
 </head>

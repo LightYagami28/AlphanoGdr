@@ -38,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     foreach (['txtpass', 'current_password'] as $passwordField) { if (isset($input[$passwordField]) && !is_string($input[$passwordField])) { alphanoFail('Password non valida.', 400); } }
     if ($action === 'loadfile') {
         $upload = $_FILES['fileprofilo'] ?? [];
-        if (($upload['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK || ($upload['size'] ?? 0) > min(MaxUploadFileSize, 1048576)
+        if (($upload['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK || ($upload['size'] ?? 0) > min(MAX_UPLOAD_FILE_SIZE, 1048576)
             || !is_uploaded_file($upload['tmp_name'] ?? '') || strtolower(pathinfo($upload['name'] ?? '', PATHINFO_EXTENSION)) !== 'json') {
             alphanoFail('Carica un file JSON valido (massimo 1 MB).', 400);
         }
@@ -95,12 +95,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if(str_starts_with($field,'musica')&&empty($row['upload'])){ continue; }
             $file=$_FILES[$key] ?? [];
             if (($file['error'] ?? UPLOAD_ERR_NO_FILE)===UPLOAD_ERR_NO_FILE) { continue; }
-            if (($file['error'] ?? -1)!==UPLOAD_ERR_OK || ($file['size'] ?? 0)>MaxUploadFileSize || !is_uploaded_file($file['tmp_name'] ?? '')) { alphanoFail('Caricamento non riuscito o file troppo grande.',400); }
+            if (($file['error'] ?? -1)!==UPLOAD_ERR_OK || ($file['size'] ?? 0)>MAX_UPLOAD_FILE_SIZE || !is_uploaded_file($file['tmp_name'] ?? '')) { alphanoFail('Caricamento non riuscito o file troppo grande.',400); }
             $mime=(new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']);
             $types=(str_starts_with($field,'avatar')||str_starts_with($field,'banner')) ? ['image/jpeg'=>'jpg','image/png'=>'png','image/gif'=>'gif','image/webp'=>'webp'] : ['audio/mpeg'=>'mp3','audio/ogg'=>'ogg','application/ogg'=>'ogg','audio/wav'=>'wav','audio/x-wav'=>'wav'];
             if (!isset($types[$mime])) { alphanoFail('Formato file non consentito.',400); }
             if(str_starts_with($mime,'image/')){$dimensions=@getimagesize($file['tmp_name']);if(!$dimensions||$dimensions[0]*$dimensions[1]>36000000){ alphanoFail('Immagine non valida o troppo grande (massimo 36 megapixel).',400); }}
-            $directory=htmlroot.'/profili/pg/'.$idpg;
+            $directory=HTMLROOT.'/profili/pg/'.$idpg;
             if (!is_dir($directory) && !mkdir($directory,0755,true)) { throw new RuntimeException('Impossibile creare la cartella del profilo'); }
             $filename=$field.'-'.bin2hex(random_bytes(8)).'.'.$types[$mime];
             if (!move_uploaded_file($file['tmp_name'],$directory.'/'.$filename)) { throw new RuntimeException('Caricamento non riuscito'); }

@@ -15,7 +15,7 @@ function alphanoEquipmentImage(string $source, string $slot = 'attrezzi'): strin
     if (preg_match('#^https?://#i', $source)) { return $source; }
     $path = '/' . ltrim($source, './');
     if ($source !== '' && !str_contains($path, '..') && (preg_match('#^/uploads/(?:equipment|equipment-pending)/#', $path)||preg_match('#^/assets/(?:equipment/[a-z]+\.jpg|materials/[a-z]+\.webp)$#D',$path))
-        && (is_file(htmlroot . $path) || is_file(dirname(__DIR__) . $path))) { return $path; }
+        && (is_file(HTMLROOT . $path) || is_file(dirname(__DIR__) . $path))) { return $path; }
     return $fallback;
 }
 
@@ -58,9 +58,9 @@ const QUALITY = [
 $quality = QUALITY;                 // ora esiste anche come variabile globale
 
 if (!defined('MAX_POINT_VALUE')) {  // viene usata nei calcoli del PV
-    // in kernel.inc.php esiste già la vecchia costante «maxpointvalue»
-    if (defined('maxpointvalue')) {
-        define('MAX_POINT_VALUE', maxpointvalue);
+    // in kernel.inc.php esiste già la vecchia costante «MAXPOINTVALUE»
+    if (defined('MAXPOINTVALUE')) {
+        define('MAX_POINT_VALUE', MAXPOINTVALUE);
     } else {
         define('MAX_POINT_VALUE', 0);   // fallback di sicurezza
     }
@@ -429,9 +429,9 @@ function useObject(int $equippgId, int $pgId, int $mandante): int
         $user=$db->query('SELECT puntif FROM utenti WHERE id=? FOR UPDATE',[$pgId])[0] ?? null;
         $info=$db->query('SELECT e.restore,e.id AS uid FROM equippg p JOIN equip e ON e.id=p.uid WHERE p.id=? AND p.idpg=? FOR UPDATE',[$equippgId,$pgId])[0] ?? null;
         if (!$user || !$info || (int)$info['restore']<=0) { return 0; }
-        if ((int)$user['puntif']>=maxpuntif) { return -1; }
+        if ((int)$user['puntif']>=MAXPUNTIF) { return -1; }
         if (!consuma($pgId,$equippgId,1)) { return 0; }
-        $new=min(maxpuntif,(int)$user['puntif']+(int)$info['restore']);
+        $new=min(MAXPUNTIF,(int)$user['puntif']+(int)$info['restore']);
         $db->execute('UPDATE utenti SET puntif=? WHERE id=?',[$new,$pgId]);
         $db->execute("INSERT INTO logs_equip(data,esecutore,origine,obj,azione) VALUES(?,?,?,?,'USATO')",[time(),$mandante,$pgId,$info['uid']]);
         return 1;

@@ -30,7 +30,7 @@
 ?>
 <html>
     <head>
-        <TITLE>Statistiche Oggetto <?=TitoloSito?></TITLE>
+        <TITLE>Statistiche Oggetto <?=TITOLO_SITO?></TITLE>
 
     </head>
     <body>

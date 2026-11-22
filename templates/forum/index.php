@@ -1,5 +1,5 @@
 <?php $h=static fn($value)=>htmlspecialchars((string)$value,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8'); ?>
-<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title><?=$h($forum['title'])?> – <?=$h(TitoloSito)?></title>
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title><?=$h($forum['title'])?> – <?=$h(TITOLO_SITO)?></title>
 <script src="/js/forum.js" defer></script><script src="/js/<?=$forum['mode']==='discussion'?'discussioni':'bacheche'?>.js?v=<?=filemtime(dirname(__DIR__,2).'/js/'.($forum['mode']==='discussion'?'discussioni':'bacheche').'.js')?>" defer></script></head><body>
 <?php if(!empty($forum['message'])): ?><p class="flash" role="status"><?=$h($forum['message'])?></p><?php endif; ?>
 <section class="forum-workspace" aria-label="<?=$h($forum['title'])?>">

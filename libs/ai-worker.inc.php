@@ -16,7 +16,7 @@ function ai_sync_logs(bool $force=false): void {
     ai_perception_sync_prefaces();
     foreach (aiDb()->query("SELECT id,result,npc_id,session_id,finished_at FROM ai_jobs WHERE status='done' AND kind IN('play','reaction') AND log_synced=0 ORDER BY id LIMIT 20") as $job) {
         if ((int)$job['session_id']>0) {
-            $path=htmlroot.'/sessione/log/'.(int)$job['session_id'].'.html';
+            $path=HTMLROOT.'/sessione/log/'.(int)$job['session_id'].'.html';
             $file=@fopen($path,'c+');
             if (!$file) { error_log('[Master IA] Diario di sessione non scrivibile.');continue; }
             try {

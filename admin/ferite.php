@@ -108,7 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             break;
 
         case 'ferisci':
-            $pf   = economiaIntero($_POST['pf'] ?? null,1,maxpuntif);
+            $pf   = economiaIntero($_POST['pf'] ?? null,1,MAXPUNTIF);
             if ($pf===null) { throw new InvalidArgumentException('I PF devono essere un numero intero valido'); }
             $tipo = trim($_POST['tipo']   ?? '');
             if ($target && $pf > 0 && ($canMaster || $canHurt)) {
@@ -292,7 +292,7 @@ foreach ($inChat as $pg) {
     <?php endforeach; ?>
   </select>
   <label>Punti Ferita</label>
-  <input type="number" name="pf" min="1" max="<?=maxpuntif?>" step="1" required>
+  <input type="number" name="pf" min="1" max="<?=MAXPUNTIF?>" step="1" required>
   <label>Tipo Ferite</label>
   <input type="text" name="tipo" required>
   <input type="hidden" name="azione" value="ferisci">

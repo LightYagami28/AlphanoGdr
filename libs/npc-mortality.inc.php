@@ -71,7 +71,7 @@ function alphanoNpcCorrectAdminDeath(int $npc,int $expectedDeath,int $admin,int 
  // Re-read authorization after acquiring its lock: a stale page cannot retain admin power.
  $u=$db->query('SELECT admin,bloccato FROM utenti WHERE id=? FOR UPDATE',[$admin])[0]??[];
  if(empty($u['admin'])||!empty($u['bloccato'])){ throw new DomainException('Rettifica riservata agli amministratori.',403); }
- if($hitPoints<1||$hitPoints>maxpuntif){ throw new DomainException('Scegli punti ferita da 1 a '.maxpuntif.'.',422); }
+ if($hitPoints<1||$hitPoints>MAXPUNTIF){ throw new DomainException('Scegli punti ferita da 1 a '.MAXPUNTIF.'.',422); }
  $reason=alphanoNpcMortalityPlain($reason,1000);if($reason===''){ throw new DomainException('Indica il motivo della rettifica.',422); }
  $n=$db->query('SELECT * FROM ai_npcs WHERE id=? FOR UPDATE',[$npc])[0]??null;if(!$n){ throw new DomainException('PNG inesistente.',404); }
  $death=$db->query('SELECT * FROM npc_deaths WHERE id=? AND npc_id=? FOR UPDATE',[$expectedDeath,$npc])[0]??null;

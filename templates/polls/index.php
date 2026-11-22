@@ -1,5 +1,5 @@
 <?php $h=static fn($value)=>htmlspecialchars((string)$value,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');$csrf=alphanoCsrfToken(); ?>
-<!doctype html><html lang="it"><head><meta charset="utf-8"><title>Sondaggi – <?=$h(TitoloSito)?></title><script src="/js/polls.js" defer></script></head><body>
+<!doctype html><html lang="it"><head><meta charset="utf-8"><title>Sondaggi – <?=$h(TITOLO_SITO)?></title><script src="/js/polls.js" defer></script></head><body>
 <section class="poll-workspace" aria-label="Sondaggi della comunità">
 <?php if($message): ?><p class="flash" role="status"><?=$h($message)?></p><?php endif; ?>
 <nav class="forum-channels" aria-label="Stato dei sondaggi"><button type="button" data-poll-tab="active" class="active" aria-pressed="true" data-icon="check">Attivi <span><?=count($pollGroups['active'])?></span></button><button type="button" data-poll-tab="archive" aria-pressed="false" data-icon="book">Archivio <span><?=count($pollGroups['archive'])?></span></button><?php if($admin): ?><a class="action-btn" data-icon="settings" href="/sondaggi/adminsondaggi.php">Amministra i sondaggi</a><?php endif; ?></nav>

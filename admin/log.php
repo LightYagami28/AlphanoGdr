@@ -83,7 +83,7 @@ switch ($_POST['aztartarcontrol'] ?? '') {
 <html lang="it">
 <head>
   <meta charset="UTF-8">
-  <title>Log Viewer – <?= TitoloSito ?></title>
+  <title>Log Viewer – <?= TITOLO_SITO ?></title>
 
 
   <script src="/js/global.js"></script>

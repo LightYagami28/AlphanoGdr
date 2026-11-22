@@ -40,7 +40,7 @@ if (!$canManageUsers) { $userActions = array_intersect_key($userActions, array_f
 <html lang="it">
 <head>
   <meta charset="utf-8">
-  <title>Admin Utenti — <?= TitoloSito ?></title>
+  <title>Admin Utenti — <?= TITOLO_SITO ?></title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
 
   <!-- Carica il CSS “game-responsive.css” -->

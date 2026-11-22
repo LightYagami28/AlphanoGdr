@@ -16,7 +16,7 @@
       <div class="stat points health-row"><div class="profile-health-heading"><span data-icon="heart">Salute</span><span id="profile-health-label">—</span></div><div class="bar"><div id="profile-points-bar" class="bar-inner gray"></div></div></div>
     </div>
     <a id="profile-fortune" class="profile-fortune" href="/fortuna/" aria-label="Ruota della sorte" hidden><span data-icon="dice" aria-hidden="true"></span><span class="profile-fortune-copy"><strong data-fortune-label></strong><small>Ruota della sorte · ogni 6 ore</small></span><span class="profile-fortune-action">Apri</span></a>
-    <div class="profile-card-footer"><?=alphanoEscape(TitoloSito)?> · Personaggio giocante</div>
+    <div class="profile-card-footer"><?=alphanoEscape(TITOLO_SITO)?> · Personaggio giocante</div>
   </section>
   <section class="weather-box panel"><div class="panel-header"><h2 data-icon="moon">Meteo e luna</h2></div><div id="weather" class="weather-wrap panel-body">Caricamento…</div></section>
   <section id="presenti" class="news-box panel"><div class="panel-header"><h2 data-icon="users"><a id="presenti-open" href="/presenti/">Presenti <span id="presenti-count" class="count-badge">0</span></a></h2><label class="presence-npc-toggle"><span>PNG</span><input id="presenti-show-npcs" type="checkbox" role="switch" aria-label="Mostra i PNG" checked><span class="presence-switch-track" aria-hidden="true"></span></label></div><p id="presenti-summary" class="presence-sidebar-summary"></p><nav class="presenti-nav panel-body" aria-label="Giocatori e PNG per luogo"><ul id="presenti-list"></ul></nav></section>

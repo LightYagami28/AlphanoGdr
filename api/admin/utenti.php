@@ -281,8 +281,8 @@ try {
         ));
         $toDel = array_diff($del, $keep);
         foreach ($toDel as $eid) {
-            @unlink(htmlroot . "/uploads/equipment/{$eid}");
-            @unlink(htmlroot . "/uploads/equipment-pending/{$eid}");
+            @unlink(HTMLROOT . "/uploads/equipment/{$eid}");
+            @unlink(HTMLROOT . "/uploads/equipment-pending/{$eid}");
         }
         if ($toDel) {
             $ph2 = implode(',', array_fill(0, count($toDel), '?'));

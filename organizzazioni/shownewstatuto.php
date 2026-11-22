@@ -70,7 +70,7 @@ if (!$orgData) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title><?=htmlspecialchars($orgData['nome'])?> – <?=htmlspecialchars(TitoloSito)?></title>
+  <title><?=htmlspecialchars($orgData['nome'])?> – <?=htmlspecialchars(TITOLO_SITO)?></title>
 
 
 </head>

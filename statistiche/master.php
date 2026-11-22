@@ -32,7 +32,7 @@
 ?>
 <HTML>
     <HEAD>
-        <TITLE>Statistiche Master <?=TitoloSito?></TITLE>
+        <TITLE>Statistiche Master <?=TITOLO_SITO?></TITLE>
 
         <SCRIPT language="JavaScript" src="/js/global.js"></SCRIPT>
         <SCRIPT language="JavaScript">

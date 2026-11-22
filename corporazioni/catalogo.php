@@ -51,7 +51,7 @@ $approvedimg    = '/assets/placeholder.svg';
 <html lang="it">
 <head>
   <meta charset="UTF-8">
-  <title>Catalogo di <?= htmlspecialchars(GetCorporazione($corpId)) ?> – <?= TitoloSito ?></title>
+  <title>Catalogo di <?= htmlspecialchars(GetCorporazione($corpId)) ?> – <?= TITOLO_SITO ?></title>
 
 
 </head>

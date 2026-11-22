@@ -93,7 +93,7 @@ try {
         if(aiField($in,'confirmation',20,true)!=='RETTIFICA'){ throw new DomainException('Conferma esplicitamente la rettifica della registrazione amministrativa.',422); }
         $npc=aiInteger($in,'npc_id',1,PHP_INT_MAX);
         if(!$db->query('SELECT id FROM ai_npcs WHERE id=? AND chat_key=?',[$npc,$chat])){ throw new DomainException('PNG non disponibile in questo luogo.',404); }
-        $receipt=alphanoNpcCorrectAdminDeath($npc,aiInteger($in,'death_id',1,PHP_INT_MAX),$user,aiInteger($in,'hit_points',1,maxpuntif),aiField($in,'reason',1000,true));
+        $receipt=alphanoNpcCorrectAdminDeath($npc,aiInteger($in,'death_id',1,PHP_INT_MAX),$user,aiInteger($in,'hit_points',1,MAXPUNTIF),aiField($in,'reason',1000,true));
         if(!$receipt['replayed']){ $db->execute('UPDATE ai_rooms SET version=version+1 WHERE chat_key=?',[$chat]); }
     }
     elseif ($action==='save_npc') {

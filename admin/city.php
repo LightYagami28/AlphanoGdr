@@ -376,7 +376,7 @@ $statuto         = $newStatuto !== ''
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Amministrazione Città – <?=htmlspecialchars(TitoloSito)?></title>
+  <title>Amministrazione Città – <?=htmlspecialchars(TITOLO_SITO)?></title>
 
 </head>
 <body class="ui-page">

@@ -20,7 +20,7 @@ function aiQuestPublish(int $session,string $key,string $text,?string $html=null
  $db->execute('INSERT INTO ai_quest_outbox(session_id,event_key,html,created_at,chat_id) VALUES(?,?,?,?,?)',[$session,$key,$html,time(),$id]);return $id;
 }
 function aiQuestSyncLogs():void{
- foreach(aiDb()->query('SELECT * FROM ai_quest_outbox WHERE log_synced=0 ORDER BY id LIMIT 30') as $row){$dir=htmlroot.'/sessione/log';if(!is_dir($dir)&&!@mkdir($dir,0755,true)){ continue; }$f=@fopen($dir.'/'.(int)$row['session_id'].'.html','c+');if(!$f){ continue; }
+ foreach(aiDb()->query('SELECT * FROM ai_quest_outbox WHERE log_synced=0 ORDER BY id LIMIT 30') as $row){$dir=HTMLROOT.'/sessione/log';if(!is_dir($dir)&&!@mkdir($dir,0755,true)){ continue; }$f=@fopen($dir.'/'.(int)$row['session_id'].'.html','c+');if(!$f){ continue; }
   try{if(!flock($f,LOCK_EX)){ continue; }$marker='<!-- quest-event:'.(int)$row['id'].' -->';$found=false;while(($line=fgets($f))!==false){ if(str_contains($line,$marker)){$found=true;break;} }if(!$found){fseek($f,0,SEEK_END);$line=$marker.$row['html']."<br>\n";if(fwrite($f,$line)!==strlen($line)||!fflush($f)){ continue; }}flock($f,LOCK_UN);aiDb()->execute('UPDATE ai_quest_outbox SET log_synced=1 WHERE id=?',[(int)$row['id']]);}finally{fclose($f);}
  }
 }

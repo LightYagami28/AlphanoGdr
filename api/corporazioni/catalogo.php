@@ -222,7 +222,7 @@ try {
             $id        = (int)($_POST['id']        ?? 0);
             $shortDesc = trim((string)($_POST['shortDesc'] ?? ''));
             $desc      = trim((string)($_POST['desc']      ?? ''));
-            if ($admincatalogo && $id > 0 && $shortDesc !== '' && $desc !== '' && $count < maxobjinaccademia) {
+            if ($admincatalogo && $id > 0 && $shortDesc !== '' && $desc !== '' && $count < MAXOBJINACCADEMIA) {
                 // destinazione
                 $pers = !empty($_POST['pers']);
                 if ($pers && !empty($_POST['destinatario'])) {
@@ -236,7 +236,7 @@ try {
                 }
                 // immagine
                 if (!empty($_FILES['immagine']['tmp_name']) && is_uploaded_file($_FILES['immagine']['tmp_name'])) {
-                    $path = htmlroot . "/uploads/equipment-pending/{$id}";
+                    $path = HTMLROOT . "/uploads/equipment-pending/{$id}";
                     resizeImage($_FILES['immagine']['tmp_name'],150,$path);
                     $imgField = "/uploads/equipment-pending/{$id}";
                 } else {
@@ -297,7 +297,7 @@ try {
         case 'aggiungi':
             $shortDesc = trim((string)($_POST['shortDesc'] ?? ''));
             $desc      = trim((string)($_POST['desc']      ?? ''));
-            if ($admincatalogo && $shortDesc !== '' && $desc !== '' && $count < maxobjinaccademia) {
+            if ($admincatalogo && $shortDesc !== '' && $desc !== '' && $count < MAXOBJINACCADEMIA) {
                 $pers = !empty($_POST['pers']);
                 if ($pers && !empty($_POST['destinatario'])) {
                     $destpg  = GetPGID(trim((string)$_POST['destinatario']));
@@ -338,7 +338,7 @@ try {
                 $db->execute($sql, $params);
                 $newId = (int)$db->lastInsertID();
                 if (isset($tempImg) && $newId > 0) {
-                    $path = htmlroot . "/uploads/equipment-pending/{$newId}";
+                    $path = HTMLROOT . "/uploads/equipment-pending/{$newId}";
                     resizeImage($tempImg,150,$path);
                     $db->execute('UPDATE equip SET immagine = ? WHERE id = ?', ["/uploads/equipment-pending/{$newId}", $newId]);
                 }
@@ -369,7 +369,7 @@ try {
                     $db->execute('DELETE FROM equip WHERE id = ?',[$id]);
                 }
                 foreach (($refs>0 ? [] : ["/uploads/equipment/{$id}","/uploads/equipment-pending/{$id}"]) as $f) {
-                    $file = alphanoCanonicalInside(rtrim(htmlroot,'/').'/uploads', htmlroot . $f);
+                    $file = alphanoCanonicalInside(rtrim(HTMLROOT,'/').'/uploads', HTMLROOT . $f);
                     if ($file !== null && is_file($file)) { @unlink($file); }
                 }
                 $db->execute('DELETE FROM newequip WHERE id = ?',[$id]);

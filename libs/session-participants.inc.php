@@ -23,7 +23,7 @@ function alphanoParticipantsState(int $actor,string $chat):array {
     foreach($db->query("SELECT id,nome,puntif,ferite,denari,sesso,razza,vampire_human_form,avatar,avatar2 FROM utenti WHERE BINARY chat=BINARY ? AND bloccato=0 AND posizione<>'off' ORDER BY nome,id",[$chat]) as $row){
         $portrait=alphanoProfilePortrait($row);
         $people[]=['kind'=>'pg','id'=>(int)$row['id'],'name'=>$row['nome'],'portrait'=>$portrait['url'],'fallback'=>$portrait['default'],
-            'hp'=>(int)$row['puntif'],'max_hp'=>maxpuntif,'wounds'=>$row['ferite'],'crowns'=>(int)$row['denari'],
+            'hp'=>(int)$row['puntif'],'max_hp'=>MAXPUNTIF,'wounds'=>$row['ferite'],'crowns'=>(int)$row['denari'],
             'member'=>in_array((int)$row['id'],$members,true),'alive'=>(int)$row['puntif']>0,'self'=>(int)$row['id']===$actor];
     }
     $manage=!empty($user['admin'])||alphanoSessionCanManage($actor,$chat);
@@ -71,7 +71,7 @@ function alphanoParticipantsMutate(int $actor,string $chat,array $input):array {
     $ids=[];foreach($targets as $target){$ids[]=alphanoParticipantsInt(['target'=>$target],'target',1,PHP_INT_MAX);}
     if(count(array_unique($ids))!==count($ids)){throw new ParticipantsDomainException('Un personaggio non può comparire due volte.',422);}sort($ids);
     $expectedSession=alphanoParticipantsInt($input,'session_id',0,PHP_INT_MAX);$values=[];
-    if($action==='health'){$values['hp']=alphanoParticipantsInt($input,'hp',1,maxpuntif);$values['wounds']=playerText($input,'wounds',1020);if(mb_strlen($values['wounds'])>255){throw new ParticipantsDomainException('Descrizione delle ferite troppo lunga.',422);}$values['expected']=$input['expected']??null;if(!is_array($values['expected'])){throw new ParticipantsDomainException('Ricarica le condizioni dei personaggi prima di modificarle.',409);}}
+    if($action==='health'){$values['hp']=alphanoParticipantsInt($input,'hp',1,MAXPUNTIF);$values['wounds']=playerText($input,'wounds',1020);if(mb_strlen($values['wounds'])>255){throw new ParticipantsDomainException('Descrizione delle ferite troppo lunga.',422);}$values['expected']=$input['expected']??null;if(!is_array($values['expected'])){throw new ParticipantsDomainException('Ricarica le condizioni dei personaggi prima di modificarle.',409);}}
     elseif($action==='note'){$values['note']=playerText($input,'note',16000,true);if(mb_strlen($values['note'])>4000){throw new ParticipantsDomainException('Annotazione troppo lunga.',422);}}
     elseif($action==='crowns'){$values['amount']=alphanoParticipantsInt($input,'amount',1,1000000000);}
     elseif($action==='item'){$values['item_id']=alphanoParticipantsInt($input,'item_id',1,PHP_INT_MAX);$values['quantity']=alphanoParticipantsInt($input,'quantity',1,100);}

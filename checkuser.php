@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 
 // 1) Dipendenze
-require __DIR__ . '/libs/kernel.inc.php';   // connectDB(), closePage(), TitoloSito, maxpuntif
+require __DIR__ . '/libs/kernel.inc.php';   // connectDB(), closePage(), TITOLO_SITO, MAXPUNTIF
 require __DIR__ . '/libs/libpg.inc.php';    // doLogin(), GetIDPG(), setChatPosizione()
 
 use Alphano\Database\PDOMySQLDriver;
@@ -68,27 +68,27 @@ $row = $db->query(
 
 $days   = (int) floor(($now - (int)$row['ultimoingresso']) / 86400);
 $puntif = (int)$row['puntif'];
-if ($days > 0 && $puntif < maxpuntif) {
+if ($days > 0 && $puntif < MAXPUNTIF) {
     if ((int)$row['infetto'] || (int)$row['ancestrale']) {
-        $puntif += $days * (int)(maxpuntif / 20);
+        $puntif += $days * (int)(MAXPUNTIF / 20);
     } else {
         switch ((int)$row['razza']) {
             case 1:
-                $puntif += $days * (int)(maxpuntif / 40);
+                $puntif += $days * (int)(MAXPUNTIF / 40);
                 break;
             case 2:
-                $puntif += $days * (int)(maxpuntif / 20);
+                $puntif += $days * (int)(MAXPUNTIF / 20);
                 break;
             case 4: case 7: case 8:
-                $puntif = maxpuntif;
+                $puntif = MAXPUNTIF;
                 break;
             case 5:
-                $puntif += $days * (int)(maxpuntif / (1000/75));
+                $puntif += $days * (int)(MAXPUNTIF / (1000/75));
                 break;
         }
     }
-    $puntif = min($puntif, maxpuntif);
-    if ($puntif >= maxpuntif) {
+    $puntif = min($puntif, MAXPUNTIF);
+    if ($puntif >= MAXPUNTIF) {
         $row['ferite'] = '';
     }
 }
@@ -119,7 +119,7 @@ $db->execute(
 setChatPosizione('online', $idpg, '');
 
 // 9) Apri il gioco nella finestra corrente, anche dal form in iframe.
-$siteTitle = TitoloSito;
+$siteTitle = TITOLO_SITO;
 echo <<<HTML
 <!DOCTYPE html>
 <html lang="it"><head><meta charset="UTF-8"><title>Login riuscito – {$siteTitle}</title>

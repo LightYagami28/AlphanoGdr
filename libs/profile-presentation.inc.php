@@ -35,7 +35,7 @@ function alphanoProfileDesign(array $p):array {
  if($alignment){ $cards[]=['kind'=>'alignment','label'=>'Allineamento','name'=>$alignment['name'],'detail'=>'','description'=>$alignment['description'],'icon'=>'compass','src'=>$alignment['image'],'url'=>'/manuali/?chapter=primi-passi#manual-paragraph-5']; }
  return ['sex'=>$sex,'alignment'=>$alignment,'cards'=>$cards,'badges'=>$badges,'affiliations'=>$affiliations,'crest'=>$affiliations[0],
   'register'=>[['label'=>'Personaggio','value'=>$p['name']],['label'=>'Razza','value'=>$race],['label'=>'Sesso · Allineamento','value'=>$sex.' · '.$p['alignment']],['label'=>'Luogo','value'=>$p['location']]],
-  'location'=>alphanoProfileLabel((string)$p['location']),'hp'=>(int)$p['hp'],'max_hp'=>maxpuntif];
+  'location'=>alphanoProfileLabel((string)$p['location']),'hp'=>(int)$p['hp'],'max_hp'=>MAXPUNTIF];
 }
 
 /** Three public tabs; staff-only rows have already been filtered by the controllers. */

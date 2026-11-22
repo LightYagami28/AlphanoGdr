@@ -407,7 +407,7 @@ function alphanoBadgeUrl(string $type, int $id, int $scope = 0): string
     if (!in_array($type, ['cariche','organizzazioni','corporazioni'], true)) {throw new InvalidArgumentException('Tipo stemma non valido');}
     $path = '/uploads/badges/' . $type . '/' . ($scope > 0 ? $scope . '/' : '') . max(0,$id) . '.gif';
     foreach ([$path] as $candidate) {
-        foreach ([htmlroot . $candidate, dirname(__DIR__) . $candidate] as $file) {
+        foreach ([HTMLROOT . $candidate, dirname(__DIR__) . $candidate] as $file) {
             if (!is_file($file)) {continue;}
             // Rank insignia remain editable through the existing GIF upload.
             // Refresh cached art after either a release or an administrator upload.
@@ -917,7 +917,7 @@ function dropCaricaOrg(int $org, int $id): bool
     $db=getDB();
     if($db->query('SELECT 1 FROM utenti WHERE organizzazione=? AND caricaorganizzazione=? LIMIT 1',[$org,$id])){return false;}
     $deleted=$db->execute('DELETE FROM caricheorganizzazioni WHERE organizzazione=? AND id=?',[$org,$id]);
-    $file=htmlroot.ALPHANO_BADGE_PATH_ORG.$org.'/'.$id.'.gif';
+    $file=HTMLROOT.ALPHANO_BADGE_PATH_ORG.$org.'/'.$id.'.gif';
     if($deleted && is_file($file)){unlink($file);}
     return $deleted>0;
 }
@@ -1183,7 +1183,7 @@ function dropCaricaCorp(int $corp, int $id): bool
     $db=getDB();
     if($db->query('SELECT 1 FROM utenti WHERE corporazione=? AND caricacorporazione=? LIMIT 1',[$corp,$id])){return false;}
     $deleted=$db->execute('DELETE FROM carichecorporazioni WHERE corporazione=? AND id=?',[$corp,$id]);
-    $file=htmlroot.ALPHANO_BADGE_PATH_CORP.$corp.'/'.$id.'.gif';
+    $file=HTMLROOT.ALPHANO_BADGE_PATH_CORP.$corp.'/'.$id.'.gif';
     if($deleted && is_file($file)){unlink($file);}
     return $deleted>0;
 }
@@ -1371,7 +1371,7 @@ function alphanoBadgeScope(string $type, int $group, int $branch): bool
 
 function alphanoSaveBadge(array $file, string $relative): bool
 {
-    $path = htmlroot . $relative;
+    $path = HTMLROOT . $relative;
     $dir = dirname($path);
     $result = is_dir($dir) || mkdir($dir, 0755, true);
     if ($result && (int)($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {

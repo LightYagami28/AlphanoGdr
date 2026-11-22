@@ -125,7 +125,7 @@ function playerMediaUrl(mixed $value, int $profile, string $fallback = ''): stri
     if (preg_match('/^[a-z][a-z0-9+.-]*:/i',$value) || str_starts_with($value,'//')) {return $fallback;}
     $path=rawurldecode((string)(parse_url($value,PHP_URL_PATH) ?? ''));
     $relative=str_starts_with($path,'/') ? $path : '/profili/pg/'.$profile.'/'.$path;
-    $real=realpath(htmlroot.$relative);
-    if (!$real || !str_starts_with($real,htmlroot.'/') || !is_file($real)) {return $fallback;}
+    $real=realpath(HTMLROOT.$relative);
+    if (!$real || !str_starts_with($real,HTMLROOT.'/') || !is_file($real)) {return $fallback;}
     return $relative;
 }

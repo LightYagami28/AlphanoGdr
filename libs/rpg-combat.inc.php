@@ -37,7 +37,7 @@ function rpgCombatInferAbility(int $id,string $raw):int {
 function rpgCombatChooseNpc(int $id,int $sid,int $round,string $decision):?array {
  if(!in_array($decision,['attacco','difesa','ritirata','aiuto','allenamento'],true)){ return null; }
  $sheet=rpg_sheet('npc',$id,false);$types=in_array($decision,['difesa','ritirata','aiuto'],true)?['defence','heal']:['attack'];$choices=[];
- foreach($sheet['abilities'] as $a){if(!$a['usable']||!in_array($a['effect']['type'],$types,true)){ continue; }if($a['effect']['type']==='heal'&&$sheet['identity']['hit_points']>maxpuntif-30){ continue; }
+ foreach($sheet['abilities'] as $a){if(!$a['usable']||!in_array($a['effect']['type'],$types,true)){ continue; }if($a['effect']['type']==='heal'&&$sheet['identity']['hit_points']>MAXPUNTIF-30){ continue; }
   try{rpgCombatAssertEquipment('npc',$id,$a);}catch(DomainException){continue;}
   $last=aiDb()->query('SELECT round_number FROM rpg_ability_uses WHERE owner_kind=\'npc\' AND owner_id=? AND ability_id=? AND session_id=? ORDER BY id DESC LIMIT 1',[$id,$a['id'],$sid])[0]??null;
   if($last&&(int)$last['round_number']+(int)$a['cooldown']+(isset($a['rules'])?1:0)>$round){ continue; }

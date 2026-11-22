@@ -182,7 +182,7 @@ $canc = $db->query(
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Statistiche – <?=htmlspecialchars(TitoloSito,ENT_QUOTES)?></title>
+  <title>Statistiche – <?=htmlspecialchars(TITOLO_SITO,ENT_QUOTES)?></title>
 
 </head>
 <body>

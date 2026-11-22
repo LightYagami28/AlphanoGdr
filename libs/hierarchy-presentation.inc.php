@@ -29,6 +29,6 @@ function alphanoHierarchyMember(array $u):array {
 function alphanoHierarchySmallBadge(string $url):bool {
  static $cache=[];if(isset($cache[$url])){ return $cache[$url]; }$path=(string)parse_url($url,PHP_URL_PATH);
  if(!str_starts_with($path,'/')||str_contains($path,'..')){ return false; }
- foreach([htmlroot,dirname(__DIR__)] as $root){ if(is_file($root.$path)){$size=@getimagesize($root.$path);return $cache[$url]=$size&&max($size[0],$size[1])<64;} }
+ foreach([HTMLROOT,dirname(__DIR__)] as $root){ if(is_file($root.$path)){$size=@getimagesize($root.$path);return $cache[$url]=$size&&max($size[0],$size[1])<64;} }
  return $cache[$url]=false;
 }

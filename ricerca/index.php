@@ -25,7 +25,7 @@ $db      = connectDB();
 $pgid    = GetIDPG();
 
 // Titolo del sito (cambia se vuoi)
-function TitoloSito(): string { return 'Alphano'; }
+function TITOLO_SITO(): string { return 'Alphano'; }
 
 // ------------------------------------------------------------------
 // 2. Setup variabili di base

@@ -6,7 +6,7 @@ declare(strict_types=1);
  *  Funzioni PHP 8 con PDO.
  * =========================================================================
  *  Dipendenze:
- *    • kernel.inc.php  → costanti, connectDB(), htmlroot …
+ *    • kernel.inc.php  → costanti, connectDB(), HTMLROOT …
  *    • libpg.inc.php   → funzioni gestione PG
  * ========================================================================= */
 
@@ -73,7 +73,7 @@ function insertIntoChat(string $chat, string $html, array $metadata=[]): int
 
         // Tutte le query devono riuscire prima di aggiungere testo al file.
         if ($row) {
-            $logFile=rtrim(htmlroot,'/').'/sessione/log/'.$row[0]['id'].'.html';
+            $logFile=rtrim(HTMLROOT,'/').'/sessione/log/'.$row[0]['id'].'.html';
             $handle=@fopen($logFile,'c+b');
             if ($handle===false) { throw new RuntimeException('Impossibile aprire il registro della sessione'); }
             $locked=@flock($handle,LOCK_EX);

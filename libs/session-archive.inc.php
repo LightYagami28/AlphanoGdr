@@ -79,7 +79,7 @@ function alphanoCloseOpenSessions():int {
    $db->execute("UPDATE ai_jobs SET status='cancelled',finished_at=?,error='Sessione terminata dall’amministratore' WHERE session_id=? AND status IN('queued','running')",[time(),$sid]);
    $db->commit();$closed++;
    // Recover a missing incremental log from retained chat, excluding outbox rows that the sync will append.
-   $dir=rtrim(htmlroot,'/').'/sessione/log';if(!is_dir($dir)){ @mkdir($dir,0755,true); }
+   $dir=rtrim(HTMLROOT,'/').'/sessione/log';if(!is_dir($dir)){ @mkdir($dir,0755,true); }
    $file=$dir.'/'.$sid.'.html';
    if(!is_file($file)){
     $messages=$db->query('SELECT c.msg FROM chat c WHERE c.chat=? AND c.ora BETWEEN ? AND ? AND NOT EXISTS(SELECT 1 FROM ai_quest_outbox o WHERE o.chat_id=c.id AND o.log_synced=0) ORDER BY c.id',[$session['chat'],(int)$session['datain'],time()]);

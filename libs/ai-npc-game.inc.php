@@ -70,7 +70,7 @@ function ai_npc_super_encounter_gate(int $session,int $player,int $chance):array
  $chance=max(0,min(AI_NPC_SUPER_RULES['ordinary_cap'],$chance));return ['policy'=>'super_encounter_v1','chance_percent'=>$chance,'draw'=>$roll,'allowed'=>$roll<=$chance*100];
 }
 
-function ai_npc_super_decisive_damage(int $hp,int $damage):bool{return $damage>0&&$hp-$damage<=max(1,(int)floor(maxpuntif*AI_NPC_SUPER_RULES['decisive_hp_percent']/100));}
+function ai_npc_super_decisive_damage(int $hp,int $damage):bool{return $damage>0&&$hp-$damage<=max(1,(int)floor(MAXPUNTIF*AI_NPC_SUPER_RULES['decisive_hp_percent']/100));}
 
 /** Only a revealed physical special form receives the racial encounter protection. It never leaks a hidden lineage. */
 function ai_npc_super_encounter_check(int $session,array $actor,array $target):?array {
@@ -105,9 +105,9 @@ function ai_npc_decision(int $npc,int $player,int $enemies=1,int $allies=0,bool 
  if(!$underAttack&&$authority['recognized']&&($authority['attitude']['mode']??'respectful')==='respectful'&&$t['obedience']+$t['loyalty']>=$t['aggression']+$t['impulsiveness']){ return 'negozia'; }
  $enemy=ai_game_player($player);$strength=(int)rpg_actor_stats('npc',$npc)['strength'];
  $armed=array_filter(ai_game_inventory('npc',$npc),static fn($i)=>in_array($i['slot'],['armadx','armasx'],true));
- $danger=($enemies>1+$allies)||((int)$p['hit_points']<maxpuntif/3)||(($enemy['forza']??0)>$strength*2&&$allies===0)||(!$armed&&$enemies>1);
+ $danger=($enemies>1+$allies)||((int)$p['hit_points']<MAXPUNTIF/3)||(($enemy['forza']??0)>$strength*2&&$allies===0)||(!$armed&&$enemies>1);
  $relation=aiRelation($npc,$player);if((int)$relation['fear']>$t['courage']&&$t['survival_instinct']>50){ $danger=true; }
- if($danger&&(int)$p['hit_points']<maxpuntif/4&&$t['survival_instinct']>75&&$t['pride']<60){ return 'resa'; }
+ if($danger&&(int)$p['hit_points']<MAXPUNTIF/4&&$t['survival_instinct']>75&&$t['pride']<60){ return 'resa'; }
  if($g['stance']==='noncombattente'){ return $danger&&$t['survival_instinct']>$t['courage']?'ritirata':($underAttack?'difesa':'negozia'); }
  if($danger&&$t['survival_instinct']>$t['courage']+15){ return 'ritirata'; }
  if($danger&&$allies===0&&$t['loyalty']>60&&$t['courage']>40){ return 'aiuto'; }

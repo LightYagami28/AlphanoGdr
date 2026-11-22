@@ -191,7 +191,7 @@ switch ($act) {
 <html lang="it">
 <head>
 <meta charset="utf-8">
-<title>Admin Chat – <?=h(TitoloSito)?></title>
+<title>Admin Chat – <?=h(TITOLO_SITO)?></title>
 
 </head>
 <body>

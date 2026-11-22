@@ -20,7 +20,7 @@ if ($directory && is_readable($directory)) {
 $escape=static fn($value)=>htmlspecialchars((string)$value,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
 ?>
 <!doctype html><html lang="it"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Galleria Immagini – <?=$escape(TitoloSito)?></title>
+<title>Galleria Immagini – <?=$escape(TITOLO_SITO)?></title>
 <body><h1>Galleria immagini</h1>
 <?php if (!$entries): ?><p>La galleria non contiene immagini.</p><?php endif; ?>
 <div class="u-aabb9be3a">

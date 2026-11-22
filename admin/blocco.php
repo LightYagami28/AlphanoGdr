@@ -196,7 +196,7 @@ foreach ($db->query("SELECT id,nome,imprigionato FROM utenti WHERE imprigionato 
 <html lang="it">
 <head>
   <meta charset="UTF-8">
-  <title>Amministrazione Blocco Utenti <?= TitoloSito ?></title>
+  <title>Amministrazione Blocco Utenti <?= TITOLO_SITO ?></title>
 
 
     <script src="/js/global.js"></script>

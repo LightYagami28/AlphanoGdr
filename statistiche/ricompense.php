@@ -39,7 +39,7 @@
 ?>
 <HTML>
     <HEAD>
-        <TITLE>Statistiche Ricompense <?=TitoloSito?></TITLE>
+        <TITLE>Statistiche Ricompense <?=TITOLO_SITO?></TITLE>
 
         <SCRIPT language="JavaScript" src="/js/global.js"></SCRIPT>
     </HEAD>

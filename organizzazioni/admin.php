@@ -21,7 +21,7 @@ $db      = connectDB();
   <meta name="viewport" content="width=device-width,initial-scale=1">
 
 
-  <title>Amministrazione Org: <?=htmlspecialchars($nomeorg, ENT_QUOTES)?> – <?=htmlspecialchars(TitoloSito, ENT_QUOTES)?></title>
+  <title>Amministrazione Org: <?=htmlspecialchars($nomeorg, ENT_QUOTES)?> – <?=htmlspecialchars(TITOLO_SITO, ENT_QUOTES)?></title>
 
   <script>
     const orgRoles=<?=json_encode($resCariche, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_AMP|JSON_HEX_QUOT)?>;

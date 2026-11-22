@@ -18,12 +18,12 @@ $banner=($home['banner']??'')?:alphanoAppearancePage('/')['header'];
 ?>
 <!doctype html>
 <html lang="it">
-<head><meta charset="utf-8"><title><?=alphanoEscape(TitoloSito)?></title><meta name="description" content="<?=alphanoEscape(mb_substr(($home['intro']??'')?:$config['game_description'],0,180))?>"><link rel="preload" as="image" href="<?=alphanoEscape($banner)?>"><script src="/assets/portal.js?v=<?=substr(hash_file('sha256',__DIR__.'/assets/portal.js'),0,12)?>" defer></script></head>
+<head><meta charset="utf-8"><title><?=alphanoEscape(TITOLO_SITO)?></title><meta name="description" content="<?=alphanoEscape(mb_substr(($home['intro']??'')?:$config['game_description'],0,180))?>"><link rel="preload" as="image" href="<?=alphanoEscape($banner)?>"><script src="/assets/portal.js?v=<?=substr(hash_file('sha256',__DIR__.'/assets/portal.js'),0,12)?>" defer></script></head>
 <body class="portal portal-homepage">
 <a class="portal-skip" href="#accesso">Vai all’accesso</a>
 <header class="portal-masthead"><div class="portal-inner">
-  <a class="portal-brand" href="/" aria-label="<?=alphanoEscape(TitoloSito)?> · Homepage">
-    <img class="portal-logo portal-brand-logo" src="/favicon.png" alt="<?=alphanoEscape(TitoloSito)?>" width="44" height="44"><span class="sr-only"><?=alphanoEscape(TitoloSito)?></span>
+  <a class="portal-brand" href="/" aria-label="<?=alphanoEscape(TITOLO_SITO)?> · Homepage">
+    <img class="portal-logo portal-brand-logo" src="/favicon.png" alt="<?=alphanoEscape(TITOLO_SITO)?>" width="44" height="44"><span class="sr-only"><?=alphanoEscape(TITOLO_SITO)?></span>
 
   </a>
   <nav aria-label="Navigazione della homepage"><a href="#scopri">Il gioco</a><a href="/manuali/">Manuali</a><a class="portal-nav-access" href="#accesso">Accedi <span aria-hidden="true">↗</span></a></nav>
@@ -35,7 +35,7 @@ $banner=($home['banner']??'')?:alphanoAppearancePage('/')['header'];
     <div class="portal-hero-layout portal-inner">
       <div class="portal-hero-copy">
         <p class="eyebrow"><span aria-hidden="true">✦</span> Una storia condivisa</p>
-        <h1 id="portal-title"><?php if(!empty($home['headline'])):?><?=alphanoEscape($home['headline'])?><?php else:?><img class="portal-hero-logo" src="<?=alphanoEscape(alphanoBrandLogo())?>" alt="<?=alphanoEscape(TitoloSito)?>" width="760" height="380"><?php endif;?></h1>
+        <h1 id="portal-title"><?php if(!empty($home['headline'])):?><?=alphanoEscape($home['headline'])?><?php else:?><img class="portal-hero-logo" src="<?=alphanoEscape(alphanoBrandLogo())?>" alt="<?=alphanoEscape(TITOLO_SITO)?>" width="760" height="380"><?php endif;?></h1>
         <p class="portal-lead">Il prossimo capitolo<br>comincia da te.</p>
         <p class="portal-intro"><?=nl2br(alphanoEscape(($home['intro']??'')?:$config['game_description']))?></p>
         <div class="portal-hero-links">
@@ -74,6 +74,6 @@ $banner=($home['banner']??'')?:alphanoAppearancePage('/')['header'];
   </div>
 </main>
 <aside class="portal-community" aria-label="Community ufficiale del motore AlphanoGDR"><div class="portal-inner"><a class="portal-community-link" href="https://t.me/alphanoGDR" target="_blank" rel="noopener noreferrer"><span class="portal-community-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" focusable="false"><path d="M21.5 3.5 18 20l-6.1-4.5-3.1 2.9.5-5.1L18 5.8 7.1 12.6 2.5 11z" fill="currentColor"/></svg></span><span class="portal-community-copy"><strong>Community ufficiale · AlphanoGDR</strong><small>Richieste, segnalazioni di bug e guide nel gruppo Telegram del motore.</small></span><span class="portal-community-arrow" aria-hidden="true">↗</span></a></div></aside>
-<footer class="portal-footer"><div class="portal-inner"><div><strong><?=alphanoEscape(TitoloSito)?></strong><p>Una storia condivisa, un capitolo alla volta.</p><?=alphanoRenderCredit('home')?></div><nav aria-label="Informazioni e assistenza"><a href="https://github.com/Aikanairo/AlphanoGdr" target="_blank" rel="noopener noreferrer">Codice sorgente</a><a href="/manuali/">Manuali</a><a href="/legal/?type=privacy">Privacy</a><a href="/legal/?type=cookies">Cookie</a><a href="/legal/?type=terms">Condizioni</a><a href="/legal/?type=credits">Crediti e licenza</a><?php if($config['support_email']!==''):?><a href="mailto:<?=alphanoEscape($config['support_email'])?>">Assistenza</a><?php endif;?></nav><a class="portal-back-top" href="#portal-title" aria-label="Torna in cima">↑</a></div></footer>
+<footer class="portal-footer"><div class="portal-inner"><div><strong><?=alphanoEscape(TITOLO_SITO)?></strong><p>Una storia condivisa, un capitolo alla volta.</p><?=alphanoRenderCredit('home')?></div><nav aria-label="Informazioni e assistenza"><a href="https://github.com/Aikanairo/AlphanoGdr" target="_blank" rel="noopener noreferrer">Codice sorgente</a><a href="/manuali/">Manuali</a><a href="/legal/?type=privacy">Privacy</a><a href="/legal/?type=cookies">Cookie</a><a href="/legal/?type=terms">Condizioni</a><a href="/legal/?type=credits">Crediti e licenza</a><?php if($config['support_email']!==''):?><a href="mailto:<?=alphanoEscape($config['support_email'])?>">Assistenza</a><?php endif;?></nav><a class="portal-back-top" href="#portal-title" aria-label="Torna in cima">↑</a></div></footer>
 <dialog class="portal-modal" id="portal-account-modal" aria-label="Assistenza accesso"><button class="portal-modal-close" type="button" aria-label="Chiudi finestra">×</button><div class="portal-modal-content"></div></dialog>
 </body></html>

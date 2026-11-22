@@ -28,7 +28,7 @@ function alphanoGroupAdminAction(string $scope, int $group, int $actor, string $
             $before=[];$after=[];$section='iscritti';$target=0;$personal=false;$changed=false;
             $title='Amministrazione del gruppo';$detail='';
             $remember=static function(int $rank) use($scope,$group,&$undo): string {
-                $path=htmlroot.'/uploads/badges/'.$scope.'/'.$group.'/'.$rank.'.gif';
+                $path=HTMLROOT.'/uploads/badges/'.$scope.'/'.$group.'/'.$rank.'.gif';
                 $undo[$path]=is_file($path)?file_get_contents($path):null;
                 return $path;
             };
@@ -98,7 +98,7 @@ function alphanoGroupAdminAction(string $scope, int $group, int $actor, string $
                     economiaVerifica((bool)$before && !$db->query("SELECT id FROM utenti WHERE {$field}=? AND {$rankField}=? FOR UPDATE",[$group,$id]),'La carica è ancora assegnata');
                     $db->execute("DELETE FROM {$table} WHERE id=? AND {$field}=?",[$id,$group]);
                     $title='Carica del gruppo eliminata';$detail="Eliminata la carica {$before['nome']} di {$groupRow['nome']}.";
-                    $path=htmlroot.'/uploads/badges/'.$scope.'/'.$group.'/'.$id.'.gif';if(is_file($path)){ unlink($path); }
+                    $path=HTMLROOT.'/uploads/badges/'.$scope.'/'.$group.'/'.$id.'.gif';if(is_file($path)){ unlink($path); }
                 } else {
                     $name=trim((string)($input['nome'] ?? $input['carica'] ?? ''));$branch=economiaIntero($input['ramo'] ?? '',0);$level=economiaIntero($input['livello'] ?? '',0,2147483647);
                     $description=trim((string)($input['descrizione'] ?? ''));$first=!empty($input['prima']);$file=$files['immagine'] ?? ['error'=>UPLOAD_ERR_NO_FILE];
@@ -119,12 +119,12 @@ function alphanoGroupAdminAction(string $scope, int $group, int $actor, string $
                         else {$db->execute("UPDATE {$table} SET nome=?,prima=?,ramo=?,livello=?,descrizione=?,stipendio=?,provvigione=? WHERE id=? AND {$field}=?",[$name,$first?1:0,$branch,$level,$description,$salary,$commission,$id,$group]);$result='Carica corporazione aggiornata';}
                         economiaVerifica(in_array($result,['Carica corporazione creata','Carica corporazione aggiornata'],true),$result);
                     }
-                    if ($action==='addcarica') {$id=(int)$db->lastInsertId();$undo[htmlroot.'/uploads/badges/'.$scope.'/'.$group.'/'.$id.'.gif']=null;}
+                    if ($action==='addcarica') {$id=(int)$db->lastInsertId();$undo[HTMLROOT.'/uploads/badges/'.$scope.'/'.$group.'/'.$id.'.gif']=null;}
                     $after=$db->query("SELECT * FROM {$table} WHERE id=? AND {$field}=?",[$id,$group])[0];
                     $title=$action==='addcarica'?'Carica del gruppo creata':'Carica del gruppo aggiornata';$detail="{$groupRow['nome']}: carica {$name}, livello {$level}, ramo #{$branch}.";
                 }
                 $target=$id;
-                $path=htmlroot.'/uploads/badges/'.$scope.'/'.$group.'/'.$id.'.gif';
+                $path=HTMLROOT.'/uploads/badges/'.$scope.'/'.$group.'/'.$id.'.gif';
                 $before['immagine']=isset($undo[$path])?hash('sha256',$undo[$path]):null;
                 $after['immagine']=is_file($path)?hash_file('sha256',$path):null;
                 $changed=$before!==$after;

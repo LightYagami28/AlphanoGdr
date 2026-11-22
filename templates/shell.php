@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title><?=htmlspecialchars(GetPGFromID($idpg) . ' – ' . TitoloSito, ENT_QUOTES | ENT_SUBSTITUTE)?></title>
+  <title><?=htmlspecialchars(GetPGFromID($idpg) . ' – ' . TITOLO_SITO, ENT_QUOTES | ENT_SUBSTITUTE)?></title>
   <script src="/js/global.js" defer></script>
   <script type="module" src="/js/creation-login.js?v=20261030"></script>
   <script type="module" src="/js/notifications.js?v=<?=filemtime(dirname(__DIR__).'/js/notifications.js')?>"></script>

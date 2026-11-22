@@ -112,7 +112,7 @@ function ai_perception_publish_preface(array $npc,array $job,array $event):void 
 function ai_perception_sync_prefaces():void {
     foreach(aiDb()->query("SELECT id,result,session_id FROM ai_jobs WHERE kind='reaction' AND result IS NOT NULL AND JSON_EXTRACT(result,'$.scene_reaction.immediate_message_id')>0 AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(result,'$.scene_reaction.preface_log_synced')),'false') NOT IN('true','1') ORDER BY id LIMIT 20") as $job){
         if((int)$job['session_id']>0){
-            $path=htmlroot.'/sessione/log/'.(int)$job['session_id'].'.html';$file=@fopen($path,'c+');if(!$file){ continue; }
+            $path=HTMLROOT.'/sessione/log/'.(int)$job['session_id'].'.html';$file=@fopen($path,'c+');if(!$file){ continue; }
             try{
                 if(!flock($file,LOCK_EX)){ continue; }
                 $marker='<!-- master-ia:reaction:'.(int)$job['id'].':immediate -->';$found=false;

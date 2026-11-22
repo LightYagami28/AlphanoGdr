@@ -57,7 +57,7 @@ foreach ($db->query("SELECT * FROM sondaggi ORDER BY id DESC") as $row) {
 <html lang="it">
 <head>
     <meta charset="utf-8">
-    <title>Amministrazione Sondaggi &ndash; <?= htmlspecialchars(TitoloSito, ENT_QUOTES) ?></title>
+    <title>Amministrazione Sondaggi &ndash; <?= htmlspecialchars(TITOLO_SITO, ENT_QUOTES) ?></title>
 
     <script src="/js/global.js"></script>
 </head>

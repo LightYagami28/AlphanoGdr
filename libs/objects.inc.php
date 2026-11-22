@@ -217,9 +217,9 @@ class AlphanoBase {
 
         public function delete($id=null) {
             if(parent::delete($id)) {
-                $filename=htmlroot."/uploads/equipment/".$this->getKey();
+                $filename=HTMLROOT."/uploads/equipment/".$this->getKey();
                 if(file_exists($filename)) {unlink($filename);}
-                $filename=htmlroot."/uploads/equipment-pending/".$this->getKey();
+                $filename=HTMLROOT."/uploads/equipment-pending/".$this->getKey();
                 if(file_exists($filename)) {unlink($filename);}
                 return true;
             }
@@ -650,7 +650,7 @@ class AlphanoBase {
         }
 
         public function ensureAdmin() {
-            if ($this->get("admin") && getAdminKey() != admin_passwd) {
+            if ($this->get("admin") && getAdminKey() != ADMIN_PASSWD_LEGACY) {
                 header("location: /slogin.php");
             }
         }

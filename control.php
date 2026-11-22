@@ -124,7 +124,7 @@ $sorgecala = licanTime()
 <html lang="it">
 <head>
   <meta charset="UTF-8">
-  <title>Control – <?= TitoloSito ?></title>
+  <title>Control – <?= TITOLO_SITO ?></title>
 
   <script>
     /*------------------------------------------

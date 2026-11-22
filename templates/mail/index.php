@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Le tue conversazioni – <?= TitoloSito ?></title>
+  <title>Le tue conversazioni – <?= TITOLO_SITO ?></title>
 
 
   <script src="/js/global.js"></script>

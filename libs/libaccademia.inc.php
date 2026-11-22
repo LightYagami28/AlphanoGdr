@@ -813,10 +813,10 @@ function approvaObj(int $obj): bool
     $idmaster = (int)$row['idcreatore'];
     $nome     = $row['shortDesc'];
     // Se esiste newimage, la sposto
-    $newPath = rtrim(htmlroot, '/') . ACC_UPLOAD_PENDING_PATH . $obj;
+    $newPath = rtrim(HTMLROOT, '/') . ACC_UPLOAD_PENDING_PATH . $obj;
     $imgPath = ACC_UPLOAD_PATH . $obj;
     if (file_exists($newPath)) {
-        if (!rename($newPath, rtrim(htmlroot, '/') . ACC_UPLOAD_PATH . $obj)) { return false; }
+        if (!rename($newPath, rtrim(HTMLROOT, '/') . ACC_UPLOAD_PATH . $obj)) { return false; }
         $db->execute(
             'UPDATE equip SET approvato = 1, immagine = ? WHERE id = ?',
             [$imgPath, $obj]
@@ -909,7 +909,7 @@ function cancellaObj(int $obj): bool
         $idmaster
     );
     // Rimuove eventuale newimage residua
-    $newPath = rtrim(htmlroot, '/') . ACC_UPLOAD_PENDING_PATH . $obj;
+    $newPath = rtrim(HTMLROOT, '/') . ACC_UPLOAD_PENDING_PATH . $obj;
     if (file_exists($newPath)) {
         unlink($newPath);
     }
@@ -930,9 +930,9 @@ function approvaModifObj(int $obj): bool
     $nome     = $row['shortDesc'];
 
     // Sposto l’immagine se presente
-    $newPath = rtrim(htmlroot, '/') . ACC_UPLOAD_PENDING_PATH . $obj;
+    $newPath = rtrim(HTMLROOT, '/') . ACC_UPLOAD_PENDING_PATH . $obj;
     if (file_exists($newPath)) {
-        if (!rename($newPath, rtrim(htmlroot, '/') . ACC_UPLOAD_PATH . $obj)) { return false; }
+        if (!rename($newPath, rtrim(HTMLROOT, '/') . ACC_UPLOAD_PATH . $obj)) { return false; }
         // aggiorno nel record il percorso definitivo
         $row['immagine'] = ACC_UPLOAD_PATH . $obj;
     }
@@ -1014,7 +1014,7 @@ function cancellaModifObj(int $obj): bool
         "Le modifiche non sono state approvate.\nVotazioni:$notes\n\nDettagli modificati:\n$details",
         $idmaster
     );
-    $newPath = rtrim(htmlroot, '/') . ACC_UPLOAD_PENDING_PATH . $obj;
+    $newPath = rtrim(HTMLROOT, '/') . ACC_UPLOAD_PENDING_PATH . $obj;
     if (file_exists($newPath)) {
         unlink($newPath);
     }
@@ -1130,7 +1130,7 @@ function approvaGiocata(int $giocata): bool
     ) >= 0);
     $newId = (int)$db->lastInsertID();
     if ($newId) {
-        $logDirectory = rtrim(htmlroot, '/') . '/sessione/log';
+        $logDirectory = rtrim(HTMLROOT, '/') . '/sessione/log';
         if (!is_dir($logDirectory) && !mkdir($logDirectory, 0755, true)) { return false; }
         $logFile = $logDirectory . "/{$newId}.html";
         $logContent = implode("<br />\n", array_map('strval', $array)) . "<br />\n";

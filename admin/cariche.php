@@ -105,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $state=['roles'=>$db->query('SELECT id,nome,city,prima,ramo,livello,descrizione FROM araldiche WHERE city=? ORDER BY id',[$activityCity]),
             'branches'=>$db->query('SELECT id,nome,city,livello FROM ramiaraldiche WHERE city=? ORDER BY id',[$activityCity]),
             'player'=>$activityPlayer ? ($db->query('SELECT araldica FROM utenti WHERE id=?',[$activityPlayer])[0] ?? null) : null];
-        $badge=rtrim(htmlroot,'/').'/uploads/badges/cariche/'.$activitySubject.'.gif';
+        $badge=rtrim(HTMLROOT,'/').'/uploads/badges/cariche/'.$activitySubject.'.gif';
         $state['badge_hash']=$activitySubject && is_file($badge) ? hash_file('sha256',$badge) : null;
         return $state;
     };
@@ -146,7 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $msg='La carica è ancora assegnata: assegna prima un’altra araldica ai personaggi';
         } elseif ($cid) {
             $db->execute("DELETE FROM araldiche WHERE id=? LIMIT 1", [$cid]);
-            @unlink(rtrim(htmlroot, '/') . "/uploads/badges/cariche/{$cid}.gif");
+            @unlink(rtrim(HTMLROOT, '/') . "/uploads/badges/cariche/{$cid}.gif");
             $db->execute("UPDATE utenti SET araldica=0 WHERE araldica=?", [$cid]);
             $msg = "Carica cancellata con successo";
         }
@@ -250,7 +250,7 @@ $araldiche = $db->query(
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Amministrazione Araldiche – <?=htmlspecialchars(TitoloSito,ENT_QUOTES)?></title>
+  <title>Amministrazione Araldiche – <?=htmlspecialchars(TITOLO_SITO,ENT_QUOTES)?></title>
 
 
   <script>

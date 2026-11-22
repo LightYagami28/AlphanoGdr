@@ -8,7 +8,7 @@ function alphanoPushKeys(): ?array
     $path = (string)alphanoConfig('push_vapid_file');
     $real = $path !== '' ? realpath($path) : false;
     if (!$real || !is_file($real) || !is_readable($real) || filesize($real) > 4096) { return null; }
-    foreach (array_unique([dirname(__DIR__), htmlroot]) as $root) {
+    foreach (array_unique([dirname(__DIR__), HTMLROOT]) as $root) {
         if (str_starts_with($real, rtrim((string)realpath($root), '/').'/')) { return null; }
     }
     if ((fileperms($real) & 0077) !== 0) { return null; }

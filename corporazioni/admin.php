@@ -62,7 +62,7 @@ if (empty($actor['admin']) && !(bool)$user['admincorporazione']) {
 }
 
 // --- Costanti e variabili principali ---
-if (!defined('maxpointvalue')) define('maxpointvalue', 20);
+if (!defined('MAXPOINTVALUE')) define('MAXPOINTVALUE', 20);
 
 $corpId         = (int)$user['corporazione'];
 $nomeCorp       = htmlspecialchars($user['nomecorp']    ?? '', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
@@ -399,7 +399,7 @@ $sfondoTop=htmlspecialchars($currentCorp['sfondotop'], ENT_QUOTES | ENT_SUBSTITU
 $mappaRoom=htmlspecialchars($currentCorp['mappa'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); $descrRoom=htmlspecialchars($currentCorp['descrizione'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 // Carica produzioni correnti
 $produzioni = [];
-$pointValueLeft = maxpointvalue;
+$pointValueLeft = MAXPOINTVALUE;
 foreach ($db->query("SELECT produzione, quality FROM produzionicorporazioni WHERE corporazione = ?", [$corpId]) as $r) {
     $produzioni[(int)$r['produzione']] = (int)$r['quality'];
     $pointValueLeft -= $quality[(int)$r['quality']]['costo'];
@@ -429,7 +429,7 @@ $lista2     = listaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Admin <?= $nomeCorp ?> • <?= TitoloSito ?></title>
+  <title>Admin <?= $nomeCorp ?> • <?= TITOLO_SITO ?></title>
 
   <script>
     document.addEventListener('DOMContentLoaded', ()=>{
@@ -446,7 +446,7 @@ $lista2     = listaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
       const defaultTab = <?= !empty($datiflag) ? "'flag'" : "'iscritti'" ?>;
       const initial=location.hash.slice(1);activate([...panes].some(p=>p.id===initial)?initial:defaultTab);
 
-      const maxpointvalue = <?= maxpointvalue ?>;
+      const MAXPOINTVALUE = <?= MAXPOINTVALUE ?>;
       const tipi = [];
       <?php foreach($subtipi as $sid => $sname): ?>
         tipi[<?= $h((int)$sid) ?>] = <?= $h($produzioni[$sid] ?? 0) ?>;
@@ -472,19 +472,19 @@ $lista2     = listaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
         const previous=tipi[tipo]||0;
         tipi[tipo]=quality[Number(sel.value)]?Number(sel.value):0;
         let n=GetTotalSelection();
-        if(n>maxpointvalue){
+        if(n>MAXPOINTVALUE){
           alert("Hai superato il punteggio massimo");
           tipi[tipo]=previous;sel.value=String(previous);
           n=GetTotalSelection();
         }
         const selected=quality[tipi[tipo]]||quality[0];
-        document.getElementById("points").innerText = maxpointvalue-n;
+        document.getElementById("points").innerText = MAXPOINTVALUE-n;
         document.getElementById("dettagli").textContent =
           `Nome: ${selected.nome}\nDurata max: ${selected.durata}\nCosto PV: ${selected.costo}`;
-        if(maxpointvalue-n===0) alert("Point Value esaurito");
+        if(MAXPOINTVALUE-n===0) alert("Point Value esaurito");
       };
       window.SetProduction = ()=>{
-        if(GetTotalSelection()<maxpointvalue){
+        if(GetTotalSelection()<MAXPOINTVALUE){
           if(!confirm("PV residui, confermi?")) return;
         }
         document.getElementById('frmProduction').submit();
@@ -494,7 +494,7 @@ $lista2     = listaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
         form.querySelectorAll('select[name^="produzione"]').forEach(select=>{
           tipi[Number(select.name.slice('produzione'.length))]=Number(select.value)||0;
         });
-        document.getElementById('points').innerText=maxpointvalue-GetTotalSelection();
+        document.getElementById('points').innerText=MAXPOINTVALUE-GetTotalSelection();
         document.getElementById('dettagli').textContent='Qui compariranno le descrizioni...';
       };
     });

@@ -237,16 +237,16 @@ function buildChatMessage(
         if (!str_contains($ferite,'Bruciature solari')) {
             $ferite .= ' Bruciature solari';
         }
-        if ((int)$pg['puntif'] > maxpuntif/10) {
+        if ((int)$pg['puntif'] > MAXPUNTIF/10) {
             $db->execute(
                 'UPDATE utenti SET puntif=puntif-?,ferite=? WHERE id=?',
-                [maxpuntif/10,$ferite,$idpg]
+                [MAXPUNTIF/10,$ferite,$idpg]
             );
             vampireDamage($chat,$pg['nome'],$sesso,false);
         } else {
             $db->execute(
                 'UPDATE utenti SET puntif=?,razza=7,ferite="" WHERE id=?',
-                [maxpuntif,$idpg]
+                [MAXPUNTIF,$idpg]
             );
             vampireDamage($chat,$pg['nome'],$sesso,true);
         }
@@ -270,7 +270,7 @@ function buildChatMessage(
 
     // 11) Log sessione in HTML
     if ($SessionIsRunning) {
-        $logFile = htmlroot . "/sessione/log/{$sessionName}.html";
+        $logFile = HTMLROOT . "/sessione/log/{$sessionName}.html";
         if(!empty($GLOBALS['alphano_defer_chat_log'])){ $GLOBALS['alphano_deferred_chat_session']=(int)$sessionName; }
         else { file_put_contents($logFile, $out."<br>\n", FILE_APPEND|LOCK_EX); }
         if ($scriviPart) {

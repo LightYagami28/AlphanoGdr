@@ -79,7 +79,7 @@ $statuto = getStatutoOrg($org, (bool)$modify);
 <html lang="it">
 <head>
   <meta charset="utf-8">
-  <title><?= htmlspecialchars(getTitolo($statuto), ENT_QUOTES) ?> – <?= TitoloSito ?></title>
+  <title><?= htmlspecialchars(getTitolo($statuto), ENT_QUOTES) ?> – <?= TITOLO_SITO ?></title>
 
 
 <?php if ($modify && ($admin || $adminorg)): ?>

@@ -3,9 +3,9 @@
 $h = static fn(mixed $value): string => htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 ?>
 <!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title><?=$h($recovery['title'])?></title></head><body class="portal account-recovery-page">
-<a class="account-recovery-brand" href="/"><?=$h(TitoloSito)?> <span>Una storia condivisa</span></a>
+<a class="account-recovery-brand" href="/"><?=$h(TITOLO_SITO)?> <span>Una storia condivisa</span></a>
 <main class="account-recovery-card" aria-labelledby="recovery-title">
-<header class="account-recovery-heading" data-page-heading><span data-icon="user" aria-hidden="true"></span><div><div class="ui-eyebrow"><?=$h(TitoloSito)?> · Accesso</div><h1 id="recovery-title"><?=$h($recovery['title'])?></h1><p><?=$h($recovery['description'])?></p></div></header>
+<header class="account-recovery-heading" data-page-heading><span data-icon="user" aria-hidden="true"></span><div><div class="ui-eyebrow"><?=$h(TITOLO_SITO)?> · Accesso</div><h1 id="recovery-title"><?=$h($recovery['title'])?></h1><p><?=$h($recovery['description'])?></p></div></header>
 <div class="account-recovery">
 <?php if (!empty($recovery['error'])): ?><p class="account-recovery-message" role="alert"><?=$h($recovery['error'])?></p><?php endif; ?>
 <?php if (!empty($recovery['message'])): ?><p class="account-recovery-message" role="status"><?=$h($recovery['message'])?></p><?php endif; ?>

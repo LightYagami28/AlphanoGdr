@@ -1,5 +1,5 @@
 <?php $h=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8'); ?>
-<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sessioni – <?=TitoloSito?></title><script src="/js/ui-dialog.js" defer></script><script src="/js/session-archive.js?v=<?=filemtime(dirname(__DIR__,2).'/js/session-archive.js')?>" defer></script></head>
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sessioni – <?=TITOLO_SITO?></title><script src="/js/ui-dialog.js" defer></script><script src="/js/session-archive.js?v=<?=filemtime(dirname(__DIR__,2).'/js/session-archive.js')?>" defer></script></head>
 <body class="ui-page session-archive-page">
 <header class="ui-page-heading" data-page-heading><span data-icon="scroll" aria-hidden="true"></span><div><h1>Sessioni</h1><p>Il registro delle giocate.</p></div>
 <?php if($isSessionAdmin): ?><div class="session-admin-tools"><a class="action-btn" data-icon="book" href="?azione=cancellazioni" title="Registro cancellazioni" aria-label="Registro cancellazioni"></a>

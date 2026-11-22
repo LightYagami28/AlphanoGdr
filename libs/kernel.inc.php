@@ -2,14 +2,14 @@
 declare(strict_types=1);
 
 // variabile globale per calcolare il tempo di esecuzione degli script
-if (!defined('script_start_timestamp')) { define('script_start_timestamp', microtime(true)); }
+if (!defined('SCRIPT_START_TIMESTAMP')) { define('SCRIPT_START_TIMESTAMP', microtime(true)); }
 
 // Configurazione e servizi comuni
 require_once __DIR__ . '/app.inc.php';
 
 // valori massimi ammessi
-define('maxmissive', 50);
-define('maxpuntif', 1000);
+define('MAXMISSIVE', 50);
+define('MAXPUNTIF', 1000);
 
 /** Restituisce il percorso canonico solo se risolve dentro $base, altrimenti null. */
 function alphanoCanonicalInside(string $base, string $path): ?string
@@ -50,24 +50,24 @@ function alphanoSqlPlaceholders(int $count): string
 {
     return $count > 0 ? implode(',', array_fill(0, $count, '?')) : '';
 }
-define('numerorighe', 20);
-define('tempomax', 900);
-define('mintimelican', 7200);
-define('minactionslican', 20);
-define('maxobjinaccademia', 5);
-define('maxpointvalue', 8);
+define('NUMERORIGHE', 20);
+define('TEMPOMAX', 900);
+define('MINTIMELICAN', 7200);
+define('MINACTIONSLICAN', 20);
+define('MAXOBJINACCADEMIA', 5);
+define('MAXPOINTVALUE', 8);
 
 // dimensione massima dei file da caricare
 $size1 = returnBytes(ini_get('upload_max_filesize'));
 $size2 = returnBytes(ini_get('post_max_size'));
-define('MaxUploadFileSize', min($size1, $size2));
+define('MAX_UPLOAD_FILE_SIZE', min($size1, $size2));
 unset($size1, $size2);
 
 // titolo e percorsi
-define('TitoloSito', (string)alphanoConfig('game_name'));
-define('htmlroot', alphanoConfig('storage_root') ?: dirname(__DIR__));
-define('site_domain', alphanoConfig('base_url'));
-define('admin_passwd', '');
+define('TITOLO_SITO', (string)alphanoConfig('game_name'));
+define('HTMLROOT', alphanoConfig('storage_root') ?: dirname(__DIR__));
+define('SITE_DOMAIN', alphanoConfig('base_url'));
+define('ADMIN_PASSWD_LEGACY', '');
 define('ADMIN_PASSWD', '');
 
 /**
@@ -111,7 +111,7 @@ function closePage(): void
     foreach (headers_list() as $header) {
         if (stripos($header, 'Content-Type: application/json') === 0) { return; }
     }
-    if (alphanoConfig('debug')) { echo '<!-- Script eseguito in ' . (microtime(true) - script_start_timestamp) . ' secondi -->'; }
+    if (alphanoConfig('debug')) { echo '<!-- Script eseguito in ' . (microtime(true) - SCRIPT_START_TIMESTAMP) . ' secondi -->'; }
 }
 
 // fallback per mimeContentType
@@ -128,8 +128,8 @@ if (!function_exists('mimeContentType')) {
 function getMIME(string $file): string
 {
     $no = ['text/plain','application/octet-stream','httpd/unix-directory'];
-    if (file_exists(htmlroot . $file)) {
-        $file = htmlroot . $file;
+    if (file_exists(HTMLROOT . $file)) {
+        $file = HTMLROOT . $file;
     }
     $mime = @mimeContentType($file) ?: '';
     return (strlen($mime) && !in_array($mime, $no, true))
@@ -140,7 +140,7 @@ function getMIME(string $file): string
 /**
  * Genera una password casuale usando il generatore crittografico.
  */
-function generatePassword(string $string): string
+function generatePassword(): string
 {
     return bin2hex(random_bytes(16));
 }

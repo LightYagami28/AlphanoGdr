@@ -1047,7 +1047,7 @@ function impostaProduzioniCorp(int $corp, int $actor, array $selection, ?string 
             economiaVerifica(in_array((int)$subtype,array_map('intval',$allowed),true) && is_int($quality) && isset(QUALITY[$quality]),'Produzione o qualità non valida');
             $points+=(int)QUALITY[$quality]['costo'];
         }
-        economiaVerifica($points>0 && $points<=maxpointvalue,'Punti produzione non validi');
+        economiaVerifica($points>0 && $points<=MAXPOINTVALUE,'Punti produzione non validi');
         $before=$db->query('SELECT produzione,quality FROM produzionicorporazioni WHERE corporazione=? ORDER BY produzione FOR UPDATE',[$corp]);
         $db->query('SELECT id FROM equip WHERE corp=? ORDER BY id FOR UPDATE',[$corp]);
         $db->execute('DELETE FROM produzionicorporazioni WHERE corporazione=?',[$corp]);

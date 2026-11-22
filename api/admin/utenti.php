@@ -688,7 +688,8 @@ try {
     if ($db->inTransaction()) { $db->rollBack(); }
     if($action==='salvaincarichi'&&$admin){try{$db->execute("INSERT INTO logs_adminpg(data,esecutore,destinatario,azione,descr,chat) VALUES(?,?,?,'incarichi-rifiutati',?,'')",[time(),$idpg,(int)(filter_var($data['id']??0,FILTER_VALIDATE_INT)?:0),mb_substr($e instanceof DomainException?$e->getMessage():'Operazione non completata',0,255)]);}catch(Throwable $logError){error_log('[audit incarichi] '.$logError->getMessage());}}
     $domain=$e instanceof DomainException&&$e->getCode()>=400&&$e->getCode()<500;
-    http_response_code($domain?$e->getCode():($e instanceof InvalidArgumentException?400:500));
+    if ($domain) { $status=(int)$e->getCode(); } elseif ($e instanceof InvalidArgumentException) { $status=400; } else { $status=500; }
+    http_response_code($status);
     error_log('[admin utenti] '.$e->getMessage());
     $response = ['success'=>false,'message'=>($domain||$e instanceof InvalidArgumentException)?$e->getMessage():'Operazione non completata'];
 }

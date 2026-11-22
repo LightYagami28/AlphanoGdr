@@ -72,7 +72,7 @@ try {
         $html.='</body></html>';
         // DejaVu supports the text repertoire; decorative supplementary emoji do not have PDF glyphs.
         $html=preg_replace('/[\x{1F000}-\x{1FAFF}\x{2700}-\x{27BF}\x{FE0E}\x{FE0F}\x{200D}]/u','',$html);
-        $html=preg_replace_callback('/&#(?:x([0-9a-f]+)|(\d+));/i',static fn($m)=>((isset($m[1]) && $m[1]!=='' ? hexdec($m[1]) : (int)$m[2])>0xFFFF) ? '' : $m[0],$html);
+        $html=preg_replace_callback('/&#(?:x([0-9a-f]+)|(\d+));/i',static function($m):string{ $code=isset($m[1]) && $m[1]!=='' ? hexdec($m[1]) : (int)$m[2]; return $code>0xFFFF ? '' : $m[0]; },$html);
         $options=new \Dompdf\Options();
         $options->set('defaultFont','DejaVu Sans');
         $options->set('isRemoteEnabled',false);

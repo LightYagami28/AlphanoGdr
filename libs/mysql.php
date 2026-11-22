@@ -231,7 +231,7 @@ class PDOMySQLDriver
     private function bindAll(array $params): void
     {
         foreach ($params as $key => $val) {
-            $placeholder = is_int($key) ? $key + 1 : (str_starts_with($key, ':') ? $key : ":{$key}");
+            if (is_int($key)) { $placeholder = $key + 1; } elseif (str_starts_with($key, ':')) { $placeholder = $key; } else { $placeholder = ":{$key}"; }
             $type = match (true) {
                 is_int($val) => PDO::PARAM_INT,
                 is_bool($val) => PDO::PARAM_BOOL,

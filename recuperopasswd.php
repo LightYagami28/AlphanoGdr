@@ -73,7 +73,7 @@ $recovery = [
     'title' => 'Recupero password',
     'description' => 'Recupera l’accesso al tuo personaggio.',
     'error' => $error, 'message' => $verified ? $successMessage : '',
-    'mode' => $verified ? 'complete' : ($reset ? 'password' : 'request'),
+    'mode' => match(true){$verified=>'complete',$reset=>'password',default=>'request'},
     'user' => $user, 'email' => $mail, 'token' => $resetToken,
 ];
 require __DIR__ . '/templates/account/recovery.php';

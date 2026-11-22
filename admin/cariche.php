@@ -100,7 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $activityCity=(int)($db->query("SELECT city FROM {$activityTable} WHERE id=?",[$activitySubject])[0]['city'] ?? 0);
     if (!$activityCity) { $activityCity=(int)($activityAction==='addramo' ? ($_POST['cityramo'] ?? 0) : ($_POST['city'] ?? 0)); }
     if ($activityAction==='changecarica') { $activityCity=(int)($db->query('SELECT city FROM araldiche WHERE id=?',[(int)($_POST['carica'] ?? 0)])[0]['city'] ?? 0); }
-    $activityPlayer=$activityAction==='changecarica' ? ($admin ? (int)GetPGID((string)($_POST['nomepg'] ?? '')) : (int)($_POST['pg'] ?? 0)) : 0;
+    if ($activityAction==='changecarica') { $activityPlayer=$admin ? (int)GetPGID((string)($_POST['nomepg'] ?? '')) : (int)($_POST['pg'] ?? 0); } else { $activityPlayer=0; }
     $activityState=static function() use($db,$activityCity,$activityPlayer,$activitySubject): array {
         $state=['roles'=>$db->query('SELECT id,nome,city,prima,ramo,livello,descrizione FROM araldiche WHERE city=? ORDER BY id',[$activityCity]),
             'branches'=>$db->query('SELECT id,nome,city,livello FROM ramiaraldiche WHERE city=? ORDER BY id',[$activityCity]),

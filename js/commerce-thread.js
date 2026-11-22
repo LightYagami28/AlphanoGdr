@@ -1,5 +1,5 @@
 /* The same live deal card appears inside mail, notifications and the commerce modal. */
-const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const esc=v=>String(v??'').replace(/[&<>"']/gu,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const labels={take:'Prendi in carico',propose:'Invia proposta',accept:'Accetta proposta',deliver:'Produci e consegna',cancel:'Annulla trattativa'};
 function mount(root){if(root.dataset.commerceMounted)return;root.dataset.commerceMounted='true';root.classList.add('commerce-thread-card');let current,busy=false,dirty=false,issued=0;
  const status=document.createElement('p');status.className='commerce-thread-feedback';status.setAttribute('role','status');status.setAttribute('aria-live','polite');

@@ -16,7 +16,7 @@ const document={querySelectorAll:()=>[root],createElement:()=>new Element()};
 vm.runInNewContext(fs.readFileSync(require('node:path').join(__dirname,'../assets/atlas.js'),'utf8'),{document,Option:function(text,value){this.text=text;this.value=value;},ResizeObserver:class{constructor(fn){resize=fn;}observe(){}},Map,JSON,Math,Number,URL,location:{assign(){}}});
 let checks=0;
 function covered(){
- const [x,y,scale]=canvas.style.transform.match(/translate\(([-\d.e]+)px,([-\d.e]+)px\) scale\(([-\d.e]+)\)/).slice(1).map(Number),epsilon=.001;
+ const [x,y,scale]=canvas.style.transform.match(/translate\(([-\d.e]+)px,([-\d.e]+)px\) scale\(([-\d.e]+)\)/u).slice(1).map(Number),epsilon=.001;
  assert(x<=epsilon&&y<=epsilon&&x+1920*scale>=size.width-epsilon&&y+1080*scale>=size.height-epsilon,'image must cover all four viewport edges');
  assert.equal(layer.children[0].style.left,'53.83672%');assert.equal(layer.children[0].style.top,'49.30645%');checks++;
 }

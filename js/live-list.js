@@ -22,7 +22,7 @@ export function patchLiveList(container,html){
  snapshots.set(container,html);
  const template=document.createElement('template');template.innerHTML=html;
  const active=document.activeElement;let scroll=container;
- while(scroll&&scroll!==document.body&&!/(auto|scroll)/.test(getComputedStyle(scroll).overflowY)){scroll=scroll.parentElement;}
+ while(scroll&&scroll!==document.body&&!/(auto|scroll)/u.test(getComputedStyle(scroll).overflowY)){scroll=scroll.parentElement;}
  const top=scroll?.scrollTop||0,left=scroll?.scrollLeft||0;
  const visible=top?Array.from(container.children).find(el=>el.getBoundingClientRect().bottom>(scroll?.getBoundingClientRect().top||0)):null;
  const anchor=visible?.dataset.liveKey,anchorTop=visible?.getBoundingClientRect().top;

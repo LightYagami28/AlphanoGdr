@@ -269,11 +269,11 @@ function alphano_read_notification_thread(int $recipient,array $target): void
     if(!is_int($thread)||$thread<1||!is_int($max)||$max<1){ throw new RuntimeException('Discussione non valida',400); }
     if($source==='board'){
         if(!is_int($scope)||$scope<1){ throw new RuntimeException('Bacheca non valida',400); }
-        player_require_board($db,$scope,$user);
+        playerRequireBoard($db,$scope,$user);
         $table='bacheche';$column='bacheca';$prefix='board:';
     }elseif($source==='discussion'){
         if(!is_string($scope)||strlen($scope)>50){ throw new RuntimeException('Discussione non valida',400); }
-        player_discussion_access($scope,$user);
+        playerDiscussionAccess($scope,$user);
         $table='discussioni';$column='tipo';$prefix='discussion:';
     }else { throw new RuntimeException('Fonte non valida',400); }
     if(!$db->query("SELECT id FROM $table WHERE id=? AND $column=? AND replyid=0",[$thread,$scope])){ throw new RuntimeException('Discussione non trovata',404); }

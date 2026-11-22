@@ -22,7 +22,7 @@ foreach ($lines as $line) { if (!is_scalar($line) && $line !== null) { alphano_f
 $recording = [
     'id' => $id, 'title' => (string)($row['nome'] ?: 'Giocata #' . $id),
     'html' => alphano_archive_content(implode("<br>\n", array_map(static fn(mixed $line): string => (string)$line, $lines))),
-    'can_vote' => CanVoteGiocata($idpg, $id),
+    'can_vote' => canVoteGiocata($idpg, $id),
 ];
 require __DIR__ . '/../templates/academy/recording.php';
 ClosePage();

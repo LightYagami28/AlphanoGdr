@@ -80,7 +80,7 @@ function item_use_commit(int $owner,int $instance,string $operation,string $key,
 function item_use_personal(int $owner,int $instance,string $op,int $target,string $request):array {
  return EquipAtomico(static function()use($owner,$instance,$op,$target,$request):array{
   db()->query('SELECT id FROM utenti WHERE id=? FOR UPDATE',[$owner]);$key='personal:'.$owner.':'.$request;$old=db()->query('SELECT after_state,instance_id,operation FROM equipment_ledger WHERE request_key=?',[$key])[0]??null;if($old){if((int)$old['instance_id']!==$instance||$old['operation']!==$op){ throw new DomainException('Richiesta già usata per un’altra operazione.',409); }return rpg_decode($old['after_state']);}
-  if(function_exists('ai_quest_row')){$u=db()->query('SELECT chat FROM utenti WHERE id=?',[$owner])[0];if(ai_quest_row($u['chat'])){ throw new DomainException('Durante una quest dichiara l’uso dalla chat nel tuo turno.',409); }}
+  if(function_exists('aiQuestRow')){$u=db()->query('SELECT chat FROM utenti WHERE id=?',[$owner])[0];if(aiQuestRow($u['chat'])){ throw new DomainException('Durante una quest dichiara l’uso dalla chat nel tuo turno.',409); }}
   $i=item_instance($instance,$owner,true);$spec=$i['rules'];if($op==='activate'&&($spec['target']??'self')!=='self'){ throw new DomainException('Questo effetto richiede un bersaglio e la risoluzione del Master in quest.',422); }
   if($op==='activate'&&array_filter($spec['effects']??[],static fn($e)=>$e['type']==='heal')){$hp=(int)db()->query('SELECT puntif FROM utenti WHERE id=?',[$owner])[0]['puntif'];if($hp>=maxpuntif){ throw new DomainException('Salute già al massimo: la dose non viene consumata.',409); }}
   $result=item_use_commit($owner,$instance,$op,$key,0,0,$target);

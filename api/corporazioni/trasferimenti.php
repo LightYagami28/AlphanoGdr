@@ -66,7 +66,7 @@ try {
 
     if (in_array($azione,['adminorder','admintransf','consegna','prendiincarico'],true)) {
         foreach (['id','prezzo','qta'] as $field) {
-            if (isset($_POST[$field]) && CommercioIntero($_POST[$field],1,$field==='qta' ? 10000 : 2147483647)===null) {
+            if (isset($_POST[$field]) && commercioIntero($_POST[$field],1,$field==='qta' ? 10000 : 2147483647)===null) {
                 http_response_code(400); respond(['success'=>false,'error'=>true,'message'=>alphano_currency_text('Inserisci quantità e Corone intere nei limiti consentiti')]);
             }
         }
@@ -83,7 +83,7 @@ try {
         if ($id <= 0) {
             respond(['success'=>false,'error'=>true,'message'=>'Parametri non esaurienti']);
         }
-        $ok  = PrendiInCaricoOrdine($id, $idpg);
+        $ok  = prendiInCaricoOrdine($id, $idpg);
         $msg = $ok
              ? 'Ordine preso in carico correttamente'
              : 'Errore durante la presa in carico dell\'ordine';
@@ -102,12 +102,12 @@ case 'admintransf':
     }
 
     if (isset($_POST['accetta'])) {
-        $msg = FinalizeTransf($id, $idpg);
+        $msg = finalizeTransf($id, $idpg);
         respond(['success'=>in_array($msg,['Trasferimento avvenuto correttamente','Ordine accettato con successo'],true),'message'=>$msg]);
     }
 
     if (isset($_POST['elimina'])) {
-        $ok  = RejectTransf($id, $idpg);
+        $ok  = rejectTransf($id, $idpg);
         $msg = $ok
              ? 'Trasferimento eliminato con successo'
              : 'Errore nell\'eliminazione del trasferimento';
@@ -121,7 +121,7 @@ case 'admintransf':
     ) {
         // quando a rilanciare è la corp, lo stato deve diventare 4
         $newState = 4;
-        $ok = UpdateTransf(
+        $ok = updateTransf(
             $id,
             $idpg,
             (float)$_POST['prezzo'],
@@ -147,11 +147,11 @@ case 'admintransf':
             respond(['success'=>false,'error'=>true,'message'=>'Parametri non esaurienti']);
         }
         if (isset($_POST['accetta'])) {
-            $msg = FinalizeOrdine($id, $idpg);
+            $msg = finalizeOrdine($id, $idpg);
             respond(['success'=>in_array($msg,['Trasferimento avvenuto correttamente','Ordine accettato con successo'],true),'message'=>$msg]);
         }
         if (isset($_POST['elimina'])) {
-            $ok  = RejectOrdine($id, $idpg);
+            $ok  = rejectOrdine($id, $idpg);
             $msg = $ok
                  ? 'Ordine eliminato con successo'
                  : 'Errore nell\'eliminazione dell\'ordine';
@@ -162,7 +162,7 @@ case 'admintransf':
             && is_numeric($_POST['prezzo']) && (float)$_POST['prezzo'] > 0
             && is_numeric($_POST['qta'])     && (int)$_POST['qta']     > 0
         ) {
-            $ok  = UpdateOrdine(
+            $ok  = updateOrdine(
                 $id,
                 $idpg,
                 (float)$_POST['prezzo'],
@@ -193,7 +193,7 @@ case 'admintransf':
                     'message' => 'Parametri non esaurienti'
                 ]);
             }
-            $msg     = Consegna($id, $idpg, $corp);
+            $msg     = consegna($id, $idpg, $corp);
             $success = ($msg === 'Consegna andata a buon fine');
             respond([
                 'success' => $success,
@@ -227,11 +227,11 @@ case 'admintransf':
       // ─ Legislazione DEFAULT: lista completa ──────────────────────────────────
       case 'list':
       default:
-        ClearTrasferimenti($corp);
+        clearTrasferimenti($corp);
 
         // 1) Contrattazioni
         $transazioni = [];
-        foreach (GetTransazioniCorp($corp, $idpg) as $r) {
+        foreach (getTransazioniCorp($corp, $idpg) as $r) {
             $transazioni[] = [
                 'id'           => (int)$r['id'],
                 'data'         => FormatTimestamp($r['data']),
@@ -243,13 +243,13 @@ case 'admintransf':
                 'prezzo'       => (float)$r['prezzo'],
                 'stato'        => (int)$r['stato'],
                 'verso'        => (int)$r['verso'],
-                'statoText'    => StatoTransf((int)$r['stato'], (int)$r['verso']),
+                'statoText'    => statoTransf((int)$r['stato'], (int)$r['verso']),
             ];
         }
 
         // 2) Storico Acquisti
         $storicoAcq = [];
-        foreach (GetStoricoAcqCorp($corp) as $r) {
+        foreach (getStoricoAcqCorp($corp) as $r) {
             $storicoAcq[] = [
                 'id'           => (int)$r['id'],
                 'data'         => FormatTimestamp($r['data']),
@@ -262,12 +262,12 @@ case 'admintransf':
                 'prezzo'       => (float)$r['prezzo'],
                 'stato'        => (int)$r['stato'],
                 'verso'        => (int)$r['verso'],
-                'statoText'    => StatoTransf((int)$r['stato'], (int)$r['verso']),
+                'statoText'    => statoTransf((int)$r['stato'], (int)$r['verso']),
             ];
         }
 
         $storicoVen=[];
-        foreach (GetStoricoVenCorp($corp) as $r) {
+        foreach (getStoricoVenCorp($corp) as $r) {
             $storicoVen[]=[
                 'id'=>(int)$r['id'],'data'=>FormatTimestamp($r['data']),
                 'pg'=>(int)$r['pg'],'pgcorp'=>(int)$r['pgcorp'],
@@ -275,13 +275,13 @@ case 'admintransf':
                 'interlocutore'=>$r['interlocutore'],'nomeobj'=>$r['nomeobj'],
                 'qta'=>(int)$r['qta'],'prezzo'=>(int)$r['prezzo'],
                 'stato'=>(int)$r['stato'],'verso'=>2,
-                'statoText'=>StatoTransf((int)$r['stato'],2),
+                'statoText'=>statoTransf((int)$r['stato'],2),
             ];
         }
 
         // 3) Ordini Clienti
         $ordini = [];
-        foreach (GetOrdiniCorp($corp) as $r) {
+        foreach (getOrdiniCorp($corp) as $r) {
             $ordini[] = [
                 'id'           => (int)$r['id'],
                 'data'         => FormatTimestamp($r['data']),
@@ -294,13 +294,13 @@ case 'admintransf':
                 'prezzo'       => (float)$r['prezzo'],
                 'stato'        => (int)$r['stato'],
                 'verso'        => (int)$r['verso'],
-                'statoText'    => StatoTransf((int)$r['stato'], (int)$r['verso']),
+                'statoText'    => statoTransf((int)$r['stato'], (int)$r['verso']),
             ];
         }
 
         // 4) Ordini Presi in Carico
         $ordiniPresi = [];
-        foreach (GetOrdiniPGCorp($corp, $idpg) as $r) {
+        foreach (getOrdiniPGCorp($corp, $idpg) as $r) {
             $ordiniPresi[] = [
                 'id'           => (int)$r['id'],
                 'data'         => FormatTimestamp($r['data']),
@@ -311,12 +311,12 @@ case 'admintransf':
                 'prezzo'       => (float)$r['prezzo'],
                 'stato'        => (int)$r['stato'],
                 'verso'        => (int)$r['verso'],
-                'statoText'    => StatoTransf((int)$r['stato'], (int)$r['verso']),
+                'statoText'    => statoTransf((int)$r['stato'], (int)$r['verso']),
             ];
         }
 
         // 5) Magazzino
-        $rawMag   = GetMagazzino($corp);
+        $rawMag   = getMagazzino($corp);
         $magazzino = [];
         $materialArt=[];
         foreach($db->query("SELECT e.materiaprima,e.shortDesc,e.immagine FROM equip e JOIN tipo t ON t.id=e.tipo WHERE e.corp=0 AND e.approvato='1' AND t.tipoG='risorsa' ORDER BY e.id") as $art){ $materialArt[$art['materiaprima']]??=$art; }
@@ -331,7 +331,7 @@ case 'admintransf':
 
         // 6) Consegne
         $consegne = [];
-        foreach (GetConsegne($corp, $idpg) as $r) {
+        foreach (getConsegne($corp, $idpg) as $r) {
             $consegne[] = [
                 'image' => alphano_equipment_image(rawurldecode($r['immagine']??'')),
                 'id'           => (int)$r['id'],

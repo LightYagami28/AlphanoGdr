@@ -49,9 +49,9 @@ $sceneIcon=isset(ALPHANO_SCENE_ICONS[$config['scene_icon']??''])?$config['scene_
 $imgs = [
     'scene_image'=>alphano_media_file($config['scene_image']??'')? $config['scene_image']:'',
     'scene_thumbnail'=>alphano_media_file($config['scene_thumbnail']??'')? $config['scene_thumbnail']:'',
-    'sfondotop' => player_media_url($config['sfondotop'] ?? '',$idpg),
-    'sfondo' => player_media_url($config['sfondo'] ?? '',$idpg,'/assets/placeholder.svg'),
-    'mappa' => player_media_url($config['mappa'] ?? '',$idpg,$mapFallback),
+    'sfondotop' => playerMediaUrl($config['sfondotop'] ?? '',$idpg),
+    'sfondo' => playerMediaUrl($config['sfondo'] ?? '',$idpg,'/assets/placeholder.svg'),
+    'mappa' => playerMediaUrl($config['mappa'] ?? '',$idpg,$mapFallback),
 ];
 $datides = $config['descrizione'] ?? '';
 

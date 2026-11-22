@@ -172,7 +172,7 @@ function DelUser(
     }
 
     require_once __DIR__.'/libeconomia.inc.php';
-    return EconomiaAtomicaResiliente(static function()use($db,$id,$esecutore,$destinatarioNome,$profilo,$equip,$posta,$bacheca):string{
+    return economiaAtomicaResiliente(static function()use($db,$id,$esecutore,$destinatarioNome,$profilo,$equip,$posta,$bacheca):string{
         $db->query('SELECT id FROM utenti WHERE id=? FOR UPDATE',[$id]);
     if (($profilo || $equip) && $db->query("SHOW TABLES LIKE 'board_games'") && $db->query("SELECT id FROM board_games WHERE status='active' AND (a=? OR b=?) LIMIT 1",[$id,$id])) {
         return 'Il personaggio ha una partita attiva. Annullala dal pannello Giochi, con rimborso delle poste, prima di cancellare profilo o equipaggiamento.';

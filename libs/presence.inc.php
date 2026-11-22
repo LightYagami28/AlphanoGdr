@@ -29,7 +29,7 @@ function alphano_presence(): array
     $person=static function(string $kind,int $id,string $name,int $race,string $sex) use ($races): array {
         if ($race===ALPHANO_RACE_LEGACY_SPIRIT) { $race=ALPHANO_RACE_SPIRIT; }
         return ['kind'=>$kind,'id'=>$id,'name'=>$name,'profile_url'=>($kind==='npc'?'/profili/png.php?Id=':'/profili/?Id=').$id,
-            'icon'=>alphano_race_icon($race,$sex),'race'=>$races[$race]??'','sex'=>$sex];
+            'icon'=>alphanoRaceIcon(),'race'=>$races[$race]??'','sex'=>$sex];
     };
     $players=0;$npcs=0;
     foreach ($db->query("SELECT id,nome,razza,vampire_human_form,sesso,posizione,chat,lastmove,bloccato FROM utenti WHERE posizione<>'off' ORDER BY nome") as $user) {

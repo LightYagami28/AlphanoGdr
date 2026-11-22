@@ -5,11 +5,11 @@ require_once __DIR__.'/lycan.inc.php';
 require_once __DIR__.'/item-engine.inc.php';
 require_once __DIR__.'/human-ability-engine.inc.php';
 function ai_adjudication_enabled(int $sid):bool{
- $q=ai_db()->query('SELECT chat_key,policy FROM ai_quests WHERE session_id=?',[$sid])[0]??[];
- return (json_decode($q['policy']??'{}',true)['resolution']??'')==='alphano_scene_v1'&&(ai_room($q['chat_key'])['quest_rules']??'legacy')==='alphano_scene_v1';
+ $q=aiDb()->query('SELECT chat_key,policy FROM ai_quests WHERE session_id=?',[$sid])[0]??[];
+ return (json_decode($q['policy']??'{}',true)['resolution']??'')==='alphano_scene_v1'&&(aiRoom($q['chat_key'])['quest_rules']??'legacy')==='alphano_scene_v1';
 }
 function ai_action_target(array $q,string $raw,int $actor,int $selected=0):?array{
- $db=ai_db();$sid=(int)$q['session_id'];$scene=$q['_narrative_context']??ai_narrative_scene_context($q['chat_key'],$actor,0,null,true);
+ $db=aiDb();$sid=(int)$q['session_id'];$scene=$q['_narrative_context']??ai_narrative_scene_context($q['chat_key'],$actor,0,null,true);
  // A present bystander (including the former human conductor) remains a real
  // possible victim. Admission to the turn queue is handled after resolution;
  // filtering them out here made named PvP attacks look like harmless dialogue.
@@ -17,13 +17,13 @@ function ai_action_target(array $q,string $raw,int $actor,int $selected=0):?arra
  $context=array_replace($scene['context'],['purpose'=>'action','selected'=>$selected,'actor'=>'pg:'.$actor]);$opponents=[];
  // Strictly this session and player: no globally remembered opponent or random first cast.
  foreach($db->query("SELECT kind,actor_id,details,content FROM ai_quest_actions WHERE session_id=? AND status='submitted' ORDER BY id DESC LIMIT 20",[$sid]) as $prior){
-  $d=json_decode($prior['details'],true)?:[];$intent=ai_narrative_parse($prior['content'])['intent'];
+  $d=json_decode($prior['details'],true)?:[];$intent=aiNarrativeParse($prior['content'])['intent'];
   if(!in_array($intent,['assalto','potere','arresto','furto'],true)){ continue; }
   if($prior['kind']==='pg'&&(int)$prior['actor_id']===$actor&&!isset($context['_quest_prior'])){$context['_quest_prior']=true;$context['last_target']=($d['target_kind']??'npc').':'.(int)($d['target_id']??0);}
   if(($d['target_kind']??'')==='pg'&&(int)($d['target_id']??0)===$actor){ $opponents[]=$prior['kind'].':'.(int)$prior['actor_id']; }
  }
  $context['opponents']=array_values(array_unique($opponents));
- $result=ai_narrative_resolve(ai_narrative_parse($raw),$present,$context);
+ $result=aiNarrativeResolve(aiNarrativeParse($raw),$present,$context);
  return $result['status']==='resolved'?[...$result['target'],'resolution'=>$result['reason'],'confidence'=>$result['confidence']]:null;
 }
 
@@ -31,7 +31,7 @@ function ai_action_target(array $q,string $raw,int $actor,int $selected=0):?arra
 function ai_adjudication_ability(array $action,int $session,int $round):?array {
  $details=json_decode($action['details'],true)?:[];$claim=$details['ability']??null;if($claim===null){ return null; }
  if(!is_array($claim)||empty($claim['id'])||!is_string($claim['source']??null)){ throw new DomainException('Dichiarazione abilità non verificabile.',422); }
- $row=ai_db()->query('SELECT snapshot FROM rpg_ability_uses WHERE owner_kind=? AND owner_id=? AND ability_id=? AND event_key=? AND session_id=? AND round_number=?',[$action['kind'],(int)$action['actor_id'],(int)$claim['id'],$claim['source'],$session,$round])[0]??null;
+ $row=aiDb()->query('SELECT snapshot FROM rpg_ability_uses WHERE owner_kind=? AND owner_id=? AND ability_id=? AND event_key=? AND session_id=? AND round_number=?',[$action['kind'],(int)$action['actor_id'],(int)$claim['id'],$claim['source'],$session,$round])[0]??null;
  if(!$row){ throw new DomainException('L’abilità non risulta dichiarata dal personaggio in questo giro.',422); }
  $ability=rpg_decode($row['snapshot']);rpg_get_ability($action['kind'],(int)$action['actor_id'],(int)$ability['id']);return $ability;
 }
@@ -54,7 +54,7 @@ function ai_adjudication_damage(array &$result,array $actor,array $target,string
  if((int)$target['razza']===ALPHANO_RACE_ORIGINAL&&!((int)$actor['razza']===ALPHANO_RACE_ANCESTRAL&&(int)$target['puntif']<maxpuntif/3)){ $damage=min($damage,max(0,$hp[$targetKey]-1)); }
  if(empty($room['quest_lethal'])){ $damage=min($damage,max(0,$hp[$targetKey]-1)); }
  if($damage===0){$result['outcome']='il colpo non lo abbatte';$result['reason']='Le condizioni dello scontro e la resistenza già accertata del bersaglio impediscono una nuova conseguenza letale. Non viene aggiunta una ferita fittizia.';return;}
- $hp[$targetKey]=max(0,$hp[$targetKey]-$damage);$result['damage']=$damage;$wounds[$targetKey]=ai_text(ltrim(trim($wounds[$targetKey].'; '.$wound),'; '),255);
+ $hp[$targetKey]=max(0,$hp[$targetKey]-$damage);$result['damage']=$damage;$wounds[$targetKey]=aiText(ltrim(trim($wounds[$targetKey].'; '.$wound),'; '),255);
  if($hp[$targetKey]===0){
   if((int)$target['razza']===ALPHANO_RACE_ANCESTRAL&&empty($states[$targetKey]['last_stand'])){$hp[$targetKey]=1;$conditions[$targetKey]['last_stand']=$round+1;$conditions[$targetKey]['last_stand_cause']=['kind'=>(string)$actor['kind'],'id'=>(int)$actor['id'],'name'=>(string)$actor['name']];$result['reason'].=' La Resilienza Suprema gli concede un’ultima azione critica prima di cadere.';}
   else{$deaths[$targetKey]=['killer_kind'=>(string)($actor['kind']??'unknown'),'killer_actor_id'=>(int)$actor['id'],'killer_id'=>($actor['kind']??'')==='pg'?(int)$actor['id']:0,'killer_name'=>(string)$actor['name']];$result['outcome'].=' e lo scontro è fatale';$result['reason'].=' Le forze vitali già compromesse si esauriscono: la morte viene registrata.';}
@@ -64,17 +64,17 @@ function ai_adjudication_damage(array &$result,array $actor,array $target,string
 
 /** Resolution is a deterministic function of the persisted declarations, rolls and real sheets. */
 function ai_adjudicate(int $sid):array{
- $db=ai_db();$g=ai_game_guidance($sid);$q=$db->query('SELECT * FROM ai_quests WHERE session_id=?',[$sid])[0];$cfg=ai_scene_rules();$round=(int)$g['round_number'];
+ $db=aiDb();$g=ai_game_guidance($sid);$q=$db->query('SELECT * FROM ai_quests WHERE session_id=?',[$sid])[0];$cfg=ai_scene_rules();$round=(int)$g['round_number'];
  $actions=$db->query('SELECT * FROM ai_quest_actions WHERE session_id=? AND round_number=? ORDER BY id',[$sid,$round]);$order=json_decode($g['turn_order'],true)?:[];
  if(count($actions)!==count($order)){ throw new DomainException('Il giro non è completo.',409); }
- $cast=[];$states=[];$declared=[];$active=[];$abilities=[];$abilityErrors=[];foreach($db->query('SELECT * FROM ai_quest_cast WHERE session_id=?',[$sid]) as $c){$key=$c['kind'].':'.$c['actor_id'];$active[$key]=(bool)$c['active'];$cast[$key]=ai_quest_actor($c['kind'],(int)$c['actor_id']);$states[$key]=json_decode($c['state'],true)?:[];}
+ $cast=[];$states=[];$declared=[];$active=[];$abilities=[];$abilityErrors=[];foreach($db->query('SELECT * FROM ai_quest_cast WHERE session_id=?',[$sid]) as $c){$key=$c['kind'].':'.$c['actor_id'];$active[$key]=(bool)$c['active'];$cast[$key]=aiQuestActor($c['kind'],(int)$c['actor_id']);$states[$key]=json_decode($c['state'],true)?:[];}
  foreach($actions as $a){$key=$a['kind'].':'.$a['actor_id'];$declared[$key]=$a;try{$abilities[$key]=ai_adjudication_ability($a,$sid,$round);}catch(DomainException $e){$abilityErrors[$key]=$e->getMessage();}}
- $hp=[];$wounds=[];$conditions=$states;$results=[];$deaths=[];$infections=[];$ammoEffects=[];$room=ai_room($q['chat_key']);$training=ai_scene_kind($q)==='allenamento';
+ $hp=[];$wounds=[];$conditions=$states;$results=[];$deaths=[];$infections=[];$ammoEffects=[];$room=aiRoom($q['chat_key']);$training=ai_scene_kind($q)==='allenamento';
  foreach($cast as $key=>$sheet){$hp[$key]=(int)($sheet['puntif']??0);$wounds[$key]=(string)($sheet['ferite']??'');$cast[$key]['_item_effects']=item_active_scene($states[$key],$sid,$round,$sheet['kind'],(int)$sheet['id']);if($cast[$key]['_item_effects']||isset($states[$key]['item_effects'])){ $conditions[$key]['item_effects']=$cast[$key]['_item_effects']; }if(isset($conditions[$key]['item_effects'])){ foreach($conditions[$key]['item_effects'] as &$entry){ if($entry['effect']['type']==='poison'&&($entry['last_tick']??0)<$round&&!$training){$hp[$key]=max(1,$hp[$key]-(int)$entry['effect']['amount']);$entry['last_tick']=$round;} } }unset($entry);}
  foreach($cast as $key=>&$member){$d=rpg_decode($declared[$key]['details']??'{}');$m=rpg_malus_scene($member,$states[$key],$round,(string)($d['intent']??'azione'));$conditions[$key]['racial_malus']=$m;$member['_racial_malus']=$m;$member['_human_buffs']=rpg_human_valid_buffs($states[$key],$round,$member);$eval=rpg_malus_evaluate((int)($member['native_race_id']??$member['razza']),$m);if($eval['dead']&&!$training){$hp[$key]=0;$deaths[$key]=['killer_kind'=>'environment','killer_actor_id'=>0,'killer_id'=>0,'killer_name'=>'Vulnerabilità razziale accertata'];$wounds[$key]=trim($wounds[$key].'; Distruzione definitiva per vulnerabilità razziale.','; ');}}unset($member);
  foreach($actions as $a){
-  $key=$a['kind'].':'.$a['actor_id'];$actor=$cast[$key]??[];$d=json_decode($a['details'],true)?:[];$analysis=ai_narrative_parse($a['content']);$raw=mb_strtolower($analysis['action']);$targetKey=($d['target_kind']??'npc').':'.(int)($d['target_id']??0);$target=$cast[$targetKey]??[];if(!$target&&$a['kind']==='pg'){$resolved=ai_action_target($q,$a['content'],(int)$a['actor_id']);if($resolved){$targetKey=$resolved['kind'].':'.$resolved['id'];$target=$cast[$targetKey]??[];}}$state=$states[$key]??[];
-  $r=['id'=>(int)$a['id'],'source_id'=>(int)$a['source_id'],'actor_kind'=>$a['kind'],'actor_id'=>(int)$a['actor_id'],'target_kind'=>$target['kind']??'','target_id'=>(int)($target['id']??0),'actor'=>$actor['name']??'Assente','target'=>$target['name']??'','attempt'=>ai_text($a['content'],240),'outcome'=>'','reason'=>'','damage'=>0];
+  $key=$a['kind'].':'.$a['actor_id'];$actor=$cast[$key]??[];$d=json_decode($a['details'],true)?:[];$analysis=aiNarrativeParse($a['content']);$raw=mb_strtolower($analysis['action']);$targetKey=($d['target_kind']??'npc').':'.(int)($d['target_id']??0);$target=$cast[$targetKey]??[];if(!$target&&$a['kind']==='pg'){$resolved=ai_action_target($q,$a['content'],(int)$a['actor_id']);if($resolved){$targetKey=$resolved['kind'].':'.$resolved['id'];$target=$cast[$targetKey]??[];}}$state=$states[$key]??[];
+  $r=['id'=>(int)$a['id'],'source_id'=>(int)$a['source_id'],'actor_kind'=>$a['kind'],'actor_id'=>(int)$a['actor_id'],'target_kind'=>$target['kind']??'','target_id'=>(int)($target['id']??0),'actor'=>$actor['name']??'Assente','target'=>$target['name']??'','attempt'=>aiText($a['content'],240),'outcome'=>'','reason'=>'','damage'=>0];
   if($a['status']==='skipped'){$r['outcome']='non agisce';$r['reason']='Il tempo concesso è trascorso: il personaggio non porta a termine una nuova manovra, senza subire per questo un colpo automatico.';$results[]=$r;continue;}
   if(isset($abilityErrors[$key])){$r['outcome']='non può usare l’abilità dichiarata';$r['reason']=$abilityErrors[$key];$results[]=$r;continue;}
   $ability=$abilities[$key]??null;$effect=$ability['effect']??null;$effectType=$effect['type']??'';if($ability){ $r['ability']=['id'=>$ability['id'],'name'=>$ability['name'],'effect'=>$effect]; }
@@ -128,13 +128,13 @@ function ai_adjudicate(int $sid):array{
   $mental=$ability?$effectType==='mental':($analysis['intent']==='potere');
   if($mental&&!$ability){$r['outcome']='la dichiarazione non attiva una capacità appresa';$r['reason']='Per esercitare un potere mentale seleziona un’abilità appresa e disponibile: il nome scritto in chat non assegna effetti, non supera i requisiti e non evita il recupero.';$results[]=$r;continue;}
   $physical=mb_strtolower(implode(' ',array_column(array_filter($analysis['acts'],static fn($act)=>in_array($act['intent'],['assalto','arresto'],true)),'text')));
-  $bite=in_array($intent,['assalto','attacco'],true)&&(bool)preg_match('/\b(?:morde|mordo|mordere|morderlo|morderla|mordendolo|mordendola|morderli|morderle|azzanna|azzanno|azzannare|azzannarlo|azzannarla|azzannarli|azzannarle)\b|'.ai_narrative_bite_pattern().'/iu',$physical);$grab=in_array($intent,['assalto','attacco','arresto'],true)&&(bool)preg_match('/\b(?:immobilizza|immobilizzo|immobilizzare|afferra|afferro|afferrare|afferrar(?:lo|la|li|le|gli)|stringe|stringo|stringere|serrare)\b/iu',$physical)&&!preg_match('/visto che|già|ha stretto|mantiene/iu',$physical);
+  $bite=in_array($intent,['assalto','attacco'],true)&&(bool)preg_match('/\b(?:morde|mordo|mordere|morderlo|morderla|mordendolo|mordendola|morderli|morderle|azzanna|azzanno|azzannare|azzannarlo|azzannarla|azzannarli|azzannarle)\b|'.aiNarrativeBitePattern().'/iu',$physical);$grab=in_array($intent,['assalto','attacco','arresto'],true)&&(bool)preg_match('/\b(?:immobilizza|immobilizzo|immobilizzare|afferra|afferro|afferrare|afferrar(?:lo|la|li|le|gli)|stringe|stringo|stringere|serrare)\b/iu',$physical)&&!preg_match('/visto che|già|ha stretto|mantiene/iu',$physical);
   // One declaration is one offensive manoeuvre. An attempted bite must not
   // disappear behind its preparatory grab, nor grant a free successful grapple.
   if($bite){ $grab=false; }
   if($bite&&$a['kind']==='pg'){
    $differentBiteTarget=false;
-   foreach($analysis['acts'] as $act){ if($act['intent']==='assalto'&&preg_match('/\b(?:mord\p{L}*|azzann\p{L}*)\b|'.ai_narrative_bite_pattern().'/iu',$act['text'])){
+   foreach($analysis['acts'] as $act){ if($act['intent']==='assalto'&&preg_match('/\b(?:mord\p{L}*|azzann\p{L}*)\b|'.aiNarrativeBitePattern().'/iu',$act['text'])){
     $biteTarget=ai_action_target($q,'+ '.$act['text'],(int)$a['actor_id']);
     if($biteTarget&&($biteTarget['kind'].':'.$biteTarget['id'])!==$targetKey){ $differentBiteTarget=true; }
    }
@@ -190,7 +190,7 @@ function ai_adjudicate(int $sid):array{
     elseif($protection>=$round){$r['outcome']='la protezione dal medesimo Vampiro è ancora attiva';$r['reason']='La precedente resistenza riuscita impedisce un nuovo soggiogamento prima della scadenza.';}
     elseif($prior&&$prior['until']>=$round&&(int)$prior['rank']>=$sourceRace){$r['outcome']='permane il comando precedente';$r['reason']='Fra ordini dello stesso rango prevale il primo ancora attivo; un Originale prevale su un Vampiro comune.';}
     elseif($resolution['resisted']){$conditions[$targetKey]['domination_protection'][$key]=$round+$resolution['duration']-1;$r['outcome']='respinge il comando vampirico';$r['reason']='La resistenza acquisita supera la prova al '.$resolution['resistance'].'%: protezione dallo stesso Vampiro per '.$resolution['duration'].' turni.';}
-    else{$conditions[$targetKey]['dominated']=['source'=>$key,'rank'=>$sourceRace,'until'=>$round+$resolution['duration']-1,'command'=>ai_text($analysis['speech']?:$analysis['action'],500)];$r['outcome']='il comando vampirico è vincolante';$r['reason']='Il bersaglio tenta di eseguire il comando compreso per '.$resolution['duration'].' turni. Le azioni concrete richiedono comunque normali prove; nessuna ferita o riuscita viene assegnata automaticamente.';}
+    else{$conditions[$targetKey]['dominated']=['source'=>$key,'rank'=>$sourceRace,'until'=>$round+$resolution['duration']-1,'command'=>aiText($analysis['speech']?:$analysis['action'],500)];$r['outcome']='il comando vampirico è vincolante';$r['reason']='Il bersaglio tenta di eseguire il comando compreso per '.$resolution['duration'].' turni. Le azioni concrete richiedono comunque normali prove; nessuna ferita o riuscita viene assegnata automaticamente.';}
    }elseif($atk<=$def){$r['outcome']='la pressione mentale non supera la resistenza';$r['reason']='La capacità non supera la resistenza del bersaglio.';}
    else{$duration=max(1,(int)($effect['duration']??1));$conditions[$targetKey]['distracted_until']=$round+$duration;$r['outcome']='la pressione provoca un’esitazione reale';$r['reason']='La capacità supera la tenuta mentale secondo la prova contrapposta.';if((int)($effect['damage']??0)>0){ ai_adjudication_damage($r,$actor,$target,$targetKey,(int)$effect['damage'],'Ferita da '.$ability['name'],$cfg,$room,$training,$round,$hp,$wounds,$conditions,$deaths,$states,$sid); }}
    $results[]=$r;continue;
@@ -244,7 +244,7 @@ function ai_adjudicate(int $sid):array{
  foreach($states as $key=>$state){ if(isset($state['last_stand'])&&(int)$state['last_stand']<=$round&&!empty($declared[$key])){$hp[$key]=0;$cause=$state['last_stand_cause']??[];$deaths[$key]=isset($cause['kind'],$cause['id'])?['killer_kind'=>$cause['kind'],'killer_actor_id'=>(int)$cause['id'],'killer_id'=>$cause['kind']==='pg'?(int)$cause['id']:0,'killer_name'=>(string)($cause['name']??'')]:true;foreach($results as &$result){ if($result['actor']===($cast[$key]['name']??'')){ $result['reason'].=' È l’ultima azione concessa dalla Resilienza Suprema: al termine il corpo cede e la morte viene registrata.'; } }unset($result);} }
  foreach($conditions as &$condition){ if(!empty($condition['restrained_by'])&&(!isset($hp[$condition['restrained_by']])||$hp[$condition['restrained_by']]<1)){ ai_tactical_release($condition); } }unset($condition);
  $changes=$ammoEffects;foreach($cast as $key=>$sheet){[$kind,$id]=explode(':',$key);$id=(int)$id;
-  if(isset($deaths[$key])){ $changes[]=['type'=>'death','kind'=>$kind,'id'=>$id,'text'=>ai_text(trim($wounds[$key].'; Esito fatale dopo l’esaurimento dei punti vita.'),500)]+(is_array($deaths[$key])?$deaths[$key]:['killer_id'=>0,'killer_name'=>'Esaurimento della Resilienza Suprema']); }
+  if(isset($deaths[$key])){ $changes[]=['type'=>'death','kind'=>$kind,'id'=>$id,'text'=>aiText(trim($wounds[$key].'; Esito fatale dopo l’esaurimento dei punti vita.'),500)]+(is_array($deaths[$key])?$deaths[$key]:['killer_id'=>0,'killer_name'=>'Esaurimento della Resilienza Suprema']); }
   elseif($hp[$key]!==(int)$sheet['puntif']||$wounds[$key]!==$sheet['ferite']){ $changes[]=['type'=>'health','kind'=>$kind,'id'=>$id,'hp'=>$hp[$key],'wounds'=>$wounds[$key]]; }
   if($conditions[$key]!==$states[$key]){ $changes[]=['type'=>'scene','kind'=>$kind,'id'=>$id,'state'=>$conditions[$key]]; }
  }
@@ -280,16 +280,16 @@ function ai_adjudication_fallback(array $technical):string{
 }
 /** This capability is not exposed as an API: re-run the backend resolution under the publication locks. */
 function ai_adjudication_apply(array $v,array $q,array $s):void{
- $db=ai_db();$sid=(int)$q['session_id'];if(!$db->inTransaction()||$q['mode']!=='auto'||ai_game_guidance($sid)['paused']){ throw new DomainException('Regia automatica sospesa.',409); }
- $technical=ai_adjudicate($sid);$changes=json_decode($v['payload'],true);if(ai_quest_json($changes)!==ai_quest_json($technical['allowed_changes'])){ throw new DomainException('Le conseguenze non corrispondono ai calcoli registrati.',409); }
+ $db=aiDb();$sid=(int)$q['session_id'];if(!$db->inTransaction()||$q['mode']!=='auto'||ai_game_guidance($sid)['paused']){ throw new DomainException('Regia automatica sospesa.',409); }
+ $technical=ai_adjudicate($sid);$changes=json_decode($v['payload'],true);if(aiQuestJson($changes)!==aiQuestJson($technical['allowed_changes'])){ throw new DomainException('Le conseguenze non corrispondono ai calcoli registrati.',409); }
  // Preserve the proven attacker at the time of the bite, even if they fall later in this round.
- $infectionActors=[];foreach($changes as $change){ if($change['type']==='infection'){ $infectionActors[$change['actor_kind'].':'.$change['actor_id']]=ai_quest_actor($change['actor_kind'],(int)$change['actor_id']); } }
+ $infectionActors=[];foreach($changes as $change){ if($change['type']==='infection'){ $infectionActors[$change['actor_kind'].':'.$change['actor_id']]=aiQuestActor($change['actor_kind'],(int)$change['actor_id']); } }
  foreach($changes as $i=>$e){$kind=$e['kind'];$id=(int)$e['id'];$key='verdict:'.$v['id'].':effect:'.$i;if($db->query('SELECT id FROM ai_quest_effects WHERE effect_key=?',[$key])){ continue; }
   $before=$e['type']==='scene'?['cast'=>json_decode($db->query('SELECT state FROM ai_quest_cast WHERE session_id=? AND kind=? AND actor_id=?',[$sid,$kind,$id])[0]['state'],true)]:ai_effect_state($kind,$id);
   if($e['type']==='disarm'){$item=$db->query('SELECT * FROM equippg WHERE id=? AND idpg=? FOR UPDATE',[$e['instance'],$kind==='pg'?$id:ai_npc_owner($id)])[0]??null;if(!$item||$item['slot']===''){ throw new DomainException('L’arma da disarmare è cambiata.',409); }$before=['item'=>$item];$db->execute("UPDATE equippg SET slot='' WHERE id=? AND idpg=?",[$e['instance'],$kind==='pg'?$id:ai_npc_owner($id)]);}
   elseif($e['type']==='item-use'){$before=['item'=>item_state(item_instance((int)$e['declaration']['instance'],$id))];$d=$e['declaration'];item_use_commit($id,(int)$d['instance'],$d['operation'],'verdict:'.$v['id'].':item:'.$id,$sid,(int)$v['round_number'],(int)$d['provider']);}
   elseif($e['type']==='ammunition'){$state=json_decode($db->query('SELECT state FROM ai_quest_cast WHERE session_id=? AND kind=? AND actor_id=?',[$sid,$kind,$id])[0]['state'],true);$owner=$kind==='pg'?$id:ai_npc_owner($id);$item=$db->query('SELECT * FROM equippg WHERE id=? AND idpg=? FOR UPDATE',[(int)$e['instance'],$owner])[0]??null;if(!$item){ throw new DomainException('Munizione cambiata durante la risoluzione.',409); }$before=['cast'=>$state,'ammo_item'=>$item];if(!Consuma($owner,(int)$e['instance'],1)){ throw new DomainException('Munizione non consumabile.',409); }}
-  elseif($e['type']==='scene'){ $db->execute('UPDATE ai_quest_cast SET state=? WHERE session_id=? AND kind=? AND actor_id=?',[ai_quest_json($e['state']),$sid,$kind,$id]); }
+  elseif($e['type']==='scene'){ $db->execute('UPDATE ai_quest_cast SET state=? WHERE session_id=? AND kind=? AND actor_id=?',[aiQuestJson($e['state']),$sid,$kind,$id]); }
   elseif($e['type']==='infection'){
    $before['lineage_edge']=$db->query("SELECT * FROM lineage_members WHERE player_id=? AND kind='lycan'",[$id])[0]??null;
    $source=$infectionActors[$e['actor_kind'].':'.$e['actor_id']];
@@ -304,27 +304,27 @@ function ai_adjudication_apply(array $v,array $q,array $s):void{
    elseif(!$db->query("SELECT player_id FROM lineage_members WHERE player_id=? AND status='eliminated'",[$id])){ $db->execute('UPDATE utenti SET puntif=?,ferite=? WHERE id=?',[$e['hp'],$e['wounds'],$id]); }
    $db->execute('INSERT INTO logs_adminpg(azione,data,chat,esecutore,destinatario,qta,obj,descr) VALUES(?,?,?,0,?, ?,0,?)',['regia-ia:'.$e['type'],time(),$q['chat_key'],$id,$e['hp']??0,'Regolamento Alphano v1, quest #'.$sid.', giro '.$v['round_number']]);
    InsertNote($id,0,'Quest #'.$sid.', giro '.$v['round_number'].': '.($e['type']==='death'?$e['text']:$e['wounds'].'; punti vita '.$e['hp'].'.'));
-   alphano_record_activity('master-ia-esito',0,[['scope'=>'personale','id'=>$id,'section'=>'profilo','role'=>'member']],'Esito della quest registrato','La condizione di '.ai_quest_name($kind,$id).' è cambiata durante la quest.',['sessione'=>$sid,'giro'=>(int)$v['round_number']],'ai-effect-'.$v['id'].'-'.$i);
-  }else{$n=$db->query('SELECT * FROM ai_npcs WHERE id=? FOR UPDATE',[$id])[0];$p=ai_npc_profile($n);$p['hit_points']=$e['type']==='death'?0:$e['hp'];$p['wounds']=$e['type']==='death'?$e['text']:$e['wounds'];$db->execute('UPDATE ai_npcs SET profile=?,active=? WHERE id=?',[ai_quest_json($p),$e['type']==='death'?0:1,$id]);}
-  if($kind==='pg'&&in_array($e['type'],['health','death'],true)){ foreach($db->query("SELECT actor_id FROM ai_quest_cast WHERE session_id=? AND kind='npc' AND active=1",[$sid]) as $observer){$summary=ai_quest_name('pg',$id).' · '.($e['type']==='death'?'è caduto nello scontro':($e['type']==='health'?'ha riportato una ferita concreta durante lo scontro':'la sua posizione nella contesa è cambiata secondo il verdetto')).'.';$db->execute("INSERT INTO ai_personal_memories(npc_id,player_id,chat_key,category,summary,evidence,source,created_at,updated_at) VALUES(?,?,?,'quest',?,?,'system',?,?)",[(int)$observer['actor_id'],$id,$q['chat_key'],$summary,'effect:'.$key,time(),time()]);} }
+   alphano_record_activity('master-ia-esito',0,[['scope'=>'personale','id'=>$id,'section'=>'profilo','role'=>'member']],'Esito della quest registrato','La condizione di '.aiQuestName($kind,$id).' è cambiata durante la quest.',['sessione'=>$sid,'giro'=>(int)$v['round_number']],'ai-effect-'.$v['id'].'-'.$i);
+  }else{$n=$db->query('SELECT * FROM ai_npcs WHERE id=? FOR UPDATE',[$id])[0];$p=ai_npc_profile($n);$p['hit_points']=$e['type']==='death'?0:$e['hp'];$p['wounds']=$e['type']==='death'?$e['text']:$e['wounds'];$db->execute('UPDATE ai_npcs SET profile=?,active=? WHERE id=?',[aiQuestJson($p),$e['type']==='death'?0:1,$id]);}
+  if($kind==='pg'&&in_array($e['type'],['health','death'],true)){ foreach($db->query("SELECT actor_id FROM ai_quest_cast WHERE session_id=? AND kind='npc' AND active=1",[$sid]) as $observer){$summary=aiQuestName('pg',$id).' · '.($e['type']==='death'?'è caduto nello scontro':($e['type']==='health'?'ha riportato una ferita concreta durante lo scontro':'la sua posizione nella contesa è cambiata secondo il verdetto')).'.';$db->execute("INSERT INTO ai_personal_memories(npc_id,player_id,chat_key,category,summary,evidence,source,created_at,updated_at) VALUES(?,?,?,'quest',?,?,'system',?,?)",[(int)$observer['actor_id'],$id,$q['chat_key'],$summary,'effect:'.$key,time(),time()]);} }
   $after=$e['type']==='disarm'?['item'=>$db->query('SELECT * FROM equippg WHERE id=?',[$e['instance']])[0]??null]:($e['type']==='item-use'?['operation'=>$e['declaration']['operation'],'instance'=>$e['declaration']['instance']]:($e['type']==='ammunition'?['cast'=>$before['cast'],'ammo_item'=>$db->query('SELECT * FROM equippg WHERE id=?',[(int)$e['instance']])[0]??null]:($e['type']==='scene'?['cast'=>$e['state']]:ai_effect_state($kind,$id))));
   if($e['type']==='infection'){ $after['lineage_edge']=$db->query("SELECT * FROM lineage_members WHERE player_id=? AND kind='lycan'",[$id])[0]??null; }
-  $db->execute("INSERT INTO ai_quest_effects(verdict_id,effect_key,effect_type,target_kind,target_id,before_state,after_state,actor_id,reason,created_at) VALUES(?,?,?,?,?,?,?,0,?,?)",[(int)$v['id'],$key,$e['type']==='health'?'hp':$e['type'],$kind,$id,ai_quest_json($before),ai_quest_json($after),'Regolamento di regia Alphano v1',time()]);
+  $db->execute("INSERT INTO ai_quest_effects(verdict_id,effect_key,effect_type,target_kind,target_id,before_state,after_state,actor_id,reason,created_at) VALUES(?,?,?,?,?,?,?,0,?,?)",[(int)$v['id'],$key,$e['type']==='health'?'hp':$e['type'],$kind,$id,aiQuestJson($before),aiQuestJson($after),'Regolamento di regia Alphano v1',time()]);
   if($kind==='npc'&&$e['type']==='death'){require_once __DIR__.'/npc-mortality.inc.php';alphano_npc_record_effect_death($key,$e);}
   if($kind==='npc'&&$e['type']==='health'&&(int)$e['hp']>0&&function_exists('ai_social_survival_effect')){ foreach($technical['results'] as $cause){ if(($cause['actor_kind']??'')==='pg'&&($cause['target_kind']??'')==='npc'&&(int)($cause['target_id']??0)===$id&&(int)($cause['damage']??0)>0){ ai_social_survival_effect($e,['npc_id'=>$id,'player_id'=>(int)$cause['actor_id'],'actor_kind'=>'pg','actor_id'=>(int)$cause['actor_id'],'chat_key'=>$q['chat_key'],'effect_key'=>'effect:'.$key.':aggressor:'.(int)$cause['actor_id'],'before_hp'=>(int)$before['profile']['hit_points'],'after_hp'=>(int)$e['hp'],'source_id'=>(int)($cause['source_id']??0),'session_id'=>$sid]); } } }
  }
- $db->execute("UPDATE ai_quest_verdicts SET status='applied' WHERE id=?",[(int)$v['id']]);ai_quest_audit($sid,'verdict_applied',['verdict'=>(int)$v['id'],'engine'=>'alphano_scene_v1','effects'=>count($changes)]);
- ai_quest_publish($sid,'verdict:'.$v['id'].':published',ai_verdict_public_text($v),'<div class="MasterKey">'.ai_verdict_public_html($v).'</div>');
+ $db->execute("UPDATE ai_quest_verdicts SET status='applied' WHERE id=?",[(int)$v['id']]);aiQuestAudit($sid,'verdict_applied',['verdict'=>(int)$v['id'],'engine'=>'alphano_scene_v1','effects'=>count($changes)]);
+ aiQuestPublish($sid,'verdict:'.$v['id'].':published',ai_verdict_public_text($v),'<div class="MasterKey">'.ai_verdict_public_html($v).'</div>');
  ai_npc_last_actions($v);
  // Only verified outcomes enter personal memories; private technical notes do not become NPC knowledge.
- foreach($technical['results'] as $r){ if($r['target']!==''){ foreach($db->query("SELECT actor_id FROM ai_quest_cast WHERE session_id=? AND kind='npc' AND active=1",[$sid]) as $npc){ ai_append_memory($q['chat_key'],(int)$npc['actor_id'],ai_text($r['actor'].' · '.$r['outcome'].'. '.$r['reason'],650)); } } }
+ foreach($technical['results'] as $r){ if($r['target']!==''){ foreach($db->query("SELECT actor_id FROM ai_quest_cast WHERE session_id=? AND kind='npc' AND active=1",[$sid]) as $npc){ aiAppendMemory($q['chat_key'],(int)$npc['actor_id'],aiText($r['actor'].' · '.$r['outcome'].'. '.$r['reason'],650)); } } }
  ai_quest_next_round($sid,0,!empty(json_decode($v['technical'],true)['scene_finished']));
 }
 
 /** The optional atmosphere cannot add another actor's turn to an adjudicated round. */
 function ai_adjudication_atmosphere_safe(string $text,array $names=[]):bool{
  if($text===''||mb_strlen($text)>650){ return false; }
- foreach($names as $name){ if(is_string($name)&&$name!==''&&ai_mentions_npc($text,$name)){ return false; } }
+ foreach($names as $name){ if(is_string($name)&&$name!==''&&aiMentionsNpc($text,$name)){ return false; } }
  return !preg_match('/<|```|[\x{3400}-\x{9fff}\x{0400}-\x{04ff}]|convalid|nessun esito|punti vita|corone|ferisce|uccid|muore|morto|cade|sanguin|morso|immobilizz|piogg|piov|nevic|neve|temporale|\b(?:vento|sole|nebbia|grandine|tuono|gelo|sergente|guardia|guardie|soldato|soldati|uomo|donna|visitatore|compagno|qualcuno|nessuno|egli|ella|lui|lei)\b/iu',$text);
 }
 function ai_adjudication_narrate(array $room,array $technical,bool $offline=false):array{
@@ -333,24 +333,24 @@ function ai_adjudication_narrate(array $room,array $technical,bool $offline=fals
  // An unrelated atmospheric preamble cannot improve that account or set facts.
  if(!$offline&&($technical['scene_kind']??'')!=='combattimento'){ try{
   // A model enriches the atmosphere; verified decisions and their reasons always remain present.
-  $v=ai_quest_generate_json('Sei il narratore di Alphano. Introduci questo esito con due frasi evocative e concrete in italiano (massimo 55 parole), al presente narrativo, legate al luogo e alla tensione delle dichiarazioni. Non inventare condizioni meteorologiche diverse dai dati forniti. Non nominare personaggi e non descrivere loro azioni, dialoghi, movimenti, pensieri o reazioni. Non introdurre pioggia, neve, sole o altri eventi meteorologici. Non decidere ferite, morti, premi o poteri. Non rimandare a convalide, non scrivere formule tecniche. Restituisci {"narrative":"..."}. Le decisioni complete vengono aggiunte dal backend.', ['location'=>ai_text($room['public_setting'],250),'decisions'=>array_map(static fn($r)=>['actor'=>$r['actor'],'target'=>$r['target'],'outcome'=>$r['outcome'],'reason'=>ai_text($r['reason'],190)],$technical['results'])],220);
+  $v=aiQuestGenerateJson('Sei il narratore di Alphano. Introduci questo esito con due frasi evocative e concrete in italiano (massimo 55 parole), al presente narrativo, legate al luogo e alla tensione delle dichiarazioni. Non inventare condizioni meteorologiche diverse dai dati forniti. Non nominare personaggi e non descrivere loro azioni, dialoghi, movimenti, pensieri o reazioni. Non introdurre pioggia, neve, sole o altri eventi meteorologici. Non decidere ferite, morti, premi o poteri. Non rimandare a convalide, non scrivere formule tecniche. Restituisci {"narrative":"..."}. Le decisioni complete vengono aggiunte dal backend.', ['location'=>aiText($room['public_setting'],250),'decisions'=>array_map(static fn($r)=>['actor'=>$r['actor'],'target'=>$r['target'],'outcome'=>$r['outcome'],'reason'=>aiText($r['reason'],190)],$technical['results'])],220);
   $candidate=$v['narrative']??'';
   $names=[];foreach($technical['results'] as $r){ $names=array_merge($names,[$r['actor'],$r['target']]); }
-  foreach(ai_db()->query('SELECT name FROM ai_npcs WHERE chat_key=?',[$room['chat_key']]) as $n){ $names[]=$n['name']; }
+  foreach(aiDb()->query('SELECT name FROM ai_npcs WHERE chat_key=?',[$room['chat_key']]) as $n){ $names[]=$n['name']; }
   if(is_string($candidate)&&ai_adjudication_atmosphere_safe($candidate,$names)){ $intro=trim($candidate)."\n\n"; }
  }
  catch(RuntimeException|JsonException $e){error_log('[Regia atmosfera] '.$e->getMessage());}
  }
- return ['narrative'=>ai_text($intro.$facts,12000),'changes'=>$technical['allowed_changes'],'scene_finished'=>(bool)$technical['can_finish'],'finish_reason'=>'I partecipanti hanno concluso la scena.'];
+ return ['narrative'=>aiText($intro.$facts,12000),'changes'=>$technical['allowed_changes'],'scene_finished'=>(bool)$technical['can_finish'],'finish_reason'=>'I partecipanti hanno concluso la scena.'];
 }
 
 /** A bounded end-of-quest grant: the model never chooses an amount or invents a recipient. */
 function ai_quest_settle(int $sid,string $reason):void{
- $db=ai_db();$q=$db->query('SELECT * FROM ai_quests WHERE session_id=? FOR UPDATE',[$sid])[0];if(!ai_adjudication_enabled($sid)||$q['mode']!=='auto'){ return; }
- $cfg=ai_scene_rules();$room=ai_room($q['chat_key']);$g=ai_game_guidance($sid);$count=(int)$db->query('SELECT COUNT(*) n FROM ai_quest_verdicts WHERE session_id=? AND status=\'applied\'',[$sid])[0]['n'];
+ $db=aiDb();$q=$db->query('SELECT * FROM ai_quests WHERE session_id=? FOR UPDATE',[$sid])[0];if(!ai_adjudication_enabled($sid)||$q['mode']!=='auto'){ return; }
+ $cfg=ai_scene_rules();$room=aiRoom($q['chat_key']);$g=ai_game_guidance($sid);$count=(int)$db->query('SELECT COUNT(*) n FROM ai_quest_verdicts WHERE session_id=? AND status=\'applied\'',[$sid])[0]['n'];
  foreach($db->query("SELECT DISTINCT actor_id FROM ai_quest_cast WHERE session_id=? AND kind='pg'",[$sid]) as $c){$uid=(int)$c['actor_id'];
   if($db->query('SELECT player_id FROM ai_quest_settlements WHERE session_id=? AND player_id=?',[$sid,$uid])){ continue; }
-  $actions=$db->query("SELECT details FROM ai_quest_actions WHERE session_id=? AND kind='pg' AND actor_id=? AND status='submitted'",[$sid,$uid]);$money=0;$text='Quest #'.$sid.' conclusa: '.ai_text($reason,220).'. Giri risolti: '.$count.'.';
+  $actions=$db->query("SELECT details FROM ai_quest_actions WHERE session_id=? AND kind='pg' AND actor_id=? AND status='submitted'",[$sid,$uid]);$money=0;$text='Quest #'.$sid.' conclusa: '.aiText($reason,220).'. Giri risolti: '.$count.'.';
   $eligible=count($actions)>=$cfg['reward_min_actions']&&$count>=$cfg['reward_min_rounds'];
   // A violent attack on a guard is not a repeatable source of money.
   foreach($actions as $declaration){$detail=json_decode($declaration['details'],true)?:[];if(in_array($detail['intent']??'',['assalto','attacco','furto','arresto','potere'],true)||($detail['social_category']??'')==='minaccia'){ $eligible=false; }}
@@ -361,6 +361,6 @@ function ai_quest_settle(int $sid,string $reason):void{
   $xp=rpg_combat_quest_award($sid,$uid,$count,count($actions));if($xp){ $text.=' Esperienza maturata: '.$xp.' punti.'; }
   InsertNote($uid,0,$text);$db->execute('INSERT INTO ai_quest_settlements(session_id,player_id,amount,note,created_at) VALUES(?,?,?,?,?)',[$sid,$uid,$money,$text,time()]);
   alphano_record_activity('master-ia-chiusura',0,[['scope'=>'personale','id'=>$uid,'section'=>'profilo','role'=>'member']],'La quest è conclusa',$text,['sessione'=>$sid,'corone'=>$money,'esperienza'=>$xp],'quest-settlement-'.$sid.'-'.$uid);
-  if($money||$xp){ ai_quest_publish($sid,'quest:'.$sid.':reward:'.$uid,ai_quest_name('pg',$uid).' matura '.($xp?$xp.' punti esperienza':'').($xp&&$money?' e ':'').($money?$money.alphano_currency_text(' corone'):'').' per la giocata. La cronaca della quest è annotata nel profilo.',ai_reward_public_html(ai_quest_name('pg',$uid),$xp,$money,$uid)); }
+  if($money||$xp){ aiQuestPublish($sid,'quest:'.$sid.':reward:'.$uid,aiQuestName('pg',$uid).' matura '.($xp?$xp.' punti esperienza':'').($xp&&$money?' e ':'').($money?$money.alphano_currency_text(' corone'):'').' per la giocata. La cronaca della quest è annotata nel profilo.',ai_reward_public_html(aiQuestName('pg',$uid),$xp,$money,$uid)); }
  }
 }

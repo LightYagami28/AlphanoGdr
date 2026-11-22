@@ -70,7 +70,7 @@ try {
 
     if (in_array($azione,['adminorder','admintransf','consegna','prendiincarico'],true)) {
         foreach (['id','prezzo','qta'] as $field) {
-            if (isset($_POST[$field]) && CommercioIntero($_POST[$field],1,$field==='qta' ? 10000 : 2147483647)===null) {
+            if (isset($_POST[$field]) && commercioIntero($_POST[$field],1,$field==='qta' ? 10000 : 2147483647)===null) {
                 http_response_code(400); respond(['success'=>false,'error'=>true,'message'=>alphano_currency_text('Inserisci quantità e Corone intere nei limiti consentiti')]);
             }
         }
@@ -82,11 +82,11 @@ try {
      * 0) TRASFERIMENTO DENARO PG → PG
      * ==================================================================*/
     case 'monete':
-        $dest   = EconomiaIntero($_POST['dest'] ?? null,1,2147483647) ?? 0;
-        $import = EconomiaIntero($_POST['soldi'] ?? null,1,2147483647) ?? 0;
+        $dest   = economiaIntero($_POST['dest'] ?? null,1,2147483647) ?? 0;
+        $import = economiaIntero($_POST['soldi'] ?? null,1,2147483647) ?? 0;
         $motivo = (string)($_POST['motivo'] ?? '');
         if ($dest > 0 && $dest !== $idpg && $import > 0) {
-            $ok = TrasferisciSoldi($idpg,$pgname,$saldo,$dest,$import,$motivo,$_POST['_request_key'] ?? null);
+            $ok = trasferisciSoldi($idpg,$dest,$import,$motivo,$_POST['_request_key'] ?? null);
             respond(['success'=>$ok,
                      'message'=> $ok ? 'Trasferimento completato con successo'
                                      : 'Errore durante il trasferimento']);
@@ -97,11 +97,11 @@ try {
      * 0-bis) DONAZIONE A ORGANIZZAZIONE
      * ==================================================================*/
     case 'donazione':
-        $org    = EconomiaIntero($_POST['org'] ?? null,1,2147483647) ?? 0;
-        $import = EconomiaIntero($_POST['soldi'] ?? null,1,2147483647) ?? 0;
+        $org    = economiaIntero($_POST['org'] ?? null,1,2147483647) ?? 0;
+        $import = economiaIntero($_POST['soldi'] ?? null,1,2147483647) ?? 0;
         $motivo = (string)($_POST['motivo'] ?? '');
         if ($org > 0 && $import > 0) {
-            $ok = CreaDonazione($idpg,$pgname,$org,$import,$motivo,$_POST['_request_key'] ?? null);
+            $ok = creaDonazione($idpg,$org,$import,$motivo,$_POST['_request_key'] ?? null);
             respond(['success'=>$ok,
                      'message'=> $ok ? 'Donazione andata a buon fine'
                                      : 'Errore durante la donazione']);
@@ -116,7 +116,7 @@ try {
             { respond(['success'=>false,'error'=>true,'message'=>'Permessi insufficienti']); }
         $id = (int)($_POST['id'] ?? 0);
         if (!$id) { respond(['success'=>false,'error'=>true,'message'=>'Parametri non esaurienti']); }
-        $ok  = PrendiInCaricoOrdine($id,$idpg);
+        $ok  = prendiInCaricoOrdine($id,$idpg);
         respond(['success'=>$ok,
                  'message'=> $ok ? 'Ordine preso in carico correttamente'
                                  : 'Errore durante la presa in carico']);
@@ -142,7 +142,7 @@ try {
             if (!$isAdminTransf && !$isOwner) {
                 respond(['success'=>false,'error'=>true,'message'=>'Permessi insufficienti']);
             }
-            $msg=FinalizeTransf($id,$idpg); respond(['success'=>$msg==='Trasferimento avvenuto correttamente','message'=>$msg]);
+            $msg=finalizeTransf($id,$idpg); respond(['success'=>$msg==='Trasferimento avvenuto correttamente','message'=>$msg]);
         }
 
         // 2) ELIMINA (corp o pg proprietario)
@@ -150,7 +150,7 @@ try {
             if (!$isAdminTransf && !$isOwner) {
                 respond(['success'=>false,'error'=>true,'message'=>'Permessi insufficienti']);
             }
-            $ok = RejectTransf($id,$idpg);
+            $ok = rejectTransf($id,$idpg);
             respond([
                 'success'=>$ok,
                 'message'=>$ok
@@ -169,7 +169,7 @@ try {
             }
             // se a rispondere è il PG → stato = 3; se la corp → 2
             $newState = $isOwner ? 3 : 4;
-            $ok = UpdateTransf(
+            $ok = updateTransf(
                 $id,
                 $idpg,
                 (float)$_POST['prezzo'],
@@ -215,13 +215,13 @@ try {
 
         // accetta l’offerta
         if (isset($_POST['accetta'])) {
-            $msg = FinalizeOrdine($id, $idpg);
+            $msg = finalizeOrdine($id, $idpg);
             respond(['success'=>in_array($msg,['Trasferimento avvenuto correttamente','Ordine accettato con successo'],true),'message'=>$msg]);
         }
 
         // elimina / annulla
         if (isset($_POST['elimina'])) {
-            $ok  = RejectOrdine($id, $idpg);
+            $ok  = rejectOrdine($id, $idpg);
             $msg = $ok ? 'Ordine eliminato con successo'
                        : 'Errore nell\'eliminazione';
             respond(['success'=>$ok,'message'=>$msg]);
@@ -236,7 +236,7 @@ try {
             // se rilancia il cliente → stato = 2, altrimenti (impiegato) = 3
             $newState = $isOwner ? 2 : 3;
 
-            $ok = UpdateOrdine(
+            $ok = updateOrdine(
                 $id,
                 $idpg,
                 (float)$_POST['prezzo'],
@@ -260,7 +260,7 @@ try {
             { respond(['success'=>false,'error'=>true,'message'=>'Permessi insufficienti']); }
         $id = (int)($_POST['id'] ?? 0);
         if (!$id) { respond(['success'=>false,'error'=>true,'message'=>'Parametri non esaurienti']); }
-        $msg=Consegna($id,$idpg,$corp); respond(['success'=>$msg==='Consegna andata a buon fine','message'=>$msg]);
+        $msg=consegna($id,$idpg,$corp); respond(['success'=>$msg==='Consegna andata a buon fine','message'=>$msg]);
 
     /* ====================================================================
      * 5) NASCONDI CRONOLOGIA CORPORATE
@@ -283,11 +283,11 @@ try {
      * ==================================================================*/
     case 'list':
     default:
-        ClearTrasferimenti($corp);
+        clearTrasferimenti($corp);
 
         /* 1) trattative verso = 1 (acquisti del PG) */
         $transazioni = [];
-        foreach (GetTransazioniPG($idpg) as $r) {
+        foreach (getTransazioniPG($idpg) as $r) {
             $pgcorpId   = (int)($r['pgcorp'] ?? 0);
             $pgcorpName =        $r['nomecorp'] ?? null;
             $interloc   = $pgcorpId ? $pgcorpName : $r['interlocutore'];
@@ -305,12 +305,12 @@ try {
                 'prezzo'=> (float)$r['prezzo'],
                 'stato'=> (int)$r['stato'],
                 'verso'=> (int)$r['verso'],
-                'statoText'=> StatoTransf((int)$r['stato'],(int)$r['verso']),
+                'statoText'=> statoTransf((int)$r['stato'],(int)$r['verso']),
             ];
         }
 
         /* 1-b) controproposte della tua corp */
-        foreach (GetTransazioniCorp($corp,$idpg) as $r) {
+        foreach (getTransazioniCorp($corp,$idpg) as $r) {
             $pgcorpId   = (int)$r['pg'];
             $transazioni[] = [
                 'id'=> (int)$r['id'],
@@ -326,13 +326,13 @@ try {
                 'prezzo'=> (float)$r['prezzo'],
                 'stato'=> (int)$r['stato'],
                 'verso'=> (int)$r['verso'],
-                'statoText'=> StatoTransf((int)$r['stato'],(int)$r['verso']),
+                'statoText'=> statoTransf((int)$r['stato'],(int)$r['verso']),
             ];
         }
 
         /* 2) storico oggetti */
         $storicoAcq = [];
-        foreach (GetCronologiaPG($idpg) as $r)
+        foreach (getCronologiaPG($idpg) as $r)
             { $storicoAcq[] = [
               'id'=>(int)$r['id'],
               'data'=>FormatTimestamp($r['data']),
@@ -345,7 +345,7 @@ try {
               'corpName'=>$r['nomecorp'],
               'prezzo'=>(float)$r['prezzo'],
               'stato'=>(int)$r['stato'],
-              'statoText'=>StatoTransf((int)$r['stato'],(int)$r['verso']),
+              'statoText'=>statoTransf((int)$r['stato'],(int)$r['verso']),
             ]; }
 
         /* 3) cronologia denaro */
@@ -384,7 +384,7 @@ try {
               'prezzo'=>(float)$r['prezzo'],
               'stato'=>(int)$r['stato'],
               'verso'=>(int)$r['verso'],
-              'statoText'=>StatoTransf((int)$r['stato'],(int)$r['verso']),
+              'statoText'=>statoTransf((int)$r['stato'],(int)$r['verso']),
             ]; }
 
         respond([

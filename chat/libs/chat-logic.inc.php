@@ -95,7 +95,7 @@ function buildChatMessage(
         if(!$losesLanguage){ return alphano_chat_text($text,$sesso,$action); }
         $formatted=alphano_chat_lupine_text($text,$sesso,$action);if($formatted['speech']){ $l='1'; }return $formatted['html'];
     };
-    $razImg   = processRazza(alphano_visible_race($pg),$sesso,(int)$pg['etnia']);
+    $razImg   = processRazza(alphano_visible_race($pg),(int)$pg['etnia']);
     $razImg   = $link . $razImg . '</a>&nbsp;';
     $incog    = ($str[0] ?? '') === '|' && $pg['fatepower'] && $SessionIsRunning;
     $alline   = $incog ? 'N' : ($pg['allineamento'][1] ?? 'N');

@@ -86,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     foreach ($_POST as $value) { if (!is_scalar($value)) { throw new InvalidArgumentException('Parametri non validi'); } }
     $action = (string)($_POST['azione'] ?? '');
     if (!in_array($action,['uccidi','ferisci','resuscita','ricompensa','oggetto','consuma','addnote'],true)) { throw new InvalidArgumentException('Azione non valida'); }
-    $target = EconomiaIntero($_POST['pg'] ?? null,1);
+    $target = economiaIntero($_POST['pg'] ?? null,1);
     if ($target===null) { throw new InvalidArgumentException('Personaggio non valido'); }
     $requestKey=isset($_POST['_request_key']) ? (string)$_POST['_request_key'] : null;
     if(!$user['administrator']&&$canMaster&&(!in_array($action,['ferisci','uccidi'],true)||!$canHurt)){ alphano_session_require_manager($idpg,$chatRoom); }
@@ -99,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         /* ― Kill / Ferite ― */
         case 'uccidi':
             if ($target && ($canMaster || $canHurt)) {
-                $modo = EconomiaIntero($_POST['modo'] ?? '0',0,1);
+                $modo = economiaIntero($_POST['modo'] ?? '0',0,1);
                 if ($modo===null) { throw new InvalidArgumentException('Modo non valido'); }
                 $msg  = Uccidi($target, $idpg, $modo, $chatRoom)
                       ? 'Personaggio ucciso con successo'
@@ -108,7 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             break;
 
         case 'ferisci':
-            $pf   = EconomiaIntero($_POST['pf'] ?? null,1,maxpuntif);
+            $pf   = economiaIntero($_POST['pf'] ?? null,1,maxpuntif);
             if ($pf===null) { throw new InvalidArgumentException('I PF devono essere un numero intero valido'); }
             $tipo = trim($_POST['tipo']   ?? '');
             if ($target && $pf > 0 && ($canMaster || $canHurt)) {
@@ -129,7 +129,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         /* ― Ricompense Master (solo se sessione attiva) ― */
         case 'ricompensa':
-            $soldi = EconomiaIntero($_POST['soldi'] ?? null,1,1000000000);
+            $soldi = economiaIntero($_POST['soldi'] ?? null,1,1000000000);
             if ($soldi===null) { throw new InvalidArgumentException(alphano_currency_text('Le Corone devono essere un numero intero da 1 a 1000000000')); }
             if (!$canMaster) { throw new DomainException(ALPHANO_MSG_QUESTA_AZIONE_RISERVATA_AI_MASTE_66EF,403); }
             if ($target && $target !== $idpg && $canMaster && $sessionRunning
@@ -141,7 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             break;
 
         case 'oggetto':
-            $objId = EconomiaIntero($_POST['oggetto'] ?? null,1);
+            $objId = economiaIntero($_POST['oggetto'] ?? null,1);
             if ($objId===null) { throw new InvalidArgumentException('Oggetto non valido'); }
             if (!$canMaster) { throw new DomainException(ALPHANO_MSG_QUESTA_AZIONE_RISERVATA_AI_MASTE_66EF,403); }
             if ($target && $target !== $idpg && $canMaster && $sessionRunning
@@ -154,8 +154,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         /* ― Consuma item ― */
         case 'consuma':
-            $objId = EconomiaIntero($_POST['oggetto'] ?? null,1);
-            $qty   = EconomiaIntero($_POST['quantita'] ?? null,1,2147483647);
+            $objId = economiaIntero($_POST['oggetto'] ?? null,1);
+            $qty   = economiaIntero($_POST['quantita'] ?? null,1,2147483647);
             if ($objId===null || $qty===null) { throw new InvalidArgumentException('Oggetto e quantità devono essere numeri interi validi'); }
             if (!$canMaster) { throw new DomainException(ALPHANO_MSG_QUESTA_AZIONE_RISERVATA_AI_MASTE_66EF,403); }
             if ($target && $objId > 0 && $qty > 0 && $canMaster) {

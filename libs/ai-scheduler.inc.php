@@ -4,7 +4,7 @@ declare(strict_types=1);
 /** A single supervisor distributes work; consumers never inherit a PDO handle. */
 function ai_worker_schema_ready():bool {
     static $ready=null;
-    return $ready??=(bool)ai_db()->query("SHOW COLUMNS FROM ai_jobs LIKE 'worker_token'");
+    return $ready??=(bool)aiDb()->query("SHOW COLUMNS FROM ai_jobs LIKE 'worker_token'");
 }
 function ai_worker_slots():int {
     $value=getenv('ALPHANO_AI_WORKERS');
@@ -12,7 +12,7 @@ function ai_worker_slots():int {
     return max(1,min(2,$value===false?1:(int)$value));
 }
 function ai_worker_job_budget(string $kind):int {
-    return min(ai_deadline(),match($kind){
+    return min(aiDeadline(),match($kind){
         'reaction'=>25,'observe'=>45,'social'=>45,'demo','preview'=>75,default=>90,
     });
 }
@@ -20,15 +20,15 @@ function ai_worker_lock(string $kind,int $id=0):string {
     return alphano_lock_name('ai-worker',$kind.':'.$id,(string)alphano_config('db_db'));
 }
 function ai_worker_take_lock(string $key):bool {
-    return (int)(ai_db()->query('SELECT GET_LOCK(?,0) acquired',[$key])[0]['acquired']??0)===1;
+    return (int)(aiDb()->query('SELECT GET_LOCK(?,0) acquired',[$key])[0]['acquired']??0)===1;
 }
-function ai_worker_release_lock(string $key):void {ai_db()->query('SELECT RELEASE_LOCK(?)',[$key]);}
+function ai_worker_release_lock(string $key):void {aiDb()->query('SELECT RELEASE_LOCK(?)',[$key]);}
 
 /** Only an unlocked owner can be recovered, even when its lease looks old. */
 function ai_worker_recover(bool $startup=false):void {
-    $db=ai_db();$now=time();
+    $db=aiDb();$now=time();
     if(!ai_worker_schema_ready()){
-        $db->execute("UPDATE ai_jobs SET status='queued',available_at=?,error='Worker riavviato' WHERE status='running' AND started_at<?",[$now,$startup?$now+1:$now-ai_deadline()-30]);
+        $db->execute("UPDATE ai_jobs SET status='queued',available_at=?,error='Worker riavviato' WHERE status='running' AND started_at<?",[$now,$startup?$now+1:$now-aiDeadline()-30]);
         if($startup){ $db->execute("UPDATE ai_social_jobs SET status='queued',available_at=? WHERE status='running'",[$now]); }
         return;
     }
@@ -62,7 +62,7 @@ function ai_worker_recover(bool $startup=false):void {
 /** Fair room/player round-robin is persisted in claims, not process-local state. */
 function ai_worker_claim():?array {
  if(!alphano_config('ai_enabled')){ return null; }
-    $db=ai_db();$now=time();
+    $db=aiDb();$now=time();
     if(!ai_worker_schema_ready()){
         $db->beginTransaction();
         try{
@@ -92,7 +92,7 @@ function ai_worker_claim():?array {
     }catch(Throwable $e){if($db->inTransaction()){ $db->rollBack(); }throw $e;}
 }
 function ai_worker_social_due(bool $foreground):bool {
-    $db=ai_db();$now=time();
+    $db=aiDb();$now=time();
     $task=$db->query("SELECT MIN(s.available_at) oldest FROM ai_social_jobs s JOIN ai_jobs j ON j.id=s.job_id WHERE s.status='queued' AND s.attempts<3 AND s.available_at<=?",[$now])[0]??[];
     if($task['oldest']===null){ return false; }
     if(!ai_worker_schema_ready()){ return !$foreground; }
@@ -102,7 +102,7 @@ function ai_worker_social_due(bool $foreground):bool {
 }
 function ai_worker_claim_social():?string {
  if(!alphano_config('ai_enabled')){ return null; }
-    $db=ai_db();$db->beginTransaction();
+    $db=aiDb();$db->beginTransaction();
     try{
         $row=$db->query('SELECT dispatch_counter,social_token FROM ai_worker WHERE id=1 FOR UPDATE')[0]??[];
         if(($row['social_token']??'')!==''){$db->commit();return null;}
@@ -114,14 +114,14 @@ function ai_worker_social_consume(string $token=''):bool {
     $lock=ai_worker_lock('social');if(!ai_worker_take_lock($lock)){ return false; }
     try{
         if(ai_worker_schema_ready()&&$token!==''){
-            $owner=ai_db()->query('SELECT social_token FROM ai_worker WHERE id=1')[0]['social_token']??'';
+            $owner=aiDb()->query('SELECT social_token FROM ai_worker WHERE id=1')[0]['social_token']??'';
             if(!hash_equals((string)$owner,$token)){ return false; }
         }
-        ai_runtime_budget(ai_worker_job_budget('social'));
-        return ai_social_work_once();
+        aiRuntimeBudget(ai_worker_job_budget('social'));
+        return aiSocialWorkOnce();
     }finally{
-        ai_runtime_budget(0);
-        if(ai_worker_schema_ready()&&$token!==''){ ai_db()->execute("UPDATE ai_worker SET social_token='',social_lease=0 WHERE id=1 AND social_token=?",[$token]); }
+        aiRuntimeBudget(0);
+        if(ai_worker_schema_ready()&&$token!==''){ aiDb()->execute("UPDATE ai_worker SET social_token='',social_lease=0 WHERE id=1 AND social_token=?",[$token]); }
         ai_worker_release_lock($lock);
     }
 }

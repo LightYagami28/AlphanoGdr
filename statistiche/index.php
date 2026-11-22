@@ -323,7 +323,7 @@ $canc = $db->query(
         <?php foreach($visite as $v): ?>
         <tr>
           <td class="Descrizione">
-            <?=processRazza($v['razza'],$v['sesso'])?>
+            <?=processRazza($v['razza'])?>
             <a href="#" onclick="openProfileId('<?=$v['id']?>')">
               <?=htmlspecialchars($v['nome'],ENT_QUOTES)?>
             </a>:
@@ -338,7 +338,7 @@ $canc = $db->query(
         <?php foreach($oggi as $o): ?>
         <tr>
           <td class="Valore">
-            <?=processRazza($o['razza'],$o['sesso'])?>
+            <?=processRazza($o['razza'])?>
             <a href="#" onclick="openProfileId('<?=$o['id']?>')">
               <?=htmlspecialchars($o['nome'],ENT_QUOTES)?>
             </a>
@@ -352,7 +352,7 @@ $canc = $db->query(
         <?php foreach($canc as $c): ?>
         <tr>
           <td class="Valore">
-            <?=processRazza($c['razza'],$c['sesso'])?>
+            <?=processRazza($c['razza'])?>
             <a href="#" onclick="openProfileId('<?=$c['id']?>')">
               <?=htmlspecialchars($c['nome'],ENT_QUOTES)?>
             </a>

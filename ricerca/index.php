@@ -57,7 +57,7 @@ $filters = alphanoSearchFiltersFromRequest(alphanoSearchFilterNames(), $_GET, []
 // 4. Query dinamica
 // ------------------------------------------------------------------
 $categoriaMap=['Accademia'=>'adminaccademia','Master'=>'fatepower','Governatori'=>'admin','Capi Organizzazione'=>'adminorganizzazione','Capi Corporazione'=>'admincorporazione','Guaritori'=>'adminferite','Resurrettori'=>'adminmorti','Cerimonieri'=>'adminstatosociale','Sindaci'=>'sindaco'];
-[$q,$searchParameters] = player_search_query($_GET);
+[$q,$searchParameters] = playerSearchQuery($_GET);
 
 // ------------------------------------------------------------------
 // 5. Tabelle di supporto (array semplici)
@@ -120,7 +120,7 @@ foreach ($rows as $d) {
         'allineamento'=> processAl($d['allineamento']),
         'posizione'   => html_entity_decode(html_entity_decode(GetPosizione($d['posizione']), ENT_QUOTES | ENT_HTML5, 'UTF-8'), ENT_QUOTES | ENT_HTML5, 'UTF-8'),
         'imgaraldica' => $d['araldica'],
-        'araldica_url'=>alphano_badge_url('cariche',(int)$d['araldica']),
+        'araldica_url'=>alphanoBadgeUrl('cariche',(int)$d['araldica']),
         'araldica'    => $arald[$d['araldica']]['nome']        ?? '',
         'descaral'    => $arald[$d['araldica']]['descrizione'] ?? '',
         'imgorg'      => '',
@@ -141,8 +141,8 @@ foreach ($rows as $d) {
         $obj['corp']     = $corp[$d['caricacorporazione']]['nome']        ?? '';
         $obj['desccorp'] = $corp[$d['caricacorporazione']]['descrizione'] ?? '';
     }
-    $obj['org_url']=$d['caricaorganizzazione']?alphano_badge_url('organizzazioni',(int)$d['caricaorganizzazione'],(int)$d['organizzazione']):'';
-    $obj['corp_url']=$d['caricacorporazione']?alphano_badge_url('corporazioni',(int)$d['caricacorporazione'],(int)$d['corporazione']):'';
+    $obj['org_url']=$d['caricaorganizzazione']?alphanoBadgeUrl('organizzazioni',(int)$d['caricaorganizzazione'],(int)$d['organizzazione']):'';
+    $obj['corp_url']=$d['caricacorporazione']?alphanoBadgeUrl('corporazioni',(int)$d['caricacorporazione'],(int)$d['corporazione']):'';
     $ricerca[] = $obj;
 }
 

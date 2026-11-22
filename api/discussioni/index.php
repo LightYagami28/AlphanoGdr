@@ -2,11 +2,11 @@
 declare(strict_types=1);
 require_once __DIR__ . '/../../libs/player-runtime.inc.php';
 
-player_api(function (): array {
-    $idpg=alphano_require_login(true); $user=alphano_user(); $db=getDB(); $in=player_input();
-    $type=player_text($in,'tipo',50,true); $moderator=player_discussion_access($type,$user);
-    $action=player_text($in,'action',30) ?: 'list_open';
-    if (!in_array($action,['list_open','list_closed','show'],true)) { player_mutation(); }
+playerApi(function (): array {
+    $idpg=alphano_require_login(true); $user=alphano_user(); $db=getDB(); $in=playerInput();
+    $type=playerText($in,'tipo',50,true); $moderator=playerDiscussionAccess($type,$user);
+    $action=playerText($in,'action',30) ?: 'list_open';
+    if (!in_array($action,['list_open','list_closed','show'],true)) { playerMutation(); }
     $format = function (array $post) use ($idpg,$moderator): array {
         return ['id'=>(int)$post['id'],'oggetto'=>$post['oggetto'],'messaggio'=>ProcessText($post['messaggio']),
             'message_raw'=>$post['messaggio'],'data'=>(int)$post['data'],'author_id'=>(int)$post['idpg'],'author'=>$post['author'] ?? 'Sistema',
@@ -18,7 +18,7 @@ player_api(function (): array {
         return ['threads'=>array_map($format,$rows),'can_moderate'=>$moderator];
     }
     if ($action==='create') {
-        $subject=player_text($in,'oggetto',255) ?: 'Nessun Oggetto'; $message=player_text($in,'messaggio',100000,true);
+        $subject=playerText($in,'oggetto',255) ?: 'Nessun Oggetto'; $message=playerText($in,'messaggio',100000,true);
         $db->execute('INSERT INTO discussioni(data,oggetto,messaggio,tipo,idpg,ontop,chiusa) VALUES(?,?,?,?,?,?,?)',[time(),$subject,$message,$type,$idpg,$moderator && !empty($in['ontop']) ? '1':'0',$moderator && !empty($in['chiudi']) ? '1':'0']);
         return ['new_id'=>(int)$db->lastInsertId()];
     }
@@ -33,7 +33,7 @@ player_api(function (): array {
     if ($action==='reply') {
         if ((int)$row['replyid']!==0) { throw new RuntimeException('Thread non trovato',404); }
         if (!empty($row['chiusa'])) { throw new RuntimeException('Thread chiuso',409); }
-        $subject=player_text($in,'oggetto',255) ?: 'Nessun Oggetto'; $message=player_text($in,'messaggio',100000,true);
+        $subject=playerText($in,'oggetto',255) ?: 'Nessun Oggetto'; $message=playerText($in,'messaggio',100000,true);
         $db->beginTransaction();
         try {
             // Recheck under the same row lock used by close/delete.
@@ -55,7 +55,7 @@ player_api(function (): array {
     }
     if (!$moderator && (int)$row['idpg']!==$idpg) { throw new RuntimeException('Permesso negato',403); }
     if ($action==='modify') {
-        $subject=player_text($in,'oggetto',255) ?: 'Nessun Oggetto'; $message=player_text($in,'messaggio',100000,true);
+        $subject=playerText($in,'oggetto',255) ?: 'Nessun Oggetto'; $message=playerText($in,'messaggio',100000,true);
         $db->execute('UPDATE discussioni SET oggetto=?,messaggio=? WHERE id=? AND tipo=?',[$subject,$message,$id,$type]);
         return ['modified'=>true];
     }

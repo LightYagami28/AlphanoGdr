@@ -76,7 +76,7 @@ function alphano_elections_advance(array $city,int $now):void {
 function alphano_elections_locked(int $city,callable $fn):mixed {
  // Keep governance's admin-first order; a competing treasury mutation can own
  // the city first. Retry the whole DB transaction if InnoDB resolves that cycle.
- return EconomiaAtomicaResiliente(static function()use($city,$fn){$db=ConnectDB();$db->query('SELECT id FROM utenti WHERE admin=1 ORDER BY id FOR UPDATE');$row=$db->query('SELECT * FROM city WHERE id=? FOR UPDATE',[$city])[0]??null;if(!$row){ throw new DomainException('Città non disponibile.',404); }if(empty($row['elections_enabled'])){ throw new DomainException('Elezioni disabilitate per questa città.',403); }return $fn($row);});
+ return economiaAtomicaResiliente(static function()use($city,$fn){$db=ConnectDB();$db->query('SELECT id FROM utenti WHERE admin=1 ORDER BY id FOR UPDATE');$row=$db->query('SELECT * FROM city WHERE id=? FOR UPDATE',[$city])[0]??null;if(!$row){ throw new DomainException('Città non disponibile.',404); }if(empty($row['elections_enabled'])){ throw new DomainException('Elezioni disabilitate per questa città.',403); }return $fn($row);});
 }
 function alphano_elections_candidate(int $city,int $player,string $program,?int $now=null,int $expectedRound=0):array {
  if(!alphano_elections_ready()){ throw new DomainException('Sistema elettorale in preparazione.',503); }$now??=time();$program=trim($program);if($program===''||mb_strlen($program)>10000){ throw new DomainException('Scrivi un programma da 1 a 10000 caratteri.',422); }

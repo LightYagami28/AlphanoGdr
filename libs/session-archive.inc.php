@@ -73,8 +73,8 @@ function alphano_close_open_sessions():int {
    if($quest&&$quest['status']!=='closed'){ ai_scene_close($sid,$reason,(int)$admin['id']); }
    else{
     $db->execute('UPDATE sessioni SET run=0,dataout=?,masterout=? WHERE id=?',[time(),(int)$admin['id'],$sid]);
-    ai_quest_publish($sid,'session:'.$sid.':admin-closed',$reason.' La giocata è conclusa; il resoconto resta consultabile.');
-    ai_quest_audit($sid,'admin_closed',['reason'=>$reason],(int)$admin['id']);
+    aiQuestPublish($sid,'session:'.$sid.':admin-closed',$reason.' La giocata è conclusa; il resoconto resta consultabile.');
+    aiQuestAudit($sid,'admin_closed',['reason'=>$reason],(int)$admin['id']);
    }
    $db->execute("UPDATE ai_jobs SET status='cancelled',finished_at=?,error='Sessione terminata dall’amministratore' WHERE session_id=? AND status IN('queued','running')",[time(),$sid]);
    $db->commit();$closed++;
@@ -88,5 +88,5 @@ function alphano_close_open_sessions():int {
   }catch(Throwable $e){if($db->inTransaction()){ $db->rollBack(); }throw $e;}
   finally{$db->query('SELECT RELEASE_LOCK(?)',[$guard]);}
  }
- ai_quest_sync_logs();return $closed;
+ aiQuestSyncLogs();return $closed;
 }

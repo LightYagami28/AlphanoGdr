@@ -118,7 +118,7 @@ if ($azione === 'showvoti') {
              WHERE a.giocata = ?',
             [(int)$giocata]
         );
-        $titolo = GetNomeGiocata((int)$giocata);
+        $titolo = getNomeGiocata((int)$giocata);
     }
     $academyView = 'votes';
     require __DIR__ . '/../templates/academy/votes.php';
@@ -137,44 +137,44 @@ switch ($azione) {
         } else { $msg='Voto non valido'; }
         break;
     case 'vota':
-        if ($org)     { $msg = VotaOrg((int)$org,    $pgId, $voto==='1', $motivo) ? 'OK' : 'KO'; }
-        if ($corp)    { $msg = VotaCorp((int)$corp,  $pgId, $voto==='1', $motivo) ? 'OK' : 'KO'; }
-        if ($obj)     { $msg = VotaObj((int)$obj,    $pgId, $voto==='1', $motivo) ? 'OK' : 'KO'; }
-        if ($giocata) { $msg = VotaGiocata((int)$giocata,$pgId, $voto==='1', $motivo) ? 'OK' : 'KO'; }
+        if ($org)     { $msg = votaOrg((int)$org,    $pgId, $voto==='1', $motivo) ? 'OK' : 'KO'; }
+        if ($corp)    { $msg = votaCorp((int)$corp,  $pgId, $voto==='1', $motivo) ? 'OK' : 'KO'; }
+        if ($obj)     { $msg = votaObj((int)$obj,    $pgId, $voto==='1', $motivo) ? 'OK' : 'KO'; }
+        if ($giocata) { $msg = votaGiocata((int)$giocata,$pgId, $voto==='1', $motivo) ? 'OK' : 'KO'; }
         break;
     case 'approva':
         if ($admin) {
-            if ($org)     { $msg = ApprovaOrg((int)$org)      ? 'OK' : 'KO'; }
-            if ($corp)    { $msg = ApprovaCorp((int)$corp)    ? 'OK' : 'KO'; }
-            if ($obj)     { $msg = ApprovaObj((int)$obj)      ? 'OK' : 'KO'; }
-            if ($giocata) { $msg = ApprovaGiocata((int)$giocata)? 'OK' : 'KO'; }
+            if ($org)     { $msg = approvaOrg((int)$org)      ? 'OK' : 'KO'; }
+            if ($corp)    { $msg = approvaCorp((int)$corp)    ? 'OK' : 'KO'; }
+            if ($obj)     { $msg = approvaObj((int)$obj)      ? 'OK' : 'KO'; }
+            if ($giocata) { $msg = approvaGiocata((int)$giocata)? 'OK' : 'KO'; }
         }
         break;
     case 'cancella':
         if ($admin) {
-            if ($org)     { $msg = CancellaOrg((int)$org)      ? 'OK' : 'KO'; }
-            if ($corp)    { $msg = CancellaCorp((int)$corp)    ? 'OK' : 'KO'; }
-            if ($obj)     { $msg = CancellaObj((int)$obj)      ? 'OK' : 'KO'; }
-            if ($giocata) { $msg = CancellaGiocata((int)$giocata)? 'OK' : 'KO'; }
+            if ($org)     { $msg = cancellaOrg((int)$org)      ? 'OK' : 'KO'; }
+            if ($corp)    { $msg = cancellaCorp((int)$corp)    ? 'OK' : 'KO'; }
+            if ($obj)     { $msg = cancellaObj((int)$obj)      ? 'OK' : 'KO'; }
+            if ($giocata) { $msg = cancellaGiocata((int)$giocata)? 'OK' : 'KO'; }
         }
         break;
     case 'approvamodif':
         if ($admin) {
-            if ($org)  { $msg = ApprovaModifOrg((int)$org)  ? 'OK' : 'KO'; }
-            if ($corp) { $msg = ApprovaModifCorp((int)$corp)? 'OK' : 'KO'; }
-            if ($obj)  { $msg = ApprovaModifObj((int)$obj)  ? 'OK' : 'KO'; }
+            if ($org)  { $msg = approvaModifOrg((int)$org)  ? 'OK' : 'KO'; }
+            if ($corp) { $msg = approvaModifCorp((int)$corp)? 'OK' : 'KO'; }
+            if ($obj)  { $msg = approvaModifObj((int)$obj)  ? 'OK' : 'KO'; }
         }
         break;
     case 'cancellamodif':
         if ($admin) {
-            if ($org)  { $msg = CancellaModifOrg((int)$org)  ? 'OK' : 'KO'; }
-            if ($corp) { $msg = CancellaModifCorp((int)$corp)? 'OK' : 'KO'; }
-            if ($obj)  { $msg = CancellaModifObj((int)$obj)  ? 'OK' : 'KO'; }
+            if ($org)  { $msg = cancellaModifOrg((int)$org)  ? 'OK' : 'KO'; }
+            if ($corp) { $msg = cancellaModifCorp((int)$corp)? 'OK' : 'KO'; }
+            if ($obj)  { $msg = cancellaModifObj((int)$obj)  ? 'OK' : 'KO'; }
         }
         break;
     case 'setflagorg':
         if ($admin && $org) {
-            $ok  = SetFlagOrg((int)$org, $resurgo, $cerimonia, $ferite);
+            $ok  = setFlagOrg((int)$org, $resurgo, $cerimonia, $ferite);
             $msg = $ok ? 'OK' : 'KO';
         }
         break;
@@ -198,33 +198,33 @@ if ($academyBefore!==$academyAfter && in_array($azione,['vota','modifyvoto','app
 }
 
 // --- RACCOLTA DATI e PULIZIA VECCHIE VOTAZIONI ---
-$numVotanti = GetNumVotanti();
-PurgeAccademia();
+$numVotanti = getNumVotanti();
+purgeAccademia();
 
-$orgNew  = GetOrgNApprovati();
-$corpNew = GetCorpNApprovate();
-$objNew  = GetObjNApprovati();
-$plays   = GetGiocate();
+$orgNew  = getOrgNApprovati();
+$corpNew = getCorpNApprovate();
+$objNew  = getObjNApprovati();
+$plays   = getGiocate();
 
-$orgMod  = GetOrgModificati();
-$corpMod = GetCorpModificati();
-$objMod  = GetObjModificati();
+$orgMod  = getOrgModificati();
+$corpMod = getCorpModificati();
+$objMod  = getObjModificati();
 
 
 $proposals = [];
 $collections = [
- ['rows'=>$orgNew, 'parameter'=>'org', 'type'=>'Organizzazione', 'modified'=>false, 'votes'=>'GetVotiOrg', 'canVote'=>'CanVoteOrg'],
- ['rows'=>$corpNew, 'parameter'=>'corp', 'type'=>'Corporazione', 'modified'=>false, 'votes'=>'GetVotiCorp', 'canVote'=>'CanVoteCorp'],
- ['rows'=>$objNew, 'parameter'=>'obj', 'type'=>'Oggetto', 'modified'=>false, 'votes'=>'GetVotiObj', 'canVote'=>'CanVoteObj'],
- ['rows'=>$plays, 'parameter'=>'giocata', 'type'=>'Giocata', 'modified'=>false, 'votes'=>'GetVotiGiocata', 'canVote'=>'CanVoteGiocata'],
- ['rows'=>$orgMod, 'parameter'=>'org', 'type'=>'Organizzazione', 'modified'=>true, 'votes'=>'GetVotiOrg', 'canVote'=>'CanVoteOrg'],
- ['rows'=>$corpMod, 'parameter'=>'corp', 'type'=>'Corporazione', 'modified'=>true, 'votes'=>'GetVotiCorp', 'canVote'=>'CanVoteCorp'],
- ['rows'=>$objMod, 'parameter'=>'obj', 'type'=>'Oggetto', 'modified'=>true, 'votes'=>'GetVotiObj', 'canVote'=>'CanVoteObj'],
+ ['rows'=>$orgNew, 'parameter'=>'org', 'type'=>'Organizzazione', 'modified'=>false, 'votes'=>'getVotiOrg', 'canVote'=>'canVoteOrg'],
+ ['rows'=>$corpNew, 'parameter'=>'corp', 'type'=>'Corporazione', 'modified'=>false, 'votes'=>'getVotiCorp', 'canVote'=>'canVoteCorp'],
+ ['rows'=>$objNew, 'parameter'=>'obj', 'type'=>'Oggetto', 'modified'=>false, 'votes'=>'getVotiObj', 'canVote'=>'canVoteObj'],
+ ['rows'=>$plays, 'parameter'=>'giocata', 'type'=>'Giocata', 'modified'=>false, 'votes'=>'getVotiGiocata', 'canVote'=>'canVoteGiocata'],
+ ['rows'=>$orgMod, 'parameter'=>'org', 'type'=>'Organizzazione', 'modified'=>true, 'votes'=>'getVotiOrg', 'canVote'=>'canVoteOrg'],
+ ['rows'=>$corpMod, 'parameter'=>'corp', 'type'=>'Corporazione', 'modified'=>true, 'votes'=>'getVotiCorp', 'canVote'=>'canVoteCorp'],
+ ['rows'=>$objMod, 'parameter'=>'obj', 'type'=>'Oggetto', 'modified'=>true, 'votes'=>'getVotiObj', 'canVote'=>'canVoteObj'],
 ];
 foreach ($collections as $collection) {
     foreach ($collection['rows'] as $item) {
         $id=(int)$item['id']; $kind=$collection['parameter']; $modified=$collection['modified'];
-        $title=$kind==='obj' ? $item['shortDesc'] : ($kind==='giocata' ? GetNomeGiocata($id,$item['nome']) : $item['nome']);
+        $title=$kind==='obj' ? $item['shortDesc'] : ($kind==='giocata' ? getNomeGiocata($id,$item['nome']) : $item['nome']);
         $owner=(int)($kind==='giocata' ? $item['idpg'] : ($kind==='obj' ? $item['idcreatore'] : ($modified ? $item['newidmaster'] : $item['idmaster'])));
         $url = match($kind) {
             'org'=>'/organizzazioni/'.($modified?'shownewstatuto.php':'showstatuto.php').'?org='.$id,
@@ -237,5 +237,5 @@ foreach ($collections as $collection) {
             'votes'=>$collection['votes']($id),'canVote'=>$collection['canVote']($pgId,$id)];
     }
 }
-$approvedOrganizations = $admin ? GetOrgApprovati() : [];
+$approvedOrganizations = $admin ? getOrgApprovati() : [];
 require __DIR__ . '/../templates/academy/index.php';

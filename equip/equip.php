@@ -91,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         case 'acquista':
             if (!$corp || $isSame || (!($me['admintrasfcorp'] ?? false) && !($me['admincorporazione'] ?? false))) { http_response_code(403); exit('Solo un responsabile può acquistare per la propria corporazione'); }
             if (in_array((int)$me['razza'],[ALPHANO_RACE_SPIRIT,ALPHANO_RACE_DEAD_VAMPIRE,ALPHANO_RACE_LEGACY_SPIRIT],true)) { http_response_code(403); exit('Non puoi acquistare quando sei morto'); }
-            $qta=CommercioIntero($_POST['qta'] ?? '1',1,10000);
+            $qta=commercioIntero($_POST['qta'] ?? '1',1,10000);
             if ($qta===null) { http_response_code(400); exit('Inserisci una quantità intera tra 1 e 10000'); }
             try { $ok=buyObject($id,$pgid,$idpg,(int)$corp,$qta,$_POST['_request_key'] ?? null); }
             catch (RuntimeException $error) {

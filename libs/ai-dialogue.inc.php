@@ -16,14 +16,14 @@ function ai_dialogue_participants(array $npcs, array $selected, string $text): a
     foreach($npcs as $npc){
         if((int)$npc['id']===(int)$selected['id']||!(int)$npc['active']||(int)ai_npc_profile($npc)['hit_points']<=0){ continue; }
         $g=ai_npc_game((int)$npc['id']);$role=$g['rank'].' '.ai_npc_profile($npc)['occupation'];
-        $named=ai_mentions_npc($text,$npc['name']);$titled=false;
+        $named=aiMentionsNpc($text,$npc['name']);$titled=false;
         foreach($roles as $pattern=>$stem){ if(mb_stripos($role,$stem)!==false&&preg_match('/\b'.$pattern.'\b/iu',$text)){
             // Ambiguous titles never summon several unrelated characters.
             $matches=array_filter($npcs,static fn($n)=>(int)$n['active']&&mb_stripos(ai_npc_game((int)$n['id'])['rank'].' '.ai_npc_profile($n)['occupation'],$stem)!==false);
             if(count($matches)===1){ $titled=true; }
         }
         }
-        $bothNames=$named&&ai_mentions_npc($text,$selected['name'])&&(bool)preg_match('/\be\b/iu',$text);
+        $bothNames=$named&&aiMentionsNpc($text,$selected['name'])&&(bool)preg_match('/\be\b/iu',$text);
         if(($joint&&($named||$titled))||$bothNames||($collective&&$faction!==''&&$g['faction']===$faction)){ $participants[]=$npc; }
         if(count($participants)>=AI_MAX_NPCS){ break; }
     }
@@ -33,7 +33,7 @@ function ai_dialogue_participants(array $npcs, array $selected, string $text): a
 /** The source event identifies the group; all members retain ordinary play-job safety and memories. */
 function ai_dialogue_jobs(array $job): array {
     if($job['kind']!=='play'||(int)$job['source_id']<1){ return []; }
-    return ai_db()->query("SELECT j.id,j.npc_id,j.status,j.result,n.name FROM ai_jobs j JOIN ai_npcs n ON n.id=j.npc_id WHERE j.chat_key=? AND j.source_id=? AND j.user_id=? AND j.kind='play' ORDER BY j.id LIMIT ".AI_MAX_NPCS,[$job['chat_key'],(int)$job['source_id'],(int)$job['user_id']]);
+    return aiDb()->query("SELECT j.id,j.npc_id,j.status,j.result,n.name FROM ai_jobs j JOIN ai_npcs n ON n.id=j.npc_id WHERE j.chat_key=? AND j.source_id=? AND j.user_id=? AND j.kind='play' ORDER BY j.id LIMIT ".AI_MAX_NPCS,[$job['chat_key'],(int)$job['source_id'],(int)$job['user_id']]);
 }
 /** Conversation focus is the authenticated pair; public Master facts enter through the witness ledger. */
 function ai_dialogue_history(array $job,int $limit=8):array {
@@ -44,7 +44,7 @@ function ai_dialogue_history(array $job,int $limit=8):array {
     // NPC replies store their source on the job. Use that same source for both
     // sides of an exchange; a NULL event source must not put a same-second reply
     // before the player's words when the history is restored to chronological order.
-    return ai_db()->query("SELECT e.speaker,e.content,e.npc_id,e.job_id,e.created_at FROM ai_events e LEFT JOIN ai_jobs j ON j.id=e.job_id LEFT JOIN chat c ON c.id=e.source_id WHERE e.chat_key=? AND ((e.npc_id=? AND j.user_id=? AND j.source_id<? AND BINARY j.chat_key=BINARY e.chat_key) OR (e.npc_id=0 AND c.pg=? AND c.dest=0 AND BINARY c.chat=BINARY e.chat_key AND EXISTS(SELECT 1 FROM ai_jobs addressed WHERE BINARY addressed.chat_key=BINARY e.chat_key AND addressed.source_id=e.source_id AND addressed.npc_id=? AND addressed.user_id=?))) AND (e.source_id<? OR e.source_id IS NULL) AND e.created_at>=? AND COALESCE(j.source_id,e.source_id,0)>=? ORDER BY e.created_at DESC,COALESCE(j.source_id,e.source_id,0) DESC,e.id DESC LIMIT ".$limit,[$job['chat_key'],(int)$job['npc_id'],(int)$job['user_id'],(int)$job['source_id'],(int)$job['user_id'],(int)$job['npc_id'],(int)$job['user_id'],(int)$job['source_id'],(int)($job['created_at']??time())-1800,$anchor]);
+    return aiDb()->query("SELECT e.speaker,e.content,e.npc_id,e.job_id,e.created_at FROM ai_events e LEFT JOIN ai_jobs j ON j.id=e.job_id LEFT JOIN chat c ON c.id=e.source_id WHERE e.chat_key=? AND ((e.npc_id=? AND j.user_id=? AND j.source_id<? AND BINARY j.chat_key=BINARY e.chat_key) OR (e.npc_id=0 AND c.pg=? AND c.dest=0 AND BINARY c.chat=BINARY e.chat_key AND EXISTS(SELECT 1 FROM ai_jobs addressed WHERE BINARY addressed.chat_key=BINARY e.chat_key AND addressed.source_id=e.source_id AND addressed.npc_id=? AND addressed.user_id=?))) AND (e.source_id<? OR e.source_id IS NULL) AND e.created_at>=? AND COALESCE(j.source_id,e.source_id,0)>=? ORDER BY e.created_at DESC,COALESCE(j.source_id,e.source_id,0) DESC,e.id DESC LIMIT ".$limit,[$job['chat_key'],(int)$job['npc_id'],(int)$job['user_id'],(int)$job['source_id'],(int)$job['user_id'],(int)$job['npc_id'],(int)$job['user_id'],(int)$job['source_id'],(int)($job['created_at']??time())-1800,$anchor]);
 }
 function ai_dialogue_context(array $npc,array $job,float $scale): string {
     $jobs=ai_dialogue_jobs($job);if(count($jobs)<2){ return ''; }
@@ -54,7 +54,7 @@ function ai_dialogue_context(array $npc,array $job,float $scale): string {
     $perReply=max(50,(int)floor(1200*max(.3,$scale)/max(1,count($previous))));
     foreach($previous as $other){
         $reply=json_decode($other['result']??'{}',true)['testo']??'';
-        $out.="\nHa appena parlato ".$other['name'].' (contesto pubblico, non da ricopiare): '.ai_text($reply,min(500,$perReply));
+        $out.="\nHa appena parlato ".$other['name'].' (contesto pubblico, non da ricopiare): '.aiText($reply,min(500,$perReply));
     }
     return $out;
 }
@@ -67,7 +67,7 @@ function ai_dialogue_without_repeats(array $npc,array $job,string $text): string
         $value=mb_strtolower(html_entity_decode(strip_tags($value),ENT_QUOTES|ENT_HTML5,'UTF-8'));
         return trim(preg_replace('/[^\p{L}\p{N}]+/u',' ',$value));
     };
-    $previous=ai_db()->query('SELECT content FROM ai_events WHERE chat_key=? AND npc_id=? AND (job_id IS NULL OR job_id<>?) AND created_at>=? ORDER BY id DESC LIMIT 3',[$job['chat_key'],(int)$npc['id'],(int)($job['id']??0),(int)($job['created_at']??time())-1800]);
+    $previous=aiDb()->query('SELECT content FROM ai_events WHERE chat_key=? AND npc_id=? AND (job_id IS NULL OR job_id<>?) AND created_at>=? ORDER BY id DESC LIMIT 3',[$job['chat_key'],(int)$npc['id'],(int)($job['id']??0),(int)($job['created_at']??time())-1800]);
     if(!$previous){ return $text; }
     foreach($previous as $row){
         preg_match_all('/[\p{L}\p{N}]+/u',$row['content'],$oldWords);

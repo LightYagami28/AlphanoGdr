@@ -24,9 +24,9 @@ function rpg_combat_assert_equipment(string $kind,int $id,array $ability):void {
 
 /** Named powers in action text use the same reservation as the selector, never a regex-only bonus. */
 function rpg_combat_infer_ability(int $id,string $raw):int {
- if(!str_starts_with(trim($raw),'+')&&!ai_quest_intent($raw)){ return 0; }
+ if(!str_starts_with(trim($raw),'+')&&!aiQuestIntent($raw)){ return 0; }
  if(preg_match('/^(?:\/\/|[$&#%@|])/u',ltrim($raw))){ return 0; }
- $reading=ai_narrative_parse($raw);$text=mb_strtolower($reading['action']);
+ $reading=aiNarrativeParse($raw);$text=mb_strtolower($reading['action']);
  if($text===''||!$reading['intent']){ return 0; }
  $catalog=rpg_sheet('pg',$id,false)['abilities'];
  foreach($catalog as $a){ if(preg_match('/(?<!\p{L})'.preg_quote(mb_strtolower($a['name']),'/').'(?!\p{L})/u',$text)){ return (int)$a['id']; } }
@@ -39,7 +39,7 @@ function rpg_combat_choose_npc(int $id,int $sid,int $round,string $decision):?ar
  $sheet=rpg_sheet('npc',$id,false);$types=in_array($decision,['difesa','ritirata','aiuto'],true)?['defence','heal']:['attack'];$choices=[];
  foreach($sheet['abilities'] as $a){if(!$a['usable']||!in_array($a['effect']['type'],$types,true)){ continue; }if($a['effect']['type']==='heal'&&$sheet['identity']['hit_points']>maxpuntif-30){ continue; }
   try{rpg_combat_assert_equipment('npc',$id,$a);}catch(DomainException){continue;}
-  $last=ai_db()->query('SELECT round_number FROM rpg_ability_uses WHERE owner_kind=\'npc\' AND owner_id=? AND ability_id=? AND session_id=? ORDER BY id DESC LIMIT 1',[$id,$a['id'],$sid])[0]??null;
+  $last=aiDb()->query('SELECT round_number FROM rpg_ability_uses WHERE owner_kind=\'npc\' AND owner_id=? AND ability_id=? AND session_id=? ORDER BY id DESC LIMIT 1',[$id,$a['id'],$sid])[0]??null;
   if($last&&(int)$last['round_number']+(int)$a['cooldown']+(isset($a['rules'])?1:0)>$round){ continue; }
   $a['_score']=(int)$a['effect']['bonus']+(int)$a['effect']['damage']/5+(int)$a['effect']['heal']/5;$choices[]=$a;
  }

@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
     sceneFrame.addEventListener('load',sceneChanged);
     mapBox.appendChild(sceneFrame);
   }
-  function sceneChanged() { loadPresenti(); loadStatus(); }
+  function sceneChanged() { void loadPresenti(); void loadStatus(); }
   function openScene(url) {
     const target=new URL(url,location.origin);
     // Reuse the living scene when consulting a handbook/profile over the chat.
@@ -92,7 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   function openModal(url, w, h, title = '') {
     if (!mapBox) {return;}
-    if(/^\/chat\/index\.php\?/.test(url) && new URL(url,location.origin).searchParams.get('chat')) { openScene(url); return; }
+    if(url.startsWith('/chat/index.php?') && new URL(url,location.origin).searchParams.get('chat')) { openScene(url); return; }
     closeSidebar();
     if (sceneFrame) {sceneFrame.hidden = true;}
     workspace?.remove();
@@ -116,15 +116,19 @@ document.addEventListener('DOMContentLoaded', () => {
         window.history?.replaceState(null,'','/main.php?view='+encodeURIComponent(frame.contentWindow.location.pathname+frame.contentWindow.location.search));
         window.alphanoSceneFocus(true);sceneChanged();window.alphanoMobile?.close();return;
       }
-      loadPresenti();
-      loadNews();
-      loadProfile();
+      void loadPresenti();
+      void loadNews();
+      void loadProfile();
       window.alphanoNotifications?.refresh();
       try {
         const visualMap=!!frame.contentDocument?.body.classList.contains('world-visual');
         pane.classList.toggle('is-visual-map',visualMap);
         const heading = pane.querySelector('h1');
-        if (heading && frame.contentDocument?.title) {heading.textContent = frame.contentDocument.querySelector('.ui-page-heading h1')?.textContent || frame.contentDocument.title.replace(/\s+[—–]\s+.*Alphano.*$/i, '');}
+        if (heading && frame.contentDocument?.title) {
+          const fullTitle=frame.contentDocument.title,separator=/\s+-\s+/.exec(fullTitle);
+          const cleanTitle=separator&&fullTitle.slice(separator.index).toLowerCase().includes('alphano')?fullTitle.slice(0,separator.index):fullTitle;
+          heading.textContent = frame.contentDocument.querySelector('.ui-page-heading h1')?.textContent || cleanTitle;
+        }
         const innerHeading=frame.contentDocument?.querySelector('.ui-page-heading,[data-page-heading]');
         pane.classList.toggle('has-inner-heading',!!innerHeading);
         if(!visualMap&&innerHeading&&!innerHeading.matches('.scene-toolbar,.rpg-hero')&&!innerHeading.querySelector('[data-return-location]')){
@@ -193,166 +197,150 @@ document.addEventListener('DOMContentLoaded', () => {
     link.setAttribute('aria-label','Torna a '+label+(scene.session_active?'. Quest in corso: '+scene.session_title:''));
   }
   window.addEventListener('alphano:appearance-updated',()=>loadStatus());
-  async function loadStatus() {
-    if (!menuGroups || !idpg) {return;}
-    const request=++statusRequest;
-    try {
-      const res = await fetch(`/api/status.php?idpg=${idpg}`,{cache:'no-store'});
-      if (!res.ok) {throw new Error('status fetch failed');}
-      const s = await res.json();
-      if(request!==statusRequest){return;}
-
-      /* ---------- 1) menu raggruppato in TAB ------------------- */
-      // Weather polls must not recreate an unchanged menu, losing focus and scroll.
-      const nextMenuSnapshot = JSON.stringify([s.menuGroups || null, s.menu]);
-      if (nextMenuSnapshot !== menuSnapshot) {
-      const fallbackGroups=[{key:'gioco',title:'Gioco',icon:'compass',test:()=>true}];
-      const groups=s.menuGroups?Object.entries(s.menuGroups).map(([key,definition])=>({...definition,key,test:item=>item.group===key})):fallbackGroups;
-
-      menuGroups.innerHTML = '';
-      const tabs = document.createElement('div');
-      tabs.className = 'tabs';
-
-      groups.forEach(({ title, test, key, icon:groupIcon, image }) => {
-        const items = s.menu.filter(test);
-        if (!items.length) {return;}
-
-        const tab = document.createElement('div');
-        tab.className = 'tab';
-        if(key){tab.dataset.menuGroup=key;}
-
-        const direct=items.length===1;
-        const btn = document.createElement(direct?'a':'button');
-        btn.className = 'tab-btn'+(direct?' nav-direct':'');
-        if(direct){btn.setAttribute('data-character-markers','off');btn.href=items[0].url;btn.dataset.url=items[0].url;btn.dataset.title=items[0].label;btn.addEventListener('click',event=>{if(event.ctrlKey||event.metaKey||event.shiftKey||event.altKey){return;}if(items[0].url==='/logout.php'){btn.target='_top';return;}event.preventDefault();closeNavigation();openModal(items[0].url,items[0].w,items[0].h,items[0].label);});}
-        else{btn.type='button';btn.setAttribute('aria-haspopup','true');btn.setAttribute('aria-expanded','false');}
-        const label=document.createElement('span');label.className='menu-text';const menuName=document.createElement('span');menuName.className='menu-label';menuName.textContent=title;label.append(menuName);btn.title=title;btn.append(label);
-        const navIcons = {Menu:'compass',Master:'book','Comunità':'users',Amministrazione:'settings',Strumenti:'scroll'};
-        if(image){const portrait=document.createElement('img');portrait.className='nav-medallion';portrait.src=image;portrait.width=66;portrait.height=66;portrait.alt='';portrait.draggable=false;portrait.decoding='async';btn.prepend(portrait);}
-        else {const glyph=document.createElement('span');glyph.dataset.icon=groupIcon||navIcons[title]||'scroll';glyph.setAttribute('aria-hidden','true');if(window.alphanoUI){glyph.append(window.alphanoUI.icon(glyph.dataset.icon));}btn.prepend(glyph);}
-        if(key){
-          const badge=document.createElement('span');badge.className='notification-badge';badge.dataset.notificationGroup=key;badge.hidden=true;badge.textContent='0';btn.append(badge);
-        }
-
-        if(direct){tab.append(btn);tabs.append(tab);return;}
-
-        const list = document.createElement('ul');
-        list.className = 'tab-list';
-        if(key){list.id='navigation-'+key;btn.setAttribute('aria-controls',list.id);}
-
-        items.forEach(it => {
-          const li = document.createElement('li');
-          li.innerHTML = `
-            <a href="${esc(it.url)}" data-character-markers="off" data-url="${esc(it.url)}" data-size="${it.w},${it.h}" data-title="${esc(it.label)}">
-              ${it.image?`<img class="nav-item-medallion" src="${esc(it.image)}" width="50" height="50" alt="" loading="lazy" decoding="async">`:`<span class="nav-item-symbol" data-icon="${esc(it.icon||'scroll')}" aria-hidden="true"></span>`}<span class="nav-item-label">${esc(it.label)}</span> <span class="notification-badge" data-notification-link="${esc(it.url)}" hidden>0</span>
-            </a>
-          `;
-          list.appendChild(li);
-          if(window.alphanoUI){li.querySelectorAll('[data-icon]').forEach(mark=>mark.append(window.alphanoUI.icon(mark.dataset.icon)));}
-          if(it.url==='/mappa.php'){
-            const recent=document.createElement('div');recent.dataset.navigationRecentScene='';recent.hidden=true;li.append(recent);
-          }
-        });
-
-        btn.addEventListener('click', () => {
-          const isOpen = btn.classList.contains('active');
-          tabs.querySelectorAll('.tab-list.show').forEach(u => {u.hidePopover?.();u.removeAttribute('popover');u.classList.remove('show');});
-          tabs.querySelectorAll('.tab-btn.active').forEach(b => {b.classList.remove('active');b.setAttribute('aria-expanded','false');});
-          if (!isOpen) {
-            if (!mobileViewport.matches) {
-              const anchor = btn.getBoundingClientRect();
-              list.style.setProperty('--menu-left', Math.max(12, Math.min(anchor.left+anchor.width/2-135, window.innerWidth - 282)) + 'px');
-              list.style.setProperty('--menu-top', (anchor.bottom + 8) + 'px');
-              list.style.setProperty('--menu-bottom',(window.innerHeight-anchor.top+8)+'px');
-            }
-            list.classList.add('show');
-            if(!mobileViewport.matches&&list.showPopover){list.setAttribute('popover','manual');list.showPopover();}
-            btn.classList.add('active');
-            btn.setAttribute('aria-expanded','true');
-            if(key==='gioco'){loadStatus();}
-          }
-        });
-
-        list.querySelectorAll('a').forEach(a => {
-          a.addEventListener('click', e => {
-            if(e.ctrlKey||e.metaKey||e.shiftKey||e.altKey){return;}
-            if(a.dataset.url==='/logout.php'){a.target='_top';return;}
-            e.preventDefault();
-            const [w_, h_] = a.dataset.size.split(',');
-            openModal(a.dataset.url, w_, h_, a.dataset.title);
-            list.hidePopover?.();list.removeAttribute('popover');list.classList.remove('show');
-            btn.classList.remove('active');
-            btn.setAttribute('aria-expanded','false');
-          });
-        });
-
-        tab.append(btn, list);
-        tabs.append(tab);
-      });
-
-      tabs.style.setProperty('--menu-count',String(tabs.children.length));
-      menuGroups.appendChild(tabs);
-      if(document.dispatchEvent){document.dispatchEvent(new Event('alphano:menu-ready'));}
-      const closeMenus = () => {tabs.querySelectorAll('.tab-list.show').forEach(u => {u.hidePopover?.();u.removeAttribute('popover');u.classList.remove('show');});tabs.querySelectorAll('.tab-btn.active').forEach(b => {b.classList.remove('active');b.setAttribute('aria-expanded','false');});};
-      tabs.addEventListener('scroll', closeMenus);
-      tabs.addEventListener('keydown', event => {if(event.key==='Escape'){closeMenus();}});
-      menuSnapshot = nextMenuSnapshot;
-      }
-      renderRecentScene(s.recentScene);
-
-      /* ---------- 2) Meteo + messaggio Luna  ------------------- */
-      Promise.resolve(window.alphanoPrivacy?.firstLogin()).then(()=>presentWelcome(s.welcome,s.csrfToken)).then(()=>presentCivicInvitation(s.civicInvitation,s.csrfToken));
-      if (weatherW) {
-        const icons=s.weatherIcons||{};
-        const fallback={cielo:{src:'/assets/weather-cloud.svg',label:s.descrCielo},tempo:{src:'/assets/weather-cloud.svg',label:s.descrTempo},vento:{src:'/assets/weather-cloud.svg',label:s.descrVento},luna:{src:'/assets/weather-moon.svg',label:s.lunaPhase}};
-        weatherW.innerHTML=`${s.worldCalendar?`<p class="world-calendar" title="${esc(s.worldCalendar.moon_convention)}"><span data-icon="scroll" aria-hidden="true"></span> ${esc(s.worldCalendar.label)} · ON</p>`:''}<div class="weather-icons">${['cielo','tempo','vento','luna'].map(key=>{const asset=icons[key]||fallback[key];return `<figure class="wi" data-tooltip="${esc(asset.description||asset.label)}"><img src="${esc(asset.src)}" alt="${esc(asset.label)}" title="${esc(asset.description||asset.label)}" width="80" height="80"></figure>`;}).join('')}</div><div class="weather-summary"><div class="weather-temperature">${Number(s.temperatura)} °C</div><div class="weather-time" id="weather-time"></div></div>`;
-
-        /* b. date helper ------------------------------------------------- */
-        const [hA, mA] = s.alba.split(':').map(Number);
-        const [hT, mT] = s.tramonto.split(':').map(Number);
-        const now          = new Date();
-        const albaOggi     = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hA, mA, 0);
-        const tramontoOggi = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hT, mT, 0);
-        const albaDomani   = new Date(albaOggi.getTime() + 86_400_000); // +1 giorno
-
-        const timeEl = document.getElementById('weather-time');
-        let msg = '';
-
-        /* c. messaggistica ------------------------------------------------ */
-        if (s.lunaPhase !== 'Luna Piena') {
-          /* NON è plenilunio */
-          const gg = s.daysToFull;
-          msg = `Mancano ${gg} ${gg === 1 ? 'giorno' : 'giorni'} alla prossima Luna Piena.`;
-
-        } else {
-          /* È Luna Piena -------------------------------------- */
-
-          if (now < albaOggi) {
-            /* dopo mezzanotte ma prima dell’alba */
-            msg = `Notte di Luna Piena! Fai attenzione: la Luna non sarà più visibile alle ${s.alba}.`;
-          } else if (now < tramontoOggi) {
-            /* giorno (sole alto) prima del tramonto */
-            msg = `Luna Piena! Fai attenzione: la Luna sorgerà al tramonto alle ${s.tramonto}.`;
-          } else if (now >= tramontoOggi && now < albaDomani) {
-            /* sera/notte prima di mezzanotte */
-            msg = `Notte di Luna Piena! Fai attenzione: la Luna non sarà più visibile alle ${s.alba}.`;
-          } else {
-            /* giorno dopo l’alba */
-            msg = `Luna Piena: il sole è sorto. La prossima notte torna a fare attenzione!`;
-          }
-}
-
-        const compact = s.lunaPhase !== 'Luna Piena'
-          ? `Luna Piena tra ${Number(s.daysToFull)} ${Number(s.daysToFull) === 1 ? 'giorno' : 'giorni'}`
-          : (now >= albaOggi && now < tramontoOggi ? `Luna Piena · sorge alle ${s.tramonto}` : `Luna Piena · alba alle ${s.alba}`);
-        timeEl.textContent = compact;
-        timeEl.title = msg;
-        timeEl.setAttribute('aria-label',msg);
-      }
-
-    } catch (err) {
-      console.error(err);
+  function compactMoonText(s,now,albaOggi,tramontoOggi){
+    if(s.lunaPhase!=='Luna Piena'){
+      const gg=Number(s.daysToFull);
+      return `Luna Piena tra ${gg} ${gg===1?'giorno':'giorni'}`;
     }
+    return now>=albaOggi&&now<tramontoOggi?`Luna Piena · sorge alle ${s.tramonto}`:`Luna Piena · alba alle ${s.alba}`;
+  }
+  function healthClass(percent){
+    if(percent>=80){return 'green';}
+    if(percent>=50){return 'orange';}
+    if(percent>=20){return 'yellow';}
+    return percent>0?'red':'gray';
+  }
+  function menuTabLabel(title){
+    const label=document.createElement('span');label.className='menu-text';
+    const menuName=document.createElement('span');menuName.className='menu-label';menuName.textContent=title;
+    label.append(menuName);return label;
+  }
+  function directMenuButton(item){
+    const btn=document.createElement('a');
+    btn.className='tab-btn nav-direct';btn.dataset.characterMarkers='off';btn.href=item.url;btn.dataset.url=item.url;btn.dataset.title=item.label;
+    btn.addEventListener('click',event=>{
+      if(event.ctrlKey||event.metaKey||event.shiftKey||event.altKey){return;}
+      if(item.url==='/logout.php'){btn.target='_top';return;}
+      event.preventDefault();closeNavigation();openModal(item.url,item.w,item.h,item.label);
+    });
+    return btn;
+  }
+  function groupMenuButton(key,groupIcon,image,title){
+    const btn=document.createElement('button');btn.type='button';btn.setAttribute('aria-haspopup','true');btn.setAttribute('aria-expanded','false');
+    const navIcons={Menu:'compass',Master:'book','Comunità':'users',Amministrazione:'settings',Strumenti:'scroll'};
+    if(image){const portrait=document.createElement('img');portrait.className='nav-medallion';portrait.src=image;portrait.width=66;portrait.height=66;portrait.alt='';portrait.draggable=false;portrait.decoding='async';btn.prepend(portrait);}
+    else{const glyph=document.createElement('span');glyph.dataset.icon=groupIcon||navIcons[title]||'scroll';glyph.setAttribute('aria-hidden','true');if(window.alphanoUI){glyph.append(window.alphanoUI.icon(glyph.dataset.icon));}btn.prepend(glyph);}
+    if(key){const badge=document.createElement('span');badge.className='notification-badge';badge.dataset.notificationGroup=key;badge.hidden=true;badge.textContent='0';btn.append(badge);}
+    return btn;
+  }
+  function menuItemElement(it){
+    const li=document.createElement('li');
+    li.innerHTML=`
+      <a href="${esc(it.url)}" data-character-markers="off" data-url="${esc(it.url)}" data-size="${it.w},${it.h}" data-title="${esc(it.label)}">
+        ${it.image?`<img class="nav-item-medallion" src="${esc(it.image)}" width="50" height="50" alt="" loading="lazy" decoding="async">`:`<span class="nav-item-symbol" data-icon="${esc(it.icon||'scroll')}" aria-hidden="true"></span>`}<span class="nav-item-label">${esc(it.label)}</span> <span class="notification-badge" data-notification-link="${esc(it.url)}" hidden>0</span>
+      </a>
+    `;
+    if(window.alphanoUI){li.querySelectorAll('[data-icon]').forEach(mark=>mark.append(window.alphanoUI.icon(mark.dataset.icon)));}
+    if(it.url==='/mappa.php'){const recent=document.createElement('div');recent.dataset.navigationRecentScene='';recent.hidden=true;li.append(recent);}
+    return li;
+  }
+  function closeTabMenus(tabs){
+    tabs.querySelectorAll('.tab-list.show').forEach(u=>{u.hidePopover?.();u.removeAttribute('popover');u.classList.remove('show');});
+    tabs.querySelectorAll('.tab-btn.active').forEach(b=>{b.classList.remove('active');b.setAttribute('aria-expanded','false');});
+  }
+  function openTabMenu(btn,list,key,tabs){
+    const isOpen=btn.classList.contains('active');
+    closeTabMenus(tabs);
+    if(isOpen){return;}
+    if(!mobileViewport.matches){
+      const anchor=btn.getBoundingClientRect();
+      list.style.setProperty('--menu-left',Math.max(12,Math.min(anchor.left+anchor.width/2-135,window.innerWidth-282))+'px');
+      list.style.setProperty('--menu-top',(anchor.bottom+8)+'px');
+      list.style.setProperty('--menu-bottom',(window.innerHeight-anchor.top+8)+'px');
+    }
+    list.classList.add('show');
+    if(!mobileViewport.matches&&list.showPopover){list.setAttribute('popover','manual');list.showPopover();}
+    btn.classList.add('active');btn.setAttribute('aria-expanded','true');
+    if(key==='gioco'){void loadStatus();}
+  }
+  function buildMenu(s){
+    const fallbackGroups=[{key:'gioco',title:'Gioco',icon:'compass',test:()=>true}];
+    const groups=s.menuGroups?Object.entries(s.menuGroups).map(([key,definition])=>({...definition,key,test:item=>item.group===key})):fallbackGroups;
+    menuGroups.innerHTML='';
+    const tabs=document.createElement('div');tabs.className='tabs';
+    for(const {title,test,key,icon:groupIcon,image} of groups){
+      const items=s.menu.filter(test);if(!items.length){continue;}
+      const tab=document.createElement('div');tab.className='tab';if(key){tab.dataset.menuGroup=key;}
+      if(items.length===1){
+        const btn=directMenuButton(items[0]);btn.append(menuTabLabel(title));btn.title=title;tab.append(btn);tabs.append(tab);continue;
+      }
+      const btn=groupMenuButton(key,groupIcon,image,title);btn.append(menuTabLabel(title));btn.title=title;
+      const list=document.createElement('ul');list.className='tab-list';
+      if(key){list.id='navigation-'+key;btn.setAttribute('aria-controls',list.id);}
+      for(const it of items){list.appendChild(menuItemElement(it));}
+      btn.addEventListener('click',()=>openTabMenu(btn,list,key,tabs));
+      list.querySelectorAll('a').forEach(a=>{a.addEventListener('click',e=>{
+        if(e.ctrlKey||e.metaKey||e.shiftKey||e.altKey){return;}
+        if(a.dataset.url==='/logout.php'){a.target='_top';return;}
+        e.preventDefault();
+        const [w_,h_]=a.dataset.size.split(',');
+        openModal(a.dataset.url,w_,h_,a.dataset.title);
+        list.hidePopover?.();list.removeAttribute('popover');list.classList.remove('show');
+        btn.classList.remove('active');btn.setAttribute('aria-expanded','false');
+      });});
+      tab.append(btn,list);tabs.append(tab);
+    }
+    tabs.style.setProperty('--menu-count',String(tabs.children.length));
+    menuGroups.appendChild(tabs);
+    if(document.dispatchEvent){document.dispatchEvent(new Event('alphano:menu-ready'));}
+    const closeMenus=()=>closeTabMenus(tabs);
+    tabs.addEventListener('scroll',closeMenus);
+    tabs.addEventListener('keydown',event=>{if(event.key==='Escape'){closeMenus();}});
+  }
+  function renderWeather(s){
+    const icons=s.weatherIcons||{};
+    const fallback={cielo:{src:'/assets/weather-cloud.svg',label:s.descrCielo},tempo:{src:'/assets/weather-cloud.svg',label:s.descrTempo},vento:{src:'/assets/weather-cloud.svg',label:s.descrVento},luna:{src:'/assets/weather-moon.svg',label:s.lunaPhase}};
+    const calendarHtml=s.worldCalendar?`<p class="world-calendar" title="${esc(s.worldCalendar.moon_convention)}"><span data-icon="scroll" aria-hidden="true"></span> ${esc(s.worldCalendar.label)} · ON</p>`:'';
+    const iconsHtml=['cielo','tempo','vento','luna'].map(key=>{const asset=icons[key]||fallback[key];return `<figure class="wi" data-tooltip="${esc(asset.description||asset.label)}"><img src="${esc(asset.src)}" alt="${esc(asset.label)}" title="${esc(asset.description||asset.label)}" width="80" height="80"></figure>`;}).join('');
+    weatherW.innerHTML=`${calendarHtml}<div class="weather-icons">${iconsHtml}</div><div class="weather-summary"><div class="weather-temperature">${Number(s.temperatura)} °C</div><div class="weather-time" id="weather-time"></div></div>`;
+    const [hA,mA]=s.alba.split(':').map(Number);
+    const [hT,mT]=s.tramonto.split(':').map(Number);
+    const now=new Date();
+    const albaOggi=new Date(now.getFullYear(),now.getMonth(),now.getDate(),hA,mA,0);
+    const tramontoOggi=new Date(now.getFullYear(),now.getMonth(),now.getDate(),hT,mT,0);
+    const albaDomani=new Date(albaOggi.getTime()+86_400_000);
+    const timeEl=document.getElementById('weather-time');
+    let msg='';
+    if(s.lunaPhase!=='Luna Piena'){
+      const gg=s.daysToFull;
+      msg=`Mancano ${gg} ${gg===1?'giorno':'giorni'} alla prossima Luna Piena.`;
+    }else if(now<albaOggi){
+      msg=`Notte di Luna Piena! Fai attenzione: la Luna non sarà più visibile alle ${s.alba}.`;
+    }else if(now<tramontoOggi){
+      msg=`Luna Piena! Fai attenzione: la Luna sorgerà al tramonto alle ${s.tramonto}.`;
+    }else if(now<albaDomani){
+      msg=`Notte di Luna Piena! Fai attenzione: la Luna non sarà più visibile alle ${s.alba}.`;
+    }else{
+      msg=`Luna Piena: il sole è sorto. La prossima notte torna a fare attenzione!`;
+    }
+    timeEl.textContent=compactMoonText(s,now,albaOggi,tramontoOggi);
+    timeEl.title=msg;
+    timeEl.setAttribute('aria-label',msg);
+  }
+  async function loadStatus(){
+    if(!menuGroups||!idpg){return;}
+    const request=++statusRequest;
+    try{
+      const res=await fetch(`/api/status.php?idpg=${idpg}`,{cache:'no-store'});
+      if(!res.ok){throw new Error('status fetch failed');}
+      const s=await res.json();
+      if(request!==statusRequest){return;}
+      const nextMenuSnapshot=JSON.stringify([s.menuGroups||null,s.menu]);
+      if(nextMenuSnapshot!==menuSnapshot){buildMenu(s);menuSnapshot=nextMenuSnapshot;}
+      renderRecentScene(s.recentScene);
+      void Promise.resolve(window.alphanoPrivacy?.firstLogin()).then(()=>presentWelcome(s.welcome,s.csrfToken)).then(()=>presentCivicInvitation(s.civicInvitation,s.csrfToken)).catch(err=>console.error(err));
+      if(weatherW){renderWeather(s);}
+    }catch(err){console.error(err);}
   }
 
   /* ========================================================================
@@ -390,7 +378,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if(lycanBusy){return;}lycanBusy=true;button.disabled=true;
       try{
         const response=await fetch('/api/transformation.php',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':document.querySelector('meta[name="csrf-token"]')?.content||''},body:JSON.stringify({form:state.nextForm||(state.form==='human'?'native':'human')}),signal:AbortSignal.timeout(10000)});
-        const data=await response.json();if(!response.ok){throw Error(data.error||'Trasformazione non riuscita.');}
+        const data=await response.json();if(!response.ok){throw new Error(data.error||'Trasformazione non riuscita.');}
         await loadProfile();await loadPresenti();
         document.dispatchEvent(new CustomEvent('alphano:lycan-change',{detail:data.transformation}));
       }catch(error){window.alphanoDialog.notice({title:'La metamorfosi',message:error.message,eyebrow:'Alphano · Il personaggio'});}
@@ -404,60 +392,60 @@ document.addEventListener('DOMContentLoaded', () => {
     catch(error){console.error('Stato della metamorfosi temporaneamente non disponibile.',error);}
     finally{lycanReadPending=false;}
   }
-  async function loadProfile() {
-    if (!avatar || !pname || !psub) {return;}
-    try {
-      const res = await fetch('/api/profile.php');
-      if (!res.ok) {throw new Error('profile fetch failed');}
-      const p = await res.json();
-
-      const racePortrait=p.avatar_default_url||avatarFallback;avatar.dataset.defaultSrc=racePortrait;
-      const fallback=()=>{avatar.classList.add('is-race-portrait');if(avatar.getAttribute('src')!==racePortrait){avatar.src=racePortrait;}};
-      avatar.onerror=fallback;avatar.classList.toggle('is-race-portrait',!p.avatar_url||p.avatar_url===racePortrait||p.avatar_url.endsWith('/assets/avatar.svg'));
-      avatar.src=p.avatar_url&&!p.avatar_url.endsWith('/assets/avatar.svg')?p.avatar_url:racePortrait;
-
-      pname.innerHTML = `
+  function renderAvatar(p,racePortrait){
+    const fallback=()=>{avatar.classList.add('is-race-portrait');if(avatar.getAttribute('src')!==racePortrait){avatar.src=racePortrait;}};
+    avatar.onerror=fallback;
+    avatar.classList.toggle('is-race-portrait',!p.avatar_url||p.avatar_url===racePortrait||p.avatar_url.endsWith('/assets/avatar.svg'));
+    avatar.src=p.avatar_url&&!p.avatar_url.endsWith('/assets/avatar.svg')?p.avatar_url:racePortrait;
+  }
+  function renderProfileCard(p,racePortrait){
+    const card=avatar.closest('.profile-card');
+    const art=p.sidebar_art_url||racePortrait;
+    if(/^\/uploads\/profiles\/banners\/[a-z0-9-]+\.webp$/.test(art)){card.style.setProperty('--profile-card-art',`url("${art}")`);}
+    document.getElementById('profile-race').textContent=p.lineage_race_label||p.razza.label||'';
+    psub.textContent=[p.allineamento,p.etnia].filter(Boolean).join(' · ');
+    document.getElementById('profile-money').textContent=Number(p.denari ?? 0).toLocaleString('it-IT');
+  }
+  function renderHealthBar(p){
+    if(p.salute==null||p.saluteMax==null){return;}
+    const pct=Math.max(0,Math.min(100,(p.salute/p.saluteMax)*100));
+    const bar=document.getElementById('profile-health-bar');
+    if(bar){bar.style.width=pct+'%';bar.className='bar green';}
+  }
+  function renderPointsBar(p){
+    const pts=Number(p.puntif)||0;
+    const barPts=document.getElementById('profile-points-bar');
+    const maxPoints=Number(p.puntif_max)||1000;
+    const percent=Math.max(0,Math.min(100,pts/maxPoints*100));
+    barPts.style.width=percent+'%';
+    document.getElementById('profile-health-label').textContent=percent>=100?'Completa':`${Math.round(percent)}%`;
+    barPts.setAttribute('role','progressbar');
+    barPts.setAttribute('aria-valuemin','0');
+    barPts.setAttribute('aria-valuemax',String(maxPoints));
+    barPts.setAttribute('aria-valuenow',String(pts));
+    barPts.setAttribute('aria-label',`Salute: ${pts} / ${maxPoints}`);
+    barPts.className='bar-inner '+healthClass(percent);
+  }
+  async function loadProfile(){
+    if(!avatar||!pname||!psub){return;}
+    try{
+      const res=await fetch('/api/profile.php');
+      if(!res.ok){throw new Error('profile fetch failed');}
+      const p=await res.json();
+      const racePortrait=p.avatar_default_url||avatarFallback;
+      avatar.dataset.defaultSrc=racePortrait;
+      renderAvatar(p,racePortrait);
+      pname.innerHTML=`
         <span class="profile-name-row"><span class="profile-name-text">${esc(p.nome)}</span>${p.razza.icon}</span>
       `;
       renderTransformation(p.transformation);
       renderMetamorphosis(avatar.closest('.profile-card'),p.metamorphosis);
       pname.classList.add('clickable');
-      pname.onclick = () => openModal(`/profili/?Id=${p.id}`, 800, 600, `Profilo ${p.nome}`);
-
-      const card=avatar.closest('.profile-card');
-      const art=p.sidebar_art_url||racePortrait;
-      if(/^\/uploads\/profiles\/banners\/[a-z0-9-]+\.webp$/.test(art)){card.style.setProperty('--profile-card-art',`url("${art}")`);}
-      document.getElementById('profile-race').textContent=p.lineage_race_label||p.razza.label||'';
-      psub.textContent = [p.allineamento,p.etnia].filter(Boolean).join(' · ');
-
-      if (p.salute != null && p.saluteMax != null) {
-        const pct = Math.max(0, Math.min(100, (p.salute / p.saluteMax) * 100));
-        const bar = document.getElementById('profile-health-bar');
-        if (bar) { bar.style.width = pct + '%'; bar.className = 'bar green'; }
-      }
-
-      document.getElementById('profile-money').textContent = Number(p.denari ?? 0).toLocaleString('it-IT');
-
-      const pts = Number(p.puntif) || 0;
-      const barPts = document.getElementById('profile-points-bar');
-      const maxPoints=Number(p.puntif_max) || 1000;
-      const percent=Math.max(0,Math.min(100,pts/maxPoints*100));
-      barPts.style.width = percent + '%';
-      document.getElementById('profile-health-label').textContent=percent>=100?'Completa':`${Math.round(percent)}%`;
-      barPts.setAttribute('role','progressbar');
-      barPts.setAttribute('aria-valuemin','0');
-      barPts.setAttribute('aria-valuemax',String(maxPoints));
-      barPts.setAttribute('aria-valuenow',String(pts));
-      barPts.setAttribute('aria-label',`Salute: ${pts} / ${maxPoints}`);
-      barPts.className = 'bar-inner ' + (
-        percent >= 80 ? 'green' :
-        percent >= 50 ? 'orange' :
-        percent >= 20 ? 'yellow' :
-        percent > 0 ? 'red' : 'gray'
-      );
-    } catch (err) {
-      console.error(err);
-    }
+      pname.onclick=()=>openModal(`/profili/?Id=${p.id}`,800,600,`Profilo ${p.nome}`);
+      renderProfileCard(p,racePortrait);
+      renderHealthBar(p);
+      renderPointsBar(p);
+    }catch(err){console.error(err);}
   }
 
   /* ========================================================================
@@ -468,6 +456,9 @@ document.addEventListener('DOMContentLoaded', () => {
   let presenceData=null;
   if(presenceToggle){presenceToggle.checked=presenceShowsNpcs(idpg);presenceToggle.addEventListener('change',()=>{presenceSaveNpcs(idpg,presenceToggle.checked);if(presenceData){renderPresenti(presenceData);}updateGameClocks();});}
   window.addEventListener('storage',event=>{if(event.key==='alphano:presence:npcs:'+idpg&&presenceToggle){presenceToggle.checked=presenceShowsNpcs(idpg);if(presenceData){renderPresenti(presenceData);}updateGameClocks();}});
+  function presenceMailButton(person){
+    return person.kind==='player'?`<button class="posta-btn" data-pg-name="${encodeURIComponent(person.name)}" data-idpg="${person.id}" title="Scrivi a ${esc(person.name)}">✉</button>`:'';
+  }
   function renderPresenti(data){
       const showNpcs=presenceToggle?presenceToggle.checked:presenceShowsNpcs(idpg);
       presentiCount.textContent = showNpcs?data.total:data.players;
@@ -479,7 +470,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <img src="${esc(person.icon)}" width="16" height="16" alt="${esc(person.race+' · '+person.sex)}" title="${esc(person.race+' · '+person.sex)}" class="razza-icon">
           <a class="presenti-name presence-link" href="${esc(person.profile_url)}" data-url="${esc(person.profile_url)}" data-title="Profilo di ${esc(person.name)}">${esc(person.name)}</a>
           <span class="presence-kind">${person.kind==='npc'?'PNG':'PG'}</span>
-          ${presenceGameAction(person)}          ${person.kind==='player'?`<button class="posta-btn" data-pg-name="${encodeURIComponent(person.name)}" data-idpg="${person.id}" title="Scrivi a ${esc(person.name)}">✉</button>`:''}
+          ${presenceGameAction(person)}          ${presenceMailButton(person)}
         </li>`).join('')}`).join('') || '<li data-live-key="empty">Nessun personaggio presente.</li>');
   }
   presentiList?.addEventListener('click',event=>{
@@ -503,21 +494,21 @@ document.addEventListener('DOMContentLoaded', () => {
      8. INIT + TOGGLE SIDEBAR MOBILE + ESC TO CLOSE
   ======================================================================== */
   document.addEventListener('alphano:lycan-change',refreshTransformation);
-  window.addEventListener('message',event=>{if(event.origin===location.origin&&event.data?.type==='alphano:permissions-changed'){loadStatus();loadProfile();}});
+  window.addEventListener('message',event=>{if(event.origin===location.origin&&event.data?.type==='alphano:permissions-changed'){void loadStatus();void loadProfile();}});
   if (idpg) {
-    loadStatus();      setInterval(loadStatus,     30_000);
-    loadNews();        setInterval(loadNews,       30_000);
-    loadPresenti();    setInterval(loadPresenti,   30_000);
-    loadProfile();setInterval(loadProfile,30000);setInterval(refreshTransformation,15000);
-    const resumePresence=()=>{if(!document.hidden){loadStatus();loadPresenti();refreshTransformation();}};
+    void loadStatus();      setInterval(loadStatus,     30_000);
+    void loadNews();        setInterval(loadNews,       30_000);
+    void loadPresenti();    setInterval(loadPresenti,   30_000);
+    void loadProfile();setInterval(loadProfile,30000);setInterval(refreshTransformation,15000);
+    const resumePresence=()=>{if(!document.hidden){void loadStatus();void loadPresenti();void refreshTransformation();}};
     document.addEventListener('visibilitychange',resumePresence);
     window.addEventListener('pageshow',resumePresence);
     window.addEventListener('online',resumePresence);
     const initialView = script?.dataset.viewUrl || '';
-    const initialScene = /^\/(?:mappa\.php(?:[?#]|$)|chat\/(?:index\.php(?:[?#]|$)|(?:[a-z0-9_-]+)\/(?!assemblea\.php|bacheche\/)))/.test(initialView);
+    const initialScene = /^\/(?:mappa\.php|chat\/index\.php)(?:[?#]|$)/.test(initialView) || /^\/chat\/[a-z0-9_-]+\/(?!assemblea\.php|bacheche\/)/.test(initialView);
     loadIntoMap(initialScene ? initialView : `/api/mappa.php?idpg=${idpg}`);
     if (initialView && !initialScene) {openModal(initialView, 0, 0, 'Alphano');}
-    fetch('/api/log_ingressi.php', { keepalive: true }).catch(()=>{});
+    void fetch('/api/log_ingressi.php', { keepalive: true }).catch(err=>console.error(err));
   }
 
   if (sidebarToggle && sidebar) {

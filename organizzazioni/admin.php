@@ -308,7 +308,7 @@ $db      = ConnectDB();
       </tr>
       <?php if ($prestitiOrg): foreach ($prestitiOrg as $d):
         $rimanente = (int)$d['stato']===5
-          ? CalcolaInteressi((int)$d['quantita'],(int)$d['interessi'],(int)$d['data']) - (int)$d['restituiti']
+          ? calcolaInteressi((int)$d['quantita'],(int)$d['interessi'],(int)$d['data']) - (int)$d['restituiti']
           : ((int)$d['stato']<5 ? (int)$d['quantita'] : 0);
       ?>
       <tr>
@@ -331,7 +331,7 @@ $db      = ConnectDB();
         <td><a href="#" onclick="openProfileId('<?=$d['pgcorp']?>')"><?=htmlspecialchars(GetPGFromID($d['pgcorp']),ENT_QUOTES)?></a></td>
         <td><?=$d['quantita']?> <?=alphano_currency_html()?></td>
         <td><?=$d['interessi']?> %</td>
-        <td><?=ProcessStato($d['stato'])?></td>
+        <td><?=processStato($d['stato'])?></td>
         <td><?=$rimanente?> <?=alphano_currency_html()?></td>
       </tr>
       <?php endforeach; else: ?>
@@ -347,7 +347,7 @@ $db      = ConnectDB();
       </tr>
       <?php if ($prestitiPGOrg): foreach ($prestitiPGOrg as $d):
         $rimanente = (int)$d['stato']===5
-          ? CalcolaInteressi((int)$d['quantita'],(int)$d['interessi'],(int)$d['data']) - (int)$d['restituiti']
+          ? calcolaInteressi((int)$d['quantita'],(int)$d['interessi'],(int)$d['data']) - (int)$d['restituiti']
           : ((int)$d['stato']<5 ? (int)$d['quantita'] : 0);
       ?>
         <?php if (in_array((int)$d['stato'], [1,2,4], true)): ?>
@@ -365,7 +365,7 @@ $db      = ConnectDB();
             <td><a href="#" onclick="openProfileId('<?=$d['pgcorp']?>')"><?=htmlspecialchars(GetPGFromID($d['pgcorp']),ENT_QUOTES)?></a></td>
             <td><input type="number" min="1" max="2147483647" step="1" required name="quantita" form="org-loan-<?=(int)$d['id']?>" value="<?=$d['quantita']?>" class="u-a053cda31"> <?=alphano_currency_html()?></td>
             <td><input type="number" min="0" max="100" step="1" required name="interessi" form="org-loan-<?=(int)$d['id']?>" value="<?=$d['interessi']?>" class="u-1a96f4c6d"> %</td>
-            <td><?=ProcessStato($d['stato'])?></td>
+            <td><?=processStato($d['stato'])?></td>
             <td><?=$rimanente?> <?=alphano_currency_html()?></td>
             <td>
               <?php if ($budget >= $d['quantita']): ?>
@@ -382,7 +382,7 @@ $db      = ConnectDB();
           <td><a href="#" onclick="openProfileId('<?=$d['pgcorp']?>')"><?=htmlspecialchars(GetPGFromID($d['pgcorp']),ENT_QUOTES)?></a></td>
           <td><?=$d['quantita']?> <?=alphano_currency_html()?></td>
           <td><?=$d['interessi']?> %</td>
-          <td><?=ProcessStato($d['stato'])?></td>
+          <td><?=processStato($d['stato'])?></td>
           <td><?=$rimanente?> <?=alphano_currency_html()?></td>
           <td></td>
         </tr>

@@ -112,15 +112,7 @@
         this.velocity = 0;
         this.velocityY = 0;
 
-        var that = this;
-        this.documentResetHandler = function() {
-            that._resetMouse.apply(that);
-        };
-
-        // FIXME make sure to remove this
-        var html = document.documentElement;
-        html.addEventListener("mouseup", this.documentResetHandler, false);
-        html.addEventListener("click", this.documentResetHandler, false);
+        this.documentResetHandler = () => this._resetMouse();
 
         this._initEvents();
 
@@ -130,11 +122,10 @@
             var prefixes = ['', '-ms-', '-webkit-', '-moz-'];
             var styles = {
                 'transform': 'translate3d(0,0,0)',
-                'perspective': '1000', // TODO is this even valid? is this even needed?
+                'perspective': '1000px',
                 'backface-visibility': 'hidden'
             };
-            for (var i=0; i<prefixes.length; i++) {
-                var prefix = prefixes[i];
+            for (var prefix of prefixes) {
                 for (var key in styles) {
                     if (styles.hasOwnProperty(key)){
                         this.el.style[prefix+key] = styles[key];
@@ -145,88 +136,71 @@
     };
 
     VanillaKinetic.prototype._initEvents = function() {
-        var self = this;
         this.settings.events = {
-            touchStart: function(e) {
+            touchStart: e => {
                 var touch;
-				
-				
-				
-                if (self._useTarget(e.target, e)) {
-					
-                    
-					if(e.originalEvent === undefined){
-						touch = e.touches[0];
-						console.log(e);
-					}else{ touch = e.originalEvent.touches[0];}
-                    self.threshold = self._threshold(e.target, e);
-                    self._start(touch.clientX, touch.clientY);
+                if (this._useTarget(e.target, e)) {
+                    if(e.originalEvent === undefined){
+                        touch = e.touches[0];
+                    }else{ touch = e.originalEvent.touches[0];}
+                    this.threshold = this._threshold(e.target, e);
+                    this._start(touch.clientX, touch.clientY);
                     e.stopPropagation();
                 }
             },
-            touchMove: function(e) {
+            touchMove: e => {
                 var touch;
-                if (self.mouseDown) {
-					
+                if (this.mouseDown) {
                     if(e.originalEvent === undefined){
-						touch = e.touches[0];
-					}else{ touch = e.originalEvent.touches[0];}
-                    self._inputmove(touch.clientX, touch.clientY);
+                        touch = e.touches[0];
+                    }else{ touch = e.originalEvent.touches[0];}
+                    this._inputmove(touch.clientX, touch.clientY);
                     if (e.preventDefault) {
                         e.preventDefault();
                     }
                 }
             },
-            inputDown: function(e) {
-                if (self._useTarget(e.target, e)) {
-                    self.threshold = self._threshold(e.target, e);
-                    self._start(e.clientX, e.clientY);
-                    self.elementFocused = e.target;
+            inputDown: e => {
+                if (this._useTarget(e.target, e)) {
+                    this.threshold = this._threshold(e.target, e);
+                    this._start(e.clientX, e.clientY);
+                    this.elementFocused = e.target;
                     if (e.target.nodeName === "DIV" && e.target.className === "test_") {
                         e.preventDefault();
                     }
                     e.stopPropagation();
                 }
             },
-            inputEnd: function(e) {
-                if (self._useTarget(e.target, e)) {
-                    self._end();
-                    self.elementFocused = null;
-					
-					if(e.touches[0].target instanceof HTMLImageElement){
-					//console.log(e.touches[0].target.dataset("href"));
-						if(e.touches[0].target.attributes[0]){
-							var location = e.touches[0].target.getAttribute('href');
-							window.location.href= location;
-
-						}
-					}
-					
-                    if (e.preventDefault) {
-						if(e.cancelable) {
-							e.preventDefault();
-						  }
+            inputEnd: e => {
+                if (this._useTarget(e.target, e)) {
+                    this._end();
+                    this.elementFocused = null;
+                    if(e.touches && e.touches[0] && e.touches[0].target instanceof HTMLImageElement && e.touches[0].target.attributes[0]){
+                        window.location.href = e.touches[0].target.getAttribute('href');
+                    }
+                    if (e.preventDefault && e.cancelable) {
+                        e.preventDefault();
                     }
                 }
             },
-            inputMove: function(e) {
-                if (self.mouseDown) {
-                    self._inputmove(e.clientX, e.clientY);
+            inputMove: e => {
+                if (this.mouseDown) {
+                    this._inputmove(e.clientX, e.clientY);
                     if (e.preventDefault) {
                         e.preventDefault();
                     }
                 }
             },
-            scroll: function(e) {
-                if (typeof self.settings.moved === 'function') {
-                    self.settings.moved.call(self, self.settings);
+            scroll: e => {
+                if (typeof this.settings.moved === 'function') {
+                    this.settings.moved.call(this, this.settings);
                 }
                 if (e.preventDefault) {
                     e.preventDefault();
                 }
             },
-            inputClick: function(e) {
-                if (Math.abs(self.velocity) > 0 || Math.abs(self.velocityY) > 0) {
+            inputClick: e => {
+                if (Math.abs(this.velocity) > 0 || Math.abs(this.velocityY) > 0) {
                     e.preventDefault();
                     if (e.stopPropagation) {
                         e.stopPropagation();
@@ -234,8 +208,8 @@
                     return false;
                 }
             },
-            dragStart: function(e) {
-                if (self._useTarget(e.target, e) && self.elementFocused) {
+            dragStart: e => {
+                if (this._useTarget(e.target, e) && this.elementFocused) {
                     if (e.preventDefault) {
                         e.preventDefault();
                     }
@@ -245,11 +219,12 @@
                     return false;
                 }
             },
-            selectStart: function(e) {
-                if (typeof self.settings.selectStart === 'function') {
-                    return self.settings.selectStart.apply(self, arguments);
+            selectStart: (...args) => {
+                const e = args[0];
+                if (typeof this.settings.selectStart === 'function') {
+                    return this.settings.selectStart.apply(this, args);
                 }
-                else if (self._useTarget(e.target, e)) {
+                if (this._useTarget(e.target, e)) {
                     if (e.preventDefault) {
                         e.preventDefault();
                     }
@@ -264,53 +239,53 @@
         this._attachListeners();
     };
 
+    VanillaKinetic.prototype._blurFocused = function() {
+        if (!this.elementFocused) { return; }
+        this.elementFocused.blur();
+        this.elementFocused = null;
+        this.el.focus();
+    };
+
+    VanillaKinetic.prototype._scrollByDelta = function(movedX, movedY) {
+        var scrollLeft = this.scrollLeft();
+        var scrollTop = this.scrollTop();
+        this.scrollLeft(this.settings.x ? scrollLeft - movedX : scrollLeft);
+        this.scrollTop(this.settings.y ? scrollTop - movedY : scrollTop);
+    };
+
     VanillaKinetic.prototype._inputmove = function(clientX, clientY) {
-        if (!this.lastMove || new Date() > new Date(this.lastMove.getTime() + this.throttleTimeout)) {
-            this.lastMove = new Date();
-
-            if (this.mouseDown && (this.xpos || this.ypos)) {
-                var movedX = (clientX - this.xpos);
-                var movedY = (clientY - this.ypos);
-                if (this.settings.invert) {
-                    movedX *= -1;
-                    movedY *= -1;
-                }
-                if (this.threshold>0) {
-                    var moved = Math.sqrt(movedX*movedX + movedY*movedY);
-                    if (this.threshold>moved) {
-                        return;
-                    }
-                    else {
-                        this.threshold = 0;
-                    }
-                }
-                if (this.elementFocused) {
-                    this.elementFocused.blur();
-                    this.elementFocused = null;
-                    this.el.focus();
-                }
-
-                this.settings.decelerate = false;
-                this.velocity = this.velocityY = 0;
-
-                var scrollLeft = this.scrollLeft();
-                var scrollTop = this.scrollTop();
-
-                this.scrollLeft(this.settings.x ? scrollLeft - movedX : scrollLeft);
-                this.scrollTop(this.settings.y ? scrollTop - movedY : scrollTop);
-
-                this.prevXPos = this.xpos;
-                this.prevYPos = this.ypos;
-                this.xpos = clientX;
-                this.ypos = clientY;
-
-                this._calculateVelocities();
-                this._setMoveClasses(this.settings.movingClass);
-
-                if (typeof this.settings.moved === 'function') {
-                    this.settings.moved.call(this, this.settings);
-                }
+        if (this.lastMove && new Date() <= new Date(this.lastMove.getTime() + this.throttleTimeout)) {
+            return;
+        }
+        this.lastMove = new Date();
+        if (!this.mouseDown || (!this.xpos && !this.ypos)) {
+            return;
+        }
+        var movedX = clientX - this.xpos;
+        var movedY = clientY - this.ypos;
+        if (this.settings.invert) {
+            movedX *= -1;
+            movedY *= -1;
+        }
+        if (this.threshold > 0) {
+            var moved = Math.hypot(movedX, movedY);
+            if (this.threshold > moved) {
+                return;
             }
+            this.threshold = 0;
+        }
+        this._blurFocused();
+        this.settings.decelerate = false;
+        this.velocity = this.velocityY = 0;
+        this._scrollByDelta(movedX, movedY);
+        this.prevXPos = this.xpos;
+        this.prevYPos = this.ypos;
+        this.xpos = clientX;
+        this.ypos = clientY;
+        this._calculateVelocities();
+        this._setMoveClasses(this.settings.movingClass);
+        if (typeof this.settings.moved === 'function') {
+            this.settings.moved.call(this, this.settings);
         }
     };
 
@@ -372,29 +347,24 @@
             if (velocity > max){
                 newVelocity = max;
             }
-        } else {
-            if (velocity < (0 - max)){
-                newVelocity = (0 - max);
-            }
+        } else if (velocity < (0 - max)){
+            newVelocity = (0 - max);
         }
         return newVelocity;
     };
 
     VanillaKinetic.prototype._setMoveClasses = function(classes) {
-        // The fix-me comment below is from original jQuery.kinetic project
-        // FIXME: consider if we want to apply PL #44, this should not remove
-        // classes we have not defined on the element!
+        // Solo le classi gestite da kinetic vengono rimosse: gli altri stati
+        // dell'elemento non vengono toccati.
         var settings = this.settings;
         var el = this.el;
 
-        el.classList.remove(settings.movingClass.up);
-        el.classList.remove(settings.movingClass.down);
-        el.classList.remove(settings.movingClass.left);
-        el.classList.remove(settings.movingClass.right);
-        el.classList.remove(settings.deceleratingClass.up);
-        el.classList.remove(settings.deceleratingClass.down);
-        el.classList.remove(settings.deceleratingClass.left);
-        el.classList.remove(settings.deceleratingClass.right);
+        el.classList.remove(
+            settings.movingClass.up, settings.movingClass.down,
+            settings.movingClass.left, settings.movingClass.right,
+            settings.deceleratingClass.up, settings.deceleratingClass.down,
+            settings.deceleratingClass.left, settings.deceleratingClass.right
+        );
 
         if (this.velocity > 0){
             el.classList.add(classes.right);
@@ -410,34 +380,25 @@
         }
     };
 
+    VanillaKinetic.prototype._moveAxis = function(scroller, settings, axis, sizeProp, velocityProp, scrollFn) {
+        if (!settings[axis] || scroller[sizeProp] <= 0) {
+            this[velocityProp] = 0;
+            return;
+        }
+        this[scrollFn](this[scrollFn]() + this[velocityProp]);
+        if (Math.abs(this[velocityProp]) > 0 && settings.decelerate) {
+            this[velocityProp] = this._decelerateVelocity(this[velocityProp], settings.slowdown);
+        }
+    };
+
     VanillaKinetic.prototype._move = function() {
         var scroller = this._getScroller();
-        var self = this;
         var settings = this.settings;
 
-        if (settings.x && scroller.scrollWidth > 0) {
-            this.scrollLeft(this.scrollLeft() + this.velocity);
-            if (Math.abs(this.velocity) > 0) {
-                this.velocity = settings.decelerate ?
-                    self._decelerateVelocity(this.velocity, settings.slowdown) : this.velocity;
-            }
-        }
-        else {
-            this.velocity = 0;
-        }
+        this._moveAxis(scroller, settings, 'x', 'scrollWidth', 'velocity', 'scrollLeft');
+        this._moveAxis(scroller, settings, 'y', 'scrollHeight', 'velocityY', 'scrollTop');
 
-        if (settings.y && scroller.scrollHeight > 0){
-            this.scrollTop(this.scrollTop() + this.velocityY);
-            if (Math.abs(this.velocityY) > 0){
-                this.velocityY = settings.decelerate ?
-                    self._decelerateVelocity(this.velocityY, settings.slowdown) : this.velocityY;
-            }
-        }
-        else {
-            this.velocityY = 0;
-        }
-
-        self._setMoveClasses(settings.deceleratingClass);
+        this._setMoveClasses(settings.deceleratingClass);
 
         if (typeof settings.moved === 'function'){
             settings.moved.call(this, settings);
@@ -447,20 +408,19 @@
             if (!this.moving) {
                 this.moving = true;
                 // tick for next movement
-                _raf(function() {
-                    self.moving = false;
-                    self._move();
+                _raf(() => {
+                    this.moving = false;
+                    this._move();
                 });
             }
         }
         else {
-            self.stop();
+            this.stop();
         }
     };
 
     VanillaKinetic.prototype._getScroller = function() {
-        // FIXME we may want to normalize behaviour across browsers as in original jQuery.kinetic
-        // currently this won't work correctly on all brwosers when attached to html or body element
+        // Lo scroller è sempre l'elemento a cui kinetic è associato.
         return this.el;
     };
 
@@ -490,6 +450,9 @@
         var el = this.el;
         var settings = this.settings;
 
+        document.documentElement.addEventListener("mouseup", this.documentResetHandler, false);
+        document.documentElement.addEventListener("click", this.documentResetHandler, false);
+
         if (_isTouch) {
             el.addEventListener('touchstart', settings.events.touchStart, false);
             el.addEventListener('touchend', settings.events.inputEnd, false);
@@ -509,6 +472,9 @@
     VanillaKinetic.prototype._detachListeners = function() {
         var el = this.el;
         var settings = this.settings;
+
+        document.documentElement.removeEventListener("mouseup", this.documentResetHandler, false);
+        document.documentElement.removeEventListener("click", this.documentResetHandler, false);
 
         if (_isTouch) {
             el.removeEventListener('touchstart', settings.events.touchStart, false);

@@ -113,7 +113,7 @@ switch ($act) {
  case 'save_board_games':
   require_once __DIR__.'/../libs/board-games.inc.php';
   if(!$IS_ADMIN){ alphano_fail('Riservato alla gestione.',403); }
-  bg_save_room($idpg,$st,array_map(static fn($key)=>isset($_POST[$key]),array_combine(['scacchi','dama','coins','items','materials'],['scacchi','dama','coins','items','materials'])));
+  bgSaveRoom($idpg,$st,array_map(static fn($key)=>isset($_POST[$key]),array_combine(['scacchi','dama','coins','items','materials'],['scacchi','dama','coins','items','materials'])));
   $msg='Giochi e poste del luogo aggiornati.';break;
 
 
@@ -209,7 +209,7 @@ DEBUG $_POST:
 <?php endif; ?>
 
 
-<?php if($IS_ADMIN&&$st!==''):require_once __DIR__.'/../libs/board-games.inc.php';if(bg_ready()):$boardRoom=bg_room($st); ?>
+<?php if($IS_ADMIN&&$st!==''):require_once __DIR__.'/../libs/board-games.inc.php';if(bgReady()):$boardRoom=bgRoom($st); ?>
 <section class="bg-stats-card"><h2>Giochi da tavolo del luogo</h2><p>Disponibilità e poste consentite. Le regole generali si configurano nella <a href="/admin/giochi.php">gestione centralizzata dei giochi</a>.</p><form method="post"><input type="hidden" name="action_main" value="save_board_games"><input type="hidden" name="stanza" value="<?=h($st)?>"><?php foreach(['scacchi'=>'Scacchi','dama'=>'Dama italiana','coins'=>alphano_currency_text('Poste in Corone'),'items'=>'Poste in oggetti','materials'=>'Poste in materiali'] as $k=>$label): ?><label class="bg-check"><input type="checkbox" name="<?=$k?>" value="1" <?=!empty($boardRoom[$k])?'checked':''?>><?=htmlspecialchars($label,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8')?></label><?php endforeach; ?><button>Salva giochi del luogo</button></form></section>
 <?php endif;endif; ?>
 <!-- FORM Principale -->

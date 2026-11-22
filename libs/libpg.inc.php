@@ -3,6 +3,15 @@ declare(strict_types=1);
 const ALPHANO_REGEX_JS_VAR = '/^[a-zA-Z_$][a-zA-Z0-9_$]*(?:\[\d+\])?$/D';
 
 use Alphano\Database\PDOMySQLDriver;
+const ALPHANO_MSG_INVALID_CARICA = 'Dati della carica non validi';
+const ALPHANO_MSG_BADGE_SAVE = 'Impossibile salvare immagine';
+const ALPHANO_MSG_CARICA_SAVE = 'Impossibile salvare la carica';
+const ALPHANO_MSG_CARICA_NOT_FOUND = 'Carica non trovata';
+const ALPHANO_BADGE_PATH_ORG = '/uploads/badges/organizzazioni/';
+const ALPHANO_BADGE_PATH_CORP = '/uploads/badges/corporazioni/';
+
+/** Errore durante il salvataggio di uno stemma di carica. */
+class BadgeSaveException extends RuntimeException {}
 
 require_once __DIR__ . '/kernel.inc.php';
 require_once __DIR__ . '/astro.inc.php';
@@ -46,7 +55,7 @@ function doLogin(string $username, string $password): bool
     initSession();
     $db = getDB();
     $rows = $db->query('SELECT id, nome, password FROM utenti WHERE nome = ? LIMIT 1', [$username]);
-    if (count($rows) !== 1 || !alphano_password_verify($password, $rows[0]['password'])) return false;
+    if (count($rows) !== 1 || !alphano_password_verify($password, $rows[0]['password'])) {return false;}
     // Migrazione progressiva: gli account esistenti continuano a funzionare.
     if (password_needs_rehash($rows[0]['password'], PASSWORD_DEFAULT)) {
         $column = $db->query("SHOW COLUMNS FROM utenti LIKE 'password'")[0]['Type'] ?? '';
@@ -54,7 +63,7 @@ function doLogin(string $username, string $password): bool
             $db->execute('UPDATE utenti SET password = ? WHERE id = ?', [password_hash($password, PASSWORD_DEFAULT), $rows[0]['id']]);
         }
     }
-    if (!headers_sent()) session_regenerate_id(true);
+    if (!headers_sent()) {session_regenerate_id(true);}
     $_SESSION['user_id']   = (int)$rows[0]['id'];
     $_SESSION['user_name'] = $rows[0]['nome'];
     return true;
@@ -68,7 +77,7 @@ function doLogout(): void
     initSession();
     $_SESSION = [];
     if (ini_get('session.use_cookies')) {
-        setcookie(session_name(), '', time() - 3600, '/');
+        setcookie(session_name(), '', ['expires' => time() - 3600, 'path' => '/', 'secure' => true, 'httponly' => true, 'samesite' => 'Lax']);
     }
     session_destroy();
 }
@@ -80,7 +89,7 @@ function doLogout(): void
  * @param bool $requireLogin
  * @return int|null
  */
-function GetIDPG($requireLogin = true): ?int
+function getIDPG($requireLogin = true): ?int
 {
     // forziamo il cast: se arrivano 0/1 da int → li convertiamo
     $requireLogin = (bool)$requireLogin;
@@ -95,7 +104,7 @@ function GetIDPG($requireLogin = true): ?int
     $id = (int)$_SESSION['user_id'];
     if ($id < 1 || !getDB()->query('SELECT 1 FROM utenti WHERE id = ?', [$id])) {
         unset($_SESSION['user_id'], $_SESSION['user_name']);
-        if ($requireLogin) alphano_fail('Sessione scaduta. Effettua nuovamente il login.', 403);
+        if ($requireLogin) {alphano_fail('Sessione scaduta. Effettua nuovamente il login.', 403);}
         return null;
     }
     return $id;
@@ -104,7 +113,7 @@ function GetIDPG($requireLogin = true): ?int
 /**
  * Restituisce il nome del PG a partire dall’ID (o null).
  */
-function GetPGFromID(?int $idpg): ?string
+function getPGFromID(?int $idpg): ?string
 {
     if ($idpg === null) {
         return null;
@@ -129,9 +138,9 @@ function GetPGFromID(?int $idpg): ?string
 /**
  * Aggiorna la posizione corrente del PG e tiene traccia dei PF e degli off‐line.
  */
-function SetPosizione(string $pos, int $idpg, string $chat = ''): void
+function setPosizione(string $pos, int $idpg, string $chat = ''): void
 {
-    if(!empty($_SESSION['support_session_id']))return;
+    if(!empty($_SESSION['support_session_id'])){return;}
     $db  = getDB();
     $now = time();
 
@@ -178,7 +187,7 @@ function SetPosizione(string $pos, int $idpg, string $chat = ''): void
 /**
  * Formatta la posizione in testo leggibile.
  */
-function GetPosizione(string $pos): string
+function getPosizione(string $pos): string
 {
     return match($pos) {
         'off'    => 'Non Connesso',
@@ -190,7 +199,7 @@ function GetPosizione(string $pos): string
 /**
  * ---------- SEMPLICI LOOKUP ----------
  */
-function GetPGID(string $nomepg): ?int
+function getPGID(string $nomepg): ?int
 {
     if ($nomepg === '') {
         return null;
@@ -200,7 +209,7 @@ function GetPGID(string $nomepg): ?int
     return isset($rows[0]['id']) ? (int)$rows[0]['id'] : null;
 }
 
-function GetAllineamento(int $idpg): ?string
+function getAllineamento(int $idpg): ?string
 {
     $db = getDB();
     $rows = $db->query('SELECT allineamento FROM utenti WHERE id = ? LIMIT 1', [$idpg]);
@@ -212,15 +221,15 @@ function processAl(string $al): string
     return alphano_alignment($al)['name']??$al;
 }
 
-function GetRazza(int $r): string
+function getRazza(int $r): string
 {
-    if ($r === 0) return 'Non assegnata';
+    if ($r === 0) {return 'Non assegnata';}
     $db = getDB();
     $rows = $db->query('SELECT nome FROM razze WHERE id = ? LIMIT 1', [$r]);
     return $rows[0]['nome'] ?? 'Razza non configurata';
 }
 
-function GetForzaRazza(int $r): ?int
+function getForzaRazza(int $r): ?int
 {
     $db = getDB();
     $rows = $db->query('SELECT forza FROM razze WHERE id = ? LIMIT 1', [$r]);
@@ -230,7 +239,7 @@ function GetForzaRazza(int $r): ?int
 /**
  * Restituisce un array di [id, nome] per tutte le razze.
  */
-function ListaRazze(bool $visibili = false): array
+function listaRazze(bool $visibili = false): array
 {
     $db = getDB();
     if ($visibili) {
@@ -249,7 +258,7 @@ function ListaRazze(bool $visibili = false): array
 /**
  * ---------- PROTEZIONE IP ----------
  */
-function IsLock(string $ip): bool
+function isLock(): bool
 {
     // No real network addresses are preconfigured in the distributed engine.
     return false;
@@ -258,8 +267,8 @@ function IsLock(string $ip): bool
 /* =========================================================
  *  UTILITÀ BREVETI BASE64
  * =======================================================*/
-function CriptaNome(string $plain): string   { return base64_encode($plain); }
-function DecriptaNome(string $crypt): string { return base64_decode($crypt); }
+function criptaNome(string $plain): string   { return base64_encode($plain); }
+function decriptaNome(string $crypt): string { return base64_decode($crypt); }
 
 /* =========================================================
  *  SHORTCUT NOME PG & CREDENZIALI ADMIN
@@ -267,21 +276,21 @@ function DecriptaNome(string $crypt): string { return base64_decode($crypt); }
 /**
  * Ritorna il nome del PG loggato (o null se guest).
  */
-function GetPGName(bool $requireLogin = true): ?string
+function getPGName(bool $requireLogin = true): ?string
 {
-    return GetPGFromID(GetIDPG($requireLogin));
+    return getPGFromID(getIDPG($requireLogin));
 }
 
 /**
  * Con il nuovo sistema salviamo la chiave admin in sessione, non più in cookie criptati.
  */
-function GetAdminKey(): ?string
+function getAdminKey(): ?string
 {
     initSession();
     return $_SESSION['admin_key'] ?? null;
 }
 
-function GetPGPasswd(): ?string   // hashed o plain, dipende da come la salvi al login
+function getPGPasswd(): ?string   // hashed o plain, dipende da come la salvi al login
 {
     initSession();
     return $_SESSION['user_pass'] ?? null;
@@ -293,19 +302,19 @@ function GetPGPasswd(): ?string   // hashed o plain, dipende da come la salvi al
 /**
  * Produci HTML dell’icona razza + eventuale etnia.
  */
-function alphano_race_icon(int $race,string $sex):string
+function alphanoRaceIcon(): string
 {
     return '/assets/avatar.svg';
 }
 
-function processRazza(int $razzaId, string $sesso, int $etniaId = 0): string
+function processRazza(int $razzaId, int $etniaId = 0): string
 {
-    if ($razzaId === ALPHANO_RACE_LEGACY_SPIRIT) $razzaId = ALPHANO_RACE_SPIRIT;
+    if ($razzaId === ALPHANO_RACE_LEGACY_SPIRIT) {$razzaId = ALPHANO_RACE_SPIRIT;}
     $db     = getDB();
     $razza  = $db->query('SELECT nome FROM razze WHERE id=?', [$razzaId])[0]['nome'] ?? '';
-    $etniaT = $etniaId ? ' ' . htmlspecialchars(GetEtnia($etniaId) ?? '', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') : '';
+    $etniaT = $etniaId ? ' ' . htmlspecialchars(getEtnia($etniaId) ?? '', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') : '';
 
-    $file = alphano_race_icon($razzaId, $sesso);
+    $file = alphanoRaceIcon();
 
     return sprintf(
         '<img src="%s" class="race-emblem" width="26" height="26" alt="%s%s" title="%s%s" />',
@@ -317,13 +326,13 @@ function processRazza(int $razzaId, string $sesso, int $etniaId = 0): string
     );
 }
 
-function GetEtnia(int $id): ?string
+function getEtnia(int $id): ?string
 {
     $db = getDB();
     return $db->query('SELECT nome FROM etnie WHERE id=?', [$id])[0]['nome'] ?? null;
 }
 
-function ListaEtnie(): array
+function listaEtnie(): array
 {
     $db = getDB();
     return $db->query('SELECT * FROM etnie ORDER BY nome');
@@ -332,7 +341,7 @@ function ListaEtnie(): array
 /* =========================================================
  *  FIRMA PG & ARALDICHE
  * =======================================================*/
-function FirmaPG(int $idpg): string
+function firmaPG(int $idpg): string
 {
     $db  = getDB();
     $row = $db->query(
@@ -354,24 +363,24 @@ function FirmaPG(int $idpg): string
     if ($row['organizzazione']) {
         $orgName = $db->query('SELECT nome FROM organizzazioni WHERE id=?', [$row['organizzazione']])[0]['nome'] ?? '';
         $carName = $db->query('SELECT nome FROM caricheorganizzazioni WHERE id=?', [$row['caricaorganizzazione']])[0]['nome'] ?? '';
-        $stamp[] = sprintf('[i]%s[/i]%s dell’Organizzazione %s',alphano_badge_url('organizzazioni',(int)$row['caricaorganizzazione'],(int)$row['organizzazione']),$carName,$orgName);
+        $stamp[] = sprintf('[i]%s[/i]%s dell’Organizzazione %s',alphanoBadgeUrl('organizzazioni',(int)$row['caricaorganizzazione'],(int)$row['organizzazione']),$carName,$orgName);
     }
 
     /* Corporazione */
     if ($row['corporazione']) {
         $corpName = $db->query('SELECT nome FROM corporazioni WHERE id=?', [$row['corporazione']])[0]['nome'] ?? '';
         $carName  = $db->query('SELECT nome FROM carichecorporazioni WHERE id=?', [$row['caricacorporazione']])[0]['nome'] ?? '';
-        $stamp[]  = sprintf('[i]%s[/i]%s della Corporazione %s',alphano_badge_url('corporazioni',(int)$row['caricacorporazione'],(int)$row['corporazione']),$carName,$corpName);
+        $stamp[]  = sprintf('[i]%s[/i]%s della Corporazione %s',alphanoBadgeUrl('corporazioni',(int)$row['caricacorporazione'],(int)$row['corporazione']),$carName,$corpName);
     }
 
     /* Araldica */
-    $nomeAr = GetAraldica($row['araldica'] ?? 0) ?? '';
-    $stamp[] = sprintf('[i]%s[/i]%s',alphano_badge_url('cariche',(int)$row['araldica']),$nomeAr);
+    $nomeAr = getAraldica($row['araldica'] ?? 0) ?? '';
+    $stamp[] = sprintf('[i]%s[/i]%s',alphanoBadgeUrl('cariche',(int)$row['araldica']),$nomeAr);
 
     return "\n\n".implode("\n", array_filter($stamp));
 }
 
-function GetAraldica(int $id): ?string
+function getAraldica(int $id): ?string
 {
     $db = getDB();
     return $db->query('SELECT nome FROM araldiche WHERE id=?', [$id])[0]['nome'] ?? null;
@@ -393,13 +402,13 @@ function GetAraldica(int $id): ?string
  * @return string        markup HTML completo
  */
 /** Percorso pubblico di uno stemma, con fallback per gli asset storici assenti. */
-function alphano_badge_url(string $type, int $id, int $scope = 0): string
+function alphanoBadgeUrl(string $type, int $id, int $scope = 0): string
 {
-    if (!in_array($type, ['cariche','organizzazioni','corporazioni'], true)) throw new InvalidArgumentException('Tipo stemma non valido');
+    if (!in_array($type, ['cariche','organizzazioni','corporazioni'], true)) {throw new InvalidArgumentException('Tipo stemma non valido');}
     $path = '/uploads/badges/' . $type . '/' . ($scope > 0 ? $scope . '/' : '') . max(0,$id) . '.gif';
     foreach ([$path] as $candidate) {
         foreach ([htmlroot . $candidate, dirname(__DIR__) . $candidate] as $file) {
-            if (!is_file($file)) continue;
+            if (!is_file($file)) {continue;}
             // Rank insignia remain editable through the existing GIF upload.
             // Refresh cached art after either a release or an administrator upload.
             return $candidate . '?v=' . filemtime($file);
@@ -411,13 +420,13 @@ function alphano_badge_url(string $type, int $id, int $scope = 0): string
 function processAraldica(int $id, string $jsVar = ''): string
 {
     // Recupero nome araldica (title/alt) – ritorno stringa vuota se non esiste
-    $nome = GetAraldica($id);
+    $nome = getAraldica($id);
     if ($nome === null) {
         return '';
     }
 
     // Path immagine (la tua struttura è /uploads/badges/cariche/<id>.gif)
-    $src = alphano_badge_url('cariche', $id);
+    $src = alphanoBadgeUrl('cariche', $id);
 
     // Attributi accessibilità + eventuale tooltip JS
     if (preg_match(ALPHANO_REGEX_JS_VAR, $jsVar)) {
@@ -433,65 +442,126 @@ function processAraldica(int $id, string $jsVar = ''): string
 }
 
 
-function ListaAraldiche(): array
+function listaAraldiche(): array
 {
     return getDB()->query('SELECT id, nome, city FROM araldiche ORDER BY nome');
 }
 
 /* ----------  Add & Modify Araldica  ------------------------------------ */
-function AddAraldica(
-    string $nome,
-    bool   $prima,
-    int    $city,
-    string $descrizione,
-    int    $ramo,
-    int    $livello,
-    array  $file
-): string {
-    $db=getDB();
-    if(!alphano_badge_scope('araldiche',$city,$ramo) || trim($nome)==='' || $livello<0) return 'Dati della carica non validi';
-    $valid=_validaUpload($file);if($valid!==true)return $valid;
-    $owned=!$db->inTransaction();if($owned)$db->beginTransaction();
-    try {
-        $db->execute('INSERT INTO araldiche (nome,prima,city,ramo,livello,descrizione) VALUES (?,?,?,?,?,?)',[$nome,$prima?1:0,$city,$ramo,$livello,$descrizione]);
-        $id=(int)$db->lastInsertId();
-        if(!alphano_save_badge($file,'/uploads/badges/cariche/' . $id . '.gif'))throw new RuntimeException('Impossibile salvare immagine');
-        if($owned)$db->commit();return 'Carica inserita con successo';
-    } catch(Throwable $e) {if($owned && $db->inTransaction())$db->rollBack();return 'Impossibile salvare la carica';}
+/** Validazione comune dei dati di una carica: null se tutto e' valido. */
+function alphanoValidateCarica(string $type, int $group, int $ramo, string $nome, int $livello, array $file): ?string
+{
+    if (!alphanoBadgeScope($type, $group, $ramo) || trim($nome) === '' || $livello < 0) {
+        return ALPHANO_MSG_INVALID_CARICA;
+    }
+    $valid = validaUpload($file);
+    return $valid === true ? null : $valid;
 }
 
-function ModifyAraldica(
-    int    $id,
-    string $nome,
-    bool   $prima,
-    int    $city,
-    string $descrizione,
-    int    $ramo,
-    int    $livello,
-    array  $file
-): string {
-    $db=getDB();
-    if(!alphano_badge_scope('araldiche',$city,$ramo) || trim($nome)==='' || $livello<0) return 'Dati della carica non validi';
-    $valid=_validaUpload($file);if($valid!==true)return $valid;
-    if(!$db->query('SELECT id FROM araldiche WHERE id=? AND city=?',[$id,$city]))return 'Carica non trovata';
-    $owned=!$db->inTransaction();if($owned)$db->beginTransaction();
+/** Verifica che l'ammissione a un gruppo sia consentita. */
+function alphanoCanAdmit(?array $user, ?int $current, ?array $rank, bool $admit, int $groupId): bool
+{
+    if ($user === null) {
+        return false;
+    }
+    if ($admit) {
+        return $rank !== null && ($current === 0 || $current === $groupId);
+    }
+    return $current === $groupId;
+}
+
+/**
+ * @param string $nome
+ * @param bool $prima
+ * @param int $city
+ * @param string $descrizione
+ * @param int $ramo
+ * @param int $livello
+ * @param array $file
+ */
+function addAraldica(...$args): string
+{
+    [$nome, $prima, $city, $descrizione, $ramo, $livello, $file] = $args;
+    $error = alphanoValidateCarica('araldiche', $city, $ramo, $nome, $livello, $file);
+    if ($error !== null) {
+        return $error;
+    }
+    $db = getDB();
+    $owned = !$db->inTransaction();
+    if ($owned) {
+        $db->beginTransaction();
+    }
     try {
-        $db->execute('UPDATE araldiche SET nome=?,prima=?,city=?,ramo=?,livello=?,descrizione=? WHERE id=? AND city=?',[$nome,$prima?1:0,$city,$ramo,$livello,$descrizione,$id,$city]);
-        if(!alphano_save_badge($file,'/uploads/badges/cariche/' . $id . '.gif'))throw new RuntimeException('Impossibile salvare immagine');
-        if($owned)$db->commit();return 'Carica aggiornata';
-    } catch(Throwable $e) {if($owned && $db->inTransaction())$db->rollBack();return 'Impossibile salvare la carica';}
+        $db->execute('INSERT INTO araldiche (nome,prima,city,ramo,livello,descrizione) VALUES (?,?,?,?,?,?)', [$nome, $prima ? 1 : 0, $city, $ramo, $livello, $descrizione]);
+        $id = (int)$db->lastInsertId();
+        if (!alphanoSaveBadge($file, '/uploads/badges/cariche/' . $id . '.gif')) {
+            throw new BadgeSaveException(ALPHANO_MSG_BADGE_SAVE);
+        }
+        if ($owned) {
+            $db->commit();
+        }
+        return 'Carica inserita con successo';
+    } catch (Throwable $e) {
+        if ($owned && $db->inTransaction()) {
+            $db->rollBack();
+        }
+        return ALPHANO_MSG_CARICA_SAVE;
+    }
+}
+
+/**
+ * @param int $id
+ * @param string $nome
+ * @param bool $prima
+ * @param int $city
+ * @param string $descrizione
+ * @param int $ramo
+ * @param int $livello
+ * @param array $file
+ */
+function modifyAraldica(...$args): string
+{
+    [$id, $nome, $prima, $city, $descrizione, $ramo, $livello, $file] = $args;
+    $error = alphanoValidateCarica('araldiche', $city, $ramo, $nome, $livello, $file);
+    if ($error !== null) {
+        return $error;
+    }
+    $db = getDB();
+    if (!($db->query('SELECT id FROM araldiche WHERE id=? AND city=?', [$id, $city]))) {
+        return ALPHANO_MSG_CARICA_NOT_FOUND;
+    }
+    $owned = !$db->inTransaction();
+    if ($owned) {
+        $db->beginTransaction();
+    }
+    try {
+        $db->execute('UPDATE araldiche SET nome=?,prima=?,city=?,ramo=?,livello=?,descrizione=? WHERE id=? AND city=?', [$nome, $prima ? 1 : 0, $city, $ramo, $livello, $descrizione, $id, $city]);
+        if (!alphanoSaveBadge($file, '/uploads/badges/cariche/' . $id . '.gif')) {
+            throw new BadgeSaveException(ALPHANO_MSG_BADGE_SAVE);
+        }
+        if ($owned) {
+            $db->commit();
+        }
+        $result = 'Carica aggiornata';
+    } catch (Throwable $e) {
+        if ($owned && $db->inTransaction()) {
+            $db->rollBack();
+        }
+        $result = ALPHANO_MSG_CARICA_SAVE;
+    }
+    return $result;
 }
 
 /* =========================================================
  *  CITY – CITTADINANZA
  * =======================================================*/
-function GetListaCity(bool $elezioni = false): array
+function getListaCity(bool $elezioni = false): array
 {
     $sql = 'SELECT * FROM city'.($elezioni ? ' WHERE elezioni=1' : '').' ORDER BY city';
     return getDB()->query($sql);
 }
 
-function GetListaRamiCity(bool $all, int $city): array
+function getListaRamiCity(bool $all, int $city): array
 {
     $db  = getDB();
     $sql = $all
@@ -506,7 +576,7 @@ function GetListaRamiCity(bool $all, int $city): array
     return $out;
 }
 
-function GetGerarchiaCity(int $city): array
+function getGerarchiaCity(int $city): array
 {
     return getDB()->query(
         'SELECT a.*, r.nome AS nomeramo, r.livello
@@ -518,7 +588,7 @@ function GetGerarchiaCity(int $city): array
     );
 }
 
-function MakeRichiestaCity(int $city, int $idpg): void
+function makeRichiestaCity(int $city, int $idpg): void
 {
     $db = getDB();
     $db->execute('INSERT INTO richieste (idpg, data, city) VALUES (?,?,?)', [$idpg, time(), $city]);
@@ -539,7 +609,7 @@ function MakeRichiestaCity(int $city, int $idpg): void
     }
 }
 
-function GetRichiesteCity(int $city): array
+function getRichiesteCity(int $city): array
 {
     return getDB()->query(
         'SELECT idpg, data FROM richieste WHERE city=? ORDER BY data',
@@ -547,7 +617,7 @@ function GetRichiesteCity(int $city): array
     );
 }
 
-function GetRichiesteCityPG(int $pg): int
+function getRichiesteCityPG(int $pg): int
 {
     return (int)getDB()->query(
         'SELECT COUNT(*) AS num FROM richieste WHERE idpg=? AND city<>0',
@@ -555,7 +625,7 @@ function GetRichiesteCityPG(int $pg): int
     )[0]['num'];
 }
 
-function GetLastCaricaCity(int $city): ?int
+function getLastCaricaCity(int $city): ?int
 {
     $row = getDB()->query(
         'SELECT id FROM araldiche WHERE city=? AND prima=1 LIMIT 1',
@@ -564,7 +634,7 @@ function GetLastCaricaCity(int $city): ?int
     return $row[0]['id'] ?? null;
 }
 
-function GetPGCity(int $idpg): ?int
+function getPGCity(int $idpg): ?int
 {
     $row = getDB()->query(
         'SELECT a.city
@@ -579,7 +649,7 @@ function GetPGCity(int $idpg): ?int
 /* =========================================================
  *  RICHIESTE (contatori rapidi)
  * =======================================================*/
-function GetRichiesteOrgPG(int $pg): int
+function getRichiesteOrgPG(int $pg): int
 {
     return (int)getDB()->query(
         'SELECT COUNT(*) AS num FROM richieste WHERE idpg=? AND organizzazione<>0',
@@ -587,7 +657,7 @@ function GetRichiesteOrgPG(int $pg): int
     )[0]['num'];
 }
 
-function GetRichiesteCorpPG(int $pg): int
+function getRichiesteCorpPG(int $pg): int
 {
     return (int)getDB()->query(
         'SELECT COUNT(*) AS num FROM richieste WHERE idpg=? AND corporazione<>0',
@@ -598,13 +668,16 @@ function GetRichiesteCorpPG(int $pg): int
 /* =========================================================
  *  ORGANIZZAZIONI
  * =======================================================*/
-function GetOrg(int $id, bool $nessuna = true): string
+function getOrg(int $id, bool $nessuna = true): string
 {
     $row = getDB()->query('SELECT nome FROM organizzazioni WHERE id=?', [$id])[0]['nome'] ?? '';
-    return $row ?: ($nessuna ? 'Nessuna' : '');
+    if ($row !== '') {
+        return $row;
+    }
+    return $nessuna ? 'Nessuna' : '';
 }
 
-function GetCaricaOrg(int $org, int $carica, bool $appendName = true, string $jsVar = ''): string
+function getCaricaOrg(int $org, int $carica, bool $appendName = true, string $jsVar = ''): string
 {
     $row = getDB()->query(
         'SELECT nome, descrizione FROM caricheorganizzazioni WHERE organizzazione=? AND id=?',
@@ -618,12 +691,12 @@ function GetCaricaOrg(int $org, int $carica, bool $appendName = true, string $js
         : 'alt="'.htmlentities($row['nome']).'" title="'.htmlentities($row['nome']).'"';
 
     $img = sprintf('<img src="%s" width="25" height="25" %s />',
-                   alphano_badge_url('organizzazioni', $carica, $org), $attr);
+                   alphanoBadgeUrl('organizzazioni', $carica, $org), $attr);
 
     return $appendName ? $img.'&nbsp;'.htmlspecialchars($row['nome'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') : $img;
 }
 
-function GetOrgMasters(int $org): array
+function getOrgMasters(int $org): array
 {
     return getDB()->query(
         'SELECT id, nome FROM utenti WHERE organizzazione=? AND adminorganizzazione=1 ORDER BY nome',
@@ -631,12 +704,12 @@ function GetOrgMasters(int $org): array
     );
 }
 
-function ListaOrg(): array
+function listaOrg(): array
 {
     return getDB()->query('SELECT id, nome FROM organizzazioni WHERE approvato=1 ORDER BY nome');
 }
 
-function GetListaRamiOrg(int $org): array
+function getListaRamiOrg(int $org): array
 {
     $rows = getDB()->query(
         'SELECT id, nome FROM ramiorganizzazioni WHERE organizzazione=? ORDER BY livello DESC',
@@ -647,7 +720,7 @@ function GetListaRamiOrg(int $org): array
     return $out;
 }
 
-function GetListaCaricheOrg(int $org): array
+function getListaCaricheOrg(int $org): array
 {
     return getDB()->query(
         'SELECT * FROM caricheorganizzazioni WHERE organizzazione=? ORDER BY nome',
@@ -655,7 +728,7 @@ function GetListaCaricheOrg(int $org): array
     );
 }
 
-function GetGerarchiaOrg(int $org): array
+function getGerarchiaOrg(int $org): array
 {
     return getDB()->query(
         'SELECT o.id      AS idorg,
@@ -676,7 +749,7 @@ function GetGerarchiaOrg(int $org): array
     );
 }
 
-function MakeRichiestaOrg(int $org, int $pg): bool
+function makeRichiestaOrg(int $org, int $pg): bool
 {
     $db=getDB();
     $db->beginTransaction();
@@ -687,12 +760,12 @@ function MakeRichiestaOrg(int $org, int $pg): bool
         $db->execute('INSERT INTO richieste(idpg,data,organizzazione) VALUES(?,?,?)',[$pg,time(),$org]);
         $admins=$db->query('SELECT id FROM utenti WHERE organizzazione=? AND adminorganizzazione=1',[$org]);
         require_once __DIR__.'/libposta.inc.php';
-        foreach($admins as $admin) InviaMissiva('Richiesta di Ammissione','Hai ricevuto una nuova richiesta di ammissione.',(int)$admin['id']);
+        foreach($admins as $admin) {InviaMissiva('Richiesta di Ammissione','Hai ricevuto una nuova richiesta di ammissione.',(int)$admin['id']);}
         $db->commit();return true;
-    } catch(Throwable $e) { if($db->inTransaction())$db->rollBack(); throw $e; }
+    } catch(Throwable $e) { if($db->inTransaction()){$db->rollBack();} throw $e; }
 }
 
-function GetRichiesteOrg(int $org): array
+function getRichiesteOrg(int $org): array
 {
     return getDB()->query(
         'SELECT idpg, data FROM richieste WHERE organizzazione=? ORDER BY data',
@@ -700,21 +773,41 @@ function GetRichiesteOrg(int $org): array
     );
 }
 
-function AdmitPGOrg(int $pg, int $org, int $carica, bool $admit): bool
+function admitPGOrg(int $pg, int $org, int $carica, bool $admit): bool
 {
-    $db=getDB();$owned=!$db->inTransaction();if($owned)$db->beginTransaction();
+    $db = getDB();
+    $owned = !$db->inTransaction();
+    if ($owned) {
+        $db->beginTransaction();
+    }
     try {
-        $user=$db->query('SELECT id,organizzazione FROM utenti WHERE id=? FOR UPDATE',[$pg])[0]??null;
-        $rank=$admit?($db->query('SELECT id,ramo FROM caricheorganizzazioni WHERE id=? AND organizzazione=?',[$carica,$org])[0]??null):null;
-        if(!$user || ($admit && (!$rank || ((int)$user['organizzazione']!==0 && (int)$user['organizzazione']!==$org))) || (!$admit && (int)$user['organizzazione']!==$org)) { if($owned)$db->rollBack();return false; }
-        $db->execute('DELETE FROM richieste WHERE organizzazione=? AND idpg=?',[$org,$pg]);
-        $db->execute('UPDATE utenti SET organizzazione=?,caricaorganizzazione=?,ramoorganizzazione=? WHERE id=?',[$admit?$org:0,$admit?$carica:0,$admit?(int)$rank['ramo']:0,$pg]);
-        if(!$admit)$db->execute('UPDATE utenti SET adminorganizzazione=0 WHERE id=?',[$pg]);
-        if($owned)$db->commit();return true;
-    } catch(Throwable $e) { if($owned && $db->inTransaction())$db->rollBack();return false; }
+        $user = $db->query('SELECT id,organizzazione FROM utenti WHERE id=? FOR UPDATE', [$pg])[0] ?? null;
+        $rank = $admit ? ($db->query('SELECT id,ramo FROM caricheorganizzazioni WHERE id=? AND organizzazione=?', [$carica, $org])[0] ?? null) : null;
+        $current = $user === null ? null : (int)$user['organizzazione'];
+        if (!alphanoCanAdmit($user, $current, $rank, $admit, $org)) {
+            if ($owned) {
+                $db->rollBack();
+            }
+            return false;
+        }
+        $db->execute('DELETE FROM richieste WHERE organizzazione=? AND idpg=?', [$org, $pg]);
+        $db->execute('UPDATE utenti SET organizzazione=?,caricaorganizzazione=?,ramoorganizzazione=? WHERE id=?', [$admit ? $org : 0, $admit ? $carica : 0, $admit ? (int)$rank['ramo'] : 0, $pg]);
+        if (!$admit) {
+            $db->execute('UPDATE utenti SET adminorganizzazione=0 WHERE id=?', [$pg]);
+        }
+        if ($owned) {
+            $db->commit();
+        }
+        return true;
+    } catch (Throwable $e) {
+        if ($owned && $db->inTransaction()) {
+            $db->rollBack();
+        }
+        return false;
+    }
 }
 
-function GetLastCaricaOrg(int $org): ?int
+function getLastCaricaOrg(int $org): ?int
 {
     $row = getDB()->query(
         'SELECT id FROM caricheorganizzazioni WHERE organizzazione=? AND prima=1 LIMIT 1',
@@ -724,50 +817,89 @@ function GetLastCaricaOrg(int $org): ?int
 }
 
 /* ----------  Add / Modify / Drop CARICHE ORG  --------------------------- */
-function AddCaricaOrg(
-    int    $org,
-    string $nome,
-    bool   $prima,
-    int    $ramo,
-    int    $livello,
-    string $descrizione,
-    array  $file
-): string {
-    $db=getDB();
-    if(!alphano_badge_scope('organizzazioni',$org,$ramo) || trim($nome)==='' || $livello<0) return 'Dati della carica non validi';
-    $valid=_validaUpload($file);if($valid!==true)return $valid;
-    $owned=!$db->inTransaction();if($owned)$db->beginTransaction();
+/**
+ * @param int $org
+ * @param string $nome
+ * @param bool $prima
+ * @param int $ramo
+ * @param int $livello
+ * @param string $descrizione
+ * @param array $file
+ */
+function addCaricaOrg(...$args): string
+{
+    [$org, $nome, $prima, $ramo, $livello, $descrizione, $file] = $args;
+    $error = alphanoValidateCarica('organizzazioni', $org, $ramo, $nome, $livello, $file);
+    if ($error !== null) {
+        return $error;
+    }
+    $db = getDB();
+    $owned = !$db->inTransaction();
+    if ($owned) {
+        $db->beginTransaction();
+    }
     try {
-        $db->execute('INSERT INTO caricheorganizzazioni (nome,prima,organizzazione,ramo,livello,descrizione) VALUES (?,?,?,?,?,?)',[$nome,$prima?1:0,$org,$ramo,$livello,$descrizione]);
-        $id=(int)$db->lastInsertId();
-        if(!alphano_save_badge($file,'/uploads/badges/organizzazioni/' . $org . '/' . $id . '.gif'))throw new RuntimeException('Impossibile salvare immagine');
-        if($owned)$db->commit();return 'Carica organizzazione creata';
-    } catch(Throwable $e) {if($owned && $db->inTransaction())$db->rollBack();return 'Impossibile salvare la carica';}
+        $db->execute('INSERT INTO caricheorganizzazioni (nome,prima,organizzazione,ramo,livello,descrizione) VALUES (?,?,?,?,?,?)', [$nome, $prima ? 1 : 0, $org, $ramo, $livello, $descrizione]);
+        $id = (int)$db->lastInsertId();
+        if (!alphanoSaveBadge($file, ALPHANO_BADGE_PATH_ORG . $org . '/' . $id . '.gif')) {
+            throw new BadgeSaveException(ALPHANO_MSG_BADGE_SAVE);
+        }
+        if ($owned) {
+            $db->commit();
+        }
+        return 'Carica organizzazione creata';
+    } catch (Throwable $e) {
+        if ($owned && $db->inTransaction()) {
+            $db->rollBack();
+        }
+        return ALPHANO_MSG_CARICA_SAVE;
+    }
 }
 
-function ModifyCaricaOrg(
-    int    $org,
-    int    $id,
-    string $nome,
-    bool   $prima,
-    int    $ramo,
-    int    $livello,
-    string $descrizione,
-    array  $file
-): string {
-    $db=getDB();
-    if(!alphano_badge_scope('organizzazioni',$org,$ramo) || trim($nome)==='' || $livello<0) return 'Dati della carica non validi';
-    $valid=_validaUpload($file);if($valid!==true)return $valid;
-    if(!$db->query('SELECT id FROM caricheorganizzazioni WHERE id=? AND organizzazione=?',[$id,$org]))return 'Carica non trovata';
-    $owned=!$db->inTransaction();if($owned)$db->beginTransaction();
+/**
+ * @param int $org
+ * @param int $id
+ * @param string $nome
+ * @param bool $prima
+ * @param int $ramo
+ * @param int $livello
+ * @param string $descrizione
+ * @param array $file
+ */
+function modifyCaricaOrg(...$args): string
+{
+    [$org, $id, $nome, $prima, $ramo, $livello, $descrizione, $file] = $args;
+    $error = alphanoValidateCarica('organizzazioni', $org, $ramo, $nome, $livello, $file);
+    if ($error !== null) {
+        return $error;
+    }
+    $db = getDB();
+    if (!($db->query('SELECT id FROM caricheorganizzazioni WHERE id=? AND organizzazione=?', [$id, $org]))) {
+        return ALPHANO_MSG_CARICA_NOT_FOUND;
+    }
+    $owned = !$db->inTransaction();
+    if ($owned) {
+        $db->beginTransaction();
+    }
     try {
-        $db->execute('UPDATE caricheorganizzazioni SET nome=?,prima=?,organizzazione=?,ramo=?,livello=?,descrizione=? WHERE id=? AND organizzazione=?',[$nome,$prima?1:0,$org,$ramo,$livello,$descrizione,$id,$org]);
-        if(!alphano_save_badge($file,'/uploads/badges/organizzazioni/' . $org . '/' . $id . '.gif'))throw new RuntimeException('Impossibile salvare immagine');
-        if($owned)$db->commit();return 'Carica organizzazione aggiornata';
-    } catch(Throwable $e) {if($owned && $db->inTransaction())$db->rollBack();return 'Impossibile salvare la carica';}
+        $db->execute('UPDATE caricheorganizzazioni SET nome=?,prima=?,organizzazione=?,ramo=?,livello=?,descrizione=? WHERE id=? AND organizzazione=?', [$nome, $prima ? 1 : 0, $org, $ramo, $livello, $descrizione, $id, $org]);
+        if (!alphanoSaveBadge($file, ALPHANO_BADGE_PATH_ORG . $org . '/' . $id . '.gif')) {
+            throw new BadgeSaveException(ALPHANO_MSG_BADGE_SAVE);
+        }
+        if ($owned) {
+            $db->commit();
+        }
+        $result = 'Carica organizzazione aggiornata';
+    } catch (Throwable $e) {
+        if ($owned && $db->inTransaction()) {
+            $db->rollBack();
+        }
+        $result = ALPHANO_MSG_CARICA_SAVE;
+    }
+    return $result;
 }
 
-function DropRamoOrg(int $org, int $ramo): bool
+function dropRamoOrg(int $org, int $ramo): bool
 {
     $db = getDB();
     $used = $db->query(
@@ -780,17 +912,17 @@ function DropRamoOrg(int $org, int $ramo): bool
     return true;
 }
 
-function DropCaricaOrg(int $org, int $id): bool
+function dropCaricaOrg(int $org, int $id): bool
 {
     $db=getDB();
-    if($db->query('SELECT 1 FROM utenti WHERE organizzazione=? AND caricaorganizzazione=? LIMIT 1',[$org,$id]))return false;
+    if($db->query('SELECT 1 FROM utenti WHERE organizzazione=? AND caricaorganizzazione=? LIMIT 1',[$org,$id])){return false;}
     $deleted=$db->execute('DELETE FROM caricheorganizzazioni WHERE organizzazione=? AND id=?',[$org,$id]);
-    $file=htmlroot.'/uploads/badges/organizzazioni/'.$org.'/'.$id.'.gif';
-    if($deleted && is_file($file))unlink($file);
+    $file=htmlroot.ALPHANO_BADGE_PATH_ORG.$org.'/'.$id.'.gif';
+    if($deleted && is_file($file)){unlink($file);}
     return $deleted>0;
 }
 
-function GetPGInOrg(int $org): array
+function getPGInOrg(int $org): array
 {
     return getDB()->query(
         'SELECT id, nome FROM utenti WHERE organizzazione=? ORDER BY nome',
@@ -801,13 +933,13 @@ function GetPGInOrg(int $org): array
 /* =========================================================
  *  CORPORAZIONI  (stessa logica delle organizzazioni)
  * =======================================================*/
-function GetCorporazione(int $id): string
+function getCorporazione(int $id): string
 {
     $row = getDB()->query('SELECT nome FROM corporazioni WHERE id=?', [$id])[0]['nome'] ?? '';
     return $row ?: 'Nessuna';
 }
 
-function GetCaricaCorp(int $corp, int $carica, bool $appendName = true, string $jsVar = ''): string
+function getCaricaCorp(int $corp, int $carica, bool $appendName = true, string $jsVar = ''): string
 {
     $row = getDB()->query(
         'SELECT nome, descrizione FROM carichecorporazioni WHERE corporazione=? AND id=?',
@@ -821,11 +953,11 @@ function GetCaricaCorp(int $corp, int $carica, bool $appendName = true, string $
         : 'alt="'.htmlentities($row['nome']).'" title="'.htmlentities($row['nome']).'"';
 
     $img = sprintf('<img src="%s" width="25" height="25" %s />',
-                   alphano_badge_url('corporazioni', $carica, $corp), $attr);
+                   alphanoBadgeUrl('corporazioni', $carica, $corp), $attr);
     return $appendName ? $img.'&nbsp;'.htmlspecialchars($row['nome'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') : $img;
 }
 
-function GetCorpMasters(int $corp): array
+function getCorpMasters(int $corp): array
 {
     return getDB()->query(
         'SELECT id, nome FROM utenti WHERE corporazione=? AND admincorporazione=1 ORDER BY nome',
@@ -833,12 +965,12 @@ function GetCorpMasters(int $corp): array
     );
 }
 
-function ListaCorporazioni(): array
+function listaCorporazioni(): array
 {
     return getDB()->query('SELECT id, nome FROM corporazioni WHERE approvato=1 ORDER BY nome');
 }
 
-function GetListaRamiCorp(int $corp): array
+function getListaRamiCorp(int $corp): array
 {
     $rows = getDB()->query(
         'SELECT id, nome FROM ramicorporazioni WHERE corporazione=? ORDER BY livello DESC',
@@ -849,7 +981,7 @@ function GetListaRamiCorp(int $corp): array
     return $out;
 }
 
-function GetListaCaricheCorp(int $corp): array
+function getListaCaricheCorp(int $corp): array
 {
     return getDB()->query(
         'SELECT * FROM carichecorporazioni WHERE corporazione=? ORDER BY nome',
@@ -857,7 +989,7 @@ function GetListaCaricheCorp(int $corp): array
     );
 }
 
-function GetGerarchiaCorp(int $corpId)
+function getGerarchiaCorp(int $corpId)
 {
     return getDB()->query(
         <<<SQL
@@ -879,7 +1011,7 @@ function GetGerarchiaCorp(int $corpId)
 }
 
 
-function MakeRichiestaCorp(int $corp, int $pg): bool
+function makeRichiestaCorp(int $corp, int $pg): bool
 {
     $db=getDB();
     $db->beginTransaction();
@@ -890,12 +1022,12 @@ function MakeRichiestaCorp(int $corp, int $pg): bool
         $db->execute('INSERT INTO richieste(idpg,data,corporazione) VALUES(?,?,?)',[$pg,time(),$corp]);
         $admins=$db->query('SELECT id FROM utenti WHERE corporazione=? AND admincorporazione=1',[$corp]);
         require_once __DIR__.'/libposta.inc.php';
-        foreach($admins as $admin) InviaMissiva('Richiesta di Ammissione','Hai ricevuto una nuova richiesta di ammissione.',(int)$admin['id']);
+        foreach($admins as $admin) {InviaMissiva('Richiesta di Ammissione','Hai ricevuto una nuova richiesta di ammissione.',(int)$admin['id']);}
         $db->commit();return true;
-    } catch(Throwable $e) { if($db->inTransaction())$db->rollBack(); throw $e; }
+    } catch(Throwable $e) { if($db->inTransaction()){$db->rollBack();} throw $e; }
 }
 
-function GetRichiesteCorp(int $corp): array
+function getRichiesteCorp(int $corp): array
 {
     return getDB()->query(
         'SELECT idpg, data FROM richieste WHERE corporazione=? ORDER BY data',
@@ -903,21 +1035,41 @@ function GetRichiesteCorp(int $corp): array
     );
 }
 
-function AdmitPGCorp(int $pg, int $corp, int $carica, bool $admit): bool
+function admitPGCorp(int $pg, int $corp, int $carica, bool $admit): bool
 {
-    $db=getDB();$owned=!$db->inTransaction();if($owned)$db->beginTransaction();
+    $db = getDB();
+    $owned = !$db->inTransaction();
+    if ($owned) {
+        $db->beginTransaction();
+    }
     try {
-        $user=$db->query('SELECT id,corporazione FROM utenti WHERE id=? FOR UPDATE',[$pg])[0]??null;
-        $rank=$admit?($db->query('SELECT id,ramo FROM carichecorporazioni WHERE id=? AND corporazione=?',[$carica,$corp])[0]??null):null;
-        if(!$user || ($admit && (!$rank || ((int)$user['corporazione']!==0 && (int)$user['corporazione']!==$corp))) || (!$admit && (int)$user['corporazione']!==$corp)) { if($owned)$db->rollBack();return false; }
-        $db->execute('DELETE FROM richieste WHERE corporazione=? AND idpg=?',[$corp,$pg]);
-        $db->execute('UPDATE utenti SET corporazione=?,caricacorporazione=?,ramocorporazione=? WHERE id=?',[$admit?$corp:0,$admit?$carica:0,$admit?(int)$rank['ramo']:0,$pg]);
-        if(!$admit)$db->execute('UPDATE utenti SET admincorporazione=0 WHERE id=?',[$pg]);
-        if($owned)$db->commit();return true;
-    } catch(Throwable $e) { if($owned && $db->inTransaction())$db->rollBack();return false; }
+        $user = $db->query('SELECT id,corporazione FROM utenti WHERE id=? FOR UPDATE', [$pg])[0] ?? null;
+        $rank = $admit ? ($db->query('SELECT id,ramo FROM carichecorporazioni WHERE id=? AND corporazione=?', [$carica, $corp])[0] ?? null) : null;
+        $current = $user === null ? null : (int)$user['corporazione'];
+        if (!alphanoCanAdmit($user, $current, $rank, $admit, $corp)) {
+            if ($owned) {
+                $db->rollBack();
+            }
+            return false;
+        }
+        $db->execute('DELETE FROM richieste WHERE corporazione=? AND idpg=?', [$corp, $pg]);
+        $db->execute('UPDATE utenti SET corporazione=?,caricacorporazione=?,ramocorporazione=? WHERE id=?', [$admit ? $corp : 0, $admit ? $carica : 0, $admit ? (int)$rank['ramo'] : 0, $pg]);
+        if (!$admit) {
+            $db->execute('UPDATE utenti SET admincorporazione=0 WHERE id=?', [$pg]);
+        }
+        if ($owned) {
+            $db->commit();
+        }
+        return true;
+    } catch (Throwable $e) {
+        if ($owned && $db->inTransaction()) {
+            $db->rollBack();
+        }
+        return false;
+    }
 }
 
-function GetLastCaricaCorp(int $corp): ?int
+function getLastCaricaCorp(int $corp): ?int
 {
     $row = getDB()->query(
         'SELECT id FROM carichecorporazioni WHERE corporazione=? AND prima=1 LIMIT 1',
@@ -927,54 +1079,93 @@ function GetLastCaricaCorp(int $corp): ?int
 }
 
 /* ----------  Add / Modify / Drop CARICHE CORP  --------------------------- */
-function AddCaricaCorp(
-    int    $corp,
-    string $nome,
-    bool   $prima,
-    int    $ramo,
-    int    $livello,
-    string $descrizione,
-    float  $stipendio,
-    float  $provvigione,
-    array  $file
-): string {
-    $db=getDB();
-    if(!alphano_badge_scope('corporazioni',$corp,$ramo) || trim($nome)==='' || $livello<0) return 'Dati della carica non validi';
-    $valid=_validaUpload($file);if($valid!==true)return $valid;
-    $owned=!$db->inTransaction();if($owned)$db->beginTransaction();
+/**
+ * @param int $corp
+ * @param string $nome
+ * @param bool $prima
+ * @param int $ramo
+ * @param int $livello
+ * @param string $descrizione
+ * @param float $stipendio
+ * @param float $provvigione
+ * @param array $file
+ */
+function addCaricaCorp(...$args): string
+{
+    [$corp, $nome, $prima, $ramo, $livello, $descrizione, $stipendio, $provvigione, $file] = $args;
+    $error = alphanoValidateCarica('corporazioni', $corp, $ramo, $nome, $livello, $file);
+    if ($error !== null) {
+        return $error;
+    }
+    $db = getDB();
+    $owned = !$db->inTransaction();
+    if ($owned) {
+        $db->beginTransaction();
+    }
     try {
-        $db->execute('INSERT INTO carichecorporazioni (nome,prima,corporazione,ramo,livello,descrizione,stipendio,provvigione) VALUES (?,?,?,?,?,?,?,?)',[$nome,$prima?1:0,$corp,$ramo,$livello,$descrizione,$stipendio,$provvigione]);
-        $id=(int)$db->lastInsertId();
-        if(!alphano_save_badge($file,'/uploads/badges/corporazioni/' . $corp . '/' . $id . '.gif'))throw new RuntimeException('Impossibile salvare immagine');
-        if($owned)$db->commit();return 'Carica corporazione creata';
-    } catch(Throwable $e) {if($owned && $db->inTransaction())$db->rollBack();return 'Impossibile salvare la carica';}
+        $db->execute('INSERT INTO carichecorporazioni (nome,prima,corporazione,ramo,livello,descrizione,stipendio,provvigione) VALUES (?,?,?,?,?,?,?,?)', [$nome, $prima ? 1 : 0, $corp, $ramo, $livello, $descrizione, $stipendio, $provvigione]);
+        $id = (int)$db->lastInsertId();
+        if (!alphanoSaveBadge($file, ALPHANO_BADGE_PATH_CORP . $corp . '/' . $id . '.gif')) {
+            throw new BadgeSaveException(ALPHANO_MSG_BADGE_SAVE);
+        }
+        if ($owned) {
+            $db->commit();
+        }
+        return 'Carica corporazione creata';
+    } catch (Throwable $e) {
+        if ($owned && $db->inTransaction()) {
+            $db->rollBack();
+        }
+        return ALPHANO_MSG_CARICA_SAVE;
+    }
 }
 
-function ModifyCaricaCorp(
-    int    $corp,
-    int    $id,
-    string $nome,
-    bool   $prima,
-    int    $ramo,
-    int    $livello,
-    string $descrizione,
-    float  $stipendio,
-    float  $provvigione,
-    array  $file
-): string {
-    $db=getDB();
-    if(!alphano_badge_scope('corporazioni',$corp,$ramo) || trim($nome)==='' || $livello<0) return 'Dati della carica non validi';
-    $valid=_validaUpload($file);if($valid!==true)return $valid;
-    if(!$db->query('SELECT id FROM carichecorporazioni WHERE id=? AND corporazione=?',[$id,$corp]))return 'Carica non trovata';
-    $owned=!$db->inTransaction();if($owned)$db->beginTransaction();
+/**
+ * @param int $corp
+ * @param int $id
+ * @param string $nome
+ * @param bool $prima
+ * @param int $ramo
+ * @param int $livello
+ * @param string $descrizione
+ * @param float $stipendio
+ * @param float $provvigione
+ * @param array $file
+ */
+function modifyCaricaCorp(...$args): string
+{
+    [$corp, $id, $nome, $prima, $ramo, $livello, $descrizione, $stipendio, $provvigione, $file] = $args;
+    $error = alphanoValidateCarica('corporazioni', $corp, $ramo, $nome, $livello, $file);
+    if ($error !== null) {
+        return $error;
+    }
+    $db = getDB();
+    if (!($db->query('SELECT id FROM carichecorporazioni WHERE id=? AND corporazione=?', [$id, $corp]))) {
+        return ALPHANO_MSG_CARICA_NOT_FOUND;
+    }
+    $owned = !$db->inTransaction();
+    if ($owned) {
+        $db->beginTransaction();
+    }
     try {
-        $db->execute('UPDATE carichecorporazioni SET nome=?,prima=?,corporazione=?,ramo=?,livello=?,descrizione=?,stipendio=?,provvigione=? WHERE id=? AND corporazione=?',[$nome,$prima?1:0,$corp,$ramo,$livello,$descrizione,$stipendio,$provvigione,$id,$corp]);
-        if(!alphano_save_badge($file,'/uploads/badges/corporazioni/' . $corp . '/' . $id . '.gif'))throw new RuntimeException('Impossibile salvare immagine');
-        if($owned)$db->commit();return 'Carica corporazione aggiornata';
-    } catch(Throwable $e) {if($owned && $db->inTransaction())$db->rollBack();return 'Impossibile salvare la carica';}
+        $db->execute('UPDATE carichecorporazioni SET nome=?,prima=?,corporazione=?,ramo=?,livello=?,descrizione=?,stipendio=?,provvigione=? WHERE id=? AND corporazione=?', [$nome, $prima ? 1 : 0, $corp, $ramo, $livello, $descrizione, $stipendio, $provvigione, $id, $corp]);
+        if (!alphanoSaveBadge($file, ALPHANO_BADGE_PATH_CORP . $corp . '/' . $id . '.gif')) {
+            throw new BadgeSaveException(ALPHANO_MSG_BADGE_SAVE);
+        }
+        if ($owned) {
+            $db->commit();
+        }
+        $result = 'Carica corporazione aggiornata';
+    } catch (Throwable $e) {
+        if ($owned && $db->inTransaction()) {
+            $db->rollBack();
+        }
+        $result = ALPHANO_MSG_CARICA_SAVE;
+    }
+    return $result;
 }
 
-function DropRamoCorp(int $corp, int $ramo): bool
+function dropRamoCorp(int $corp, int $ramo): bool
 {
     $db = getDB();
     $used = $db->query(
@@ -987,17 +1178,17 @@ function DropRamoCorp(int $corp, int $ramo): bool
     return true;
 }
 
-function DropCaricaCorp(int $corp, int $id): bool
+function dropCaricaCorp(int $corp, int $id): bool
 {
     $db=getDB();
-    if($db->query('SELECT 1 FROM utenti WHERE corporazione=? AND caricacorporazione=? LIMIT 1',[$corp,$id]))return false;
+    if($db->query('SELECT 1 FROM utenti WHERE corporazione=? AND caricacorporazione=? LIMIT 1',[$corp,$id])){return false;}
     $deleted=$db->execute('DELETE FROM carichecorporazioni WHERE corporazione=? AND id=?',[$corp,$id]);
-    $file=htmlroot.'/uploads/badges/corporazioni/'.$corp.'/'.$id.'.gif';
-    if($deleted && is_file($file))unlink($file);
+    $file=htmlroot.ALPHANO_BADGE_PATH_CORP.$corp.'/'.$id.'.gif';
+    if($deleted && is_file($file)){unlink($file);}
     return $deleted>0;
 }
 
-function GetPGInCorp(int $corp): array
+function getPGInCorp(int $corp): array
 {
     return getDB()->query(
         'SELECT id, nome FROM utenti WHERE corporazione=? ORDER BY nome',
@@ -1008,12 +1199,12 @@ function GetPGInCorp(int $corp): array
 /* =========================================================
  *  UMORI
  * =======================================================*/
-function GetListaUmori(): array
+function getListaUmori(): array
 {
     return getDB()->query('SELECT id, nome FROM umori ORDER BY nome');
 }
 
-function GetUmore(int $id): string
+function getUmore(int $id): string
 {
     $row = getDB()->query('SELECT nome FROM umori WHERE id=?', [$id])[0] ?? null;
     return $row
@@ -1025,10 +1216,10 @@ function GetUmore(int $id): string
 /* =========================================================
  *  ADMIN & SICUREZZA
  * =======================================================*/
-function EnsureAdmin(): void
+function ensureAdmin(): void
 {
     // 1) Prendi l’ID del personaggio (o utente) già autenticato
-    $idpg = GetIDPG(false);
+    $idpg = getIDPG(false);
     if ($idpg === null) {
         // non loggato
         header('Location: /login.php');
@@ -1054,7 +1245,7 @@ function EnsureAdmin(): void
     }
 }
 
-function IsAdmin(int $pg): bool
+function isAdmin(int $pg): bool
 {
     return (bool)(getDB()->query('SELECT admin FROM utenti WHERE id=?', [$pg])[0]['admin'] ?? false);
 }
@@ -1062,7 +1253,7 @@ function IsAdmin(int $pg): bool
 /* =========================================================
  *  ANALISI ACCOUNT (DOPPI) – LOGS
  * =======================================================*/
-function TrovaDoppi(
+function trovaDoppi(
     int  $pg,
     bool $trasferimenti = false,
     bool $ricompense    = false,
@@ -1108,15 +1299,18 @@ function TrovaDoppi(
         )));
     }
 
-    return $concatena
-        ? array_values(array_intersect($idSet, $trasferimenti ? $idsTrasf : $idSet, $ricompense ? $idsRic : $idSet))
-        : array_values(array_unique(array_merge($idSet, $idsTrasf, $idsRic)));
+    if ($concatena) {
+        $transferIds = $trasferimenti ? $idsTrasf : $idSet;
+        $rewardIds = $ricompense ? $idsRic : $idSet;
+        return array_values(array_intersect($idSet, $transferIds, $rewardIds));
+    }
+    return array_values(array_unique(array_merge($idSet, $idsTrasf, $idsRic)));
 }
 
 /* =========================================================
  *  CONTATORE VISITE PROFILO
  * =======================================================*/
-function IncrementaVisite(int $visitatore, int $visitato): bool
+function incrementaVisite(int $visitatore, int $visitato): bool
 {
     $db   = getDB();
     $when = strtotime('-1 day');
@@ -1139,43 +1333,60 @@ function IncrementaVisite(int $visitatore, int $visitato): bool
 /* =========================================================
  *  VALIDATORE GENERICO UPLOAD GIF/PNG/JPG <= 25×25 | <= 50 KB
  * =======================================================*/
-function _validaUpload(array $file)
+function validaUpload(array $file)
 {
-    $error=(int)($file['error']??UPLOAD_ERR_NO_FILE);
-    if($error===UPLOAD_ERR_NO_FILE)return true;
-    if($error!==UPLOAD_ERR_OK)return 'Errore upload';
-    $path=$file['tmp_name']??'';
-    if(!is_string($path) || !is_uploaded_file($path) || filesize($path)>50000)return 'Upload non valido o oltre 50 KB';
-    $image=@getimagesize($path);
-    if(!$image || $image[0]<1 || $image[1]<1 || $image[0]>25 || $image[1]>25)return 'Immagine non valida (max 25×25)';
-    if(!in_array($image[2],[IMAGETYPE_GIF,IMAGETYPE_PNG,IMAGETYPE_JPEG],true))return 'Formato non valido (gif/png/jpg)';
-    return true;
+    $error = (int)($file['error'] ?? UPLOAD_ERR_NO_FILE);
+    $result = true;
+    if ($error === UPLOAD_ERR_NO_FILE) {
+        $result = true;
+    } elseif ($error !== UPLOAD_ERR_OK) {
+        $result = 'Errore upload';
+    } else {
+        $path = $file['tmp_name'] ?? '';
+        if (!is_string($path) || !is_uploaded_file($path) || filesize($path) > 50000) {
+            $result = 'Upload non valido o oltre 50 KB';
+        } else {
+            $image = @getimagesize($path);
+            if (!$image || $image[0] < 1 || $image[1] < 1 || $image[0] > 25 || $image[1] > 25) {
+                $result = 'Immagine non valida (max 25×25)';
+            } elseif (!in_array($image[2], [IMAGETYPE_GIF, IMAGETYPE_PNG, IMAGETYPE_JPEG], true)) {
+                $result = 'Formato non valido (gif/png/jpg)';
+            }
+        }
+    }
+    return $result;
 }
 
 
 
 
-function alphano_badge_scope(string $type, int $group, int $branch): bool
+function alphanoBadgeScope(string $type, int $group, int $branch): bool
 {
     $map=['araldiche'=>['city','ramiaraldiche','city'],'organizzazioni'=>['organizzazioni','ramiorganizzazioni','organizzazione'],'corporazioni'=>['corporazioni','ramicorporazioni','corporazione']];
-    if(!isset($map[$type]))return false;
+    if(!isset($map[$type])){return false;}
     [$table,$branches,$column]=$map[$type];
-    if(!($type==='araldiche' && $group===0) && !getDB()->query("SELECT id FROM `$table` WHERE id=?",[$group]))return false;
+    if(!($type==='araldiche' && $group===0) && !getDB()->query("SELECT id FROM `$table` WHERE id=?",[$group])){return false;}
     return $branch===0 || (bool)getDB()->query("SELECT id FROM `$branches` WHERE id=? AND `$column`=?",[$branch,$group]);
 }
 
-function alphano_save_badge(array $file, string $relative): bool
+function alphanoSaveBadge(array $file, string $relative): bool
 {
-    $path=htmlroot.$relative;
-    if((int)($file['error']??UPLOAD_ERR_NO_FILE)===UPLOAD_ERR_NO_FILE) {
-        if(is_file($path))return true;
-        if(!is_dir(dirname($path)) && !mkdir(dirname($path),0755,true))return false;
-        return true;
+    $path = htmlroot . $relative;
+    $dir = dirname($path);
+    $result = is_dir($dir) || mkdir($dir, 0755, true);
+    if ($result && (int)($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+        $image = getimagesize($file['tmp_name']);
+        if ($image[2] === IMAGETYPE_GIF) {
+            $result = move_uploaded_file($file['tmp_name'], $path);
+        } else {
+            $resource = imagecreatefromstring(file_get_contents($file['tmp_name']));
+            if ($resource) {
+                $result = imagegif($resource, $path);
+                imagedestroy($resource);
+            } else {
+                $result = false;
+            }
+        }
     }
-    if(!is_dir(dirname($path)) && !mkdir(dirname($path),0755,true))return false;
-    $image=getimagesize($file['tmp_name']);
-    if($image[2]===IMAGETYPE_GIF)return move_uploaded_file($file['tmp_name'],$path);
-    $resource=imagecreatefromstring(file_get_contents($file['tmp_name']));
-    if(!$resource)return false;
-    $saved=imagegif($resource,$path);imagedestroy($resource);return $saved;
+    return $result;
 }

@@ -29,7 +29,7 @@ function ai_social_bounded_delta(string $key,int $raw,string $category,array $be
 }
 function ai_social_episode_category(string $category,string $player,string $npc,array $deltas=[]):string {
     if(!in_array($category,AI_SOCIAL_CATEGORIES,true)){ return 'dialogo'; }
-    $plain=ai_social_evidence_key($player);
+    $plain=aiSocialEvidenceKey($player);
     // Greetings and purchased praise cannot become a meaningful favour just because a model says so.
     if(preg_match('/^(?:salve|ciao|buon ?giorno|buona ?sera|buona notte|grazie|prego|piacere|come stai|come state)(?:\s+(?:a voi|a te|signore|signora|mio signore|mia signora|mille))?$/u',$plain)){ return 'dialogo'; }
     // Some small models recognise relief in deltas but label it ordinary dialogue.
@@ -44,7 +44,7 @@ function ai_social_episode_category(string $category,string $player,string $npc,
 function ai_social_reconciliation(string $player,string $npc):bool {
     $offer=preg_match('/\b(?:chiedo\s+scusa|chiedo\s+perdono|mi\s+dispiace|ho\s+sbagliato|sono\s+pentit[oa])\b/iu',$player);
     if(!$offer||preg_match('/non\s+(?:vi\s+|ti\s+)?(?:chiedo\s+scusa|chiedo\s+perdono)|non\s+mi\s+dispiace|colpa\s+(?:tua|vostra)|(?:devi|dovete)\s+perdonar/iu',$player)){ return false; }
-    $speech=ai_narrative_parse($npc)['speech'];
+    $speech=aiNarrativeParse($npc)['speech'];
     if(preg_match('/non\b.{0,25}(?:accetto|perdono|credo|fido|pront[oa]|ascoltar)|troppo\s+tardi|vattene|andatevene/iu',$speech)){ return false; }
     return (bool)preg_match('/accetto\b.{0,20}(?:scuse|scusa)|apprezzo\b.{0,30}(?:scuse|scusa|gesto)|(?:posso|voglio|proviamo\s+a)\s+(?:ascoltar|riparlar)|vi\s+ascolto|ti\s+ascolto|dar(?:ti|vi)\s+(?:una\s+)?possibilità|riproviamo|ricominciamo|ti\s+perdono|vi\s+perdono/iu',$speech);
 }
@@ -62,7 +62,7 @@ function ai_social_reciprocal_interest(string $npc):bool {
 }
 /** A later accepted reassurance can end a temporary panic posture, without erasing witnessed knowledge. */
 function ai_social_emotion_declared(string $key,string $reply):bool {
-    $speech=ai_narrative_parse($reply)['speech'];
+    $speech=aiNarrativeParse($reply)['speech'];
     $patterns=['fear'=>'paura|terrore|spavent','trust'=>'mi fido|fiducia','hostility'=>'odio|ti detesto|vi detesto|nemic','love'=>'ti amo|vi amo|innamorat','attraction'=>'attratt|attrazione|mi piaci|mi piacete','sympathy'=>'simpati','respect'=>'ti rispetto|vi rispetto|rispetto per','honor'=>'onore','affection'=>'affetto|ti voglio bene|vi voglio bene','jealousy'=>'gelosi'];
     return isset($patterns[$key])&&(bool)preg_match('/(?:'.$patterns[$key].')/iu',$speech);
 }
@@ -71,7 +71,7 @@ function ai_social_emotion_declared(string $key,string $reply):bool {
  * another person's fear, a hypothetical sentence or a thought is not this NPC's admission.
  */
 function ai_social_manifested_emotions(array $npc,string $reply,bool $physical=true):array {
-    $parts=ai_narrative_parse($reply,['channel'=>'action'])['segments'];$shown=[];
+    $parts=aiNarrativeParse($reply,['channel'=>'action'])['segments'];$shown=[];
     $speechPatterns=[
         'fear'=>'(?:ho|provo|sento)\\s+(?:(?:molta|una|grande|troppa)\\s+)*(?:paura|terrore)|mi\\s+(?:fai|fate)\\s+paura|sono\\s+(?:spaventat[oa]|terrorizzat[oa])',
         'trust'=>'(?:non\\s+)?mi\\s+fido\\s+di\\s+(?:te|voi)|(?:ho|provo)\\s+fiducia\\s+in\\s+(?:te|voi)',
@@ -126,7 +126,7 @@ function ai_social_shock_fear(array $reaction,array $event):int {
  * body alone does not identify who caused the fear in a room with several people.
  */
 function ai_social_observer_deltas(array $deltas,string $reply):array {
-    $speech=ai_narrative_parse($reply)['speech'];$allowed=[];
+    $speech=aiNarrativeParse($reply)['speech'];$allowed=[];
     if(preg_match('/\\b(?:mi\\s+(?:fai|fate)\\s+paura|ho\\s+paura\\s+di\\s+(?:te|voi))\\b/iu',$speech)){ $allowed['fear']=max(0,is_int($deltas['fear']??null)?$deltas['fear']:0); }
     if(preg_match('/\\b(?:ti|vi)\\s+(?:odio|detesto)\\b/iu',$speech)){ $allowed['hostility']=max(0,is_int($deltas['hostility']??null)?$deltas['hostility']:0); }
     if(preg_match('/\\bnon\\s+mi\\s+fido\\s+di\\s+(?:te|voi)\\b/iu',$speech)){ $allowed['trust']=min(0,is_int($deltas['trust']??null)?$deltas['trust']:0); }
@@ -134,7 +134,7 @@ function ai_social_observer_deltas(array $deltas,string $reply):array {
 }
 function ai_social_reassured_since(int $npc,int $player,int $time,int $source=0,int $beforeSource=0):bool {
     if($npc<1||$player<1||$time<1){ return false; }
-    $rows=ai_db()->query("SELECT before_state,after_state FROM ai_relationship_events WHERE npc_id=? AND player_id=? AND actor_id=0 AND created_at>=? AND JSON_UNQUOTE(JSON_EXTRACT(after_state,'$._evolution.category'))='rassicurazione'".ai_relation_context_event_scope($npc,$player).' ORDER BY id DESC LIMIT 10',[$npc,$player,$time]);
+    $rows=aiDb()->query("SELECT before_state,after_state FROM ai_relationship_events WHERE npc_id=? AND player_id=? AND actor_id=0 AND created_at>=? AND JSON_UNQUOTE(JSON_EXTRACT(after_state,'$._evolution.category'))='rassicurazione'".ai_relation_context_event_scope($npc,$player).' ORDER BY id DESC LIMIT 10',[$npc,$player,$time]);
     foreach($rows as $row){
         $before=json_decode($row['before_state'],true)?:[];$after=json_decode($row['after_state'],true)?:[];
         if((int)($after['fear']??0)>=(int)($before['fear']??0)){ continue; }
@@ -164,33 +164,33 @@ function ai_social_delta(string $key,int $raw,string $category,array $before,arr
 }
 /** Current aspirations are a projection of revocable, spoken declarations, never transformation orders. */
 function ai_social_aspiration(string $raw):?array {
-    $parts=function_exists('ai_narrative_parse')?(ai_narrative_parse($raw)['segments']??[]):[];
+    $parts=function_exists('aiNarrativeParse')?(aiNarrativeParse($raw)['segments']??[]):[];
     foreach($parts as $part){
         if(($part['kind']??'')!=='speech'){ continue; }
         foreach(preg_split('/(?<=[.!?])\s+/u',(string)$part['text'])?:[] as $sentence){
             if(str_contains($sentence,'?')||preg_match('/\b(?:se|forse|ipoteticamente|dice|disse|diceva|vorresti|volete|vorreste)\b/iu',$sentence)){ continue; }
             if(!preg_match('/^(?:(?:io|ora|invece|ormai|sì[,;]?|si[,;]?)\s+)*(non\s+)?(?:voglio|vorrei|desidero|scelgo di|ho deciso di)\s+(?:mai\s+|più\s+|davvero\s+)?(?:diventare|essere trasformat[oa]|farmi trasformare)\s+(?:in\s+)?(?:un[ao]?\s+)?(vampir[oa]|licantrop[oa])/iu',$sentence,$m)){ continue; }
-            return ['family'=>str_starts_with(mb_strtolower($m[2]),'vampir')?'vampiro':'licantropo','stance'=>empty($m[1])?'desiderio':'rifiuto','evidence'=>ai_text($sentence,400)];
+            return ['family'=>str_starts_with(mb_strtolower($m[2]),'vampir')?'vampiro':'licantropo','stance'=>empty($m[1])?'desiderio':'rifiuto','evidence'=>aiText($sentence,400)];
         }
     }
     return null;
 }
 function ai_social_development_record(array $npc,array $job,array $before,array $after,array $rules,bool $significant,string $playerEvidence,string $npcEvidence,bool $declarationEligible=false,string $episodeCategory=''):void {
     if(!$significant&&!$declarationEligible){ return; }
-    $db=ai_db();$nid=(int)$npc['id'];$uid=(int)$job['user_id'];$now=time();$changes=[];$harm=0;
+    $db=aiDb();$nid=(int)$npc['id'];$uid=(int)$job['user_id'];$now=time();$changes=[];$harm=0;
     foreach(AI_RELATION_METRICS as $key=>$label){$delta=(int)$after[$key]-(int)$before[$key];if($delta){ $changes[]=($delta>0?'maggiore ':'minore ').mb_strtolower($label); }if(($delta<0&&in_array($key,['trust','respect','sympathy'],true))||($delta>0&&in_array($key,['fear','hostility'],true))){ $harm+=abs($delta); }}
     if($significant&&($changes||$after['state']!==$before['state'])){
         $trauma=$harm>=(int)$rules['trauma_threshold']&&in_array($episodeCategory,['minaccia','tradimento','separazione'],true);$category=$trauma?'trauma':'evoluzione';
-        $summary='Dopo parole o gesti dichiarati: «'.ai_text($playerEvidence,110).'», '.($trauma?'questo incontro ha lasciato una ferita emotiva: ':'il rapporto si è evoluto: ').implode(', ',$changes).'. '.($after['state']!==$before['state']?'Il legame passa a '.$after['state'].'. ':'').'È l’esperienza personale del PNG, non una prova delle intenzioni del PG; può evolvere con nuovi incontri.';
-        $db->execute("INSERT IGNORE INTO ai_personal_memories(npc_id,player_id,chat_key,job_id,category,summary,evidence,source,epistemic,visible,created_at,updated_at) VALUES(?,?,?,?,?,?,?,'interpreted','interpretation',?,?,?)",[$nid,$uid,$job['chat_key'],(int)$job['id'],$category,$summary,ai_text($playerEvidence.' / '.$npcEvidence,700),empty($rules['hidden_emotions'])?1:0,$now,$now]);
+        $summary='Dopo parole o gesti dichiarati: «'.aiText($playerEvidence,110).'», '.($trauma?'questo incontro ha lasciato una ferita emotiva: ':'il rapporto si è evoluto: ').implode(', ',$changes).'. '.($after['state']!==$before['state']?'Il legame passa a '.$after['state'].'. ':'').'È l’esperienza personale del PNG, non una prova delle intenzioni del PG; può evolvere con nuovi incontri.';
+        $db->execute("INSERT IGNORE INTO ai_personal_memories(npc_id,player_id,chat_key,job_id,category,summary,evidence,source,epistemic,visible,created_at,updated_at) VALUES(?,?,?,?,?,?,?,'interpreted','interpretation',?,?,?)",[$nid,$uid,$job['chat_key'],(int)$job['id'],$category,$summary,aiText($playerEvidence.' / '.$npcEvidence,700),empty($rules['hidden_emotions'])?1:0,$now,$now]);
     }
     if(!$declarationEligible||preg_match('/\b(?:ripeti|ripetete|dichiara|dichiarate|scrivi|scrivete)\b/iu',$playerEvidence)){ return; }
     $reply=(string)(json_decode((string)$job['result'],true)['testo']??'');$wish=ai_social_aspiration($reply);
     if(!$wish||(empty($rules['allow_nature_aspirations'])&&$wish['stance']!=='rifiuto')){ return; }
     if($wish['stance']==='desiderio'&&(int)$after['fear']>=(int)$rules['romance_fear_limit']){ return; }
     // No private DB race may inform a desire about the interlocutor's hidden bloodline.
-    $known=function_exists('ai_perception_known_race')?ai_perception_known_race($nid,$uid,(int)($job['source_id']??0)):0;
-    $family=function_exists('ai_perception_race_family')?ai_perception_race_family($known):0;
+    $known=function_exists('aiPerceptionKnownRace')?aiPerceptionKnownRace($nid,$uid,(int)($job['source_id']??0)):0;
+    $family=function_exists('aiPerceptionRaceFamily')?aiPerceptionRaceFamily($known):0;
     if(($wish['family']==='vampiro'&&$family!==2)||($wish['family']==='licantropo'&&$family!==3)){ return; }
     $category=$wish['stance'].'_'.$wish['family'];
     $prior=$db->query("SELECT category FROM ai_personal_memories WHERE npc_id=? AND player_id=? AND active=1 AND category IN(?,?)".ai_relation_context_memory_scope($nid,$uid).' ORDER BY id DESC LIMIT 1',[$nid,$uid,'desiderio_'.$wish['family'],'rifiuto_'.$wish['family']])[0]??[];
@@ -200,7 +200,7 @@ function ai_social_development_record(array $npc,array $job,array $before,array 
 }
 /** Own-pair projection for the player; staff must have been authorised by its controller. */
 function ai_social_development_view(int $npc,int $player,bool $staff=false):array {
-    $db=ai_db();$scope=$staff?'':' AND visible=1';
+    $db=aiDb();$scope=$staff?'':' AND visible=1';
     $story=$db->query("SELECT id,category,summary,evidence,created_at,chat_key FROM ai_personal_memories WHERE npc_id=? AND player_id=? AND active=1".$scope." AND category IN('evoluzione','trauma') ORDER BY id DESC LIMIT 6",[$npc,$player]);
     $aspirations=[];
     // A choice cannot disappear merely because many newer emotional episodes were recorded.
@@ -215,25 +215,25 @@ function ai_social_development_context(array $npc,array $job,array $rules,float 
     $nid=(int)$npc['id'];$uid=(int)$job['user_id'];$chat=(string)($job['chat_key']??'');$private=preg_match('/^(?:rent_|pvt_)/D',$chat)===1;
     $public="LEFT(chat_key,5)<>'rent_' AND LEFT(chat_key,4)<>'pvt_'";$scope=$private?"($public OR chat_key=?)":"($public)";$params=[$nid,$uid];if($private){ $params[]=$chat; }
     $memoryScope=ai_relation_context_memory_scope($nid,$uid);
-    $wish=ai_db()->query("SELECT category FROM ai_personal_memories WHERE npc_id=? AND player_id=? AND active=1 AND $scope AND category IN('desiderio_vampiro','rifiuto_vampiro','desiderio_licantropo','rifiuto_licantropo')".$memoryScope.' ORDER BY id DESC LIMIT 1',$params)[0]??[];
+    $wish=aiDb()->query("SELECT category FROM ai_personal_memories WHERE npc_id=? AND player_id=? AND active=1 AND $scope AND category IN('desiderio_vampiro','rifiuto_vampiro','desiderio_licantropo','rifiuto_licantropo')".$memoryScope.' ORDER BY id DESC LIMIT 1',$params)[0]??[];
     $out="\nEVOLUZIONE: ostilità e offese possono ferirti; rispetto concreto, ascolto e aiuto accolti possono farti fidare già nello stesso incontro. Dopo uno spavento puoi calmarti se accetti rassicurazioni e distanza, senza dimenticare il segreto visto. Paura, affetto, lealtà e amore sono distinti: non convertirli automaticamente l’uno nell’altro. Non leggere sincerità, pensieri o consenso del PG.";
     if($scale<=.5){ $out="\nLEGAME: offese e aiuti incidono; rassicurazioni accolte calmano senza dimenticare segreti. Affetto e lealtà non impongono amore. "; }
     if($wish){ $out.=' Tua ultima scelta dichiarata verso questo interlocutore: '.str_replace('_',' ',$wish['category']).'; puoi confermarla o revocarla, non trasformarti automaticamente.'; }
     // Other relationships retain their history. This pair's superseded trauma
     // cannot return indirectly as general caution in this same interaction.
-    $trauma=ai_db()->query("SELECT id FROM ai_personal_memories WHERE npc_id=? AND active=1 AND category='trauma' AND $public AND created_at>? AND (player_id<>? OR (1=1".$memoryScope.')) ORDER BY id DESC LIMIT 1',[$nid,time()-(int)$rules['trauma_memory_days']*86400,$uid]);
+    $trauma=aiDb()->query("SELECT id FROM ai_personal_memories WHERE npc_id=? AND active=1 AND category='trauma' AND $public AND created_at>? AND (player_id<>? OR (1=1".$memoryScope.')) ORDER BY id DESC LIMIT 1',[$nid,time()-(int)$rules['trauma_memory_days']*86400,$uid]);
     if($trauma){ $out.=' Un’esperienza pubblica recente ti ha segnato: puoi essere più prudente; non attribuire la colpa all’interlocutore attuale né raccontare vicende di altre persone.'; }
     if(empty($rules['allow_nature_aspirations'])){ $out.=' Non introdurre nuovi desideri di cambiare natura; puoi sempre revocare scelte già dichiarate.'; }
     else { $out.=' Puoi maturare e dire un desiderio o rifiuto personale di cambiare natura solo se coerente con storia, conoscenze e volontà; non farne una risposta obbligata a fascinazione, minacce o richieste del PG.'; }
-    return $scale<=.5?"\n".ai_text($out,180):$out;
+    return $scale<=.5?"\n".aiText($out,180):$out;
 }
 /** Called only with a persisted server-resolved wound. No LLM claim establishes an aggressor. */
 function ai_social_survival_effect(array $effect,array $context):void {
-    $db=ai_db();if(!$db->inTransaction()){ throw new LogicException('Transazione richiesta per una memoria di combattimento.'); }
+    $db=aiDb();if(!$db->inTransaction()){ throw new LogicException('Transazione richiesta per una memoria di combattimento.'); }
     $nid=(int)($context['npc_id']??0);$uid=(int)($context['player_id']??0);$hp=(int)($context['after_hp']??0);$beforeHp=(int)($context['before_hp']??0);$key=(string)($context['effect_key']??'');
     if($nid<1||$uid<1||$hp<1||$beforeHp<=$hp||($context['actor_kind']??'')!=='pg'||(int)($context['actor_id']??0)!==$uid||$key===''||strlen($key)>180||($effect['type']??'')!=='health'){ return; }
     $npc=$db->query('SELECT id FROM ai_npcs WHERE id=?',[$nid])[0]??null;if(!$npc||!ai_player_identity($uid)){ return; }
-    $now=time();$rules=ai_social_rules($nid);$db->execute('INSERT IGNORE INTO ai_relationships(npc_id,player_id,created_at,updated_at) VALUES(?,?,?,?)',[$nid,$uid,$now,$now]);
+    $now=time();$rules=aiSocialRules($nid);$db->execute('INSERT IGNORE INTO ai_relationships(npc_id,player_id,created_at,updated_at) VALUES(?,?,?,?)',[$nid,$uid,$now,$now]);
     $before=$db->query('SELECT * FROM ai_relationships WHERE npc_id=? AND player_id=? FOR UPDATE',[$nid,$uid])[0];
     if($db->query("SELECT id FROM ai_relationship_events WHERE npc_id=? AND player_id=? AND JSON_UNQUOTE(JSON_EXTRACT(after_state,'$._survival.effect_key'))=? LIMIT 1",[$nid,$uid,$key])){ return; }
     $impact=min(18,max(6,(int)ceil(($beforeHp-$hp)/max(1,$beforeHp)*18)));$after=$before;

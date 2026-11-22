@@ -16,7 +16,7 @@ use Alphano\Database\PDOMySQLDriver;
 // ────────────────────────────────────────────────────────────────────
 // 3) Recupero ID utente e connessione DB
 // ────────────────────────────────────────────────────────────────────
-player_api(function (): array {
+playerApi(function (): array {
 // id del chiamante
 $visitorId = alphano_require_login(true);
 // se nella query string (o POST) è passato uid, lo uso, altrimenti visitor
@@ -125,10 +125,10 @@ $output = [
     ],
     'etnia'        => GetEtnia((int)$row['etnia']),
     'allineamento' => processAl($row['allineamento']),
-    'avatar_url'   => player_media_url($avatarUrl,$profileId,'/assets/avatar.svg'),
+    'avatar_url'   => playerMediaUrl($avatarUrl,$profileId,'/assets/avatar.svg'),
     'avatar_default_url' => '/assets/avatar.svg',
     'motto'        => ProcessText($motto),
-    'music_url'    => player_media_url($music,$profileId),
+    'music_url'    => playerMediaUrl($music,$profileId),
     'visit_count'  => (int)$row['visite'],
     'denari'       => (int)$row['denari'],
     'puntif'       => (int)$row['puntif'],

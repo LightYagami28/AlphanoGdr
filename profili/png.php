@@ -12,13 +12,13 @@ $rawId = $_GET['Id'] ?? '';
 if (!is_string($rawId) || filter_var($rawId, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) === false) { alphano_fail('Personaggio non valido.', 400); }
 $id = (int)$rawId;
 $death=alphano_npc_death($id);
-$npc = ai_db()->query('SELECT n.*,COALESCE(m.title,n.chat_key) AS title,m.chat AS public_chat FROM ai_npcs n LEFT JOIN mappe m ON m.chat_key=n.chat_key COLLATE utf8mb4_unicode_ci WHERE n.id=?', [$id])[0] ?? null;
+$npc = aiDb()->query('SELECT n.*,COALESCE(m.title,n.chat_key) AS title,m.chat AS public_chat FROM ai_npcs n LEFT JOIN mappe m ON m.chat_key=n.chat_key COLLATE utf8mb4_unicode_ci WHERE n.id=?', [$id])[0] ?? null;
 // The immutable memorial remains reachable even if a location or live cast row is retired.
 if(!$npc&&$death){ $npc=['id'=>$id,'name'=>$death['npc_name'],'chat_key'=>$death['chat_key'],'title'=>$death['place_name'],'active'=>0,'profile'=>$death['profile_snapshot'],'public_chat'=>0]; }
 if (!$npc || (!$death&&empty($npc['public_chat'])) || (!(int)$npc['active'] && !$death && !alphano_relations_staff((int)$viewer['id']) && (int)ai_npc_profile($npc)['hit_points']>0)) { alphano_fail('Personaggio non disponibile.', 404); }
 $profile = ai_npc_profile($npc);
 if($death||(int)$profile['hit_points']<=0){require __DIR__.'/../templates/profiles/npc-memorial.php';ClosePage();exit;}
-$profile['money']=ai_npc_balance($id);
+$profile['money']=aiNpcBalance($id);
 $escape = static fn(mixed $value): string => htmlspecialchars((string)($value ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 $groups = [
     'identita' => ['title' => 'Identità', 'icon' => 'user', 'fields' => ['appearance' => 'Aspetto', 'occupation' => 'Occupazione', 'social_status' => 'Stato sociale']],
@@ -46,7 +46,7 @@ $identity = [GetRazza((int)$profile['race_id']), $profile['sex'], GetEtnia((int)
 if ($profile['age']) { $identity[] = (int)$profile['age'] . ' anni'; }
 $sheet = [
     'title' => $npc['name'], 'kind' => 'Personaggio non giocante', 'portrait' => $profile['portrait'] ?: '/assets/placeholder.svg',
-    'identity_html' => processRazza((int)$profile['race_id'], $profile['sex'], (int)$profile['ethnicity_id']) . ' ' . $escape(implode(' · ', $identity)),
+    'identity_html' => processRazza((int)$profile['race_id'], (int)$profile['ethnicity_id']) . ' ' . $escape(implode(' · ', $identity)),
     'subtitle' => $profile['occupation'], 'motto_html' => nl2br($escape($profile['motto'])), 'music' => '',
     'metrics' => ['Punti ferita' => $profile['hit_points'], 'Corone' => number_format((int)$profile['money'], 0, ',', '.'), 'Forza'=>alphano_profile_strength('npc',$id,(int)$profile['race_id'])],
     'sections' => $sections, 'actions' => [['title' => $npc['title'], 'icon' => 'compass', 'url' => '/chat/index.php?chat=' . rawurlencode($npc['chat_key'])]],
@@ -65,11 +65,11 @@ if(isset($_GET['player'])){
     $selectedPlayer=(int)$_GET['player'];
 }
 $sheet['relation_read_only']=$sheet['relations_staff']&&isset($_GET['player']);
-try{$sheet['npc_social']=$sheet['relation_read_only']?alphano_relations_npc_context($id,$selectedPlayer,(int)$viewer['id']):ai_social_private_view($id,$selectedPlayer);}catch(DomainException $e){alphano_fail($e->getMessage(),(int)$e->getCode());}
+try{$sheet['npc_social']=$sheet['relation_read_only']?alphano_relations_npc_context($id,$selectedPlayer,(int)$viewer['id']):aiSocialPrivateView($id,$selectedPlayer);}catch(DomainException $e){alphano_fail($e->getMessage(),(int)$e->getCode());}
 $sheet['npc_knowledge']=alphano_revelations_profile('npc',$id,$selectedPlayer);
 $sheet['relation_player']=$selectedPlayer;
 if($sheet['relations_staff']){ $sheet['relation_overview']=$sheet['npc_social']['overview']??ai_personality_overview($id); }
-$sheet['npc_id']=$id;$sheet['npc_rules']=ai_social_rules($id);
+$sheet['npc_id']=$id;$sheet['npc_rules']=aiSocialRules($id);
 $sheet['rpg_kind']='npc';$sheet['rpg_id']=$id;$sheet['race_id']=(int)$profile['race_id'];
 array_splice($sheet['sections'],1,0,[['id'=>'progressione','title'=>'Caratteristiche e abilità','icon'=>'swords','rows'=>[],'template'=>'progression']]);
 if (!empty($viewer['admin'])) { $sheet['actions'][] = ['title' => 'Modifica personaggio', 'icon' => 'settings', 'url' => '/admin/master-ia.php?chat=' . rawurlencode($npc['chat_key']) . '&npc=' . $id]; }

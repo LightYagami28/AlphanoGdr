@@ -21,11 +21,11 @@ function alphano_material_market(int $seller):array {
  return ['items'=>$items,'buyers'=>$buyers];
 }
 function alphano_offer_material(int $seller,int $instance,int $corp,int $buyer,int $qty,int $total,string $request):bool {
- return EconomiaAtomica(static function()use($seller,$instance,$corp,$buyer,$qty,$total,$request):bool{
-  if($seller===$buyer||$qty<1||$qty>10000||!CommercioPrezzoValido((float)$total)){ throw new DomainException('Quantità, prezzo o responsabile non validi.',422); }
+ return economiaAtomica(static function()use($seller,$instance,$corp,$buyer,$qty,$total,$request):bool{
+  if($seller===$buyer||$qty<1||$qty>10000||!commercioPrezzoValido((float)$total)){ throw new DomainException('Quantità, prezzo o responsabile non validi.',422); }
   if(!preg_match('/^[A-Za-z0-9_-]{16,80}$/D',$request)){ throw new DomainException('Richiesta non valida.',400); }
   $db=ConnectDB();$staff=$db->query('SELECT id FROM utenti WHERE id=? AND bloccato=0',[$buyer]);
-  if(!$staff||!EconomiaImpiegato($buyer,$corp)||!$db->query('SELECT id FROM corporazioni WHERE id=? AND approvato=1',[$corp])){ throw new DomainException('Responsabile non disponibile.',422); }
+  if(!$staff||!economiaImpiegato($buyer,$corp)||!$db->query('SELECT id FROM corporazioni WHERE id=? AND approvato=1',[$corp])){ throw new DomainException('Responsabile non disponibile.',422); }
   if(!alphano_operation_once('material-offer',$seller,$request,[$instance,$corp,$buyer,$qty,$total])){ return true; }
   $r=$db->query("SELECT e.id,e.shortDesc,e.materiaprima FROM equippg p JOIN equip e ON e.id=p.uid JOIN tipo t ON t.id=e.tipo WHERE p.id=? AND p.idpg=? AND p.slot='' AND p.idpadre=0 AND t.tipoG='risorsa' FOR UPDATE",[$instance,$seller])[0]??null;
   if(!$r||!in_array($r['materiaprima'],MATERIE_PRIME,true)){ throw new DomainException('Materia prima non disponibile nella tua borsa.',409); }
@@ -34,7 +34,7 @@ function alphano_offer_material(int $seller,int $instance,int $corp,int $buyer,i
   if($db->query('SELECT id FROM trasferimenti WHERE pg=? AND pgcorp=? AND corp=? AND obj=? AND verso=1 AND stato<5',[$seller,$buyer,$corp,$instance])){ throw new DomainException('Hai già una proposta aperta per questo materiale e responsabile.',409); }
   $db->execute('INSERT INTO trasferimenti(data,corp,pgcorp,pg,obj,nomeobj,qta,prezzo,verso,stato) VALUES(?,?,?,?,?,?,?,?,1,3)',[time(),$corp,$buyer,$seller,$instance,$r['shortDesc'],$qty,$total]);
   $trade=['id'=>(int)$db->lastInsertId(),'corp'=>$corp,'pg'=>$seller,'pgcorp'=>$buyer,'obj'=>$instance,'nomeobj'=>$r['shortDesc'],'qta'=>$qty,'prezzo'=>$total,'verso'=>1];
-  CommercioAttivita('purchase-proposal',$seller,$trade,'Materie prime offerte alla corporazione',alphano_currency_text("Offerti {$qty}× {$r['shortDesc']} per {$total} Corone totali. Beni e denaro cambieranno proprietario soltanto all’accettazione."),[],['stato'=>3,'qta'=>$qty,'prezzo'=>$total],['iniziativa'=>'venditore']);
+  commercioAttivita('purchase-proposal',$seller,$trade,'Materie prime offerte alla corporazione',alphano_currency_text("Offerti {$qty}× {$r['shortDesc']} per {$total} Corone totali. Beni e denaro cambieranno proprietario soltanto all’accettazione."),['before'=>[],'after'=>['stato'=>3,'qta'=>$qty,'prezzo'=>$total],'extra'=>['iniziativa'=>'venditore']]);
   return true;
  });
 }

@@ -25,7 +25,7 @@ function ai_tactical_retreat(array &$states,string $actor,int $round):void {
 }
 /** This projection is shared by the public verdict and the next NPC prompt. */
 function ai_tactical_situation(int $sid):array {
-    $rows=ai_db()->query("SELECT c.kind,c.actor_id,c.state,COALESCE(n.name,u.nome) name,COALESCE(JSON_EXTRACT(n.profile,'$.hit_points'),u.puntif) hp,COALESCE(JSON_EXTRACT(n.profile,'$.race_id'),u.razza) race_id FROM ai_quest_cast c LEFT JOIN ai_npcs n ON c.kind='npc' AND n.id=c.actor_id LEFT JOIN utenti u ON c.kind='pg' AND u.id=c.actor_id WHERE c.session_id=? AND c.active=1 ORDER BY c.kind,c.actor_id",[$sid]);$names=[];
+    $rows=aiDb()->query("SELECT c.kind,c.actor_id,c.state,COALESCE(n.name,u.nome) name,COALESCE(JSON_EXTRACT(n.profile,'$.hit_points'),u.puntif) hp,COALESCE(JSON_EXTRACT(n.profile,'$.race_id'),u.razza) race_id FROM ai_quest_cast c LEFT JOIN ai_npcs n ON c.kind='npc' AND n.id=c.actor_id LEFT JOIN utenti u ON c.kind='pg' AND u.id=c.actor_id WHERE c.session_id=? AND c.active=1 ORDER BY c.kind,c.actor_id",[$sid]);$names=[];
     foreach($rows as $row){ $names[$row['kind'].':'.$row['actor_id']]=$row['name']??'Personaggio assente'; }
     $round=(int)ai_game_guidance($sid)['round_number'];$out=[];
     foreach($rows as $row){$key=$row['kind'].':'.$row['actor_id'];$s=json_decode($row['state'],true)?:[];$parts=[];

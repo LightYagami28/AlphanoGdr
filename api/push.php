@@ -2,14 +2,14 @@
 declare(strict_types=1);
 require_once __DIR__.'/../libs/player-runtime.inc.php';
 require_once __DIR__.'/../libs/web-push.inc.php';
-player_api(static function (): array {
+playerApi(static function (): array {
     $user = alphano_require_login(true);
     if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {
         $ready = alphano_push_ready();
         return ['configured'=>$ready,'public_key'=>$ready ? alphano_push_keys()['publicKey'] : null,'csrfToken'=>alphano_csrf_token()];
     }
-    player_mutation(); $input = player_input();
-    $action = player_text($input,'action',32,true);
+    playerMutation(); $input = playerInput();
+    $action = playerText($input,'action',32,true);
     if ($action === 'subscribe') {
         if (!is_array($input['subscription'] ?? null)) { throw new RuntimeException('Dispositivo non valido.',400); }
         alphano_push_subscribe($user,$input['subscription']);

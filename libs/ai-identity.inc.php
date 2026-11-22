@@ -5,7 +5,7 @@ declare(strict_types=1);
 function ai_identity_misaddress(string $name, string $sex, string $raw): bool
 {
     if (!in_array($sex,['Maschio','Femmina'],true)) { return false; }
-    $reading=ai_narrative_parse($raw);
+    $reading=aiNarrativeParse($raw);
     $wrong=$sex==='Maschio'?'signora|madama|donna':'signore|messere|uomo';
     if (preg_match('/(?:^|[,.!?]\s*|\b(?:buona\s*sera|buon\s*giorno|salve|buona\s*notte|scusate|scusatemi|grazie)\s*[,;:]?\s*)(?:(?:mia|mio|gentile|cara|caro|egregia|egregio)\s+)?(?:'.$wrong.')(?:[,.!?]|\s*$)/iu',$reading['speech'])) { return true; }
     $first=preg_split('/\s+/u',trim($name))[0]??'';
@@ -16,13 +16,13 @@ function ai_identity_misaddress(string $name, string $sex, string $raw): bool
 function ai_identity_player(int $id): array
 {
     if ($id<1) { return []; }
-    return ai_db()->query('SELECT id,nome,sesso,razza,vampire_human_form,ancestrale,infetto FROM utenti WHERE id=?',[$id])[0]??[];
+    return aiDb()->query('SELECT id,nome,sesso,razza,vampire_human_form,ancestrale,infetto FROM utenti WHERE id=?',[$id])[0]??[];
 }
 
 /** The account label in narration is not a spoken introduction. */
 function ai_identity_introduction(string $name,string $raw):bool {
     if(trim($name)===''){ return false; }
-    $speech=ai_narrative_parse($raw)['speech'];
+    $speech=aiNarrativeParse($raw)['speech'];
     foreach(preg_split('/[.!?;]+/u',$speech,-1,PREG_SPLIT_NO_EMPTY)?:[] as $clause){
         if(preg_match('/\b(?:pensa|immagina|diceva|ha\s+detto|aveva\s+detto|si\s+chiama|se\s+fossi)\b/iu',$clause)){ continue; }
         if(!preg_match('/(?<!\p{L})(?:mi\s+chiamo|il\s+mio\s+nome\s+è|sono)\s+'.preg_quote($name,'/').'(?![\p{L}\p{N}])/iu',$clause,$match,PREG_OFFSET_CAPTURE)){ continue; }
@@ -40,7 +40,7 @@ function ai_identity_known_name(array $npc,array $job,?array $player=null,?array
     $player??=ai_identity_player($uid);$name=trim((string)($player['nome']??''));if($name===''){ return ''; }
     $authority??=ai_npc_authority($nid,$uid,$job);
     if(!empty($authority['recognized'])){ return $name; }
-    $relation??=ai_relation($nid,$uid);
+    $relation??=aiRelation($nid,$uid);
     if(trim((string)($relation['known_name']??''))!==''){ return (string)$relation['known_name']; }
     return ai_identity_introduction($name,(string)($job['prompt']??''))?$name:'';
 }
@@ -53,7 +53,7 @@ function ai_identity_messages(array $npc,array $job,array $messages):array {
     if(ai_recognition_anonymous($npc,$job)||ai_identity_known_name($npc,$job)!==''){ return $messages; }
     $player=ai_identity_player((int)($job['user_id']??0));$name=trim((string)($player['nome']??''));if($name===''){ return $messages; }
     $names=[(string)($npc['name']??'')];
-    foreach(ai_db()->query('SELECT name FROM ai_npcs WHERE BINARY chat_key=BINARY ? AND active=1 ORDER BY id LIMIT '.AI_MAX_NPCS,[(string)($job['chat_key']??$npc['chat_key']??'')]) as $other){ $names[]=(string)$other['name']; }
+    foreach(aiDb()->query('SELECT name FROM ai_npcs WHERE BINARY chat_key=BINARY ? AND active=1 ORDER BY id LIMIT '.AI_MAX_NPCS,[(string)($job['chat_key']??$npc['chat_key']??'')]) as $other){ $names[]=(string)$other['name']; }
     $protected=[];foreach($names as $value){ if($value!==''){ $protected[mb_strtolower($value)]=true; } }
     $forms=array_values(array_unique([...$names,$name]));$forms=array_filter($forms,static fn($v)=>$v!=='');usort($forms,static fn($a,$b)=>mb_strlen($b)<=>mb_strlen($a));
     $pattern='~(?<![\p{L}\p{N}])(?:'.implode('|',array_map(static fn($v)=>preg_quote($v,'~'),$forms)).')(?![\p{L}\p{N}])~iu';
@@ -85,10 +85,10 @@ function ai_identity_context(array $npc, array $job, ?array $player=null): strin
         $out.=$sex==='Maschio'?' Sei un UOMO: il visitatore ti ha chiamato SIGNORA o DONNA per errore.':' Sei una DONNA: il visitatore ti ha chiamato SIGNORE o UOMO per errore.';
         $out.=' Correggi proprio quell’appellativo con perplessità o ironia coerente con il tuo carattere. Non negare la tua identità reale e non ripetere il suo saluto come tua battuta.';
     }
-    $reading=ai_narrative_parse((string)($job['prompt']??''));
+    $reading=aiNarrativeParse((string)($job['prompt']??''));
     $claim=(bool)preg_match('/\b(?:trasform\p{L}*|metamorfosi|muta\p{L}*|riprende\s+(?:la\s+)?forma)\b/iu',$reading['action']);
     $trusted=null;
-    if($claim && ($job['kind']??'')!=='reaction' && function_exists('ai_perception_reaction')){ $trusted=ai_perception_reaction($npc,$job)['recent']??null; }
+    if($claim && ($job['kind']??'')!=='reaction' && function_exists('aiPerceptionReaction')){ $trusted=aiPerceptionReaction($npc,$job)['recent']??null; }
     $masterEstablished=$trusted && in_array($trusted['kind']??'',['human_master','system_master'],true) && (int)($trusted['actor_id']??0)===(int)($job['user_id']??0);
     if (($job['kind']??'')!=='reaction' && !$masterEstablished && $player && $claim) {
         $visible=function_exists('alphano_visible_race')?alphano_visible_race($player):(int)$player['razza'];
@@ -103,7 +103,7 @@ function ai_identity_validate_text(array $npc, array $job, string $text, ?array 
 {
     $profile=ai_npc_profile($npc); $sex=$profile['sex'];
     $wrong=$sex==='Maschio'?'donna':'uomo'; $name=preg_quote((string)$npc['name'],'/');
-    $reading=ai_narrative_parse($text,['channel'=>'action']);
+    $reading=aiNarrativeParse($text,['channel'=>'action']);
     $own=$sex==='Maschio'?'uomo|signore|messere':'donna|signora|madama';
     if(ai_identity_misaddress((string)$npc['name'],$sex,(string)($job['prompt']??'')) && preg_match('/\bnon\s+sono\s+(?:un[ao]?\s+)?(?:'.$own.')\b/iu',$reading['speech'])) {
         throw new RuntimeException('La correzione nega il sesso effettivo del PNG. Rigenera correggendo soltanto l’appellativo sbagliato del visitatore.');

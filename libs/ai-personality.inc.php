@@ -8,15 +8,15 @@ const AI_MEMORY_SOURCES=['dialogue'=>'Turno osservato: dichiarazioni e tentativi
 
 /** Thoughts and out-of-character notes are not something an interlocutor can hear. */
 function ai_personality_observable(string $raw,int $limit=800): string {
-    if(function_exists('ai_narrative_parse')){
-        $parsed=ai_narrative_parse($raw);$parts=[];
+    if(function_exists('aiNarrativeParse')){
+        $parsed=aiNarrativeParse($raw);$parts=[];
         foreach($parsed['segments']??[] as $part){
             if(!in_array($part['kind']??'',['speech','action'],true)){ continue; }
             $text=trim((string)($part['text']??''));if($text!==''){ $parts[]=($part['kind']==='speech'?'Parole: ':'Azione dichiarata: ').$text; }
         }
-        return ai_text(implode(' / ',$parts),$limit);
+        return aiText(implode(' / ',$parts),$limit);
     }
-    return ai_text($raw,$limit);
+    return aiText($raw,$limit);
 }
 
 /** Keep at most three evidence-linked recollections inside the local model's small context. */
@@ -36,8 +36,8 @@ function ai_personality_recall(int $npc,int $player,array $job,int $limit=3): ar
     // even when its original dialogue receipt already appears in role history.
     if($already){ $scope.=" AND (source='admin' OR job_id IS NULL OR job_id NOT IN (".implode(',',$already).'))'; }
     $columns='id,category,summary,evidence,source,epistemic,chat_key,created_at,updated_at';
-    $db=ai_db();$recent=$db->query('SELECT '.$columns.' FROM ai_personal_memories WHERE npc_id=? AND player_id=? AND active=1'.$scope.' ORDER BY created_at DESC,id DESC LIMIT '.$limit,$params);
-    $term=ai_text(ai_personality_observable((string)($job['prompt']??''),350),350);
+    $db=aiDb();$recent=$db->query('SELECT '.$columns.' FROM ai_personal_memories WHERE npc_id=? AND player_id=? AND active=1'.$scope.' ORDER BY created_at DESC,id DESC LIMIT '.$limit,$params);
+    $term=aiText(ai_personality_observable((string)($job['prompt']??''),350),350);
     $relevant=$term!==''?$db->query('SELECT '.$columns.' FROM ai_personal_memories WHERE npc_id=? AND player_id=? AND active=1'.$scope.' AND MATCH(summary) AGAINST (? IN NATURAL LANGUAGE MODE) ORDER BY MATCH(summary) AGAINST (? IN NATURAL LANGUAGE MODE) DESC,id DESC LIMIT 2',[...$params,$term,$term]):[];
     // One durable episode survives a run of routine greetings; there is no
     // second mutable biography and no private-room scope is widened here.
@@ -51,11 +51,11 @@ function ai_personality_recall(int $npc,int $player,array $job,int $limit=3): ar
 /** New observed-turn receipts can safely recall both sides; legacy prose stays evidence-only. */
 function ai_personality_memory_excerpt(array $memory,string $question,int $limit):string {
     $limit=max(100,min(220,$limit));$summary=(string)($memory['summary']??'');
-    if(($memory['source']??'')!=='dialogue'){ return ai_text($summary,$limit); }
+    if(($memory['source']??'')!=='dialogue'){ return aiText($summary,$limit); }
     $evidence=(string)($memory['evidence']??'');
     if(trim($evidence)===''){ return ''; }
     $observed=ai_personality_observable($evidence,800);
-    $prefix='Turno osservabile del PG (parole e tentativi, non esiti accertati): '.ai_text($evidence,450).'. ';
+    $prefix='Turno osservabile del PG (parole e tentativi, non esiti accertati): '.aiText($evidence,450).'. ';
     $reply='';
     // Match the server's complete observed PG prefix, not a phrase a player could
     // inject inside their own turn. The speaker may since have been renamed.
@@ -66,15 +66,15 @@ function ai_personality_memory_excerpt(array $memory,string $question,int $limit
     $select=static function(string $text,int $budget)use($question):string{
         $text=preg_replace('/(?:Parole:\s*){2,}/u','Parole: ',$text)??$text;
         $text=preg_replace('/(?:Azione dichiarata:\s*){2,}/u','Azione dichiarata: ',$text)??$text;
-        return function_exists('ai_prompt_relevant_text')?ai_prompt_relevant_text($text,$question,$budget):ai_text($text,$budget);
+        return function_exists('ai_prompt_relevant_text')?ai_prompt_relevant_text($text,$question,$budget):aiText($text,$budget);
     };
     if($reply===''){ return $select($observed,$limit); }
     $replyBudget=max(60,(int)(($limit-23)*.65));$playerBudget=max(30,$limit-23-$replyBudget);
     // The local selector has an 80-character lower bound; enforce the pair's
     // individual allocations as well so an entire transcript can never return.
-    $pg=ai_text($select($observed,max(80,$playerBudget)),$playerBudget);
-    $own=ai_text($select($reply,max(80,$replyBudget)),$replyBudget);
-    return ai_text('PG: '.$pg.' / Tua risposta: '.$own,$limit);
+    $pg=aiText($select($observed,max(80,$playerBudget)),$playerBudget);
+    $own=aiText($select($reply,max(80,$replyBudget)),$replyBudget);
+    return aiText('PG: '.$pg.' / Tua risposta: '.$own,$limit);
 }
 
 function ai_personality_context(array $npc,array $job,float $scale,array $relation): string {
@@ -116,7 +116,7 @@ function ai_personality_context(array $npc,array $job,float $scale,array $relati
 
 /** Staff-only callers receive bounded rows and aggregate statistics from the same ledger. */
 function ai_personality_overview(int $npc,int $limit=40,int $offset=0): array {
-    $limit=max(1,min(100,$limit));$offset=max(0,$offset);$db=ai_db();
+    $limit=max(1,min(100,$limit));$offset=max(0,$offset);$db=aiDb();
     $totals=$db->query('SELECT COUNT(*) AS players,COALESCE(SUM(interactions),0) AS interactions,COALESCE(SUM(encounters),0) AS encounters,COALESCE(SUM(meaningful),0) AS meaningful,COALESCE(MAX(last_encounter),0) AS last_encounter FROM ai_relationships WHERE npc_id=?',[$npc])[0];
     $pairs=$db->query('SELECT r.*,u.id,u.nome,u.sesso,u.razza,u.avatar,u.avatar2,u.vampire_human_form,u.chat AS player_chat,m.title AS player_place FROM ai_relationships r JOIN utenti u ON u.id=r.player_id LEFT JOIN mappe m ON m.chat_key=u.chat WHERE r.npc_id=? ORDER BY r.last_encounter DESC,r.player_id LIMIT '.$limit.' OFFSET '.$offset,[$npc]);
     return ['totals'=>$totals,'players'=>$pairs,'limit'=>$limit,'offset'=>$offset,'more'=>(int)$totals['players']>$offset+count($pairs)];
@@ -125,5 +125,5 @@ function ai_personality_overview(int $npc,int $limit=40,int $offset=0): array {
 /** The history is an audit view, not a new global biography or knowledge source. */
 function ai_personality_history(int $npc,int $player=0,int $limit=30): array {
     $limit=max(1,min(100,$limit));$params=[$npc];$pair='';if($player>0){$pair=' AND m.player_id=?';$params[]=$player;}
-    return ai_db()->query('SELECT m.id,m.player_id,m.chat_key,m.job_id,m.category,m.summary,m.evidence,m.source,m.epistemic,m.active,m.created_at,m.updated_at,u.nome FROM ai_personal_memories m JOIN utenti u ON u.id=m.player_id WHERE m.npc_id=?'.$pair.' ORDER BY m.created_at DESC,m.id DESC LIMIT '.$limit,$params);
+    return aiDb()->query('SELECT m.id,m.player_id,m.chat_key,m.job_id,m.category,m.summary,m.evidence,m.source,m.epistemic,m.active,m.created_at,m.updated_at,u.nome FROM ai_personal_memories m JOIN utenti u ON u.id=m.player_id WHERE m.npc_id=?'.$pair.' ORDER BY m.created_at DESC,m.id DESC LIMIT '.$limit,$params);
 }

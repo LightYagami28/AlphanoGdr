@@ -79,7 +79,7 @@ if (
 
 // Carica statuto corrente (nuovo se in modify)
 if ($corpId > 0) {
-    $statuto = GetStatutoCorp($corpId, $modify);
+    $statuto = getStatutoCorp($corpId, $modify);
 }
 
 // Se è admin accademia, carica produzioni

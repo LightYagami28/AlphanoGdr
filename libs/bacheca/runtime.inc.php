@@ -14,7 +14,7 @@ foreach (array_merge($_GET,$_POST) as $value) { if (!is_scalar($value)) { alphan
 function bacheca_legacy_board(): int {
     $board=(int)($_POST['bc'] ?? $_GET['bc'] ?? 0);
     if ($board<1) { alphano_fail('Bacheca non trovata.',404); }
-    player_require_board(getDB(),$board,alphano_user());
+    playerRequireBoard(getDB(),$board,alphano_user());
     return $board;
 }
 

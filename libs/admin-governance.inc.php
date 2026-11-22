@@ -34,7 +34,7 @@ function alphano_governance_city_citizenship(int $actor,int $target,int $city,st
  if(!in_array($decision,['accept','reject','grant'],true)||$actor<1||$target<1||$city<1){ throw new DomainException('Operazione di cittadinanza non valida.',422); }
  $reason=trim($reason);
  if(mb_strlen($reason)>500||($decision==='grant'&&$reason==='')){ throw new DomainException('Indica un motivo tra 1 e 500 caratteri.',422); }
- return EconomiaAtomica(static function()use($actor,$target,$city,$decision,$reason):array{
+ return economiaAtomica(static function()use($actor,$target,$city,$decision,$reason):array{
   $db=ConnectDB();
   // Same global-first lock order as the general governance editor; read permissions again inside the transaction.
   $db->query('SELECT id FROM utenti WHERE admin=1 ORDER BY id FOR UPDATE');
@@ -81,7 +81,7 @@ function alphano_governance_apply(int $actor,int $target,array $changes,string $
  if(trim($reason)===''||mb_strlen($reason)>500){ throw new DomainException('Indica un motivo tra 1 e 500 caratteri.',422); }
  $editable=[...array_diff(alphano_governance_fields(),['ramoorganizzazione','ramocorporazione']),'appoint_city'];
  foreach($changes as $k=>$v){ if(!in_array($k,$editable,true)||is_array($v)||is_object($v)||filter_var($v,FILTER_VALIDATE_INT)===false||(int)$v<0||(isset(alphano_governance_flags()[$k])&&(int)$v>1)){ throw new DomainException('Incarico o permesso non valido: '.$k,422); } }
- return EconomiaAtomica(static function()use($actor,$target,$changes,$reason,$revision,$scope,$scopeId):array{
+ return economiaAtomica(static function()use($actor,$target,$changes,$reason,$revision,$scope,$scopeId):array{
   $db=ConnectDB();
   // Serialize global grants/revocations so two administrators cannot remove the last one concurrently.
   $admins=$db->query("SELECT id,bloccato FROM utenti WHERE admin=1 ORDER BY id FOR UPDATE");
@@ -129,7 +129,7 @@ function alphano_governance_apply(int $actor,int $target,array $changes,string $
   $delta=array_filter($next,static fn($v,$k)=>$v!==$before[$k],ARRAY_FILTER_USE_BOTH);
   if($delta){$sets=implode(',',array_map(static fn($k)=>$k.'=?',array_keys($delta)));$db->execute('UPDATE utenti SET '.$sets.' WHERE id=?',[...array_values($delta),$target]);alphano_governance_audit($actor,$target,$before,$next,$reason,$scope===null);
    if($next['corporazione']!==$before['corporazione']||($before['admincorporazione']&&!$next['admincorporazione'])||($before['admintrasfcorp']&&!$next['admintrasfcorp'])||($before['admin']&&!$next['admin'])){
-    $corps=array_column($db->query('SELECT DISTINCT corp FROM trasferimenti WHERE pgcorp=? AND stato BETWEEN 0 AND 5',[$target]),'corp');if($before['corporazione']){ $corps[]=$before['corporazione']; }foreach(array_unique($corps) as $corp){ ClearTrasferimenti((int)$corp); }
+    $corps=array_column($db->query('SELECT DISTINCT corp FROM trasferimenti WHERE pgcorp=? AND stato BETWEEN 0 AND 5',[$target]),'corp');if($before['corporazione']){ $corps[]=$before['corporazione']; }foreach(array_unique($corps) as $corp){ clearTrasferimenti((int)$corp); }
    }
   }
   return ['id'=>$target,'name'=>$u['nome'],'values'=>$next,'revision'=>alphano_governance_revision($next),'changed'=>count($delta)];

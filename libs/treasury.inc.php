@@ -16,11 +16,11 @@ function alphano_treasury_ready():bool {
 }
 /** A nested failed payment must not leave writes for its caller to commit. */
 function alphano_treasury_atomic(callable $operation):mixed {
-    return EconomiaAtomicaResiliente($operation);
+    return economiaAtomicaResiliente($operation);
 }
 function alphano_treasury_int(mixed $value,int $min=0,int $max=2147483647):int {
     if(!is_int($value)&&!is_string($value)){ throw new DomainException('Importo intero non valido.',422); }
-    $n=EconomiaIntero($value,$min,$max);if($n===null){ throw new DomainException('Importo o intervallo non valido.',422); }return $n;
+    $n=economiaIntero($value,$min,$max);if($n===null){ throw new DomainException('Importo o intervallo non valido.',422); }return $n;
 }
 function alphano_treasury_manager(string $scope,int $id,int $actor,bool $lock=false):bool {
     if($actor<1||$id<1){ return false; }$s=alphano_treasury_scope($scope);$db=ConnectDB();
@@ -106,7 +106,7 @@ function alphano_treasury_donate(string $scope,int $id,int $actor,int $amount,st
         if((int)$u['denari']<$amount||(int)$entity['budget']>2147483647-$amount){ throw new DomainException('Fondi insufficienti o saldo fuori limite. Nessun addebito.',409); }
         if($scope==='organizzazioni'){
             // Preserve the established oldest-loan-first settlement rule.
-            if(!CreaDonazione($actor,(string)$u['nome'],$id,$amount,$reason)){ throw new RuntimeException('Versamento non completato: transazione annullata.'); }
+            if(!creaDonazione($actor,$id,$amount,$reason)){ throw new RuntimeException('Versamento non completato: transazione annullata.'); }
         }else{$db->execute('UPDATE utenti SET denari=denari-? WHERE id=?',[$amount,$actor]);$db->execute('UPDATE '.$s['table'].' SET budget=budget+? WHERE id=?',[$amount,$id]);}
         $detail=alphano_currency_text("{$u['nome']} ha versato {$amount} Corone a {$entity['name']}. ").mb_substr($reason,0,300);$run=alphano_treasury_finish($scope,$id,$key,$amount,$detail);
         alphano_treasury_notice($scope,$id,$actor,'Donazione ricevuta',$detail,$run);InviaMissiva('Ricevuta donazione',alphano_currency_text("Hai versato {$amount} Corone a {$entity['name']}. ").mb_substr($reason,0,300),$actor);

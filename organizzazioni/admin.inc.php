@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+if (!defined('S1192_ORGANIZZAZIONI_ADMIN_INC_PHP_3912AE_PARAMETRI_NON_ESAURIENTI')) { define('S1192_ORGANIZZAZIONI_ADMIN_INC_PHP_3912AE_PARAMETRI_NON_ESAURIENTI', 'Parametri non esaurienti'); }
+
 foreach (array_merge($_GET,$_POST) as $value) {
     if (is_array($value) || is_object($value)) {
         http_response_code(400);
@@ -213,7 +215,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $msg = $last === null
                     ? 'Prima carica non impostata'
-                    : 'Parametri non esaurienti';
+                    : S1192_ORGANIZZAZIONI_ADMIN_INC_PHP_3912AE_PARAMETRI_NON_ESAURIENTI;
             }
             break;
 
@@ -229,7 +231,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ? 'Nuovo ramo inserito correttamente'
                     : 'Errore nell\'inserimento del nuovo ramo';
             } else {
-                $msg = 'Parametri non esaurienti';
+                $msg = S1192_ORGANIZZAZIONI_ADMIN_INC_PHP_3912AE_PARAMETRI_NON_ESAURIENTI;
             }
             break;
 
@@ -246,7 +248,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ? 'Ramo modificato con successo'
                     : 'Errore nella modifica del ramo';
             } else {
-                $msg = 'Parametri non esaurienti';
+                $msg = S1192_ORGANIZZAZIONI_ADMIN_INC_PHP_3912AE_PARAMETRI_NON_ESAURIENTI;
             }
             break;
 
@@ -258,7 +260,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ? 'Ramo cancellato con successo'
                     : 'Errore nella cancellazione del ramo';
             } else {
-                $msg = 'Parametri non esaurienti';
+                $msg = S1192_ORGANIZZAZIONI_ADMIN_INC_PHP_3912AE_PARAMETRI_NON_ESAURIENTI;
             }
             break;
 
@@ -272,7 +274,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($carname && $ramo >= 0 && $liv >= 0) {
                 $msg = AddCaricaOrg($org, $carname, $prima, $ramo, $liv, $descr, $file);
             } else {
-                $msg = 'Parametri non esaurienti';
+                $msg = S1192_ORGANIZZAZIONI_ADMIN_INC_PHP_3912AE_PARAMETRI_NON_ESAURIENTI;
             }
             break;
 
@@ -299,7 +301,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         : 'Errore nella modifica della carica';
                 }
             } else {
-                $msg = 'Parametri non esaurienti';
+                $msg = S1192_ORGANIZZAZIONI_ADMIN_INC_PHP_3912AE_PARAMETRI_NON_ESAURIENTI;
             }
             break;
 
@@ -311,7 +313,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ? 'Carica cancellata con successo'
                     : 'Errore nella cancellazione della carica';
             } else {
-                $msg = 'Parametri non esaurienti';
+                $msg = S1192_ORGANIZZAZIONI_ADMIN_INC_PHP_3912AE_PARAMETRI_NON_ESAURIENTI;
             }
             break;
 
@@ -323,7 +325,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ? 'Transazione presa in carico con successo'
                     : 'Errore nell\'acquisizione della transazione';
             } else {
-                $msg = 'Parametri non esaurienti';
+                $msg = S1192_ORGANIZZAZIONI_ADMIN_INC_PHP_3912AE_PARAMETRI_NON_ESAURIENTI;
             }
             break;
 
@@ -379,7 +381,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ? 'Flag correttamente impostati'
                     : 'Errore nell\'assegnazione dei flag';
             } else {
-                $msg = 'Parametri non esaurienti';
+                $msg = S1192_ORGANIZZAZIONI_ADMIN_INC_PHP_3912AE_PARAMETRI_NON_ESAURIENTI;
             }
             break;
 
@@ -394,7 +396,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ? 'Candidato correttamente inserito'
                     : (string)$res;
             } else {
-                $msg = 'Parametri non esaurienti';
+                $msg = S1192_ORGANIZZAZIONI_ADMIN_INC_PHP_3912AE_PARAMETRI_NON_ESAURIENTI;
             }
             break;
 
@@ -417,7 +419,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ? 'Dati modificati con successo'
                     : 'Errore nella modifica dei dati';
             } else {
-                $msg = 'Parametri non esaurienti';
+                $msg = S1192_ORGANIZZAZIONI_ADMIN_INC_PHP_3912AE_PARAMETRI_NON_ESAURIENTI;
             }
             break;
 
@@ -433,7 +435,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $datiflag = $res[0] ?? [];
             }
             else {
-                $msg = 'Parametri non esaurienti';
+                $msg = S1192_ORGANIZZAZIONI_ADMIN_INC_PHP_3912AE_PARAMETRI_NON_ESAURIENTI;
             }
             break;
 
@@ -458,7 +460,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $msg = "Errore nell'assegnazione della carica";
                     }
                 } else {
-                    $msg = 'Parametri non esaurienti';
+                    $msg = S1192_ORGANIZZAZIONI_ADMIN_INC_PHP_3912AE_PARAMETRI_NON_ESAURIENTI;
                 }
 
                 $activeTab = 'iscritti';

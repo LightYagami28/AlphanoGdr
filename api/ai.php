@@ -1,5 +1,9 @@
 <?php
 declare(strict_types=1);
+
+if (!defined('S1192_API_AI_PHP_49E634_PNG_NON_DISPONIBILE')) { define('S1192_API_AI_PHP_49E634_PNG_NON_DISPONIBILE', 'PNG non disponibile.'); }
+if (!defined('S1192_API_AI_PHP_C03A12_SELECT_FROM_AI_NPCS_WHERE_ID_AND_C')) { define('S1192_API_AI_PHP_C03A12_SELECT_FROM_AI_NPCS_WHERE_ID_AND_C', 'SELECT * FROM ai_npcs WHERE id=? AND chat_key=?'); }
+if (!defined('S1192_API_AI_PHP_BAF7FC_SELECT_ID_FROM_AI_NPCS_WHERE_ID_AN')) { define('S1192_API_AI_PHP_BAF7FC_SELECT_ID_FROM_AI_NPCS_WHERE_ID_AN', 'SELECT id FROM ai_npcs WHERE id=? AND chat_key=?'); }
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: private, no-store');
 require_once __DIR__.'/../libs/ai.inc.php';
@@ -47,11 +51,11 @@ try {
     }
     $chat=aiField($in,'chat',100,true);aiPublicRoom($chat);
     if($action==='controls'&&$method==='GET'){
-        $nid=aiInteger($in,'npc_id',1,PHP_INT_MAX);$npc=$db->query('SELECT * FROM ai_npcs WHERE id=? AND chat_key=?',[$nid,$chat])[0]??null;if(!$npc){ throw new DomainException('PNG non disponibile.',404); }
+        $nid=aiInteger($in,'npc_id',1,PHP_INT_MAX);$npc=$db->query(S1192_API_AI_PHP_C03A12_SELECT_FROM_AI_NPCS_WHERE_ID_AND_C,[$nid,$chat])[0]??null;if(!$npc){ throw new DomainException(S1192_API_AI_PHP_49E634_PNG_NON_DISPONIBILE,404); }
         echo aiQuestJson(['rules'=>aiSocialRules($nid),'game'=>aiNpcGame($nid),'revision'=>aiNpcControlsRevision($nid),'schema'=>aiNpcControlsSchema()]);exit;
     }
     if($action==='inspect'&&$method==='GET'){
-        $nid=aiInteger($in,'npc_id',1,PHP_INT_MAX);$npc=$db->query('SELECT * FROM ai_npcs WHERE id=? AND chat_key=?',[$nid,$chat])[0]??null;if(!$npc){ throw new DomainException('PNG non disponibile.',404); }
+        $nid=aiInteger($in,'npc_id',1,PHP_INT_MAX);$npc=$db->query(S1192_API_AI_PHP_C03A12_SELECT_FROM_AI_NPCS_WHERE_ID_AND_C,[$nid,$chat])[0]??null;if(!$npc){ throw new DomainException(S1192_API_AI_PHP_49E634_PNG_NON_DISPONIBILE,404); }
         $job=['id'=>0,'npc_id'=>$nid,'kind'=>'preview','user_id'=>$user,'chat_key'=>$chat,'source_id'=>PHP_INT_MAX,'created_at'=>time(),'prompt'=>aiField($in,'prompt',1200)?:'Buonasera, come state?'];
         echo aiQuestJson(['messages'=>aiPrompt(aiRoom($chat),$npc,$job,.5),'model'=>aiModelName(),'context_limit'=>aiModelContext(),'note'=>'Anteprima amministrativa con il tuo personaggio; la chat usa anche il turno, il rapporto e i fatti verificati della giocata.']);exit;
     }
@@ -78,7 +82,7 @@ try {
         foreach(['quest_auto','quest_auto_close','quest_auto_continue'] as $field){ if(array_key_exists($field,$in)){ $db->execute('UPDATE ai_rooms SET '.$field.'=? WHERE chat_key=?',[aiInteger($in,$field,0,1),$chat]); } }
     } elseif (!$room) { throw new DomainException('Salva prima l’ambientazione del luogo.',422); }
     elseif($action==='save_controls'){
-        $nid=aiInteger($in,'npc_id',1,PHP_INT_MAX);if(!$db->query('SELECT id FROM ai_npcs WHERE id=? AND chat_key=? FOR UPDATE',[$nid,$chat])){ throw new DomainException('PNG non disponibile.',404); }
+        $nid=aiInteger($in,'npc_id',1,PHP_INT_MAX);if(!$db->query('SELECT id FROM ai_npcs WHERE id=? AND chat_key=? FOR UPDATE',[$nid,$chat])){ throw new DomainException(S1192_API_AI_PHP_49E634_PNG_NON_DISPONIBILE,404); }
         $db->query('SELECT npc_id FROM ai_npc_rules WHERE npc_id=? FOR UPDATE',[$nid]);$db->query('SELECT npc_id FROM aiNpcGame WHERE npc_id=? FOR UPDATE',[$nid]);
         if(!hash_equals(aiNpcControlsRevision($nid),aiField($in,'revision',64,true))){ throw new DomainException('Regole modificate altrove: ricarica prima di salvare.',409); }
         if(!is_array($in['rules']??null)||!is_array($in['game']??null)){ throw new DomainException('Configurazione non valida.',422); }
@@ -92,7 +96,7 @@ try {
         require_once __DIR__.'/../libs/npc-mortality.inc.php';
         if(aiField($in,'confirmation',20,true)!=='RETTIFICA'){ throw new DomainException('Conferma esplicitamente la rettifica della registrazione amministrativa.',422); }
         $npc=aiInteger($in,'npc_id',1,PHP_INT_MAX);
-        if(!$db->query('SELECT id FROM ai_npcs WHERE id=? AND chat_key=?',[$npc,$chat])){ throw new DomainException('PNG non disponibile in questo luogo.',404); }
+        if(!$db->query(S1192_API_AI_PHP_BAF7FC_SELECT_ID_FROM_AI_NPCS_WHERE_ID_AN,[$npc,$chat])){ throw new DomainException('PNG non disponibile in questo luogo.',404); }
         $receipt=alphanoNpcCorrectAdminDeath($npc,aiInteger($in,'death_id',1,PHP_INT_MAX),$user,aiInteger($in,'hit_points',1,maxpuntif),aiField($in,'reason',1000,true));
         if(!$receipt['replayed']){ $db->execute('UPDATE ai_rooms SET version=version+1 WHERE chat_key=?',[$chat]); }
     }
@@ -100,7 +104,7 @@ try {
         $id=aiInteger($in,'id',0,PHP_INT_MAX);
         $name=aiField($in,'name',80,true);
         if ($db->query('SELECT id FROM ai_npcs WHERE chat_key=? AND name=? AND id<>?',[$chat,$name,$id])) { throw new DomainException('Esiste già un PNG con questo nome nel luogo.',409); }
-        if ($id && !$db->query('SELECT id FROM ai_npcs WHERE id=? AND chat_key=?',[$id,$chat])) { throw new DomainException('PNG non disponibile.',404); }
+        if ($id && !$db->query(S1192_API_AI_PHP_BAF7FC_SELECT_ID_FROM_AI_NPCS_WHERE_ID_AN,[$id,$chat])) { throw new DomainException(S1192_API_AI_PHP_49E634_PNG_NON_DISPONIBILE,404); }
         $values=[$name,aiInteger($in,'active',0,1)];
         foreach (['character_text','personality','history','knowledge','behavior'] as $field) { $values[]=aiField($in,$field,700); }
         $previous=$id?($db->query('SELECT profile FROM ai_npcs WHERE id=? AND chat_key=?',[$id,$chat])[0]??[]):[];
@@ -128,11 +132,11 @@ try {
         if (!$db->query('SELECT id FROM ai_npcs WHERE chat_key=? AND active=1',[$chat])) { $db->execute('UPDATE ai_rooms SET enabled=0 WHERE chat_key=?',[$chat]); }
     } elseif ($action==='memory') {
         $npc=aiInteger($in,'npc_id',0,PHP_INT_MAX);
-        if ($npc && !$db->query('SELECT id FROM ai_npcs WHERE id=? AND chat_key=?',[$npc,$chat])) { throw new DomainException('PNG non disponibile.',404); }
+        if ($npc && !$db->query(S1192_API_AI_PHP_BAF7FC_SELECT_ID_FROM_AI_NPCS_WHERE_ID_AN,[$npc,$chat])) { throw new DomainException(S1192_API_AI_PHP_49E634_PNG_NON_DISPONIBILE,404); }
         aiRemember($chat,$npc,aiField($in,'summary',600));
         $db->execute('UPDATE ai_rooms SET version=version+1 WHERE chat_key=?',[$chat]);
     } elseif ($action==='preview') {
-        $npc=$db->query('SELECT * FROM ai_npcs WHERE id=? AND chat_key=?',[aiInteger($in,'npc_id',1,PHP_INT_MAX),$chat])[0]??null;
+        $npc=$db->query(S1192_API_AI_PHP_C03A12_SELECT_FROM_AI_NPCS_WHERE_ID_AND_C,[aiInteger($in,'npc_id',1,PHP_INT_MAX),$chat])[0]??null;
         if (!$npc) { throw new DomainException('Seleziona un PNG salvato.',422); }
         $request=aiField($in,'request_id',80,true);
         if (!preg_match('/^[a-zA-Z0-9-]{16,80}$/D',$request)) { throw new DomainException('Identificativo non valido.',422); }

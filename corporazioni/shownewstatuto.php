@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+if (!defined('S1192_CORPORAZIONI_SHOWNEWSTATUTO_PHP_75FC02_DOCTYPE_HTML_HTML_LANG_IT_BODY_CLA')) { define('S1192_CORPORAZIONI_SHOWNEWSTATUTO_PHP_75FC02_DOCTYPE_HTML_HTML_LANG_IT_BODY_CLA', '<!DOCTYPE html><html lang="it"><body class="message-page">'); }
+
 require_once __DIR__ . '/../libs/kernel.inc.php';
 require_once __DIR__ . '/../libs/libgrafica.inc.php';
 require_once __DIR__ . '/../libs/libpg.inc.php';
@@ -27,7 +29,7 @@ if ($admin) {
 }
 if (!$accademia) {
     http_response_code(403);
-    echo '<!DOCTYPE html><html lang="it"><body class="message-page">';
+    echo S1192_CORPORAZIONI_SHOWNEWSTATUTO_PHP_75FC02_DOCTYPE_HTML_HTML_LANG_IT_BODY_CLA;
     echo '<h1>Accesso Negato</h1><p>Non ti è permesso accedere a questa pagina.</p>';
     echo '</body></html>';
     exit;
@@ -37,7 +39,7 @@ if (!$accademia) {
 $corporazione = (int)($_POST['corp'] ?? $_GET['corp'] ?? 0);
 if ($corporazione <= 0) {
     http_response_code(400);
-    echo '<!DOCTYPE html><html lang="it"><body class="message-page">';
+    echo S1192_CORPORAZIONI_SHOWNEWSTATUTO_PHP_75FC02_DOCTYPE_HTML_HTML_LANG_IT_BODY_CLA;
     echo '<h1>Errore</h1><p>ID Corporazione non valido.</p>';
     echo '</body></html>';
     exit;
@@ -50,7 +52,7 @@ $corpData = $db->query(
 )[0] ?? null;
 if (!$corpData) {
     http_response_code(404);
-    echo '<!DOCTYPE html><html lang="it"><body class="message-page">';
+    echo S1192_CORPORAZIONI_SHOWNEWSTATUTO_PHP_75FC02_DOCTYPE_HTML_HTML_LANG_IT_BODY_CLA;
     echo '<h1>Non Trovato</h1><p>Corporazione non trovata.</p>';
     echo '</body></html>';
     exit;

@@ -14,7 +14,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
         $posted=$_POST['section']??'';if($posted!==$section||($_POST['target']??'')!==$target){throw new DomainException('Destinazione non valida.');}
         $layout=[];
         if($section==='defaults'){foreach(['theme'=>array_keys(alphanoThemes()),'sidebar_position'=>['left','right'],'header_position'=>['top','bottom']] as $key=>$allowed){if(!in_array($_POST[$key]??'', $allowed,true)){throw new DomainException('Opzione non valida: '.$key);}$layout[$key]=$_POST[$key];}}
-        alphanoAppearanceSave($_POST,$_FILES);
+        alphanoAppearanceSave($_POST,$_FILES,$groups);
         if($layout){$file=dirname(__DIR__).'/private/settings.json';$old=is_file($file)?json_decode(file_get_contents($file),true,32,JSON_THROW_ON_ERROR):[];alphanoSettingsWrite(array_replace($old,$layout));}
         connectDB()->execute('INSERT INTO engine_admin_audit(actor,action,created_at) VALUES(?,?,?)',[$uid,'appearance:'.$section.':'.$target,time()]);
         header('Location: /admin/appearance.php?'.http_build_query(['section'=>$section,'target'=>$target,'saved'=>1]),true,303);exit;

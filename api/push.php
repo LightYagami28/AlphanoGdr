@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once dirname(__DIR__).'/libs/exceptions.inc.php';
 require_once __DIR__.'/../libs/player-runtime.inc.php';
 require_once __DIR__.'/../libs/web-push.inc.php';
 playerApi(static function (): array {
@@ -11,7 +12,7 @@ playerApi(static function (): array {
     playerMutation(); $input = playerInput();
     $action = playerText($input,'action',32,true);
     if ($action === 'subscribe') {
-        if (!is_array($input['subscription'] ?? null)) { throw new RuntimeException('Dispositivo non valido.',400); }
+        if (!is_array($input['subscription'] ?? null)) { throw new AlphanoPushException('Dispositivo non valido.',400); }
         alphanoPushSubscribe($user,$input['subscription']);
     } elseif ($action === 'unsubscribe') {
         $hash = hash('sha256',alphanoPushEndpoint($input['endpoint'] ?? null));
@@ -23,6 +24,6 @@ playerApi(static function (): array {
         // Remember the current device after a new login, without silently re-enabling it.
         if ($enabled) { $_SESSION['push_endpoint_hash'] = $hash; }
         return ['success'=>true,'enabled'=>$enabled];
-    } else { throw new RuntimeException('Operazione non valida.',400); }
+    } else { throw new AlphanoPushException('Operazione non valida.',400); }
     return ['success'=>true];
 });

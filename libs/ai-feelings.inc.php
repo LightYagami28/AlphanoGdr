@@ -53,7 +53,7 @@ function aiRelationFeelingsReplyProblem(array $npc,array $job,string $text):?str
     if(!aiRomanceAllowed($npc,aiPlayerIdentity($uid),aiSocialRules((int)$npc['id']))){ return null; }
     $speech=aiNarrativeParse($text)['speech'];
     foreach(preg_split('/(?<=[.!?;])\s*/u',$speech,-1,PREG_SPLIT_NO_EMPTY)?:[] as $sentence){
-        if(preg_match('/\b(?:prima|allora|un tempo|credevo|pensavo|dicevo|dicevi|dicevate|ho detto|avevo detto|se|forse)\b|\?$/iu',$sentence)){ continue; }
+        if(preg_match('/(?:\b(?:prima|allora|un tempo|credevo|pensavo|dicevo|dicevi|dicevate|ho detto|avevo detto|se|forse)\b|\?$)/iu',$sentence)){ continue; }
         if(preg_match('/non\s+(?:ti|vi)\s+amo\s+(?:meno|solo|soltanto|perch[ée])/iu',$sentence)){ continue; }
         if(preg_match('/\bnon\s+(?:(?:ti|vi)\s+amo|sono\s+(?:più\s+)?innamorat[oa](?!\s+di\s+(?!(?:te|voi)\b))|provo\s+(?:alcun\s+)?(?:amore|sentimenti)(?!\s+per\s+(?!(?:te|voi)\b)))\b|\b(?:per\s+me\s+)?(?:sei|siete)\s+soltanto\s+un[ao]?\s+amic[oa]\b|\b(?:provo|sento)\s+soltanto\s+amicizia\b/iu',$sentence)){ return 'Il legame attuale registra già amore e fiducia: non negare il sentimento presente ripetendo vecchi rifiuti. Puoi mantenere i tuoi limiti e rifiutare uno specifico gesto o invito.'; }
     }

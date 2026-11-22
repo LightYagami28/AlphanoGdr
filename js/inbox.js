@@ -1,3 +1,11 @@
+  async function acknowledge(item){
+   if(item.read_at){return;}
+   const session=await fetch('/api/session.php',{cache:'no-store'});if(!session.ok){throw new Error('Sessione scaduta');}
+   const {csrfToken}=await session.json();const response=await fetch('/api/notifications.php',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':csrfToken},body:JSON.stringify({keys:[item.key]})});
+   if(!response.ok){throw new Error('Lettura non salvata. Riprova.');}
+   item.read_at=Math.floor(Date.now()/1000);
+   try{parent.alphanoNotifications?.refresh();}catch{}
+  }
 /* Il contenuto delle ricevute arriva solo dall’API autenticata. */
 (() => {
  'use strict';
@@ -12,14 +20,6 @@
   document.getElementById('inbox-reset').hidden=!section;
   function safeUrl(value){try{const url=new URL(value,location.origin);return url.origin===location.origin?url.pathname+url.search+url.hash:'/notifiche/';}catch{return '/notifiche/';}}
   function openSection(item){const url=safeUrl(item.url);try{if(parent!==window&&parent.alphanoWorkspace){parent.alphanoWorkspace.open(url,item.title);return;}}catch{}location.assign(url);}
-  async function acknowledge(item){
-   if(item.read_at){return;}
-   const session=await fetch('/api/session.php',{cache:'no-store'});if(!session.ok){throw new Error('Sessione scaduta');}
-   const {csrfToken}=await session.json();const response=await fetch('/api/notifications.php',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':csrfToken},body:JSON.stringify({keys:[item.key]})});
-   if(!response.ok){throw new Error('Lettura non salvata. Riprova.');}
-   item.read_at=Math.floor(Date.now()/1000);
-   try{parent.alphanoNotifications?.refresh();}catch{}
-  }
   async function show(item){
    message.hidden=false;message.innerHTML=`<header><div><span class="ui-eyebrow">${esc(labels[item.group]||'Cronaca')}</span><h2>${esc(item.title)}</h2></div><button type="button" data-close>Chiudi</button></header><div class="inbox-message-body"><p class="inbox-message-meta">${esc(date(item.created_at))}${item.actor?' · '+esc(item.actor):''}</p><p class="inbox-message-detail">${esc(item.detail)}</p><p class="inbox-read-state" role="status">Salvataggio della lettura…</p><button type="button" data-destination data-icon="compass">Apri la sezione</button></div>`;
    message.querySelector('[data-close]').addEventListener('click',()=>{message.hidden=true;});

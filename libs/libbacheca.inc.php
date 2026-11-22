@@ -318,7 +318,7 @@ function inserisciPost(
     string $messaggio,
     bool   $notify = false
 ): bool {
-    $idpg=alphanoRequireLogin(); alphanoRequireCsrf();
+    $authorId=alphanoRequireLogin(); alphanoRequireCsrf();
     playerRequireBoard(getDB(),(int)$bc,alphanoUser());
     $db = getBachecaDb();
 
@@ -333,10 +333,10 @@ function inserisciPost(
     // notifica al thread originario
     if ($notify && $replyId > 0) {
         $old = leggiMessaggio($replyId);
-        if ($old && $old['idpg'] !== $idpg) {
+        if ($old && $old['idpg'] !== $authorId) {
             inviaMissiva(
                 "Notifica risposta: {$old['oggetto']}",
-                GetPGFromID($idpg) . ' ha risposto al tuo thread',
+                GetPGFromID($authorId) . ' ha risposto al tuo thread',
                 (int)$old['idpg']
             );
         }
@@ -351,7 +351,7 @@ function inserisciPost(
         ':dt'  => time(),
         ':o'   => $oggetto,
         ':m'   => $messaggio,
-        ':pid' => $idpg,
+        ':pid' => $authorId,
         ':bc'  => $bc,
     ]);
 }
@@ -366,7 +366,7 @@ function inserisciThread(
     string $messaggio,
     bool   $notify = false
 ): bool {
-    $idpg=alphanoRequireLogin(); alphanoRequireCsrf();
+    $authorId=alphanoRequireLogin(); alphanoRequireCsrf();
     playerRequireBoard(getDB(),(int)$bc,alphanoUser());
     $db = getBachecaDb();
 
@@ -382,7 +382,7 @@ function inserisciThread(
         ':dt'  => time(),
         ':o'   => $oggetto,
         ':m'   => $messaggio,
-        ':pid' => $idpg,
+        ':pid' => $authorId,
         ':sgn' => $notify ? 1 : 0,
         ':bc'  => $bc,
     ]);
@@ -417,5 +417,5 @@ function isNewThread(int $id, int $timestamp): bool
         [$id, $id]
     )[0] ?? ['maxdata'=>0];
 
-    return ((int)$row['maxdata'] > $timestamp);
+    return (int)$row['maxdata'] > $timestamp;
 }

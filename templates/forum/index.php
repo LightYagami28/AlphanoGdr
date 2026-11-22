@@ -5,7 +5,7 @@
 <section class="forum-workspace" aria-label="<?=$h($forum['title'])?>">
 <?php if($forum['mode']==='discussion'): ?>
 <nav id="menu-list" class="forum-channels" aria-label="Bacheche disponibili">
-<?php foreach($forum['channels'] as $key=>$label): ?><button type="button" data-tipo="<?=$h($key)?>" class="<?=$forum['tipo']===$key?'active':''?>" aria-pressed="<?=$forum['tipo']===$key?'true':'false'?>" data-icon="<?=str_starts_with($key,'Org')?'users':(str_starts_with($key,'Corp')?'shield':'messages')?>"><?=$h($label)?></button><?php endforeach; ?>
+<?php foreach($forum['channels'] as $key=>$label): $active=$forum['tipo']===$key; if(str_starts_with($key,'Org')){ $icon='users'; }elseif(str_starts_with($key,'Corp')){ $icon='shield'; }else{ $icon='messages'; } ?><button type="button" data-tipo="<?=$h($key)?>" class="<?=$active?'active':''?>" aria-pressed="<?=$active?'true':'false'?>" data-icon="<?=$icon?>"><?=$h($label)?></button><?php endforeach; ?>
 </nav>
 <header class="forum-toolbar"><h2 id="panel-title"><?=$h($forum['channels'][$forum['tipo']])?></h2><div class="ui-row-actions"><button type="button" id="btn-toggle-closed" class="action-btn" data-icon="search" aria-pressed="false">Mostra chiusi</button><button type="button" id="btn-create" class="action-btn" data-icon="messages">Nuova discussione</button></div></header>
 <?php else: ?><header id="panel-header" class="forum-toolbar"><h2>Bacheche</h2></header><?php endif; ?>

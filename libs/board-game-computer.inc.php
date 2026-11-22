@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/exceptions.inc.php';
 /** Small bounded chess opponent built on the same server-side rules as human games. */
 function bg_computer_info(array $m):?array {
  $c=rpg_decode($m['terms_json'])['computer']??null;
@@ -14,44 +15,60 @@ function bg_computer_evaluate(Onspli\Chess\FEN $fen):int {
  return ($fen->getActiveColor()==='w'?1:-1)*$score;
 }
 function bg_computer_search(Onspli\Chess\FEN $fen,int $depth,int $alpha,int $beta,float $deadline):int {
- if(microtime(true)>$deadline){ throw new RuntimeException('search-budget'); }
+ if(microtime(true)>$deadline){ throw new AlphanoBoardGameException('search-budget'); }
  $legal=$fen->getLegalMoves();if(!$legal){ return $fen->isCheck()?-100000-$depth:0; }
  if(!$depth){ return bg_computer_evaluate($fen); }
  usort($legal,static fn($a,$b)=>(int)str_contains($b,'x')<=>(int)str_contains($a,'x'));
  foreach($legal as $san){$next=clone $fen;$next->move($san);$score=-bg_computer_search($next,$depth-1,-$beta,-$alpha,$deadline);$alpha=max($alpha,$score);if($alpha>=$beta){ break; }}return $alpha;
 }
+function bg_computerInitialScores(Onspli\Chess\FEN $fen,array $legal,float $deadline):array {
+ $scores=[];
+ foreach($legal as $san){
+  if($scores&&microtime(true)>$deadline){ break; }
+  $next=clone $fen;$next->move($san);
+  $scores[$san]=$next->isMate()?100000:-bg_computer_evaluate($next);
+ }
+ return $scores;
+}
 function bg_computer_choose(array $state,int $level=2):string {
- $fen=new Onspli\Chess\FEN($state['fen']);$legal=array_column($state['legal'],'id');if(!$legal){ throw new RuntimeException('Nessuna mossa per il PNG.'); }
+ $fen=new Onspli\Chess\FEN($state['fen']);$legal=array_column($state['legal'],'id');if(!$legal){ throw new AlphanoBoardGameException('Nessuna mossa per il PNG.'); }
  $deadline=microtime(true)+.45;$best=$legal[0];$bestScore=-PHP_INT_MAX;
  // Every candidate gets a one-ply score before deeper analysis consumes the budget.
- $scores=[];foreach($legal as $san){if($scores&&microtime(true)>$deadline){ break; }$next=clone $fen;$next->move($san);$scores[$san]=$next->isMate()?100000:-bg_computer_evaluate($next);}
+ $scores=bg_computerInitialScores($fen,$legal,$deadline);
  arsort($scores);$best=(string)array_key_first($scores);if(reset($scores)>=100000){ return $best; }
  if($level===1){ return $best; }
  foreach($scores as $san=>$initial){try{$next=clone $fen;$next->move($san);$score=-bg_computer_search($next,1,-200000,200000,$deadline);}catch(RuntimeException $e){if($e->getMessage()!=='search-budget'){ throw $e; }break;}if($score>$bestScore){$bestScore=$score;$best=$san;}}
  return $best;
 }
 function bg_computer_finish(array &$m,int $winner,string $reason,bool $void):void {
- $d=connectDB();if($d->query('SELECT id FROM board_game_escrow WHERE game_id=? LIMIT 1',[$m['id']])){ throw new RuntimeException('Poste non consentite per una partita di allenamento.'); }
+ $d=connectDB();if($d->query('SELECT id FROM board_game_escrow WHERE game_id=? LIMIT 1',[$m['id']])){ throw new AlphanoBoardGameException('Poste non consentite per una partita di allenamento.'); }
  $now=time();$st=rpg_decode($m['state_json']);$key=$st['turn']===0?'clock_white':'clock_black';$m[$key]=max(0,(int)$m[$key]-max(0,bgNow()-(int)$m['turn_at']));
  $result=['computer'=>true,'winner'=>$winner,'reason'=>$reason,'duration'=>max(0,$now-(int)$m['started_at']),'plies'=>count(rpg_decode($m['moves_json'])),'prizes'=>[],'intelligence'=>[(int)$m['a']=>0],'elo'=>[(int)$m['a']=>0],'rated'=>false,'void'=>$void];
  $m['status']=$void?'cancelled':'finished';$m['winner']=$winner;$m['reason']=$reason;$m['finished_at']=$now;$m['result_json']=rpg_json($result);$m['version']++;
  $d->execute('UPDATE board_games SET status=?,winner=?,reason=?,finished_at=?,result_json=?,version=?,clock_white=?,clock_black=? WHERE id=?',[$m['status'],$winner,$reason,$now,$m['result_json'],$m['version'],$m['clock_white'],$m['clock_black'],$m['id']]);
  bgAudit((int)$m['id'],0,'computer-settled',$result);bgNotify($m,'Allenamento con il PNG concluso: '.$reason.'. Nessun premio e nessuna variazione ELO.');bgPublicNotice($m,'Allenamento al tavolo #'.$m['id'].' concluso: '.$reason.'. Nessun premio o punto ELO.');
 }
+function bg_computerTurn(array $state,array $m):int {
+ if($state['turn']===0){ return (int)$m['white_id']; }
+ return (int)$m['white_id']===(int)$m['a']?(int)$m['b']:(int)$m['a'];
+}
 function bg_computer_reply(array &$m):void {
- $c=bg_computer_info($m);if(!$c||$m['status']!=='active'){ return; }$state=rpg_decode($m['state_json']);$turn=$state['turn']===0?(int)$m['white_id']:((int)$m['white_id']===(int)$m['a']?(int)$m['b']:(int)$m['a']);
+ $c=bg_computer_info($m);if(!$c||$m['status']!=='active'){ return; }$state=rpg_decode($m['state_json']);$turn=bg_computerTurn($state,$m);
  if($turn!==(int)$m['b']){ return; }
  $move=bg_computer_choose($state,(int)$c['level']);bgExpire($m);if($m['status']==='active'){ bgCommitMove($m,(int)$m['b'],$move); }
 }
+function bg_computerStartPreflight(array $settings,array $room):void {
+ if(!$settings['enabled']||!$settings['scacchi']||!$room['scacchi']){ throw new DomainException('Gli scacchi non sono abilitati in questo luogo.',403); }
+}
 function bg_computer_start(int $uid,array $in):array {
  $d=connectDB();$chat=playerText($in,'chat',100,true);bgActor($uid,$chat);$settings=bgSettings();$room=bgRoom($chat);
- if(!$settings['enabled']||!$settings['scacchi']||!$room['scacchi']){ throw new DomainException('Gli scacchi non sono abilitati in questo luogo.',403); }
+ bg_computerStartPreflight($settings,$room);
  $npcId=rpg_int($in['npc']??0,1,PHP_INT_MAX,'PNG');$npcs=array_column(bg_computer_npcs($chat),null,'id');$npc=$npcs[$npcId]??null;if(!$npc){ throw new DomainException('Scegli un PNG presente in questo luogo.',422); }
  $level=rpg_int($in['level']??2,1,2,'Difficoltà');$color=(string)($in['color']??'white');if(!in_array($color,['white','black','random'],true)){ throw new DomainException('Colore non valido.',422); }
  $total=rpg_int($in['total']??$settings['default_total'],$settings['min_total'],$settings['max_total'],'Tempo totale');
  $request=playerText($in,'request_key',80,true);if(!preg_match('/^[a-zA-Z0-9-]{16,80}$/D',$request)){ throw new DomainException('Identificativo non valido.',422); }
  $signature=['npc'=>$npcId,'level'=>$level,'color'=>$color,'total'=>$total];
- return economiaAtomicaResiliente(function()use($d,$uid,$chat,$npc,$npcId,$level,$color,$total,$request,$signature,$settings){
+ return economiaAtomicaResiliente(function()use($d,$uid,$chat,$npc,$npcId,$level,$color,$total,$request,$signature){
   $d->query('SELECT id FROM utenti WHERE id=? FOR UPDATE',[$uid]);
   if($old=$d->query('SELECT * FROM board_games WHERE a=? AND request_key=?',[$uid,$request])[0]??null){$audit=$d->query("SELECT details_json FROM board_game_audit WHERE game_id=? AND action='computer-start' ORDER BY id LIMIT 1",[$old['id']])[0]??null;if($old['chat_key']!==$chat||!$audit||rpg_decode($audit['details_json'])!==$signature){ throw new DomainException('Identificativo già utilizzato con condizioni diverse.',409); }return bgView($old,$uid);}
   if($d->query("SELECT id FROM board_games WHERE status='active' AND (a=? OR b=?) LIMIT 1 FOR UPDATE",[$uid,$uid])){ throw new DomainException('Hai già una partita attiva: concludila prima di allenarti.',409); }

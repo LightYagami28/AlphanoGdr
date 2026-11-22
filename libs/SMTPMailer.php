@@ -23,7 +23,7 @@ class SMTPMailer {
   $scheme=$security==='smtps'?'tls':'tcp';$socket=@stream_socket_client($scheme.'://'.$this->host.':'.$this->port,$errno,$errstr,15,STREAM_CLIENT_CONNECT,$context);if(!$socket){ throw new RuntimeException('Connessione SMTP non riuscita.'); }$this->socket=$socket;stream_set_timeout($socket,15);
   try{
    $this->expect(220);$this->command('EHLO localhost',250);
-   if($security==='starttls'){$this->command('STARTTLS',220);if(!stream_socket_enable_crypto($socket,true,STREAM_CRYPTO_METHOD_TLS_CLIENT)){ throw new RuntimeException('TLS SMTP non riuscito.'); }$this->command('EHLO localhost',250);}
+   if($security==='starttls'){$this->command('STARTTLS',220);if(!stream_socket_enable_crypto($socket,true,STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT)){ throw new RuntimeException('TLS SMTP non riuscito.'); }$this->command('EHLO localhost',250);}
    if($this->user!==''){$this->command('AUTH LOGIN',334);$this->command(base64_encode($this->user),334);$this->command(base64_encode($this->pass),235);}
    $this->command('MAIL FROM:<'.$from.'>',250);$this->command('RCPT TO:<'.$to.'>',[250,251]);$this->command('DATA',354);$this->write(preg_replace('/(?m)^\./','..',$message)."\r\n.\r\n");$this->expect(250);$this->command('QUIT',221);return true;
   }finally{fclose($socket);$this->socket=null;}

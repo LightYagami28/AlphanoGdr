@@ -141,7 +141,7 @@ function buildChatMessage(
             $out = $fAzo . $ora . '</SPAN>'
                 . $fAzo . $razImg . $name . ' ' . $render($azione,true) . '</SPAN>';
             if ($SessionIsRunning && $NeedsDadi) {
-                $out .= '&nbsp;<img height="10" width="10" src="/chatimg/dadod20.gif">&nbsp;' . rand(1,20);
+                $out .= '&nbsp;<img height="10" width="10" src="/chatimg/dadod20.gif">&nbsp;' . random_int(1,20);
             }
             $out .= '</SPAN>';
 

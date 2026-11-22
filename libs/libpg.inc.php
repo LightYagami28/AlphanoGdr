@@ -55,8 +55,9 @@ function doLogin(string $username, string $password): bool
     initSession();
     $db = getDB();
     $rows = $db->query('SELECT id, nome, password FROM utenti WHERE nome = ? LIMIT 1', [$username]);
-    if (count($rows) !== 1 || !alphanoPasswordVerify($password, $rows[0]['password'])) {return false;}
-    // Migrazione progressiva: gli account esistenti continuano a funzionare.
+    if (count($rows) !== 1 || preg_match('/^[a-f0-9]{32}$/iD', (string)$rows[0]['password'])
+        || !alphanoPasswordVerify($password, $rows[0]['password'])) {return false;}
+    // Aggiorna gli hash già sicuri quando cambia il costo predefinito.
     if (password_needs_rehash($rows[0]['password'], PASSWORD_DEFAULT)) {
         $column = $db->query("SHOW COLUMNS FROM utenti LIKE 'password'")[0]['Type'] ?? '';
         if (preg_match('/(?:varchar|char)\((\d+)\)/i', $column, $match) && (int)$match[1] >= 255) {

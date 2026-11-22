@@ -1,5 +1,9 @@
 <?php
 declare(strict_types=1);
+
+final class AiSocialRuntimeException extends RuntimeException {}
+final class AiSocialDomainException extends DomainException {}
+final class AiSocialLogicException extends LogicException {}
 require_once __DIR__.'/ai-personality.inc.php';
 require_once __DIR__.'/ai-authority.inc.php';
 
@@ -12,7 +16,7 @@ require_once __DIR__.'/ai-social-evolution.inc.php';
 require_once __DIR__.'/ai-episodes.inc.php';
 /** A changed preference/correction must not be overwritten by an older in-flight prompt. */
 function aiInvalidatePairWork(int $player,int $npc,string $reason,bool $reflections=true,bool $preserveDialogue=false): void {
-    $db=aiDb();if(!$db->inTransaction()||$player<1||$npc<0){ throw new LogicException('Coppia e transazione richieste.'); }
+    $db=aiDb();if(!$db->inTransaction()||$player<1||$npc<0){ throw new AiSocialLogicException('Coppia e transazione richieste.'); }
     $where='j.user_id=?'.($npc?' AND j.npc_id=?':'');$values=[$player];if($npc){ $values[]=$npc; }
     $reason=mb_substr($reason,0,250);
     // Staff corrections refresh ordinary drafts through semantic fences. A
@@ -31,14 +35,14 @@ function aiSocialRules(int $npc): array {
     return array_replace(aiSocialDefaults(),json_decode($row['settings']??'{}',true)?:[]);
 }
 function aiSocialValidate(array $input): array {
-    if(array_diff(array_keys($input),array_keys(aiSocialDefaults()))){ throw new DomainException('Impostazione del PNG non riconosciuta.',422); }
+    if(array_diff(array_keys($input),array_keys(aiSocialDefaults()))){ throw new AiSocialDomainException('Impostazione del PNG non riconosciuta.',422); }
     $v=array_replace(aiSocialDefaults(),$input);
     foreach(['voice_example'=>450,'duty'=>400,'goals'=>600,'honor_code'=>500,'boundaries'=>500,'narrative_rules'=>1600,'scene_context'=>1200,'allegiance'=>80] as $k=>$max){ $v[$k]=aiField($v,$k,$max); }
-    if($v['allegiance']!==''){$city=aiDb()->query('SELECT city FROM city WHERE city=?',[$v['allegiance']])[0]??null;if(!$city){ throw new DomainException('Comunità del PNG non disponibile.',422); }$v['allegiance']=$city['city'];}
+    if($v['allegiance']!==''){$city=aiDb()->query('SELECT city FROM city WHERE city=?',[$v['allegiance']])[0]??null;if(!$city){ throw new AiSocialDomainException('Comunità del PNG non disponibile.',422); }$v['allegiance']=$city['city'];}
     foreach(['recognize_vampires','hidden_emotions','economy_enabled','allow_loans','accept_gifts'] as $k){ $v[$k]=aiInteger($v,$k,0,1); }
     foreach(['max_amount'=>1000000,'daily_limit'=>10000000] as $k=>$max){ $v[$k]=aiInteger($v,$k,0,$max); }
-    if(!in_array($v['orientation'],['hetero','homo','none','men','women','all'],true)||!in_array($v['availability'],['available','unavailable','vow'],true)){ throw new DomainException('Preferenze affettive non valide.',422); }
-    if(!in_array($v['authority_attitude'],['contextual','loyal','skeptical','defiant'],true)){ throw new DomainException('Atteggiamento verso l’autorità non valido.',422); }
+    if(!in_array($v['orientation'],['hetero','homo','none','men','women','all'],true)||!in_array($v['availability'],['available','unavailable','vow'],true)){ throw new AiSocialDomainException('Preferenze affettive non valide.',422); }
+    if(!in_array($v['authority_attitude'],['contextual','loyal','skeptical','defiant'],true)){ throw new AiSocialDomainException('Atteggiamento verso l’autorità non valido.',422); }
     foreach(AI_SOCIAL_POLICY as $key=>$policy){ $v[$key]=aiInteger($v,$key,$policy['min'],$policy['max']); }
     return $v;
 }
@@ -249,7 +253,7 @@ function aiSocialQuestReplyIsPrimary(array $npc,array $job,string $reply,array $
     return true;
 }
 function aiSocialRecordQuestScene(array $npc,array $job,array $result,array $actions):bool {
-    $db=aiDb();if(!$db->inTransaction()){ throw new LogicException('Quest publication transaction required.'); }
+    $db=aiDb();if(!$db->inTransaction()){ throw new AiSocialLogicException('Quest publication transaction required.'); }
     $nid=(int)$npc['id'];$primary=(int)($job['user_id']??0);$chat=(string)$job['chat_key'];$seen=[];$primaryRecorded=false;
     $replyIsPrimary=aiSocialQuestReplyIsPrimary($npc,$job,(string)$result['testo'],$actions);
     foreach(array_slice($actions,0,16) as $action){
@@ -354,38 +358,38 @@ function aiSocialApply(array $npc,array $job,array $proposal): void {
 function aiNpcBalance(int $npc): int {return (int)(aiDb()->query('SELECT balance FROM ai_npc_wallets WHERE npc_id=?',[$npc])[0]['balance']??0);}
 function aiMoneyOffer(array $npc,int $player,string $kind,int $amount,string $reason,string $key): int {
     $rules=aiSocialRules((int)$npc['id']);
-    if(!$rules['economy_enabled']||$amount<1||$amount>(int)$rules['max_amount']||!in_array($kind,['payment_to_npc','payment_to_player','gift_to_npc','gift_to_player','loan_to_player','loan_to_npc','repay_player','repay_npc'],true)){ throw new DomainException('Proposta economica non consentita.',422); }
-    if(str_starts_with($kind,'loan_')&&!$rules['allow_loans']){ throw new DomainException('Questo PNG non concede prestiti.',422); }
+    if(!$rules['economy_enabled']||$amount<1||$amount>(int)$rules['max_amount']||!in_array($kind,['payment_to_npc','payment_to_player','gift_to_npc','gift_to_player','loan_to_player','loan_to_npc','repay_player','repay_npc'],true)){ throw new AiSocialDomainException('Proposta economica non consentita.',422); }
+    if(str_starts_with($kind,'loan_')&&!$rules['allow_loans']){ throw new AiSocialDomainException('Questo PNG non concede prestiti.',422); }
     $db=aiDb();$db->execute('INSERT IGNORE INTO ai_npc_offers(npc_id,player_id,kind,amount,reason,request_key,created_at,expires_at) VALUES(?,?,?,?,?,?,?,?)',[(int)$npc['id'],$player,$kind,$amount,$reason,$key,time(),time()+3600]);
     return (int)$db->query('SELECT id FROM ai_npc_offers WHERE request_key=?',[$key])[0]['id'];
 }
 /** Validated wallet transfer, atomic ledger/debt receipt and durable idempotency. */
 function aiMoneyTransfer(int $npc,int $player,string $kind,int $amount,string $reason,string $key,array $options): array {
     $actor=(int)$options['actor']; $offerId=$options['offerId']??null;
-    $db=aiDb();if(!$db->inTransaction()){ throw new LogicException('Transazione richiesta.'); }
-    $old=$db->query('SELECT * FROM ai_npc_transactions WHERE request_key=?',[$key])[0]??null;if($old){if((int)$old['npc_id']!==$npc||(int)$old['player_id']!==$player||$old['kind']!==$kind||(int)$old['amount']!==$amount){ throw new DomainException('Identificativo già usato per un movimento diverso.',409); }return $old;}
-    if($amount<1||$amount>1000000000){ throw new DomainException('Importo non valido.',422); }
+    $db=aiDb();if(!$db->inTransaction()){ throw new AiSocialLogicException('Transazione richiesta.'); }
+    $old=$db->query('SELECT * FROM ai_npc_transactions WHERE request_key=?',[$key])[0]??null;if($old){if((int)$old['npc_id']!==$npc||(int)$old['player_id']!==$player||$old['kind']!==$kind||(int)$old['amount']!==$amount){ throw new AiSocialDomainException('Identificativo già usato per un movimento diverso.',409); }return $old;}
+    if($amount<1||$amount>1000000000){ throw new AiSocialDomainException('Importo non valido.',422); }
     // Every transaction locks the player before the wallet, including admin funding.
-    $pg=$db->query('SELECT denari FROM utenti WHERE id=? FOR UPDATE',[$player])[0]??null;if(!$pg){ throw new DomainException('Personaggio non disponibile.',404); }
+    $pg=$db->query('SELECT denari FROM utenti WHERE id=? FOR UPDATE',[$player])[0]??null;if(!$pg){ throw new AiSocialDomainException('Personaggio non disponibile.',404); }
     $db->execute('INSERT IGNORE INTO ai_npc_wallets(npc_id,balance,updated_at) VALUES(?,0,?)',[$npc,time()]);
     $wallet=$db->query('SELECT balance FROM ai_npc_wallets WHERE npc_id=? FOR UPDATE',[$npc])[0];
-    $old=$db->query('SELECT * FROM ai_npc_transactions WHERE request_key=? FOR UPDATE',[$key])[0]??null;if($old){if((int)$old['npc_id']!==$npc||(int)$old['player_id']!==$player||$old['kind']!==$kind||(int)$old['amount']!==$amount){ throw new DomainException('Identificativo già usato per un movimento diverso.',409); }return $old;}
+    $old=$db->query('SELECT * FROM ai_npc_transactions WHERE request_key=? FOR UPDATE',[$key])[0]??null;if($old){if((int)$old['npc_id']!==$npc||(int)$old['player_id']!==$player||$old['kind']!==$kind||(int)$old['amount']!==$amount){ throw new AiSocialDomainException('Identificativo già usato per un movimento diverso.',409); }return $old;}
     $toPlayer=in_array($kind,['payment_to_player','gift_to_player','loan_to_player','repay_player','withdraw','reversal_to_player'],true);
-    if(!in_array($kind,['payment_to_npc','payment_to_player','gift_to_npc','gift_to_player','loan_to_player','loan_to_npc','repay_player','repay_npc','fund','withdraw','theft_resolved','reversal_to_player','reversal_to_npc'],true)){ throw new DomainException('Movimento non valido.',422); }
+    if(!in_array($kind,['payment_to_npc','payment_to_player','gift_to_npc','gift_to_player','loan_to_player','loan_to_npc','repay_player','repay_npc','fund','withdraw','theft_resolved','reversal_to_player','reversal_to_npc'],true)){ throw new AiSocialDomainException('Movimento non valido.',422); }
     $rules=aiSocialRules($npc);$admin=in_array($kind,['fund','withdraw','theft_resolved','reversal_to_player','reversal_to_npc'],true);
     if(!$admin){
-        if(!$rules['economy_enabled']||$amount>(int)$rules['max_amount']){ throw new DomainException('Limite del PNG superato.',422); }
+        if(!$rules['economy_enabled']||$amount>(int)$rules['max_amount']){ throw new AiSocialDomainException('Limite del PNG superato.',422); }
         $movements=$db->query('SELECT amount FROM ai_npc_transactions WHERE npc_id=? AND kind NOT IN(\'fund\',\'withdraw\',\'theft_resolved\',\'reversal_to_player\',\'reversal_to_npc\') AND created_at>? FOR UPDATE',[$npc,time()-86400]);$spent=array_sum(array_column($movements,'amount'));
-        if($spent+$amount>(int)$rules['daily_limit']){ throw new DomainException('Limite giornaliero raggiunto.',409); }
-        if(str_starts_with($kind,'loan_')&&!$rules['allow_loans']){ throw new DomainException('Prestiti disabilitati.',422); }
+        if($spent+$amount>(int)$rules['daily_limit']){ throw new AiSocialDomainException('Limite giornaliero raggiunto.',409); }
+        if(str_starts_with($kind,'loan_')&&!$rules['allow_loans']){ throw new AiSocialDomainException('Prestiti disabilitati.',422); }
     }
     $db->execute('INSERT IGNORE INTO ai_npc_debts(npc_id,player_id,updated_at) VALUES(?,?,?)',[$npc,$player,time()]);
     $debt=$db->query('SELECT * FROM ai_npc_debts WHERE npc_id=? AND player_id=? FOR UPDATE',[$npc,$player])[0];
-    if($kind==='repay_npc'&&$amount>(int)$debt['player_owes']){ throw new DomainException('Importo superiore al debito del personaggio.',422); }
-    if($kind==='repay_player'&&$amount>(int)$debt['npc_owes']){ throw new DomainException('Importo superiore al debito del PNG.',422); }
+    if($kind==='repay_npc'&&$amount>(int)$debt['player_owes']){ throw new AiSocialDomainException('Importo superiore al debito del personaggio.',422); }
+    if($kind==='repay_player'&&$amount>(int)$debt['npc_owes']){ throw new AiSocialDomainException('Importo superiore al debito del PNG.',422); }
     $pb=(int)$pg['denari'];$nb=(int)$wallet['balance'];$delta=$toPlayer?$amount:-$amount;
-    if($pb+$delta<0||$nb-$delta<0){ throw new DomainException(alphano_currency_text('Corone insufficienti: nessun movimento eseguito.'),409); }
-    if($pb+$delta>1000000000000||$nb-$delta>1000000000000){ throw new DomainException('Saldo massimo superato.',422); }
+    if($pb+$delta<0||$nb-$delta<0){ throw new AiSocialDomainException(alphano_currency_text('Corone insufficienti: nessun movimento eseguito.'),409); }
+    if($pb+$delta>1000000000000||$nb-$delta>1000000000000){ throw new AiSocialDomainException('Saldo massimo superato.',422); }
     $db->execute('UPDATE utenti SET denari=? WHERE id=?',[$pb+$delta,$player]);$db->execute('UPDATE ai_npc_wallets SET balance=?,updated_at=? WHERE npc_id=?',[$nb-$delta,time(),$npc]);
     $po=(int)$debt['player_owes']+($kind==='loan_to_player'?$amount:0)-($kind==='repay_npc'?$amount:0);
     $no=(int)$debt['npc_owes']+($kind==='loan_to_npc'?$amount:0)-($kind==='repay_player'?$amount:0);
@@ -415,7 +419,7 @@ function aiSocialWorkOnce(): bool {
     }catch(Throwable $e){if($db->inTransaction()){ $db->rollBack(); }throw $e;}
     try{
         $npc=$db->query('SELECT * FROM ai_npcs WHERE id=?',[(int)$task['npc_id']])[0]??null;
-        if(!$npc){ throw new DomainException('PNG non più disponibile.'); }
+        if(!$npc){ throw new AiSocialDomainException('PNG non più disponibile.'); }
         $rel=aiRelation((int)$npc['id'],(int)$task['user_id']);$rules=aiSocialRules((int)$npc['id']);
         $text=json_decode($task['result'],true)['testo']??'';
         $playerParts=aiSocialSegments($task['prompt']);$npcParts=aiSocialSegments($text);
@@ -431,7 +435,7 @@ function aiSocialWorkOnce(): bool {
         if($state!=='running'){$db->commit();ai_heartbeat('idle');return true;}
         // Use the current profile too: an age/identity edit during inference takes effect now.
         $npc=$db->query('SELECT * FROM ai_npcs WHERE id=?',[(int)$task['npc_id']])[0]??null;
-        if(!$npc){ throw new DomainException('PNG non più disponibile.'); }
+        if(!$npc){ throw new AiSocialDomainException('PNG non più disponibile.'); }
         $job=['id'=>$id,...array_intersect_key($task,array_flip(['npc_id','user_id','chat_key','source_id','prompt','result']))];
         aiSocialApply($npc,$job,$proposal);
         $db->execute("UPDATE ai_social_jobs SET status='done',proposal=?,error='' WHERE job_id=?",[json_encode($proposal,JSON_UNESCAPED_UNICODE),$id]);$db->commit();
@@ -488,8 +492,8 @@ function aiGuardValidateText(array $npc,array $job,string $text): string {
     if(preg_match('/archiv|riservat|privat|segreto|permesso scritto/iu',$raw)){ return $text; }
     if(preg_match('/accesso (?:negato|vietato)|non (?:potete|puoi|può)\s+(?:entrar|passar|acceder)|non (?:posso lasciar|vi lascer|ti lascer|passer)|(?:vieto|nego|negare|negato|impedisco).{0,35}(?:accesso|ingresso|passaggio)|(?:devi|dovete) (?:restare fuori|attendere|aspettare)|(?:tornate|torna) indietro|(?:chi sei|chi siete|identificati|identificatevi)|(?:ditemi|mi dia|dimmi|dichiara|fornisci|favorite|mostrate|dimostrate|presentati).{0,45}(?:nome|provenienza|document|permess)|non ho tempo per|cosa vi porta qui/iu',$text)) {
         $scope=ai_authority_npc_scope($npc);
-        if(trim((string)$scope['city'])===''){ throw new RuntimeException('Manca il territorio dell’incarico verificato.'); }
-        if(isset($job['prompt'])&&!preg_match('/\b(?:entrar\w*|acced\w*|accesso|ingresso|passaggio|castello|corte|salve|saluto|buonasera|buongiorno)\b/iu',$job['prompt'])){ throw new RuntimeException('Il presidio deve rispondere alla richiesta attuale rispettando il rango: nuovo tentativo.'); }
+        if(trim((string)$scope['city'])===''){ throw new AiSocialRuntimeException('Manca il territorio dell’incarico verificato.'); }
+        if(isset($job['prompt'])&&!preg_match('/\b(?:entrar\w*|acced\w*|accesso|ingresso|passaggio|castello|corte|salve|saluto|buonasera|buongiorno)\b/iu',$job['prompt'])){ throw new AiSocialRuntimeException('Il presidio deve rispondere alla richiesta attuale rispettando il rango: nuovo tentativo.'); }
         return $npc['name'].' riconosce il rango dell’interlocutore e si scosta dal varco, mantenendo un contegno rispettoso. «Il passaggio è libero. Desiderate che annunci il vostro arrivo alla corte?» La guardia resta al proprio posto, in attesa della risposta.';
     }
     return $text;

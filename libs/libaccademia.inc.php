@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+final class AccademiaDomainException extends DomainException {}
+
 require_once __DIR__ . '/kernel.inc.php';
 require_once __DIR__ . '/libpg.inc.php';      // for getDB()
 require_once __DIR__ . '/libposta.inc.php';   // for InviaMissiva()
@@ -891,7 +893,7 @@ function cancellaObj(int $obj): bool
         $notes .= "\n{$v['nome']} ($tag) : {$v['motivo']}";
     }
     // A catalogue deletion must not destroy an original instance held as a game stake.
-    if($db->query("SHOW TABLES LIKE 'board_game_escrow'") && $db->query('SELECT s.id FROM board_game_escrow s JOIN equippg p ON p.id=s.asset_id WHERE p.uid=? AND s.released_at=0 LIMIT 1',[$obj])){ throw new DomainException('Un esemplare è impegnato in una partita. Annulla prima la partita dal pannello Giochi, restituendo le poste.',409); }
+    if($db->query("SHOW TABLES LIKE 'board_game_escrow'") && $db->query('SELECT s.id FROM board_game_escrow s JOIN equippg p ON p.id=s.asset_id WHERE p.uid=? AND s.released_at=0 LIMIT 1',[$obj])){ throw new AccademiaDomainException('Un esemplare è impegnato in una partita. Annulla prima la partita dal pannello Giochi, restituendo le poste.',409); }
     // Cancellazioni
     $ok  = true;
     $ok = $ok && ($db->execute('DELETE FROM equip WHERE id = ?', [$obj]) >= 0);

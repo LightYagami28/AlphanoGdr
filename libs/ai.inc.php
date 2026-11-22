@@ -1,5 +1,9 @@
 <?php
 declare(strict_types=1);
+
+final class AiEngineRuntimeException extends RuntimeException {}
+final class AiEngineDomainException extends DomainException {}
+final class AiEngineLogicException extends LogicException {}
 require_once __DIR__ . '/kernel.inc.php';
 require_once __DIR__.'/ai-local-model.inc.php';
 require_once __DIR__ . '/ai-profile.inc.php';
@@ -54,23 +58,23 @@ function aiRoom(string $chat): ?array {
 }
 function aiAdmin(bool $json = true): int {
     $id = alphano_require_login($json);
-    if (empty(alphano_user()['admin'])) { throw new DomainException('Accesso riservato agli amministratori.',403); }
+    if (empty(alphano_user()['admin'])) { throw new AiEngineDomainException('Accesso riservato agli amministratori.',403); }
     return $id;
 }
 function aiPublicRoom(string $chat): array {
     // Stanze private escluse: nessuna memoria condivisa può raccogliere sussurri o contenuti riservati.
     $room = aiDb()->query('SELECT chat_key,title FROM mappe WHERE chat_key=? AND chat=1 AND public_enabled=1',[$chat])[0] ?? null;
-    if (!$room) { throw new DomainException('Seleziona una chat pubblica di gioco.',404); }
+    if (!$room) { throw new AiEngineDomainException('Seleziona una chat pubblica di gioco.',404); }
     return $room;
 }
 function aiField(array $in, string $key, int $max, bool $required = false): string {
     $v = $in[$key] ?? '';
-    if (!is_string($v) || mb_strlen($v)>$max || ($required && trim($v)==='')) { throw new DomainException('Campo non valido: '.$key,422); }
+    if (!is_string($v) || mb_strlen($v)>$max || ($required && trim($v)==='')) { throw new AiEngineDomainException('Campo non valido: '.$key,422); }
     return trim($v);
 }
 function aiInteger(array $in, string $key, int $min, int $max): int {
     $v=filter_var($in[$key]??null,FILTER_VALIDATE_INT);
-    if ($v===false || $v<$min || $v>$max) { throw new DomainException('Valore non valido: '.$key,422); }
+    if ($v===false || $v<$min || $v>$max) { throw new AiEngineDomainException('Valore non valido: '.$key,422); }
     return $v;
 }
 function aiMemory(string $chat, int $npc): string {
@@ -88,22 +92,22 @@ function aiAppendMemory(string $chat, int $npc, string $text): void {
 /** Sotto lock della stanza: idempotenza durevole, limiti globali e un solo turno pendente per luogo. */
 function aiEnqueueLocked(array $room, array $npc, int $user, string $key, string $prompt, string $kind, array $options=[]): array {
  $source=(int)($options['source']??0); $companions=$options['companions']??[];
- if(!alphano_config('ai_enabled')){ throw new DomainException('Supporto IA disabilitato.',503); }
+ if(!alphano_config('ai_enabled')){ throw new AiEngineDomainException('Supporto IA disabilitato.',503); }
     $db=aiDb();
     $old=$db->query('SELECT id,status FROM ai_jobs WHERE request_key=?',[$key])[0]??null;
     if ($old) { return $old; }
     $count=1+count($companions);
-    if($count>AI_MAX_NPCS||($companions&&($kind!=='play'||$source<1))){ throw new LogicException('Gruppo di dialogo non valido.'); }
-    if ((int)$db->query("SELECT COUNT(*) n FROM ai_jobs WHERE status IN ('queued','running')")[0]['n']+$count>AI_MAX_PENDING_JOBS) { throw new DomainException('La coda narrativa è piena. Il messaggio è conservato; riprova tra poco.',429); }
-    if ((int)$db->query("SELECT COUNT(*) n FROM ai_jobs WHERE user_id=? AND kind IN('play','preview','demo') AND status IN('queued','running')",[$user])[0]['n']+$count>72) { throw new DomainException('Hai già molti interlocutori in attesa. Attendi una loro risposta.',429); }
+    if($count>AI_MAX_NPCS||($companions&&($kind!=='play'||$source<1))){ throw new AiEngineLogicException('Gruppo di dialogo non valido.'); }
+    if ((int)$db->query("SELECT COUNT(*) n FROM ai_jobs WHERE status IN ('queued','running')")[0]['n']+$count>AI_MAX_PENDING_JOBS) { throw new AiEngineDomainException('La coda narrativa è piena. Il messaggio è conservato; riprova tra poco.',429); }
+    if ((int)$db->query("SELECT COUNT(*) n FROM ai_jobs WHERE user_id=? AND kind IN('play','preview','demo') AND status IN('queued','running')",[$user])[0]['n']+$count>72) { throw new AiEngineDomainException('Hai già molti interlocutori in attesa. Attendi una loro risposta.',429); }
     // One player turn can address several NPCs; automatic witnesses do not spend its rate limit.
-    if ((int)$db->query("SELECT COUNT(DISTINCT IF(source_id>0,CONCAT(chat_key,':',source_id),CONCAT('job:',id))) n FROM ai_jobs WHERE user_id=? AND kind IN('play','preview','demo') AND created_at>?",[$user,time()-60])[0]['n']>=6) { throw new DomainException('Attendi prima di richiamare il Master.',429); }
+    if ((int)$db->query("SELECT COUNT(DISTINCT IF(source_id>0,CONCAT(chat_key,':',source_id),CONCAT('job:',id))) n FROM ai_jobs WHERE user_id=? AND kind IN('play','preview','demo') AND created_at>?",[$user,time()-60])[0]['n']>=6) { throw new AiEngineDomainException('Attendi prima di richiamare il Master.',429); }
     if ($kind!=='preview') {
         $ids=array_map(static fn($n)=>(int)$n['id'],[$npc,...$companions]);$marks=implode(',',array_fill(0,count($ids),'?'));
         $pending=$db->query("SELECT id FROM ai_jobs WHERE chat_key=? AND npc_id IN ($marks) AND kind='play' AND status IN ('queued','running') LIMIT 1",[$room['chat_key'],...$ids]);
-        if ($pending) { throw new DomainException('Il PNG sta già preparando la risposta.',409); }
+        if ($pending) { throw new AiEngineDomainException('Il PNG sta già preparando la risposta.',409); }
         $last=(int)($db->query("SELECT MAX(created_at) last_at FROM ai_jobs WHERE chat_key=? AND user_id=? AND kind='play'",[$room['chat_key'],$user])[0]['last_at']??0);
-        if ($last>time()-(int)$room['cooldown']) { throw new DomainException('Attendi qualche istante prima del prossimo turno.',429); }
+        if ($last>time()-(int)$room['cooldown']) { throw new AiEngineDomainException('Attendi qualche istante prima del prossimo turno.',429); }
     }
     $db->execute('INSERT INTO ai_jobs(chat_key,npc_id,user_id,request_key,kind,prompt,room_version,source_id,available_at,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)',[$room['chat_key'],(int)$npc['id'],$user,$key,$kind,$prompt,(int)$room['version'],$source,time(),time()]);
     $job=['id'=>(int)$db->lastInsertId(),'status'=>'queued'];
@@ -143,7 +147,7 @@ function aiAfterMessage(string $chat, int $source, int $user, string $html, stri
     try {
         if($owned){ $db->beginTransaction(); }
         $room=$db->query('SELECT * FROM ai_rooms WHERE chat_key=? FOR UPDATE',[$chat])[0]??null;
-        if (!$room || !(int)$room['enabled']) { if($abilityId){ throw new DomainException('Le abilità richiedono la regia attiva in questo luogo.',422); }if($owned){ $db->commit(); } return $requested?['ai_notice'=>'Il Master IA non è attivo in questo luogo.']:[]; }
+        if (!$room || !(int)$room['enabled']) { if($abilityId){ throw new AiEngineDomainException('Le abilità richiedono la regia attiva in questo luogo.',422); }if($owned){ $db->commit(); } return $requested?['ai_notice'=>'Il Master IA non è attivo in questo luogo.']:[]; }
         aiPublicRoom($chat);
         $speaker=$db->query('SELECT nome FROM utenti WHERE id=?',[$user])[0]['nome']??'Viandante';
         $ability=$abilityId?rpg_get_ability('pg',$user,$abilityId):null;
@@ -154,7 +158,7 @@ function aiAfterMessage(string $chat, int $source, int $user, string $html, stri
         foreach($npcs as $witness){ aiPerceptionObservePlayer((int)$witness['id'],$user,$source); }
         if(aiQuestAfterMessage($room,$source,$user,$raw,$npcId,$abilityId,$npcs)){if($owned){ $db->commit(); }return ['ai_notice'=>str_starts_with(trim($raw),'+')||aiQuestIntent($raw)?'Azione acquisita nella quest.':($reading['speech']!==''?'Intervento verbale acquisito nella quest.':'Quest in corso: i PNG seguono la turnazione.')];}
         if($ability){
-            if(in_array($ability['effect']['type'],['attack','defence','mental','heal'],true)){ throw new DomainException('Per questa abilità serve una quest attiva e un bersaglio presente. Scegli il destinatario o indica il suo nome nell’azione.',422); }
+            if(in_array($ability['effect']['type'],['attack','defence','mental','heal'],true)){ throw new AiEngineDomainException('Per questa abilità serve una quest attiva e un bersaglio presente. Scegli il destinatario o indica il suo nome nell’azione.',422); }
             $reserved=rpg_use_ability('pg',$user,$abilityId,['event_key'=>'chat:'.$source,'session_id'=>0,'round'=>0]);if(isset($reserved['human_rules'])){$activation=$reserved['activated']?'attivata: '.$reserved['human_rules']['bonus_text']:'attivazione fallita, nessun bonus';$text.=' [ESITO VERIFICATO ATTIVAZIONE: '.$activation.'. Richiede '.$reserved['human_rules']['requirement_text'].' Non implica riuscita automatica dell’azione.]';$db->execute('UPDATE ai_events SET content=? WHERE chat_key=? AND source_id=?',[$text,$chat,$source]);$activationHtml=rpg_activation_public_html($reserved,$speaker);$db->execute('INSERT INTO chat(pg,chat,ora,msg,dest,lican) VALUES(0,?,?,?,0,0)',[$chat,time(),$activationHtml]);$db->execute('INSERT INTO registrazionichat(registrazione,testo) SELECT id,? FROM registrazioni WHERE chat=?',[$activationHtml,$chat]);}
         }
         if (!$npcs) { if($owned){ $db->commit(); } return []; }
@@ -169,7 +173,7 @@ function aiAfterMessage(string $chat, int $source, int $user, string $html, stri
         if (!$requested || $npcId<1) { aiNpcObserve($room,$source,$user,$raw,$npcId);if($owned){ $db->commit(); }return []; }
         $selected=null;
         foreach ($npcs as $npc) { if ((int)$npc['id']===$npcId) { $selected=$npc;break; } }
-        if (!$selected) { throw new DomainException('Questo PNG non è disponibile.',422); }
+        if (!$selected) { throw new AiEngineDomainException('Questo PNG non è disponibile.',422); }
         ai_game_allowed($chat,(int)$selected['id']);
         $participants=ai_dialogue_participants($npcs,$selected,$text);
         foreach($participants as $participant){ ai_game_allowed($chat,(int)$participant['id']); }
@@ -189,16 +193,16 @@ function aiRuntimeBudget(?int $seconds=null):?float{
     static $endsAt=null;if($seconds!==null){$endsAt=$seconds>0?microtime(true)+$seconds:null;if($seconds>0){ ai_local_model_pin(true); }}return $endsAt;
 }
 function aiRuntime(string $path, ?array $body=null): array {
-    if(!alphano_config('ai_enabled')){ throw new DomainException('Supporto IA disabilitato.',503); }
+    if(!alphano_config('ai_enabled')){ throw new AiEngineDomainException('Supporto IA disabilitato.',503); }
     $base=(string)(ai_local_model_pin()['url']??alphano_config('ai_url'));
-    if (!preg_match('~^https?://[^\s]+$~D',$base)) { throw new RuntimeException('Servizio locale non configurato.'); }
+    if (!preg_match('~^https?://[^\s]+$~D',$base)) { throw new AiEngineRuntimeException('Servizio locale non configurato.'); }
     $remaining=aiRuntimeBudget();$timeoutMs=$body?aiDeadline()*1000:2000;
-    if($remaining!==null){$timeoutMs=min($timeoutMs,(int)(($remaining-microtime(true))*1000));if($timeoutMs<1){ throw new RuntimeException('Tempo massimo di generazione raggiunto.'); }}
+    if($remaining!==null){$timeoutMs=min($timeoutMs,(int)(($remaining-microtime(true))*1000));if($timeoutMs<1){ throw new AiEngineRuntimeException('Tempo massimo di generazione raggiunto.'); }}
     $curl=curl_init($base.$path);
     curl_setopt_array($curl,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_CONNECTTIMEOUT_MS=>min(2000,$timeoutMs),CURLOPT_TIMEOUT_MS=>$timeoutMs,CURLOPT_HTTPHEADER=>['Content-Type: application/json','Authorization: Bearer '.alphano_config('ai_api_key')],CURLOPT_PROXY=>'',CURLOPT_FOLLOWLOCATION=>false]);
     if ($body!==null) { curl_setopt_array($curl,[CURLOPT_POST=>true,CURLOPT_POSTFIELDS=>json_encode($body,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR)]); }
     $raw=curl_exec($curl);$code=curl_getinfo($curl,CURLINFO_HTTP_CODE);curl_close($curl);
-    if ($raw===false || $code!==200) { throw new RuntimeException('Il motore locale non risponde.'); }
+    if ($raw===false || $code!==200) { throw new AiEngineRuntimeException('Il motore locale non risponde.'); }
     return json_decode($raw,true,64,JSON_THROW_ON_ERROR);
 }
 /** One language contract covers full, compact, perception and quest voices. */
@@ -307,7 +311,7 @@ function aiFinishText(string $text, string $length, bool $incomplete): string {
         if (substr_count($candidate,'«')===substr_count($candidate,'»')+1) { $candidate.='»'; }
         if ($balanced($candidate)) { $best=$candidate; }
     }
-    if ($best==='' || $words($best)<20) { throw new RuntimeException('Risposta incompleta: nessun turno narrativo utilizzabile.'); }
+    if ($best==='' || $words($best)<20) { throw new AiEngineRuntimeException('Risposta incompleta: nessun turno narrativo utilizzabile.'); }
     return $best;
 }
 function aiGenerate(array $room, array $npc, array $job): array {
@@ -326,21 +330,21 @@ function aiGenerate(array $room, array $npc, array $job): array {
         $tokens=aiRuntime('/tokenize',['content'=>$formatted['prompt'],'add_special'=>false]);
         if (count($tokens['tokens'])<=$contextSize-$maxTokens-32) { break; }
     }
-    if (count($tokens['tokens'])>$contextSize-$maxTokens-32) { throw new RuntimeException('Configurazione troppo estesa per il contesto locale.'); }
+    if (count($tokens['tokens'])>$contextSize-$maxTokens-32) { throw new AiEngineRuntimeException('Configurazione troppo estesa per il contesto locale.'); }
     $reply=aiRuntime('/v1/chat/completions',[
         'model'=>ai_model_name(),'messages'=>$messages,
         ...ai_expression_sampling((string)ai_model_name(),(string)$job['kind']),...ai_expression_format($npc,$job),'max_tokens'=>$maxTokens,
         'stream'=>false,'cache_prompt'=>true,'chat_template_kwargs'=>['enable_thinking'=>false],
     ]);
     $text=$reply['choices'][0]['message']['content']??'';
-    if (!is_string($text) || trim($text)==='') { throw new RuntimeException('Risposta narrativa non valida.'); }
+    if (!is_string($text) || trim($text)==='') { throw new AiEngineRuntimeException('Risposta narrativa non valida.'); }
     $text=preg_replace('/^\s*'.preg_quote((string)$npc['name'],'/').'\s*:\s*/iu','',$text);
     $text=ai_dialogue_without_repeats($npc,$job,$text);
     $text=aiFinishText($text,$room['response_length'],($reply['choices'][0]['finish_reason']??'')==='length');
     $text=ai_identity_validate_text($npc,$job,$text);
-    if (preg_match('/[\x{3400}-\x{9fff}\x{0400}-\x{04ff}]/u',$text) || preg_match('/<(?:think|tool_call)|\[INST\]|```/i',$text)) { throw new RuntimeException('Risposta fuori formato o lingua: non pubblicata.'); }
+    if (preg_match('/[\x{3400}-\x{9fff}\x{0400}-\x{04ff}]/u',$text) || preg_match('/<(?:think|tool_call)|\[INST\]|```/i',$text)) { throw new AiEngineRuntimeException('Risposta fuori formato o lingua: non pubblicata.'); }
     // Short, idiomatic answers need not contain five articles/prepositions.
-    if (!ai_expression_italian($text)) { throw new RuntimeException('La risposta non supera il controllo italiano.'); }
+    if (!ai_expression_italian($text)) { throw new AiEngineRuntimeException('La risposta non supera il controllo italiano.'); }
     $text=$job['kind']==='npc-turn'?$text:aiGuardValidateText($npc,$job,$text);
     if($job['kind']!=='npc-turn'){ $text=ai_ordinary_actor_guard($npc,$job,$text); }
     $text=aiPerceptionValidateText($npc,$job,$text);
@@ -349,7 +353,7 @@ function aiGenerate(array $room, array $npc, array $job): array {
     $text=aiLanguageOutputGuard($npc,$text);
     $episodeGuardrail=null;
     if($job['kind']!=='npc-turn'&&($problem=ai_episode_reply_problem($npc,$job,$text))){
-        if((int)($job['attempts']??0)<1){ throw new RuntimeException('Riscrittura necessaria: '.$problem); }
+        if((int)($job['attempts']??0)<1){ throw new AiEngineRuntimeException('Riscrittura necessaria: '.$problem); }
         $text=ai_episode_fallback($npc,$job);
         $episodeGuardrail=$problem;
     }

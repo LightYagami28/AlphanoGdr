@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+final class EconomiaDomainException extends DomainException {}
+
 require_once __DIR__ . '/kernel.inc.php';
 require_once __DIR__ . '/libposta.inc.php';
 require_once __DIR__ . '/libequip.inc.php';
@@ -57,7 +59,7 @@ function economiaBool(callable $operation): bool
 }
 function economiaVerifica(bool $condition, string $message): void
 {
-    if (!$condition) {throw new DomainException($message);}
+    if (!$condition) {throw new EconomiaDomainException($message);}
 }
 function economiaImpiegato(int $pg, int $corp): bool
 {

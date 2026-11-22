@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+final class PlayerRequestRuntimeException extends RuntimeException {}
+
 /** Shared boundary for the player APIs; domain permissions live here once. */
 require_once __DIR__ . '/kernel.inc.php';
 require_once __DIR__ . '/libpg.inc.php';
@@ -30,8 +32,8 @@ function playerInput(): array
 {
     if (str_contains($_SERVER['CONTENT_TYPE'] ?? '', 'application/json')) {
         try { $raw = file_get_contents('php://input'); $input = json_decode($raw, true, 64, JSON_THROW_ON_ERROR); }
-        catch (JsonException $e) { throw new RuntimeException('JSON non valido', 400); }
-        if (!is_array($input) || !preg_match('/^\s*\{/', $raw)) {throw new RuntimeException('Richiesta non valida', 400);}
+        catch (JsonException $e) { throw new PlayerRequestRuntimeException('JSON non valido', 400); }
+        if (!is_array($input) || !preg_match('/^\s*\{/', $raw)) {throw new PlayerRequestRuntimeException('Richiesta non valida', 400);}
         return $input;
     }
     return array_merge($_GET, $_POST);
@@ -39,21 +41,21 @@ function playerInput(): array
 
 function playerText(array $input, string $field, int $limit = 65535, bool $required = false): string
 {
-    if (isset($input[$field]) && !is_scalar($input[$field])) {throw new RuntimeException('Campo non valido: ' . $field, 400);}
+    if (isset($input[$field]) && !is_scalar($input[$field])) {throw new PlayerRequestRuntimeException('Campo non valido: ' . $field, 400);}
     $value = trim((string)($input[$field] ?? ''));
-    if (strlen($value) > $limit || ($required && $value === '')) {throw new RuntimeException('Campo non valido: ' . $field, 400);}
+    if (strlen($value) > $limit || ($required && $value === '')) {throw new PlayerRequestRuntimeException('Campo non valido: ' . $field, 400);}
     return $value;
 }
 
 function playerMutation(): void
 {
-    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {throw new RuntimeException('Metodo non consentito', 405);}
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {throw new PlayerRequestRuntimeException('Metodo non consentito', 405);}
     alphano_require_csrf(true);
 }
 
 function playerBoardPermissions($db, int $board, array $user): array
 {
-    if (!$db->query('SELECT id FROM luoghi WHERE id=?', [$board])) {throw new RuntimeException('Bacheca non trovata', 404);}
+    if (!$db->query('SELECT id FROM luoghi WHERE id=?', [$board])) {throw new PlayerRequestRuntimeException('Bacheca non trovata', 404);}
     $rules = $db->query('SELECT * FROM diritti WHERE bacheca=?', [(string)$board]);
     if (!$rules) {return ['allowed' => true, 'required' => ['Chiunque']];}
     $required = [];
@@ -72,7 +74,7 @@ function playerBoardPermissions($db, int $board, array $user): array
 
 function playerRequireBoard($db, int $board, array $user): void
 {
-    if (!playerBoardPermissions($db, $board, $user)['allowed']) {throw new RuntimeException('Permesso negato', 403);}
+    if (!playerBoardPermissions($db, $board, $user)['allowed']) {throw new PlayerRequestRuntimeException('Permesso negato', 403);}
 }
 
 function playerDiscussionAccess(string $type, array $user): bool
@@ -82,8 +84,8 @@ function playerDiscussionAccess(string $type, array $user): bool
     elseif (preg_match('/^Org([1-9]\d*)$/D', $type, $m)) {$allowed = (int)$user['organizzazione'] === (int)$m[1] || !empty($user['admin']);}
     elseif (preg_match('/^Corp([1-9]\d*)$/D', $type, $m)) {$allowed = (int)$user['corporazione'] === (int)$m[1] || !empty($user['admin']);}
     elseif (preg_match('/^Appunti([1-9]\d*)$/D', $type, $m)) {$allowed = (int)$user['id'] === (int)$m[1];}
-    else {throw new RuntimeException('Tipo non valido', 400);}
-    if (!$allowed) {throw new RuntimeException('Accesso negato', 403);}
+    else {throw new PlayerRequestRuntimeException('Tipo non valido', 400);}
+    if (!$allowed) {throw new PlayerRequestRuntimeException('Accesso negato', 403);}
     return !empty($user['admin']) || ($type === 'M' && !empty($user['fatepower'])) || ($type === 'A' && !empty($user['adminaccademia']))
         || (str_starts_with($type, 'Org') && !empty($user['adminorganizzazione']))
         || (str_starts_with($type, 'Corp') && !empty($user['admincorporazione'])) || str_starts_with($type, 'Appunti');

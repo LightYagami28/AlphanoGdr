@@ -1,6 +1,11 @@
 <?php
 declare(strict_types=1);
 
+const AI_PERCEPTION_TRANSFORMATIONS_FILE = '/transformations.inc.php';
+const AI_PERCEPTION_WORD_END_PATTERN = '\\b/iu';
+const AI_PERCEPTION_CHAT_HISTORY_FILE = '/chat-history.inc.php';
+const AI_PERCEPTION_HISTORY_FILTER = ' AND c.history_only=0';
+
 final class AiPerceptionRuntimeException extends RuntimeException {}
 require_once __DIR__.'/kernel.inc.php';
 require_once __DIR__.'/ai-relation-context.inc.php';
@@ -31,7 +36,7 @@ function aiPerceptionWitnesses(string $chat):array {
  */
 function aiPerceptionMasterRevelations(string $chat,string $content):array {
     if(!preg_match('/\b(?:licantrop\p{L}*|lupin\p{L}*|vampir\p{L}*)\b/iu',$content)){ return []; }
-    if(!function_exists('alphano_native_race')){ require_once __DIR__.'/transformations.inc.php'; }
+    if(!function_exists('alphano_native_race')){ require_once __DIR__.AI_PERCEPTION_TRANSFORMATIONS_FILE; }
     $found=[];$users=ConnectDB()->query('SELECT id,nome,razza,infetto,ancestrale FROM utenti WHERE BINARY chat=BINARY ? AND puntif>0 AND bloccato=0',[$chat]);
     $names=array_count_values(array_map(static fn($u)=>mb_strtolower($u['nome']),$users));
     foreach($users as $u){
@@ -41,7 +46,7 @@ function aiPerceptionMasterRevelations(string $chat,string $content):array {
         $name=preg_quote((string)$u['nome'],'/');
         foreach(preg_split('/[.!?\n]+/u',$content,-1,PREG_SPLIT_NO_EMPTY)?:[] as $sentence){
             if(preg_match('/[«»"]|\b(?:non|mai|se|qualora|ipotizz\p{L}*|forse|potrebbe|potess\p{L}*|sembra|sembrava|ricorda|racconta|dice|disse|pens\p{L}*)\b/iu',$sentence)){ continue; }
-            if(preg_match('/(?<!\p{L})'.$name.'(?!\p{L})[^.!?]{0,80}\b(?:si\s+(?:trasforma|muta)|assume\s+(?:la|una)\s+forma|rivela\s+(?:la\s+)?(?:propria\s+)?natura)[^.!?]{0,90}\b'.$family.'\b/iu',$sentence)){
+            if(preg_match('/(?<!\p{L})'.$name.'(?!\p{L})[^.!?]{0,80}\b(?:si\s+(?:trasforma|muta)|assume\s+(?:la|una)\s+forma|rivela\s+(?:la\s+)?(?:propria\s+)?natura)[^.!?]{0,90}\b'.$family.AI_PERCEPTION_WORD_END_PATTERN,$sentence)){
                 $found[]=['player'=>(int)$u['id'],'race'=>$race,'evidence'=>trim($sentence)];break;
             }
         }
@@ -53,8 +58,8 @@ function aiSceneCaptureSystem(string $chat,int $source,string $html,array $metad
     if(!aiPerceptionReady()||$source<1||!preg_match('/\b(?:MasterKey|DescrKey)\b/',$html)){ return; }
     $db=ConnectDB();
     if(!$db->query('SELECT chat_key FROM mappe WHERE chat_key=? AND chat=1',[$chat])){ return; }
-    require_once __DIR__.'/chat-history.inc.php';
-    $row=$db->query('SELECT c.pg,c.dest,c.ora,c.msg,u.admin,u.fatepower FROM chat c LEFT JOIN utenti u ON u.id=c.pg WHERE c.id=? AND BINARY c.chat=BINARY ?'.(alphano_chat_has_archive()?' AND c.history_only=0':''),[$source,$chat])[0]??null;
+    require_once __DIR__.AI_PERCEPTION_CHAT_HISTORY_FILE;
+    $row=$db->query('SELECT c.pg,c.dest,c.ora,c.msg,u.admin,u.fatepower FROM chat c LEFT JOIN utenti u ON u.id=c.pg WHERE c.id=? AND BINARY c.chat=BINARY ?'.(alphano_chat_has_archive()?AI_PERCEPTION_HISTORY_FILTER:''),[$source,$chat])[0]??null;
     // The stored public message, not caller-supplied replacement prose, is the proof.
     if(!$row||(int)$row['dest']!==0||(string)$row['msg']!==$html){ return; }
     if($humanMaster>0){if((int)$row['pg']!==$humanMaster||(!(int)$row['admin']&&!(int)$row['fatepower'])){ return; }}
@@ -101,9 +106,9 @@ function aiPerceptionObservePlayer(int $npc,int $player,int $source=0):void {
     $n=$db->query('SELECT id,chat_key,profile FROM ai_npcs WHERE id=? AND active=1',[$npc])[0]??null;
     if(!$u||!$n||$u['chat']!==$n['chat_key']||!in_array($npc,aiPerceptionWitnesses($u['chat']),true)){ return; }
     if(!$db->query('SELECT chat_key FROM mappe WHERE chat_key=? AND chat=1',[$u['chat']])){ return; }
-    require_once __DIR__.'/chat-history.inc.php';
+    require_once __DIR__.AI_PERCEPTION_CHAT_HISTORY_FILE;
     if($source>0&&!$db->query('SELECT id FROM chat WHERE id=? AND pg=? AND BINARY chat=BINARY ? AND dest=0'.alphano_chat_live_filter(),[$source,$player,$u['chat']])){ return; }
-    if(!function_exists('alphano_visible_race')){ require_once __DIR__.'/transformations.inc.php'; }
+    if(!function_exists('alphano_visible_race')){ require_once __DIR__.AI_PERCEPTION_TRANSFORMATIONS_FILE; }
     $visible=alphano_visible_race($u);$native=alphano_native_race($u);
     if($visible===$native&&in_array($native,[2,3,5,6],true)&&aiPerceptionKnownRace($npc,$player)!==$native){ aiPerceptionRemember($npc,$player,$native,$source,$u['chat'],'Aspetto soprannaturale manifestato e osservato direttamente nella scena.',time()); }
 }
@@ -126,12 +131,12 @@ function aiPerceptionEventText(array $event):string {
  */
 function aiSceneContext(string $chat,int $npc=0,int $before=0):array {
     if(!aiPerceptionReady()){ return []; }
-    require_once __DIR__.'/chat-history.inc.php';
+    require_once __DIR__.AI_PERCEPTION_CHAT_HISTORY_FILE;
     $sql='SELECT e.source_id,e.kind,e.actor_id,e.native_race_id,e.visible_race_id,e.form,e.content,e.created_at FROM ai_scene_events e';$params=[];
     if($npc>0){$sql.=' JOIN ai_scene_witnesses w ON w.event_id=e.id AND w.npc_id=?';$params[]=$npc;}
     $session=ConnectDB()->query('SELECT datain FROM sessioni WHERE BINARY chat=BINARY ? AND run=1 ORDER BY id DESC LIMIT 1',[$chat])[0]??[];
     $since=min(time()-7200,(int)($session['datain']??time()));
-    $sql.=' JOIN chat c ON c.id=e.source_id AND BINARY c.chat=BINARY e.chat_key WHERE c.dest=0'.(alphano_chat_has_archive()?' AND c.history_only=0':'')." AND NOT EXISTS(SELECT 1 FROM ai_quest_outbox control WHERE control.chat_id=e.source_id AND control.event_key NOT LIKE 'verdict:%:published')".' AND e.chat_key=? AND BINARY e.chat_key=BINARY ? AND e.created_at>=?';$params[]=$chat;$params[]=$chat;$params[]=$since;
+    $sql.=' JOIN chat c ON c.id=e.source_id AND BINARY c.chat=BINARY e.chat_key WHERE c.dest=0'.(alphano_chat_has_archive()?AI_PERCEPTION_HISTORY_FILTER:'')." AND NOT EXISTS(SELECT 1 FROM ai_quest_outbox control WHERE control.chat_id=e.source_id AND control.event_key NOT LIKE 'verdict:%:published')".' AND e.chat_key=? AND BINARY e.chat_key=BINARY ? AND e.created_at>=?';$params[]=$chat;$params[]=$chat;$params[]=$since;
     if($before>0){$sql.=' AND e.source_id<?';$params[]=$before;}
     $events=ConnectDB()->query($sql.' ORDER BY e.source_id DESC,e.id DESC LIMIT 4',$params);
     $anchors=ConnectDB()->query($sql." AND e.kind='transformation' AND NOT EXISTS(SELECT 1 FROM ai_scene_events newer WHERE newer.chat_key=e.chat_key AND BINARY newer.chat_key=BINARY e.chat_key AND newer.kind='transformation' AND newer.actor_id=e.actor_id AND newer.source_id>e.source_id".($before>0?' AND newer.source_id<?':'').') ORDER BY e.source_id DESC,e.id DESC LIMIT 4',[...$params,...($before>0?[$before]:[])]);
@@ -161,7 +166,7 @@ function aiPerceptionSceneState(array $npc,array $job):array {
     if(!$present&&preg_match('/^rent_[a-f0-9]{40}$/D',$chat)){ $present=(bool)ConnectDB()->query('SELECT a.id FROM companion_appointments a JOIN chat_rentals r ON r.id=a.rental_id AND r.owner_id=a.player_id JOIN chat_rental_members m ON m.rental_id=r.id AND m.player_id=a.player_id JOIN ai_npcs n ON n.id=a.npc_id WHERE a.npc_id=? AND r.chat_key=? AND a.player_id=? AND a.finished_at=0 AND r.closed_at=0 AND a.expires_at>? AND r.expires_at>? AND n.active=1 LIMIT 1',[$nid,$chat,(int)($job['user_id']??0),time(),time()]); }
     if(!$present){ return $out; }
     $db=ConnectDB();$profile=ai_npc_profile($npc);$human=in_array((int)$profile['race_id'],[1,alphano_human_race_id()],true);
-    if(!function_exists('alphano_visible_race')){ require_once __DIR__.'/transformations.inc.php'; }
+    if(!function_exists('alphano_visible_race')){ require_once __DIR__.AI_PERCEPTION_TRANSFORMATIONS_FILE; }
     foreach($db->query('SELECT id,nome,razza,infetto,ancestrale,vampire_human_form,puntif,ferite FROM utenti WHERE BINARY chat=BINARY ? AND bloccato=0 AND puntif>0 ORDER BY id LIMIT 16',[$chat]) as $player){
         $pid=(int)$player['id'];$latest=$db->query("SELECT source_id,visible_race_id,form,created_at FROM ai_scene_events WHERE chat_key=? AND BINARY chat_key=BINARY ? AND kind='transformation' AND actor_id=? ORDER BY source_id DESC LIMIT 1",[$chat,$chat,$pid])[0]??[];
         if($before>0&&(int)($latest['source_id']??0)>$before){ continue; }
@@ -182,7 +187,7 @@ function aiPerceptionSceneState(array $npc,array $job):array {
     if($session){
         $sid=(int)$session['session']['id'];$round=(int)$session['guidance']['round_number'];
         foreach($db->query('SELECT state FROM ai_quest_cast WHERE session_id=? AND active=1',[$sid]) as $cast){ if(ai_tactical_restrained(json_decode((string)$cast['state'],true)?:[],$round)){$out['confirmed_hold']=true;break;} }
-        $sql="SELECT a.actor_id,a.content,a.source_id,a.details FROM ai_quest_actions a JOIN chat c ON c.id=a.source_id AND BINARY c.chat=BINARY ? WHERE a.session_id=? AND a.kind='pg' AND a.round_number>=? AND a.status<>'skipped' AND c.dest=0".(alphano_chat_has_archive()?' AND c.history_only=0':'');$args=[$chat,$sid,max(1,$round-1)];
+        $sql="SELECT a.actor_id,a.content,a.source_id,a.details FROM ai_quest_actions a JOIN chat c ON c.id=a.source_id AND BINARY c.chat=BINARY ? WHERE a.session_id=? AND a.kind='pg' AND a.round_number>=? AND a.status<>'skipped' AND c.dest=0".(alphano_chat_has_archive()?AI_PERCEPTION_HISTORY_FILTER:'');$args=[$chat,$sid,max(1,$round-1)];
         if($before>0){$sql.=' AND a.source_id<=?';$args[]=$before;}
         foreach($db->query($sql.' ORDER BY a.id DESC LIMIT 8',$args) as $action){
             $details=json_decode((string)$action['details'],true)?:[];
@@ -388,7 +393,7 @@ function aiPerceptionFearEvidence(array $npc,string $text):bool {
         // as its subject. Only an immediate, explicit vocal apposition qualifies.
         $continuesVoice=$voiceApposition&&$delimiter===','&&(bool)preg_match('/^(?:come\s+)?un\s+filo(?:\s+di\s+voce)?\s+(?:spezzato|tremante|incerto|roco)\b/iu',$clause);
         $voiceApposition=false;
-        foreach($ownNames as $own){ if(preg_match('/^'.preg_quote($own,'/').'\b/iu',$clause)){$ownsSubject=true;break;} }
+        foreach($ownNames as $own){ if(preg_match('/^'.preg_quote($own,'/').AI_PERCEPTION_WORD_END_PATTERN,$clause)){$ownsSubject=true;break;} }
         if(preg_match('/\b(?:altrui|del\s+(?:visitatore|giocatore|compagno|cliente)|della\s+(?:visitatrice|giocatrice|compagna|cliente)|(?:di|a)\s+(?:lui|lei|loro))\b/iu',$clause)
             ||preg_match('/\b(?:il\s+(?:visitatore|giocatore|compagno|cliente)|la\s+(?:visitatrice|giocatrice|compagna|cliente)|loro|gli\s+altri)\s+(?:non\s+)?(?:trema|tremano|singhiozz\p{L}*|sbianc\p{L}*|balbett\p{L}*|ha|hanno|si\s+sposta\p{L}*)\b/iu',$clause)){$ownsSubject=false;continue;}
         // A named other actor or an observed person's symptoms are not ours.
@@ -411,13 +416,13 @@ function aiPerceptionFearEvidence(array $npc,string $text):bool {
         if(preg_match('/\b(?:per|dal|dalla|a\s+causa\s+del(?:la)?)\s+(?:il\s+|la\s+)?(?:fredd\p{L}*|fatica|stanchezza|sforzo|febbre|dolore)\b/iu',$clause)){ continue; }
         $symptom='(?:trem\p{L}*|singhiozz\p{L}*|balbett\p{L}*|sbianc\p{L}*|sussult\p{L}*|brivid\p{L}*|deglut\p{L}*|pietrific\p{L}*|paralizz\p{L}*|paura|terrore|spavent\p{L}*|terrorizz\p{L}*|sgoment\p{L}*|raccapric\p{L}*|sgrana|gelato|gelata|arretr\p{L}*|indietregg\p{L}*|retroced\p{L}*|fugg\p{L}*|fuga|scappa)';
         $negated=preg_replace('/\bnon\s+(?:riesce\s+a\s+trattenere|smette\s+di|può\s+trattenere)\b/iu','',$clause)??$clause;
-        if(preg_match('/\b(?:non|né|senza)\b[^.!?;,]{0,35}\b'.$symptom.'\b/iu',$negated)
+        if(preg_match('/\b(?:non|né|senza)\b[^.!?;,]{0,35}\b'.$symptom.AI_PERCEPTION_WORD_END_PATTERN,$negated)
             ||preg_match('/\bnon\s+(?:ha|mostra|presenta|avverte)\b[^.!?;,]{0,25}\b(?:respiro|fiato|voce)\b/iu',$negated)
             ||preg_match('/\b(?:respiro|fiato|voce)\b[^.!?;,]{0,15}\bnon\b[^.!?;,]{0,15}\b(?:spezz\p{L}*|trem\p{L}*|cort\p{L}*|incert\p{L}*)\b/iu',$negated)
             ||preg_match('/\b(?:smette|cessa)\s+di\s+trem\p{L}*|\btremore\b.{0,25}\b(?:cessa|svanisce|si\s+placa)|\b(?:respiro|fiato|voce)\b.{0,25}\b(?:calm[oa]|regolare|fermo|stabile|tranquill[oa])\b/iu',$clause)){ continue; }
         $voiceApposition=(bool)preg_match('/\bvoce\b[^.!?;,]{0,35}$/iu',$clause);
         if($continuesVoice){ $clause='voce '.$clause; }
-        if(preg_match('/\b'.$symptom.'\b/iu',$clause)
+        if(preg_match('/\b'.$symptom.AI_PERCEPTION_WORD_END_PATTERN,$clause)
             ||preg_match('/\b(?:fiato|respiro|voce)\b[^.!?;,]{0,30}\b(?:mozz\p{L}*|spezz\p{L}*|cort\p{L}*|incert\p{L}*|manc\p{L}*|roca|roco)\b/iu',$clause)
             ||preg_match('/\bcuore\s+(?:(?:gli|le)\s+)?(?:martella|batte|accelera)\b/iu',$clause)
             ||preg_match('/\bsi\s+(?:sposta|ritrae|ritira)\s+(?:di\s+|un\s+passo\s+)?indietro\b/iu',$clause)){ return true; }

@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+const AI_NARRATIVE_CONTROL_PREFIX_PATTERN = '/^(?:\\/\\/|[$#%@|])/u';
+
 /**
  * Bounded, deterministic interpretation of player prose. This is evidence for the
  * dialogue model and rules engine, never an authorization to invent consequences.
@@ -47,7 +49,7 @@ function aiNarrativePlain(string $raw):string {
 /** Subjunctive wishes, negations, recollections and reported outcomes are not new acts. */
 function aiNarrativeClauseIntent(string $text): ?string {
     $v=mb_strtolower(trim($text));$v=preg_replace('/\bs[’\x{27}](?=\p{L})/u','si ',$v)??$v;
-    if($v===''||preg_match('/^(?:\/\/|[$#%@|])/u',$v)){ return null; }
+    if($v===''||preg_match(AI_NARRATIVE_CONTROL_PREFIX_PATTERN,$v)){ return null; }
     if(preg_match('/\b(?:non\s+(?:voglio|intendo)\s+(?:più\s+)?(?:combattere|continuare|allenarmi)|mi fermo|si ferma|smette|smetto|mi arrendo|si arrende|fermiamoci|terminiamo|interromp[eo]\s+(?:l[’\x{27}]|il\s+)(?:attacco|assalto|combattimento)|cess[ao]\s+(?:l[’\x{27}]|il\s+)(?:attacco|assalto|combattimento)|finisce l.allenamento|abbassa (?:le armi|la guardia))\b|^basta(?:[,.!]|\s*$)/u',$v)){ return 'fine'; }
     if(preg_match('/\b(?:allenamento|alleniamoci|esercitazione)\b/u',$v)&&preg_match('/\b(?:voglio|chiedo|facciamo|iniziamo|alleniamoci|invita|propone)\b/u',$v)){ return 'allenamento'; }
     if(preg_match('/\b(?:ordina|chiede|invita|propone|implora|minaccia|promette|dice|risponde|proferisce)\b.{0,90}\b(?:di\s+)?(?:attaccare|colpire|mordere|uccidere|arrestare|rubare)\b/u',$v)){ return 'azione'; }
@@ -80,7 +82,7 @@ function aiNarrativeClauseIntent(string $text): ?string {
 /** Classify free prose, also splitting unquoted speech before a narrated gesture. */
 function aiNarrativeFreeSegments(string $text,string $prior='auto',string $source='prose'): array {
     $text=trim($text);if($text===''){ return []; }
-    if(preg_match('/^(?:\/\/|[$#%@|])/u',$text)){ return [['kind'=>'ooc','text'=>$text,'source'=>$source,'confidence'=>1.0]]; }
+    if(preg_match(AI_NARRATIVE_CONTROL_PREFIX_PATTERN,$text)){ return [['kind'=>'ooc','text'=>$text,'source'=>$source,'confidence'=>1.0]]; }
     $parts=preg_split('/(?<=[.!?;])\s+|\s+(?=(?:detto\s+(?:ciò\s+)?|poi\s+)(?:si\s+(?:scaglia|scaraventa|avventa|avvicina|allontana|volta)|tenta\s+di|cerca\s+di))|,\s+(?=(?:sorride|annuisce|abbassa|solleva|si\s+(?:volta|limita))\b)|\s+(?=ma\s+(?:tenta|cerca|si|attacca|attacco|colpisce|colpisco)\b)/iu',$text,-1,PREG_SPLIT_NO_EMPTY);
     $out=[];$previousKind='';
     foreach($parts?:[$text] as $part) {
@@ -111,7 +113,7 @@ function aiNarrativeParse(string $raw,array $options=[]): array {
     $text=preg_replace('~<(script|style)\b[^>]*>.*?</\1\s*>~isu','',$text)??$text;
     $leading=trim($text);$prior=str_starts_with($leading,'+')?'action':(in_array($options['channel']??'',['action','speech'],true)?$options['channel']:'auto');
     if(str_starts_with($leading,'+')){ $text=preg_replace('/^\s*\+\s*/u','',$text)??$text; }
-    if(($options['channel']??'')==='ooc'||preg_match('/^(?:\/\/|[$#%@|])/u',trim($text))){ return ['segments'=>[['kind'=>'ooc','text'=>trim($text),'source'=>'prefix','confidence'=>1.0]],'speech'=>'','action'=>'','thought'=>'','intent'=>null,'acts'=>[],'requires_action_clarification'=>false]; }
+    if(($options['channel']??'')==='ooc'||preg_match(AI_NARRATIVE_CONTROL_PREFIX_PATTERN,trim($text))){ return ['segments'=>[['kind'=>'ooc','text'=>trim($text),'source'=>'prefix','confidence'=>1.0]],'speech'=>'','action'=>'','thought'=>'','intent'=>null,'acts'=>[],'requires_action_clarification'=>false]; }
     $tokens=preg_split('/(<+[^<>\n]{1,500}>+|>+[^<>\n]{1,1800}<+|«|»|“|”|"|(?<![\p{L}\p{N}])[\x{27}‘]|[\x{27}’](?![\p{L}\p{N}])|\*{1,2}|\(|\)|\[|\])/u',$text,-1,PREG_SPLIT_DELIM_CAPTURE|PREG_SPLIT_NO_EMPTY)?:[];
     $stack=[];$segments=[];$buffer='';
     $flush=static function()use(&$buffer,&$segments,&$stack,$prior):void {

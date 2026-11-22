@@ -457,7 +457,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if(presenceToggle){presenceToggle.checked=presenceShowsNpcs(idpg);presenceToggle.addEventListener('change',()=>{presenceSaveNpcs(idpg,presenceToggle.checked);if(presenceData){renderPresenti(presenceData);}updateGameClocks();});}
   window.addEventListener('storage',event=>{if(event.key==='alphano:presence:npcs:'+idpg&&presenceToggle){presenceToggle.checked=presenceShowsNpcs(idpg);if(presenceData){renderPresenti(presenceData);}updateGameClocks();}});
   function presenceMailButton(person){
-    return person.kind==='player'?`<button class="posta-btn" data-pg-name="${encodeURIComponent(person.name)}" data-idpg="${person.id}" title="Scrivi a ${esc(person.name)}">?</button>`:'';
+    return person.kind==='player'?`<button class="posta-btn" data-pg-name="${encodeURIComponent(person.name)}" data-idpg="${person.id}" title="Scrivi a ${esc(person.name)}">✉</button>`:'';
   }
   function renderPresenti(data){
       const showNpcs=presenceToggle?presenceToggle.checked:presenceShowsNpcs(idpg);
@@ -470,7 +470,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <img src="${esc(person.icon)}" width="16" height="16" alt="${esc(person.race+' · '+person.sex)}" title="${esc(person.race+' · '+person.sex)}" class="razza-icon">
           <a class="presenti-name presence-link" href="${esc(person.profile_url)}" data-url="${esc(person.profile_url)}" data-title="Profilo di ${esc(person.name)}">${esc(person.name)}</a>
           <span class="presence-kind">${person.kind==='npc'?'PNG':'PG'}</span>
-          ${presenceGameAction(person)}          ${person.kind==='player'?`<button class="posta-btn" data-pg-name="${encodeURIComponent(person.name)}" data-idpg="${person.id}" title="Scrivi a ${esc(person.name)}">✉</button>`:''}
+          ${presenceGameAction(person)}          ${presenceMailButton(person)}
         </li>`).join('')}`).join('') || '<li data-live-key="empty">Nessun personaggio presente.</li>');
   }
   presentiList?.addEventListener('click',event=>{
@@ -494,21 +494,21 @@ document.addEventListener('DOMContentLoaded', () => {
      8. INIT + TOGGLE SIDEBAR MOBILE + ESC TO CLOSE
   ======================================================================== */
   document.addEventListener('alphano:lycan-change',refreshTransformation);
-  window.addEventListener('message',event=>{if(event.origin===location.origin&&event.data?.type==='alphano:permissions-changed'){loadStatus();loadProfile();}});
+  window.addEventListener('message',event=>{if(event.origin===location.origin&&event.data?.type==='alphano:permissions-changed'){void loadStatus();void loadProfile();}});
   if (idpg) {
-    loadStatus();      setInterval(loadStatus,     30_000);
-    loadNews();        setInterval(loadNews,       30_000);
-    loadPresenti();    setInterval(loadPresenti,   30_000);
-    loadProfile();setInterval(loadProfile,30000);setInterval(refreshTransformation,15000);
-    const resumePresence=()=>{if(!document.hidden){loadStatus();loadPresenti();refreshTransformation();}};
+    void loadStatus();      setInterval(loadStatus,     30_000);
+    void loadNews();        setInterval(loadNews,       30_000);
+    void loadPresenti();    setInterval(loadPresenti,   30_000);
+    void loadProfile();setInterval(loadProfile,30000);setInterval(refreshTransformation,15000);
+    const resumePresence=()=>{if(!document.hidden){void loadStatus();void loadPresenti();void refreshTransformation();}};
     document.addEventListener('visibilitychange',resumePresence);
     window.addEventListener('pageshow',resumePresence);
     window.addEventListener('online',resumePresence);
     const initialView = script?.dataset.viewUrl || '';
-    const initialScene = /^\/(?:mappa\.php(?:[?#]|$)|chat\/(?:index\.php(?:[?#]|$)|(?:[a-z0-9_-]+)\/(?!assemblea\.php|bacheche\/)))/.test(initialView);
+    const initialScene = /^\/(?:mappa\.php|chat\/index\.php)(?:[?#]|$)/.test(initialView) || /^\/chat\/[a-z0-9_-]+\/(?!assemblea\.php|bacheche\/)/.test(initialView);
     loadIntoMap(initialScene ? initialView : `/api/mappa.php?idpg=${idpg}`);
     if (initialView && !initialScene) {openModal(initialView, 0, 0, 'Alphano');}
-    fetch('/api/log_ingressi.php', { keepalive: true }).catch(()=>{});
+    void fetch('/api/log_ingressi.php', { keepalive: true }).catch(err=>console.error(err));
   }
 
   if (sidebarToggle && sidebar) {

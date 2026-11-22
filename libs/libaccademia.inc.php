@@ -1,6 +1,23 @@
 <?php
 declare(strict_types=1);
 
+const ACC_USER_EXISTS_SQL = 'SELECT 1 FROM utenti WHERE id=?';
+const ACC_ORG_VOTES_SQL = 'SELECT u.nome, a.voto, a.motivo
+           FROM accademia a
+           JOIN utenti u ON u.id = a.idpg
+          WHERE a.org = ? AND a.motivo IS NOT NULL';
+const ACC_DELETE_ORG_VOTES_SQL = 'DELETE FROM accademia WHERE org = ?';
+const ACC_ADMIN_LOCK_SQL = 'SELECT admin,adminaccademia FROM utenti WHERE id=? FOR UPDATE';
+const ACC_CORP_VOTES_SQL = 'SELECT u.nome, a.voto, a.motivo
+           FROM accademia a
+           JOIN utenti u ON u.id = a.idpg
+          WHERE a.corp = ? AND a.motivo IS NOT NULL';
+const ACC_DELETE_CORP_VOTES_SQL = 'DELETE FROM accademia WHERE corp = ?';
+const ACC_UPLOAD_PENDING_PATH = '/uploads/equipment-pending/';
+const ACC_UPLOAD_PATH = '/uploads/equipment/';
+const ACC_DELETE_OBJ_VOTES_SQL = 'DELETE FROM accademia WHERE obj = ?';
+const ACC_GIOCATA_EXISTS_SQL = 'SELECT 1 FROM giocate WHERE id=?';
+
 final class AccademiaDomainException extends DomainException {}
 
 require_once __DIR__ . '/kernel.inc.php';
@@ -83,7 +100,7 @@ function purgeAccademia(): void
 function insertOrg(string $nome, int $idmaster, ?string $sito, string $statuto, int $city): string
 {
     $db = getDB();
-    if (!getDB()->query('SELECT 1 FROM city WHERE id=?',[$city]) || !getDB()->query('SELECT 1 FROM utenti WHERE id=?',[$idmaster]) || mb_strlen($nome)>255) { return 'Città, fondatore o nome non validi'; }
+    if (!getDB()->query('SELECT 1 FROM city WHERE id=?',[$city]) || !getDB()->query(ACC_USER_EXISTS_SQL,[$idmaster]) || mb_strlen($nome)>255) { return 'Città, fondatore o nome non validi'; }
     if (getDB()->query('SELECT 1 FROM organizzazioni WHERE idmaster=? AND approvato=0',[$idmaster])) { return 'Hai già una proposta in attesa'; }
 
 
@@ -173,7 +190,7 @@ function approvaOrg(int $org): bool
     return accademiaAtomica(static function() use($org): bool {
         $db=getDB();
         $group=$db->query('SELECT idmaster,nome FROM organizzazioni WHERE id=? AND approvato=0 FOR UPDATE',[$org])[0] ?? null;
-        if (!$group || !$db->query('SELECT 1 FROM utenti WHERE id=?',[$group['idmaster']])) { return false; }
+        if (!$group || !$db->query(ACC_USER_EXISTS_SQL,[$group['idmaster']])) { return false; }
         $master=(int)$group['idmaster'];
         $db->execute('INSERT INTO ramiorganizzazioni(nome,organizzazione,livello) VALUES(?,?,0)',['Direzione',$org]);
         $branch=(int)$db->lastInsertID();
@@ -203,10 +220,7 @@ function cancellaOrg(int $org): bool
     // Raccolta motivazioni
     $notes = '';
     foreach ($db->query(
-        'SELECT u.nome, a.voto, a.motivo
-           FROM accademia a
-           JOIN utenti u ON u.id = a.idpg
-          WHERE a.org = ? AND a.motivo IS NOT NULL',
+        ACC_ORG_VOTES_SQL,
         [$org]
     ) as $v) {
         $tag   = $v['voto'] === 'vpos' ? 'positivo' : 'negativo';
@@ -216,7 +230,7 @@ function cancellaOrg(int $org): bool
     $ok  = true;
     $ok = $ok && ($db->execute('DELETE FROM organizzazioni WHERE id = ?', [$org]) >= 0);
     $ok = $ok && ($db->execute('DELETE FROM caricheorganizzazioni WHERE organizzazione = ?', [$org]) >= 0);
-    $ok = $ok && ($db->execute('DELETE FROM accademia WHERE org = ?', [$org]) >= 0);
+    $ok = $ok && ($db->execute(ACC_DELETE_ORG_VOTES_SQL, [$org]) >= 0);
     $ok = $ok && ($db->execute(
         'UPDATE utenti
             SET organizzazione = NULL, caricaorganizzazione = NULL, ramoorganizzazione=0, adminorganizzazione=0
@@ -249,10 +263,7 @@ function approvaModifOrg(int $org): bool
     // Motivazioni
     $notes = '';
     foreach ($db->query(
-        'SELECT u.nome, a.voto, a.motivo
-           FROM accademia a
-           JOIN utenti u ON u.id = a.idpg
-          WHERE a.org = ? AND a.motivo IS NOT NULL',
+        ACC_ORG_VOTES_SQL,
         [$org]
     ) as $v) {
         $tag   = $v['voto'] === 'vpos' ? 'positivo' : 'negativo';
@@ -273,7 +284,7 @@ function approvaModifOrg(int $org): bool
           WHERE id = ?',
         ['', $org]
     ) >= 0);
-    $ok = $ok && ($db->execute('DELETE FROM accademia WHERE org = ?', [$org]) >= 0);
+    $ok = $ok && ($db->execute(ACC_DELETE_ORG_VOTES_SQL, [$org]) >= 0);
     $ok = $ok && (bool)InviaMissiva(
         "Approvazione modifiche all’Organizzazione $nome",
         "Le vostre modifiche allo statuto sono state approvate.\nVotazioni:$notes",
@@ -301,10 +312,7 @@ function cancellaModifOrg(int $org): bool
     // Motivazioni
     $notes = '';
     foreach ($db->query(
-        'SELECT u.nome, a.voto, a.motivo
-           FROM accademia a
-           JOIN utenti u ON u.id = a.idpg
-          WHERE a.org = ? AND a.motivo IS NOT NULL',
+        ACC_ORG_VOTES_SQL,
         [$org]
     ) as $v) {
         $tag   = $v['voto'] === 'vpos' ? 'positivo' : 'negativo';
@@ -318,7 +326,7 @@ function cancellaModifOrg(int $org): bool
           WHERE id = ?',
         ['', $org]
     ) >= 0);
-    $ok = $ok && ($db->execute('DELETE FROM accademia WHERE org = ?', [$org]) >= 0);
+    $ok = $ok && ($db->execute(ACC_DELETE_ORG_VOTES_SQL, [$org]) >= 0);
     $ok = $ok && (bool)InviaMissiva(
         "Bocciatura modifiche all’Organizzazione $nome",
         "Le vostre modifiche non sono state approvate.\nVotazioni:$notes\n\nStatuto modificato:\n$newStat",
@@ -332,7 +340,7 @@ function cancellaModifOrg(int $org): bool
 function votaOrg(int $org, int $idpg, bool $positivo, string $motivo): bool
 {
     return accademiaAtomica(static function() use($org,$idpg,$positivo,$motivo): bool {
-    $user=getDB()->query('SELECT admin,adminaccademia FROM utenti WHERE id=? FOR UPDATE',[$idpg])[0] ?? [];
+    $user=getDB()->query(ACC_ADMIN_LOCK_SQL,[$idpg])[0] ?? [];
     if (empty($user['admin']) && empty($user['adminaccademia'])) { return false; }
     if (!getDB()->query("SELECT 1 FROM organizzazioni WHERE id=? AND (approvato=0 OR newstatuto<>'' OR newidmaster>0)",[$org])) { return false; }
     $db = getDB();
@@ -403,7 +411,7 @@ function insertCorp(
 ): string
 {
     $db = getDB();
-    if (!getDB()->query('SELECT 1 FROM city WHERE id=?',[$city]) || !getDB()->query('SELECT 1 FROM utenti WHERE id=?',[$idmaster]) || mb_strlen($nome)>255) { return 'Città, fondatore o nome non validi'; }
+    if (!getDB()->query('SELECT 1 FROM city WHERE id=?',[$city]) || !getDB()->query(ACC_USER_EXISTS_SQL,[$idmaster]) || mb_strlen($nome)>255) { return 'Città, fondatore o nome non validi'; }
     if (getDB()->query('SELECT 1 FROM corporazioni WHERE idmaster=? AND approvato=0',[$idmaster])) { return 'Hai già una proposta in attesa'; }
     $points=0;
     foreach ($produzioni as $subtype=>$quality) {
@@ -525,7 +533,7 @@ function approvaCorp(int $corp): bool
     return accademiaAtomica(static function() use($corp): bool {
         $db=getDB();
         $group=$db->query('SELECT idmaster,nome FROM corporazioni WHERE id=? AND approvato=0 FOR UPDATE',[$corp])[0] ?? null;
-        if (!$group || !$db->query('SELECT 1 FROM utenti WHERE id=?',[$group['idmaster']])) { return false; }
+        if (!$group || !$db->query(ACC_USER_EXISTS_SQL,[$group['idmaster']])) { return false; }
         $master=(int)$group['idmaster'];
         $db->execute('INSERT INTO ramicorporazioni(nome,corporazione,livello) VALUES(?,?,0)',['Direzione',$corp]);
         $branch=(int)$db->lastInsertID();
@@ -559,10 +567,7 @@ function cancellaCorp(int $corp): bool
     $idmaster = (int)$row['idmaster'];
     $notes    = '';
     foreach ($db->query(
-        'SELECT u.nome, a.voto, a.motivo
-           FROM accademia a
-           JOIN utenti u ON u.id = a.idpg
-          WHERE a.corp = ? AND a.motivo IS NOT NULL',
+        ACC_CORP_VOTES_SQL,
         [$corp]
     ) as $v) {
         $tag   = $v['voto'] === 'vpos' ? 'positivo' : 'negativo';
@@ -571,7 +576,7 @@ function cancellaCorp(int $corp): bool
     $ok  = true;
     $ok = $ok && ($db->execute('DELETE FROM corporazioni WHERE id = ?', [$corp]) >= 0);
     $ok = $ok && ($db->execute('DELETE FROM carichecorporazioni WHERE corporazione = ?', [$corp]) >= 0);
-    $ok = $ok && ($db->execute('DELETE FROM accademia WHERE corp = ?', [$corp]) >= 0);
+    $ok = $ok && ($db->execute(ACC_DELETE_CORP_VOTES_SQL, [$corp]) >= 0);
     $ok = $ok && ($db->execute(
         'UPDATE utenti
             SET corporazione = NULL,
@@ -604,10 +609,7 @@ function approvaModifCorp(int $corp): bool
     $nome      = $row['nome'];
     $notes     = '';
     foreach ($db->query(
-        'SELECT u.nome, a.voto, a.motivo
-           FROM accademia a
-           JOIN utenti u ON u.id = a.idpg
-          WHERE a.corp = ? AND a.motivo IS NOT NULL',
+        ACC_CORP_VOTES_SQL,
         [$corp]
     ) as $v) {
         $tag   = $v['voto'] === 'vpos' ? 'positivo' : 'negativo';
@@ -627,7 +629,7 @@ function approvaModifCorp(int $corp): bool
           WHERE id = ?',
         ['', $corp]
     ) >= 0);
-    $ok = $ok && ($db->execute('DELETE FROM accademia WHERE corp = ?', [$corp]) >= 0);
+    $ok = $ok && ($db->execute(ACC_DELETE_CORP_VOTES_SQL, [$corp]) >= 0);
     $ok = $ok && (bool)InviaMissiva(
         "Approvazione modifiche alla Corporazione $nome",
         "Le vostre modifiche allo statuto sono state approvate.\nVotazioni:$notes",
@@ -654,10 +656,7 @@ function cancellaModifCorp(int $corp): bool
     $nome      = $row['nome'];
     $notes     = '';
     foreach ($db->query(
-        'SELECT u.nome, a.voto, a.motivo
-           FROM accademia a
-           JOIN utenti u ON u.id = a.idpg
-          WHERE a.corp = ? AND a.motivo IS NOT NULL',
+        ACC_CORP_VOTES_SQL,
         [$corp]
     ) as $v) {
         $tag   = $v['voto'] === 'vpos' ? 'positivo' : 'negativo';
@@ -670,7 +669,7 @@ function cancellaModifCorp(int $corp): bool
           WHERE id = ?',
         ['', $corp]
     ) >= 0);
-    $ok = $ok && ($db->execute('DELETE FROM accademia WHERE corp = ?', [$corp]) >= 0);
+    $ok = $ok && ($db->execute(ACC_DELETE_CORP_VOTES_SQL, [$corp]) >= 0);
     $ok = $ok && (bool)InviaMissiva(
         "Bocciatura modifiche alla Corporazione $nome",
         "Le vostre modifiche non sono state approvate.\nVotazioni:$notes\n\nStatuto modificato:\n$newStat",
@@ -684,7 +683,7 @@ function cancellaModifCorp(int $corp): bool
 function votaCorp(int $corp, int $idpg, bool $positivo, string $motivo): bool
 {
     return accademiaAtomica(static function() use($corp,$idpg,$positivo,$motivo): bool {
-    $user=getDB()->query('SELECT admin,adminaccademia FROM utenti WHERE id=? FOR UPDATE',[$idpg])[0] ?? [];
+    $user=getDB()->query(ACC_ADMIN_LOCK_SQL,[$idpg])[0] ?? [];
     if (empty($user['admin']) && empty($user['adminaccademia'])) { return false; }
     if (!getDB()->query("SELECT 1 FROM corporazioni WHERE id=? AND (approvato=0 OR newstatuto<>'' OR newidmaster>0)",[$corp])) { return false; }
     $db = getDB();
@@ -780,7 +779,7 @@ function canVoteObj(int $idpg, int $obj): bool
 function votaObj(int $obj, int $idpg, bool $positivo, string $motivo): bool
 {
     return accademiaAtomica(static function() use($obj,$idpg,$positivo,$motivo): bool {
-    $user=getDB()->query('SELECT admin,adminaccademia FROM utenti WHERE id=? FOR UPDATE',[$idpg])[0] ?? [];
+    $user=getDB()->query(ACC_ADMIN_LOCK_SQL,[$idpg])[0] ?? [];
     if (empty($user['admin']) && empty($user['adminaccademia'])) { return false; }
     if (!getDB()->query('SELECT 1 FROM equip e LEFT JOIN newequip n ON n.id=e.id WHERE e.id=? AND (e.approvato=0 OR n.id IS NOT NULL)',[$obj])) { return false; }
     $db = getDB();
@@ -810,10 +809,10 @@ function approvaObj(int $obj): bool
     $idmaster = (int)$row['idcreatore'];
     $nome     = $row['shortDesc'];
     // Se esiste newimage, la sposto
-    $newPath = rtrim(htmlroot, '/') . '/uploads/equipment-pending/' . $obj;
-    $imgPath = '/uploads/equipment/' . $obj;
+    $newPath = rtrim(htmlroot, '/') . ACC_UPLOAD_PENDING_PATH . $obj;
+    $imgPath = ACC_UPLOAD_PATH . $obj;
     if (file_exists($newPath)) {
-        if (!rename($newPath, rtrim(htmlroot, '/') . '/uploads/equipment/' . $obj)) { return false; }
+        if (!rename($newPath, rtrim(htmlroot, '/') . ACC_UPLOAD_PATH . $obj)) { return false; }
         $db->execute(
             'UPDATE equip SET approvato = 1, immagine = ? WHERE id = ?',
             [$imgPath, $obj]
@@ -825,7 +824,7 @@ function approvaObj(int $obj): bool
         );
     }
     // Cancella voti
-    $db->execute('DELETE FROM accademia WHERE obj = ?', [$obj]);
+    $db->execute(ACC_DELETE_OBJ_VOTES_SQL, [$obj]);
     // Notifica
     return (bool)InviaMissiva(
         "Approvazione Oggetto $nome",
@@ -898,7 +897,7 @@ function cancellaObj(int $obj): bool
     $ok  = true;
     $ok = $ok && ($db->execute('DELETE FROM equip WHERE id = ?', [$obj]) >= 0);
     $ok = $ok && ($db->execute('DELETE FROM equippg WHERE uid = ?', [$obj]) >= 0);
-    $ok = $ok && ($db->execute('DELETE FROM accademia WHERE obj = ?', [$obj]) >= 0);
+    $ok = $ok && ($db->execute(ACC_DELETE_OBJ_VOTES_SQL, [$obj]) >= 0);
     // Notifica
     $miss = InviaMissiva(
         "Bocciatura Oggetto $nome",
@@ -906,7 +905,7 @@ function cancellaObj(int $obj): bool
         $idmaster
     );
     // Rimuove eventuale newimage residua
-    $newPath = rtrim(htmlroot, '/') . '/uploads/equipment-pending/' . $obj;
+    $newPath = rtrim(htmlroot, '/') . ACC_UPLOAD_PENDING_PATH . $obj;
     if (file_exists($newPath)) {
         unlink($newPath);
     }
@@ -927,11 +926,11 @@ function approvaModifObj(int $obj): bool
     $nome     = $row['shortDesc'];
 
     // Sposto l’immagine se presente
-    $newPath = rtrim(htmlroot, '/') . '/uploads/equipment-pending/' . $obj;
+    $newPath = rtrim(htmlroot, '/') . ACC_UPLOAD_PENDING_PATH . $obj;
     if (file_exists($newPath)) {
-        if (!rename($newPath, rtrim(htmlroot, '/') . '/uploads/equipment/' . $obj)) { return false; }
+        if (!rename($newPath, rtrim(htmlroot, '/') . ACC_UPLOAD_PATH . $obj)) { return false; }
         // aggiorno nel record il percorso definitivo
-        $row['immagine'] = '/uploads/equipment/' . $obj;
+        $row['immagine'] = ACC_UPLOAD_PATH . $obj;
     }
 
     // Costruisco array di colonne e valori per l’UPDATE parametrizzato
@@ -961,7 +960,7 @@ function approvaModifObj(int $obj): bool
 
     // Pulisco bozza e votazioni
     $ok  = $ok && ($db->execute('DELETE FROM newequip WHERE id = ?', [$obj]) >= 0);
-    $ok  = $ok && ($db->execute('DELETE FROM accademia WHERE obj = ?',    [$obj]) >= 0);
+    $ok  = $ok && ($db->execute(ACC_DELETE_OBJ_VOTES_SQL,    [$obj]) >= 0);
 
     // Notifico il creatore
     $ok  = $ok && (bool)InviaMissiva(
@@ -1005,13 +1004,13 @@ function cancellaModifObj(int $obj): bool
     }
     $ok  = true;
     $ok = $ok && ($db->execute('DELETE FROM newequip WHERE id = ?', [$obj]) >= 0);
-    $ok = $ok && ($db->execute('DELETE FROM accademia WHERE obj = ?', [$obj]) >= 0);
+    $ok = $ok && ($db->execute(ACC_DELETE_OBJ_VOTES_SQL, [$obj]) >= 0);
     $ok = $ok && (bool)InviaMissiva(
         "Bocciatura modifiche all’Oggetto $nome",
         "Le modifiche non sono state approvate.\nVotazioni:$notes\n\nDettagli modificati:\n$details",
         $idmaster
     );
-    $newPath = rtrim(htmlroot, '/') . '/uploads/equipment-pending/' . $obj;
+    $newPath = rtrim(htmlroot, '/') . ACC_UPLOAD_PENDING_PATH . $obj;
     if (file_exists($newPath)) {
         unlink($newPath);
     }
@@ -1075,9 +1074,9 @@ function getVotiGiocata(int $giocata): array
 function votaGiocata(int $giocata, int $idpg, bool $positivo, string $motivo): bool
 {
     return accademiaAtomica(static function() use($giocata,$idpg,$positivo,$motivo): bool {
-    $user=getDB()->query('SELECT admin,adminaccademia FROM utenti WHERE id=? FOR UPDATE',[$idpg])[0] ?? [];
+    $user=getDB()->query(ACC_ADMIN_LOCK_SQL,[$idpg])[0] ?? [];
     if (empty($user['admin']) && empty($user['adminaccademia'])) { return false; }
-    if (!getDB()->query('SELECT 1 FROM giocate WHERE id=?',[$giocata])) { return false; }
+    if (!getDB()->query(ACC_GIOCATA_EXISTS_SQL,[$giocata])) { return false; }
     $db = getDB();
     $motivo = trim($motivo);
     if (!$positivo && $motivo === '') {
@@ -1098,7 +1097,7 @@ function votaGiocata(int $giocata, int $idpg, bool $positivo, string $motivo): b
 function approvaGiocata(int $giocata): bool
 {
     return accademiaAtomica(static function() use($giocata): bool {
-    if (!getDB()->query("SELECT 1 FROM giocate WHERE id=?",[$giocata])) { return false; }
+    if (!getDB()->query(ACC_GIOCATA_EXISTS_SQL,[$giocata])) { return false; }
     $db = getDB();
     $row = $db->query('SELECT * FROM giocate WHERE id = ?', [$giocata])[0];
     $idpg   = (int)$row['idpg'];
@@ -1153,7 +1152,7 @@ function approvaGiocata(int $giocata): bool
 function cancellaGiocata(int $giocata): bool
 {
     return accademiaAtomica(static function() use($giocata): bool {
-    if (!getDB()->query("SELECT 1 FROM giocate WHERE id=?",[$giocata])) { return false; }
+    if (!getDB()->query(ACC_GIOCATA_EXISTS_SQL,[$giocata])) { return false; }
     $db = getDB();
     $row = $db->query('SELECT * FROM giocate WHERE id = ?', [$giocata])[0];
     $idpg   = (int)$row['idpg'];

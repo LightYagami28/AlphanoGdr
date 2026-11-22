@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+const AI_QUEST_ACTIVE_PG_SQL = 'SELECT active FROM ai_quest_cast WHERE session_id=? AND kind=\'pg\' AND actor_id=?';
+
 final class AiQuestRuntimeException extends RuntimeException {}
 final class AiQuestDomainException extends DomainException {}
 final class AiQuestLogicException extends LogicException {}
@@ -156,7 +158,7 @@ function aiQuestEngageTarget(array $q,array $target,int $actor,int $source):void
 function aiQuestCheckTurn(string $chat,int $player,string $raw):void{
  $q=aiQuestRow($chat);if(!$q||!in_array($q['mode'],['auto','human'],true)){ return; }
  if(ai_scene_kind($q)==='narrazione'){$reading=aiNarrativeParse($raw);if($reading['speech']===''&&$reading['action']===''){ return; }}elseif(!str_starts_with(trim($raw),'+')&&!aiQuestIntent($raw)&&aiNarrativeParse($raw)['speech']===''){ return; }
- $g=ai_game_guidance((int)$q['session_id']);$c=aiDb()->query('SELECT active FROM ai_quest_cast WHERE session_id=? AND kind=\'pg\' AND actor_id=?',[(int)$q['session_id'],$player])[0]??null;
+ $g=ai_game_guidance((int)$q['session_id']);$c=aiDb()->query(AI_QUEST_ACTIVE_PG_SQL,[(int)$q['session_id'],$player])[0]??null;
  if(!$c||!$c['active']){
   if($q['mode']==='auto'&&in_array(aiQuestIntent($raw),['assalto','attacco','potere','arresto','furto'],true)){ throw new AIQuestTurnException('Questa azione richiede un turno nella sessione: unisciti alla quest dal pannello Master prima di dichiararla. Nessun attacco è stato acquisito o risolto.'); }
   return;
@@ -180,7 +182,7 @@ function aiQuestAfterMessage(array $room,int $source,int $player,string $raw,int
  if($q&&$q['mode']==='human'&&str_starts_with(trim($raw),'#')){ return ai_conductor_verdict($q,$source,$player,$raw); }
  if($q&&in_array($q['mode'],['auto','human'],true)){
   if(!str_starts_with(trim($raw),'+')&&!$intent&&ai_scene_kind($q)!=='narrazione'&&$reading['speech']===''){ return true; }
-  $sid=(int)$q['session_id'];$g=ai_game_guidance($sid);$turn=ai_game_turn($g);$cast=$db->query('SELECT active FROM ai_quest_cast WHERE session_id=? AND kind=\'pg\' AND actor_id=?',[$sid,$player])[0]??null;
+  $sid=(int)$q['session_id'];$g=ai_game_guidance($sid);$turn=ai_game_turn($g);$cast=$db->query(AI_QUEST_ACTIVE_PG_SQL,[$sid,$player])[0]??null;
   if(!$cast||!$cast['active']){if($abilityId||!empty($GLOBALS['alphano_item_claim'])){ throw new AiQuestDomainException('Unisciti prima alla quest per dichiarare un’abilità.',409); }return true;}
   if($q['status']!=='active'||$g['paused']||!$turn||$turn['kind']!=='pg'||(int)$turn['id']!==$player){if($abilityId||!empty($GLOBALS['alphano_item_claim'])){ throw new AIQuestTurnException(ai_quest_wait_message($q,$g,$player)); }aiQuestAudit($sid,'out_of_turn',['source'=>$source,'player'=>$player]);return true;}
   $resolved=ai_action_target($q,$raw,$player,$target);
@@ -229,7 +231,7 @@ function aiQuestName(string $kind,int $id):string{
  $field=$kind==='pg'?'nome':'name';$table=$kind==='pg'?'utenti':'ai_npcs';return (string)(aiDb()->query('SELECT '.$field.' AS name FROM '.$table.' WHERE id=?',[$id])[0]['name']??'Assente');
 }
 function aiQuestPublic(string $chat,int $viewer):?array{
- $q=aiQuestRow($chat);if(!$q){ return null; }$g=ai_game_guidance((int)$q['session_id']);$cast=aiDb()->query('SELECT active FROM ai_quest_cast WHERE session_id=? AND kind=\'pg\' AND actor_id=?',[(int)$q['session_id'],$viewer])[0]??[];
+ $q=aiQuestRow($chat);if(!$q){ return null; }$g=ai_game_guidance((int)$q['session_id']);$cast=aiDb()->query(AI_QUEST_ACTIVE_PG_SQL,[(int)$q['session_id'],$viewer])[0]??[];
  return ['id'=>(int)$q['session_id'],'version'=>(int)$q['version'],'name'=>$q['nome'],'status'=>$q['status'],'mode'=>$q['mode'],'round'=>(int)$g['round_number'],'paused'=>(bool)$g['paused'],'participant'=>(bool)($cast['active']??false),'can_control'=>ai_conductor_can($viewer,$chat)&&($q['mode']==='auto'||alphano_session_can_manage($viewer,$chat)),'conductor_id'=>(int)($q['conductor_id']??0),'turn_window'=>ai_turn_window($q,$g,$viewer),...ai_quest_turn_state($q,$g),'progress'=>ai_quest_progress($q,$g)];
 }
 /** Purely public observations: at most one bounded ally reaction to one player's source event. */

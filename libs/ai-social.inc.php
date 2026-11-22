@@ -1,6 +1,11 @@
 <?php
 declare(strict_types=1);
 
+const AI_SOCIAL_REL_INSERT_SQL = 'INSERT IGNORE INTO ai_relationships(npc_id,player_id,created_at,updated_at) VALUES(?,?,?,?)';
+const AI_SOCIAL_REL_LOCK_SQL = 'SELECT * FROM ai_relationships WHERE npc_id=? AND player_id=? FOR UPDATE';
+const AI_SOCIAL_DEBT_BALANCES_SQL = 'SELECT player_owes,npc_owes FROM ai_npc_debts WHERE npc_id=? AND player_id=?';
+const AI_SOCIAL_NPC_BY_ID_SQL = 'SELECT * FROM ai_npcs WHERE id=?';
+
 final class AiSocialRuntimeException extends RuntimeException {}
 final class AiSocialDomainException extends DomainException {}
 final class AiSocialLogicException extends LogicException {}
@@ -87,8 +92,8 @@ function aiSocialCapturePerception(array $npc,array $job):void {
     if($actor<1||$source<1||!in_array($family,[2,3],true)){ return; }
     if(!ai_recognition_view($nid,$actor,['chat_key'=>$job['chat_key'],'source_id'=>$source])['identified']){ return; }
     $db=aiDb();$now=time();
-    $db->execute('INSERT IGNORE INTO ai_relationships(npc_id,player_id,created_at,updated_at) VALUES(?,?,?,?)',[$nid,$actor,$now,$now]);
-    $before=$db->query('SELECT * FROM ai_relationships WHERE npc_id=? AND player_id=? FOR UPDATE',[$nid,$actor])[0];
+    $db->execute(AI_SOCIAL_REL_INSERT_SQL,[$nid,$actor,$now,$now]);
+    $before=$db->query(AI_SOCIAL_REL_LOCK_SQL,[$nid,$actor])[0];
     $present=ai_relation_context_current($nid,$actor);
     if($present&&$source<=$present['chat_id']){ return; }
     // The same family cannot be farmed by repeatedly switching forms. The
@@ -144,8 +149,8 @@ function aiSocialRecordManifestation(array $npc,array $job,string $reply):void {
     $keys=aiSocialPairManifestations($npc,$job,$reply);if(!$keys){ return; }
     $db=aiDb();$owned=!$db->inTransaction();if($owned){ $db->beginTransaction(); }
     try{
-        $now=time();$db->execute('INSERT IGNORE INTO ai_relationships(npc_id,player_id,created_at,updated_at) VALUES(?,?,?,?)',[$nid,$uid,$now,$now]);
-        $before=$db->query('SELECT * FROM ai_relationships WHERE npc_id=? AND player_id=? FOR UPDATE',[$nid,$uid])[0];
+        $now=time();$db->execute(AI_SOCIAL_REL_INSERT_SQL,[$nid,$uid,$now,$now]);
+        $before=$db->query(AI_SOCIAL_REL_LOCK_SQL,[$nid,$uid])[0];
         if(!ai_relation_context_job_current($job)){if($owned){ $db->commit(); }return;}
         $revealed=json_decode($before['revealed'],true)?:[];$new=array_values(array_diff($keys,$revealed));
         if($new){
@@ -181,7 +186,7 @@ function aiSocialContext(array $npc,array $job,float $scale): string {
         $out.='Rapporto '.$rel['state'].($present?', contesto attuale ridefinito dallo staff. ':', '.(int)$rel['encounters'].' incontri. ');
         $out.=$romance?($feelings['romantic']?'Il legame romantico è già stabilito: conserva il sentimento attuale, senza ricominciare ogni volta il corteggiamento. ':'Corteggiamento solo consensuale e graduale; rispetto di ogni rifiuto. '):'Nessun corteggiamento: età, consenso o disponibilità non lo consentono. ';
         if($rules['economy_enabled']){
-            $debt=aiDb()->query('SELECT player_owes,npc_owes FROM ai_npc_debts WHERE npc_id=? AND player_id=?',[(int)$npc['id'],(int)$player['id']])[0]??[];
+            $debt=aiDb()->query(AI_SOCIAL_DEBT_BALANCES_SQL,[(int)$npc['id'],(int)$player['id']])[0]??[];
             $out.='Cassa '.aiNpcBalance((int)$npc['id']).'; max proposta '.$rules['max_amount'].', max/giorno '.$rules['daily_limit'].alphano_currency_text(' Corone; debiti PG/PNG ').(int)($debt['player_owes']??0).'/'.(int)($debt['npc_owes']??0).'. '.($rules['allow_loans']?'Prestiti abilitati. ':'Niente prestiti. ').'Solo proposte, mai trasferimenti già avvenuti. ';
         }else { $out.='Niente scambi monetari. '; }
         return $out.ai_personality_context($npc,$job,$scale,$rel).ai_social_development_context($npc,$job,$rules,$scale);
@@ -196,7 +201,7 @@ function aiSocialContext(array $npc,array $job,float $scale): string {
     $out.=$romance?($feelings['romantic']?'Il sentimento romantico è già stabilito e va rappresentato coerentemente con i valori attuali; non tornare a un primo corteggiamento. Rispetta i limiti del momento.':'Corteggiamento possibile ma mai dovuto: rispetta preferenze e rifiuti; i doni non comprano affetto.'):'Nessun corteggiamento o proposta romantica: età, consenso o disponibilità non lo consentono. Puoi parlare di amicizia e rifiutare con rispetto.';
     $out.=ai_personality_context($npc,$job,$scale,$rel).ai_social_development_context($npc,$job,$rules,$scale);
     if($rules['economy_enabled']){
-        $debt=aiDb()->query('SELECT player_owes,npc_owes FROM ai_npc_debts WHERE npc_id=? AND player_id=?',[(int)$npc['id'],(int)$player['id']])[0]??[];
+        $debt=aiDb()->query(AI_SOCIAL_DEBT_BALANCES_SQL,[(int)$npc['id'],(int)$player['id']])[0]??[];
         $out.=' Cassa effettiva del PNG: '.aiNpcBalance((int)$npc['id']).alphano_currency_text(' Corone; massimo per proposta ').$rules['max_amount'].'. Debito del PG verso di te '.(int)($debt['player_owes']??0).'; tuo debito verso il PG '.(int)($debt['npc_owes']??0).'. Non promettere somme che non possiedi. Formula prezzo, importo e causale chiaramente: il trasferimento avviene solo dopo conferma nel profilo. Non offrire prestiti se non abilitati.';
     }else { $out.=' Questo PNG non esegue scambi monetari: non promettere pagamenti reali.'; }
     $out.="\nDinieghi e tentativi sono solo narrativi: non bloccare accessi, non imporre esiti sui PG. Non dichiarare denaro, cure, oggetti o titoli già trasferiti; una proposta economica richiede conferma del backend. Usa i ricordi spontaneamente, senza elencare i punteggi.";
@@ -209,8 +214,8 @@ function aiSocialRecord(array $npc,array $job,array $result): void {
     if($player<1||$id<1){ return; }
     aiSocialRecordManifestation($npc,$job,(string)$result['testo']);
     if($db->query('SELECT id FROM ai_relationship_events WHERE job_id=?',[$id])){ return; }
-    $db->execute('INSERT IGNORE INTO ai_relationships(npc_id,player_id,created_at,updated_at) VALUES(?,?,?,?)',[(int)$npc['id'],$player,$now,$now]);
-    $rel=$db->query('SELECT * FROM ai_relationships WHERE npc_id=? AND player_id=? FOR UPDATE',[(int)$npc['id'],$player])[0];
+    $db->execute(AI_SOCIAL_REL_INSERT_SQL,[(int)$npc['id'],$player,$now,$now]);
+    $rel=$db->query(AI_SOCIAL_REL_LOCK_SQL,[(int)$npc['id'],$player])[0];
     if(!ai_relation_context_job_current($job)){ return; }
     // A published job may be retried before asynchronous reflection has written an event.
     if($db->query("SELECT id FROM ai_personal_memories WHERE job_id=? AND category='incontro'",[$id])){ return; }
@@ -266,7 +271,7 @@ function aiSocialRecordQuestScene(array $npc,array $job,array $result,array $act
         if($uid===$primary&&$replyIsPrimary){aiSocialRecord($npc,$copy,$result);$primaryRecorded=true;continue;}
         unset($copy['episode']);
         if(ai_recognition_anonymous($npc,$copy)){ continue; }
-        $now=time();$db->execute('INSERT IGNORE INTO ai_relationships(npc_id,player_id,created_at,updated_at) VALUES(?,?,?,?)',[$nid,$uid,$now,$now]);
+        $now=time();$db->execute(AI_SOCIAL_REL_INSERT_SQL,[$nid,$uid,$now,$now]);
         $db->query('SELECT npc_id FROM ai_relationships WHERE npc_id=? AND player_id=? FOR UPDATE',[$nid,$uid]);
         if(!ai_relation_context_job_current($copy)){ continue; }
         if($db->query("SELECT id FROM ai_relationship_events WHERE npc_id=? AND player_id=? AND JSON_EXTRACT(after_state,'$._quest_observation.source_id')=? LIMIT 1",[$nid,$uid,$source])){ continue; }
@@ -292,7 +297,7 @@ function aiSocialApply(array $npc,array $job,array $proposal): void {
     if(ai_recognition_anonymous($npc,$job)){ return; }
     $db=aiDb();$id=(int)$job['id'];$nid=(int)$npc['id'];$uid=(int)$job['user_id'];$now=time();
     if($db->query('SELECT id FROM ai_relationship_events WHERE job_id=?',[$id])){ return; }
-    $before=$db->query('SELECT * FROM ai_relationships WHERE npc_id=? AND player_id=? FOR UPDATE',[$nid,$uid])[0]??null;if(!$before){ return; }
+    $before=$db->query(AI_SOCIAL_REL_LOCK_SQL,[$nid,$uid])[0]??null;if(!$before){ return; }
     if(!ai_relation_context_job_current($job)){ return; }
     $rules=aiSocialRules($nid);$player=ai_player_identity($uid);$romance=aiRomanceAllowed($npc,$player,$rules);
     $reply=json_decode($job['result'],true)['testo']??'';
@@ -418,7 +423,7 @@ function aiSocialWorkOnce(): bool {
         $db->execute("UPDATE ai_social_jobs SET status='running',started_at=?,attempts=attempts+1 WHERE job_id=?",[$now,$id]);$db->commit();
     }catch(Throwable $e){if($db->inTransaction()){ $db->rollBack(); }throw $e;}
     try{
-        $npc=$db->query('SELECT * FROM ai_npcs WHERE id=?',[(int)$task['npc_id']])[0]??null;
+        $npc=$db->query(AI_SOCIAL_NPC_BY_ID_SQL,[(int)$task['npc_id']])[0]??null;
         if(!$npc){ throw new AiSocialDomainException('PNG non più disponibile.'); }
         $rel=aiRelation((int)$npc['id'],(int)$task['user_id']);$rules=aiSocialRules((int)$npc['id']);
         $text=json_decode($task['result'],true)['testo']??'';
@@ -434,7 +439,7 @@ function aiSocialWorkOnce(): bool {
         $state=$db->query('SELECT status FROM ai_social_jobs WHERE job_id=? FOR UPDATE',[$id])[0]['status']??'';
         if($state!=='running'){$db->commit();ai_heartbeat('idle');return true;}
         // Use the current profile too: an age/identity edit during inference takes effect now.
-        $npc=$db->query('SELECT * FROM ai_npcs WHERE id=?',[(int)$task['npc_id']])[0]??null;
+        $npc=$db->query(AI_SOCIAL_NPC_BY_ID_SQL,[(int)$task['npc_id']])[0]??null;
         if(!$npc){ throw new AiSocialDomainException('PNG non più disponibile.'); }
         $job=['id'=>$id,...array_intersect_key($task,array_flip(['npc_id','user_id','chat_key','source_id','prompt','result']))];
         aiSocialApply($npc,$job,$proposal);
@@ -461,7 +466,7 @@ function aiSocialObservationJob(array $task): array {
 }
 function aiSocialPrivateView(int $npc,int $viewer): array {
     $rules=aiSocialRules($npc);$r=aiRelation($npc,$viewer);
-    $character=aiDb()->query('SELECT * FROM ai_npcs WHERE id=?',[$npc])[0]??null;$player=ai_player_identity($viewer);
+    $character=aiDb()->query(AI_SOCIAL_NPC_BY_ID_SQL,[$npc])[0]??null;$player=ai_player_identity($viewer);
     $romance=$character&&$player&&aiRomanceAllowed($character,$player,$rules);
     // This authenticated view is the player's own scorecard. Hidden thoughts and
     // private memories stay gated separately; an untouched pair really starts at 0.
@@ -471,7 +476,7 @@ function aiSocialPrivateView(int $npc,int $viewer): array {
         'development'=>ai_social_development_view($npc,$viewer),
         'memories'=>aiDb()->query('SELECT id,category,summary,source,created_at FROM ai_personal_memories WHERE npc_id=? AND player_id=? AND visible=1 AND active=1 ORDER BY id DESC LIMIT 30',[$npc,$viewer]),
         'offers'=>aiDb()->query("SELECT id,kind,amount,reason,expires_at FROM ai_npc_offers WHERE npc_id=? AND player_id=? AND status='pending' AND expires_at>? ORDER BY id DESC",[$npc,$viewer,time()]),
-        'debts'=>aiDb()->query('SELECT player_owes,npc_owes FROM ai_npc_debts WHERE npc_id=? AND player_id=?',[$npc,$viewer])[0]??['player_owes'=>0,'npc_owes'=>0],
+        'debts'=>aiDb()->query(AI_SOCIAL_DEBT_BALANCES_SQL,[$npc,$viewer])[0]??['player_owes'=>0,'npc_owes'=>0],
         'transactions'=>aiDb()->query('SELECT id,kind,amount,player_delta,reason,created_at FROM ai_npc_transactions WHERE npc_id=? AND player_id=? ORDER BY id DESC LIMIT 20',[$npc,$viewer]),
         'preferences'=>aiDb()->query('SELECT character_age,romance_enabled,intimacy_enabled FROM ai_player_preferences WHERE player_id=?',[$viewer])[0]??['character_age'=>0,'romance_enabled'=>0,'intimacy_enabled'=>0]];
 }

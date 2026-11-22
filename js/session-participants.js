@@ -1,3 +1,12 @@
+    function selectionText(active){
+      if(!active.length){return 'Nessun personaggio selezionato.';}
+      const suffix=active.length===1?' selezionato à ':' selezionati à ';
+      return active.length+suffix+active.map(person=>person.name).join(', ');
+    }
+    function itemPlacement(item){
+      if(item.slot){return 'Equipaggiato: '+item.slot;}
+      return item.container?'Dentro un contenitore':'Nella borsa';
+    }
 (() => {
   'use strict';
   function setup(root){
@@ -10,11 +19,6 @@
     async function request(action,signal,parameters={}){
       const url=new URL('/api/master-participants.php',location.origin);url.searchParams.set('chat',chat);url.searchParams.set('action',action);for(const [key,value]of Object.entries(parameters)){url.searchParams.set(key,value);}
       const response=await fetch(url,{cache:'no-store',credentials:'same-origin',signal});const result=await response.json();if(!response.ok){throw new Error(result.error||'Il pannello non è disponibile.');}return result;
-    }
-    function selectionText(active){
-      if(!active.length){return 'Nessun personaggio selezionato.';}
-      const suffix=active.length===1?' selezionato à ':' selezionati à ';
-      return active.length+suffix+active.map(person=>person.name).join(', ');
     }
     function controls(){
       $('[data-participants-selection]').textContent=selectionText(people());
@@ -73,10 +77,6 @@
         for(const item of catalog.items){const button=element('button','','master-catalog-item');button.type='button';button.dataset.catalogId=item.id;button.setAttribute('aria-pressed',String(catalogItem?.id===item.id));button.append(image(item.image),element('span',item.name),element('small',item.material?'Materia prima':'Oggetto'));button.addEventListener('click',()=>{catalogItem=item;for(const candidate of grid.querySelectorAll('button')){candidate.setAttribute('aria-pressed',String(Number(candidate.dataset.catalogId)===item.id));}$('[data-catalog-selection]').textContent='Da consegnare: '+item.name;});grid.appendChild(button);}
         status.textContent=catalog.total?catalog.total+' oggetti disponibili à scegli una carta per assegnarla.':'Nessun oggetto corrisponde ai filtri.';$('[data-catalog-more]').hidden=catalogNext===null;
       }catch(error){if(error.name!=='AbortError'){status.textContent=error.message;}}
-    }
-    function itemPlacement(item){
-      if(item.slot){return 'Equipaggiato: '+item.slot;}
-      return item.container?'Dentro un contenitore':'Nella borsa';
     }
     function itemCondition(item){
       const material=item.material?'Materia prima à ':'';

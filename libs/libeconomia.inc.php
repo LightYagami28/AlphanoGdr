@@ -14,13 +14,13 @@ function economiaAtomica(callable $operation): mixed
 {
     $pdo = getDB()->getConnection();
     $own = !$pdo->inTransaction();
-    if ($own) $pdo->beginTransaction();
+    if ($own) {$pdo->beginTransaction();}
     try {
         $result = $operation();
-        if ($own) $pdo->commit();
+        if ($own) {$pdo->commit();}
         return $result;
     } catch (Throwable $e) {
-        if ($own && $pdo->inTransaction()) $pdo->rollBack();
+        if ($own && $pdo->inTransaction()) {$pdo->rollBack();}
         throw $e;
     }
 }
@@ -30,18 +30,18 @@ function economiaAtomicaResiliente(callable $operation): mixed
     $db=getDB();$own=!$db->inTransaction();$attempt=0;
     do {
         $savepoint='economia_'.bin2hex(random_bytes(6));
-        if($own)$db->beginTransaction();else $db->execute('SAVEPOINT '.$savepoint);
+        if($own){$db->beginTransaction();}else {$db->execute('SAVEPOINT '.$savepoint);}
         try {
             $result=$operation();
-            if($own)$db->commit();else $db->execute('RELEASE SAVEPOINT '.$savepoint);
+            if($own){$db->commit();}else {$db->execute('RELEASE SAVEPOINT '.$savepoint);}
             return $result;
         } catch(Throwable $e) {
             if($db->inTransaction()) {
-                if($own)$db->rollBack();
+                if($own){$db->rollBack();}
                 else {$db->execute('ROLLBACK TO SAVEPOINT '.$savepoint);$db->execute('RELEASE SAVEPOINT '.$savepoint);}
             }
             $deadlock=$e instanceof PDOException&&((string)$e->getCode()==='40001'||in_array((int)($e->errorInfo[1]??0),[1205,1213],true));
-            if(!$own||!$deadlock||++$attempt>=3)throw $e;
+            if(!$own||!$deadlock||++$attempt>=3){throw $e;}
         }
     }while(true);
 }
@@ -50,14 +50,14 @@ function economiaBool(callable $operation): bool
     try { return (bool)economiaAtomica($operation); }
     catch (DomainException $e) { return false; }
     catch (RuntimeException $e) {
-        if (in_array($e->getCode(),[400,409],true)) throw $e;
+        if (in_array($e->getCode(),[400,409],true)) {throw $e;}
         error_log('[economia] '.$e->getMessage()); return false;
     }
     catch (Throwable $e) { error_log('[economia] '.$e->getMessage()); return false; }
 }
 function economiaVerifica(bool $condition, string $message): void
 {
-    if (!$condition) throw new DomainException($message);
+    if (!$condition) {throw new DomainException($message);}
 }
 function economiaImpiegato(int $pg, int $corp): bool
 {
@@ -70,9 +70,9 @@ function economiaImpiegato(int $pg, int $corp): bool
  */
 function trasferisciSoldi(int $mittente, string $nomeMittente, int $dposseduti, int $destinatario, int $soldi, string $motivo = '', ?string $requestKey = null): bool
 {
-    if ($soldi<=0 || $mittente===$destinatario) return false;
+    if ($soldi<=0 || $mittente===$destinatario) {return false;}
     return economiaBool(static function() use($mittente,$destinatario,$soldi,$motivo,$requestKey): bool {
-        if (!alphano_operation_once('money-transfer',$mittente,$requestKey,[$destinatario,$soldi,$motivo])) return true;
+        if (!alphano_operation_once('money-transfer',$mittente,$requestKey,[$destinatario,$soldi,$motivo])) {return true;}
         $db=getDB();
         $rows=$db->query('SELECT id,nome,denari FROM utenti WHERE id IN (?,?) ORDER BY id FOR UPDATE',[$mittente,$destinatario]);
         $users=array_column($rows,null,'id');
@@ -157,16 +157,16 @@ function listaPrestitiPGCorp(int $pg, int $corp): array
 /** Importi di modulo: mai troncare decimali, esponenti o valori fuori intervallo. */
 function economiaIntero(mixed $value, int $min = 0, int $max = PHP_INT_MAX): ?int
 {
-    if (!is_scalar($value) || !preg_match('/^\d+$/D', (string)$value)) return null;
+    if (!is_scalar($value) || !preg_match('/^\d+$/D', (string)$value)) {return null;}
     $number = filter_var($value, FILTER_VALIDATE_INT, ['options'=>['min_range'=>$min,'max_range'=>$max]]);
     return $number === false ? null : $number;
 }
 
 function economiaPercentuale(mixed $value): ?float
 {
-    if (!is_scalar($value)) return null;
+    if (!is_scalar($value)) {return null;}
     $number=str_replace(',','.',(string)$value);
-    if (!preg_match('/^\d+(?:\.\d{1,4})?$/D',$number)) return null;
+    if (!preg_match('/^\d+(?:\.\d{1,4})?$/D',$number)) {return null;}
     $rate=(float)$number;
     return is_finite($rate) && $rate>=0 && $rate<=100 ? $rate : null;
 }
@@ -176,7 +176,7 @@ function economiaAzioneModulo(callable $operation): bool
 {
     try { return (bool)$operation(); }
     catch (RuntimeException $e) {
-        if (!in_array($e->getCode(),[400,409],true)) throw $e;
+        if (!in_array($e->getCode(),[400,409],true)) {throw $e;}
         http_response_code($e->getCode());
         return false;
     }
@@ -194,10 +194,10 @@ function prestitoInterlocutore(array &$loan, int $pg): string
 {
     $db=getDB();
     $user=$db->query('SELECT organizzazione,corporazione,adminorganizzazione,admincorporazione FROM utenti WHERE id=? FOR UPDATE',[$pg])[0] ?? null;
-    if (!$user) return '';
+    if (!$user) {return '';}
     foreach (['org'=>['organizzazione','adminorganizzazione'],'corp'=>['corporazione','admincorporazione']] as $side=>[$field,$flag]) {
-        if ((int)$user[$field]!==(int)$loan[$side] || empty($user[$flag])) continue;
-        if ((int)$loan['pg'.$side]===$pg) return $side;
+        if ((int)$user[$field]!==(int)$loan[$side] || empty($user[$flag])) {continue;}
+        if ((int)$loan['pg'.$side]===$pg) {return $side;}
         // A new mandate can recover an orphaned assignment, never take a valid one.
         if ((int)$loan['pg'.$side]>0 && !prestitoResponsabileValido($loan,$side)) {
             $db->execute('UPDATE prestiti SET pg'.$side.'=? WHERE id=?',[$pg,$loan['id']]);
@@ -215,7 +215,7 @@ function prestitoMissiva(array $loan, string $side, string $title, string $detai
     $flag=$side==='org'?'adminorganizzazione':'admincorporazione';
     $owner=(int)$loan['pg'.$side];
     $recipients=prestitoResponsabileValido($loan,$side)?[['id'=>$owner]]:getDB()->query("SELECT id FROM utenti WHERE {$field}=? AND {$flag}=1",[(int)$loan[$side]]);
-    foreach ($recipients as $recipient) InviaMissiva($title,$detail,(int)$recipient['id']);
+    foreach ($recipients as $recipient) {InviaMissiva($title,$detail,(int)$recipient['id']);}
 }
 
 function prestitoMessaggio(array $loan, string $event): string
@@ -238,9 +238,9 @@ function prestitoEvento(array $loan, int $actor, string $event, string $title, s
 /** Crea la proposta della corporazione, prima del finanziamento. */
 function createPrestito(int $pgcorp, int $corp, int $org, int $quantita, int $interessi, ?string $requestKey = null): bool
 {
-    if ($quantita<=0 || $quantita>2147483647 || $interessi<0 || $interessi>100) return false;
+    if ($quantita<=0 || $quantita>2147483647 || $interessi<0 || $interessi>100) {return false;}
     return economiaBool(static function() use($pgcorp,$corp,$org,$quantita,$interessi,$requestKey): bool {
-        if (!alphano_operation_once('loan-create',$pgcorp,$requestKey,[$corp,$org,$quantita,$interessi])) return true;
+        if (!alphano_operation_once('loan-create',$pgcorp,$requestKey,[$corp,$org,$quantita,$interessi])) {return true;}
         $db=getDB();
         $user=$db->query('SELECT organizzazione FROM utenti WHERE id=? AND corporazione=? AND admincorporazione=1 FOR UPDATE',[$pgcorp,$corp])[0] ?? null;
         economiaVerifica($user && (int)$user['organizzazione']!==$org && (bool)$db->query('SELECT id FROM corporazioni WHERE id=?',[$corp]) && (bool)$db->query('SELECT id FROM organizzazioni WHERE id=? AND approvato=1',[$org]),'Organizzazione o mandato non valido');
@@ -254,10 +254,10 @@ function createPrestito(int $pgcorp, int $corp, int $org, int $quantita, int $in
 /** Ogni controproposta passa il turno all'altro interlocutore. */
 function updatePrestito(int $id, int $pg, int $quantita, int $interessi, int $stato, ?string $requestKey = null): bool
 {
-    if ($quantita<=0 || $quantita>2147483647 || $interessi<0 || $interessi>100 || !in_array($stato,[2,3,4,5],true)) return false;
-    if ($stato===5) return acceptPrestito($id,$pg,$requestKey);
+    if ($quantita<=0 || $quantita>2147483647 || $interessi<0 || $interessi>100 || !in_array($stato,[2,3,4,5],true)) {return false;}
+    if ($stato===5) {return acceptPrestito($id,$pg,$requestKey);}
     return economiaBool(static function() use($id,$pg,$quantita,$interessi,$stato,$requestKey): bool {
-        if (!alphano_operation_once('loan-proposal',$pg,$requestKey,[$id,$quantita,$interessi,$stato])) return true;
+        if (!alphano_operation_once('loan-proposal',$pg,$requestKey,[$id,$quantita,$interessi,$stato])) {return true;}
         $db=getDB();
         $loan=$db->query('SELECT * FROM prestiti WHERE id=? AND stato BETWEEN 1 AND 4 FOR UPDATE',[$id])[0] ?? null;
         economiaVerifica((bool)$loan,'Prestito non negoziabile');
@@ -278,7 +278,7 @@ function updatePrestito(int $id, int $pg, int $quantita, int $interessi, int $st
 function prendiInCarico(int $id, int $pg, ?string $requestKey = null): bool
 {
     return economiaBool(static function() use($id,$pg, $requestKey): bool {
-        if (!alphano_operation_once('loan-claim',$pg,$requestKey,[$id])) return true;
+        if (!alphano_operation_once('loan-claim',$pg,$requestKey,[$id])) {return true;}
         $db=getDB();
         $loan=$db->query('SELECT * FROM prestiti WHERE id=? AND stato=0 AND pgorg=0 FOR UPDATE',[$id])[0] ?? null;
         economiaVerifica((bool)$loan,'Richiesta già presa in carico');
@@ -295,7 +295,7 @@ function prendiInCarico(int $id, int $pg, ?string $requestKey = null): bool
 function acceptPrestito(int $id, int $pg, ?string $requestKey = null): bool
 {
     return economiaBool(static function() use($id,$pg, $requestKey): bool {
-        if (!alphano_operation_once('loan-accept',$pg,$requestKey,[$id])) return true;
+        if (!alphano_operation_once('loan-accept',$pg,$requestKey,[$id])) {return true;}
         $db=getDB();
         $loan=$db->query('SELECT * FROM prestiti WHERE id=? AND stato BETWEEN 1 AND 4 FOR UPDATE',[$id])[0] ?? null;
         economiaVerifica($loan && (int)$loan['quantita']>0 && (int)$loan['quantita']<=2147483647 && (int)$loan['interessi']>=0 && (int)$loan['interessi']<=100,'Prestito non valido o già accettato');
@@ -318,14 +318,14 @@ function acceptPrestito(int $id, int $pg, ?string $requestKey = null): bool
 function deletePrestito(int $id, int $pg, ?string $requestKey = null): bool
 {
     return economiaBool(static function() use($id,$pg, $requestKey): bool {
-        if (!alphano_operation_once('loan-reject',$pg,$requestKey,[$id])) return true;
+        if (!alphano_operation_once('loan-reject',$pg,$requestKey,[$id])) {return true;}
         $db=getDB();
         $loan=$db->query('SELECT * FROM prestiti WHERE id=? AND stato<5 FOR UPDATE',[$id])[0] ?? null;
         economiaVerifica((bool)$loan,'Prestito non eliminabile');
         $side=prestitoInterlocutore($loan,$pg);
         economiaVerifica($side!=='','Mandato non valido');
         $other=$side==='org'?(int)$loan['pgcorp']:(int)$loan['pgorg'];
-        if ($other>0) prestitoMissiva($loan,$side==='org'?'corp':'org','Richiesta di prestito rifiutata',prestitoMessaggio($loan,'La richiesta è stata rifiutata.'));
+        if ($other>0) {prestitoMissiva($loan,$side==='org'?'corp':'org','Richiesta di prestito rifiutata',prestitoMessaggio($loan,'La richiesta è stata rifiutata.'));}
         prestitoEvento($loan,$pg,'rejected','Prestito rifiutato','La richiesta è stata rifiutata.',['stato_precedente'=>(int)$loan['stato']]);
         $db->execute('DELETE FROM prestiti WHERE id=?',[$id]);
         return true;
@@ -346,9 +346,9 @@ function calcolaInteressi(int $num, int $intPercent, int $timestamp): int
 /** Rimborso parziale/totale dal budget corporativo, con saldo corrente sotto lock. */
 function pagaPrestito(int $id, int $pgcorp, float $pagamento, ?string $requestKey = null): bool
 {
-    if (!is_finite($pagamento) || $pagamento<1 || $pagamento>=PHP_INT_MAX || floor($pagamento)!==$pagamento) return false;
+    if (!is_finite($pagamento) || $pagamento<1 || $pagamento>=PHP_INT_MAX || floor($pagamento)!==$pagamento) {return false;}
     return economiaBool(static function() use($id,$pgcorp,$pagamento, $requestKey): bool {
-        if (!alphano_operation_once('loan-repay',$pgcorp,$requestKey,[$id,$pagamento])) return true;
+        if (!alphano_operation_once('loan-repay',$pgcorp,$requestKey,[$id,$pagamento])) {return true;}
         $db=getDB();
         $loan=$db->query('SELECT * FROM prestiti WHERE id=? AND stato=5 FOR UPDATE',[$id])[0] ?? null;
         economiaVerifica($loan && prestitoInterlocutore($loan,$pgcorp)==='corp','Prestito o mandato non valido');
@@ -370,11 +370,11 @@ function pagaPrestito(int $id, int $pgcorp, float $pagamento, ?string $requestKe
 /** Importi/quantità arrivano dalle form come stringhe: mai troncare decimali o esponenti. */
 function commercioIntero(mixed $value, int $min = 1, int $max = 2147483647): ?int
 {
-    if (!is_int($value) && !is_string($value)) return null;
+    if (!is_int($value) && !is_string($value)) {return null;}
     $value=(string)$value;
-    if (!preg_match('/^\d+$/D',$value)) return null;
+    if (!preg_match('/^\d+$/D',$value)) {return null;}
     $trimmed=ltrim($value,'0');
-    if (strlen($trimmed)>10) return null;
+    if (strlen($trimmed)>10) {return null;}
     $number=(int)$value;
     return $number >= $min && $number <= $max ? $number : null;
 }
@@ -390,7 +390,7 @@ function commercioPrezzoValido(float $price, int $quantity = 1): bool
 function commercioAttivita(string $type,int $actor,array $trade,string $title,string $detail,array $before,array $after,array $extra=[],?string $eventKey=null): void
 {
     $audiences=[['scope'=>'corporazioni','id'=>(int)$trade['corp'],'section'=>'trasferimenti','role'=>'trade']];
-    if ((int)($trade['pg'] ?? 0)>0) $audiences[]=['scope'=>'personale','id'=>(int)$trade['pg'],'section'=>'trasferimenti','role'=>'member'];
+    if ((int)($trade['pg'] ?? 0)>0) {$audiences[]=['scope'=>'personale','id'=>(int)$trade['pg'],'section'=>'trasferimenti','role'=>'member'];}
     $event=alphano_record_activity($type,$actor,$audiences,$title,$detail,array_merge([
         'order_id'=>(int)$trade['id'],'stato'=>(int)$after['stato'],'verso'=>(int)$trade['verso'],
         'qta'=>(int)($after['qta'] ?? $trade['qta']),'prezzo'=>(int)($after['prezzo'] ?? $trade['prezzo']),
@@ -398,11 +398,11 @@ function commercioAttivita(string $type,int $actor,array $trade,string $title,st
     ],$extra),$eventKey);
     $db=ConnectDB();$current=$db->query('SELECT * FROM trasferimenti WHERE id=?',[(int)$trade['id']])[0]??$trade;
     $recipients=[(int)($current['pg']??0),(int)($current['pgcorp']??0)];
-    if(empty($current['pgcorp']))foreach($db->query('SELECT id FROM utenti WHERE corporazione=? AND (admintrasfcorp=1 OR admincorporazione=1) AND bloccato=0',[(int)$trade['corp']]) as $member)$recipients[]=(int)$member['id'];
+    if(empty($current['pgcorp'])){foreach($db->query('SELECT id FROM utenti WHERE corporazione=? AND (admintrasfcorp=1 OR admincorporazione=1) AND bloccato=0',[(int)$trade['corp']]) as $member){$recipients[]=(int)$member['id'];}}
     $marker='[alphano-trade:'.(int)$trade['id'].':'.$event.']';
     foreach(array_unique($recipients) as $recipient){
-        if($recipient<1||$recipient===$actor)continue;
-        if($db->query('SELECT id FROM mail WHERE iddestinatario=? AND idmittente=0 AND messaggio LIKE ? LIMIT 1',[$recipient,'%'.$marker.'%']))continue;
+        if($recipient<1||$recipient===$actor){continue;}
+        if($db->query('SELECT id FROM mail WHERE iddestinatario=? AND idmittente=0 AND messaggio LIKE ? LIMIT 1',[$recipient,'%'.$marker.'%'])){continue;}
         InviaMissiva($title.' · #'.(int)$trade['id'],$detail."\n\nApri questa missiva per consultare lo stato aggiornato e rispondere alla trattativa.\n".$marker,$recipient);
     }
 }
@@ -552,10 +552,10 @@ function statoTransf(int $stato, int $verso): string
  */
 function buyObject(int $equippgId, int $dest, int $pgcorp, int $corp, int $qta = 1, ?string $requestKey = null): bool
 {
-    if ($pgcorp===$dest || $qta<1 || $qta>10000 || !economiaImpiegato($pgcorp,$corp)) return false;
+    if ($pgcorp===$dest || $qta<1 || $qta>10000 || !economiaImpiegato($pgcorp,$corp)) {return false;}
     return economiaBool(static function() use($equippgId,$dest,$pgcorp,$corp,$qta,$requestKey): bool {
         $db=getDB();
-        if (!alphano_operation_once('purchase-create',$pgcorp,$requestKey,['instance'=>$equippgId,'seller'=>$dest,'corp'=>$corp,'qta'=>$qta])) return true;
+        if (!alphano_operation_once('purchase-create',$pgcorp,$requestKey,['instance'=>$equippgId,'seller'=>$dest,'corp'=>$corp,'qta'=>$qta])) {return true;}
         $row=$db->query('SELECT e.uid,p.shortDesc FROM equippg e JOIN equip p ON p.id=e.uid WHERE e.id=? AND e.idpg=? FOR UPDATE',[$equippgId,$dest])[0] ?? null;
         economiaVerifica((bool)$row,'Oggetto assente');
         economiaVerifica(!$db->query('SELECT 1 FROM trasferimenti t JOIN equippg e ON e.id=t.obj WHERE t.pgcorp=? AND t.pg=? AND e.uid=? AND t.verso=1 AND t.stato<5',[$pgcorp,$dest,$row['uid']]),'Offerta già presente');
@@ -621,7 +621,7 @@ function getCronologiaPG(int $idpg): array
 function updateTransf(int $id, int $pg, float $prezzo, int $stato, ?int $qta = null): bool
 {
     // Per gli acquisti di istanze il prezzo è il totale dell'intera offerta.
-    if (!commercioPrezzoValido($prezzo) || ($qta!==null && ($qta<1 || $qta>10000))) return false;
+    if (!commercioPrezzoValido($prezzo) || ($qta!==null && ($qta<1 || $qta>10000))) {return false;}
     return economiaBool(static function() use($id,$pg,$prezzo,$stato,$qta): bool {
         $db=getDB();
         $d=$db->query('SELECT * FROM trasferimenti WHERE id=? AND verso=1 AND stato<5 AND (pg=? OR pgcorp=?) FOR UPDATE',[$id,$pg,$pg])[0] ?? null;
@@ -782,10 +782,10 @@ function finalizeTransf(int $id, int $pg): string
             $db->execute('UPDATE corporazioni SET budget=budget-? WHERE id=?',[$price,$corp]);
             $db->execute('UPDATE utenti SET denari=denari+? WHERE id=?',[$price,$seller]);
             $materia=(string)($item['materiaprima'] ?? '');
-            if ($materia!=='') economiaVerifica(inserisciMateria($materia,$corp,$qta),'Materia prima non valida');
+            if ($materia!=='') {economiaVerifica(inserisciMateria($materia,$corp,$qta),'Materia prima non valida');}
             else foreach (GetMateriePrime($item) ?: [] as $mat=>$units) {
                 economiaVerifica((int)$units>=0,'Materie prime non valide');
-                if ((int)$units>0) economiaVerifica(inserisciMateria($mat,$corp,(int)$units*$qta),'Magazzino non aggiornabile');
+                if ((int)$units>0) {economiaVerifica(inserisciMateria($mat,$corp,(int)$units*$qta),'Magazzino non aggiornabile');}
             }
             $others=$db->query('SELECT t.* FROM trasferimenti t JOIN equippg e ON e.id=t.obj WHERE t.verso=1 AND t.stato<5 AND t.pg=? AND e.uid=? AND t.id<>? FOR UPDATE',[$seller,$uid,$id]);
             $deleted=array_slice(array_column($stock,'id'),0,$qta);
@@ -796,8 +796,8 @@ function finalizeTransf(int $id, int $pg): string
             commercioAttivita('purchase-completed',$pg,$d,'Acquisto completato',alphano_currency_text("La corporazione ha acquistato {$qta}× {$d['nomeobj']} per {$price} Corone totali. Materiali recuperati in magazzino."),['stato'=>(int)$d['stato']],['stato'=>5],['totale'=>$price,'venditore'=>(int)$d['pg'],'materie_recuperate'=>$materia!=='' ? [$materia=>$qta] : array_map(static fn($n)=>(int)$n*$qta,GetMateriePrime($item) ?: [])]);
             $remaining=array_slice(array_column($stock,'id'),$qta); $left=count($remaining);
             foreach ($others as $other) {
-                if (!$left) $db->execute('UPDATE trasferimenti SET stato=6 WHERE id=?',[$other['id']]);
-                else $db->execute('UPDATE trasferimenti SET obj=?,qta=? WHERE id=?',[in_array($other['obj'],$remaining) ? $other['obj'] : $remaining[0],min((int)$other['qta'],$left),$other['id']]);
+                if (!$left) {$db->execute('UPDATE trasferimenti SET stato=6 WHERE id=?',[$other['id']]);}
+                else {$db->execute('UPDATE trasferimenti SET obj=?,qta=? WHERE id=?',[in_array($other['obj'],$remaining) ? $other['obj'] : $remaining[0],min((int)$other['qta'],$left),$other['id']]);}
                 commercioAttivita('purchase-availability-changed',$pg,$other,'Disponibilità aggiornata','La disponibilità degli oggetti è cambiata: controlla la quantità e lo stato aggiornati della trattativa.',['stato'=>(int)$other['stato'],'qta'=>(int)$other['qta']],['stato'=>$left?(int)$other['stato']:6,'qta'=>$left?min((int)$other['qta'],$left):(int)$other['qta']]);
             }
             return 'Trasferimento avvenuto correttamente';
@@ -830,7 +830,7 @@ function rejectTransf(int $id, int $pg): bool
  */
 function makeOrdine(int $obj, int $pg, int $corp, int $qta = 1, ?string $requestKey = null, ?int &$orderId = null): bool
 {
-    if ($qta<1 || $qta>10000) return false;
+    if ($qta<1 || $qta>10000) {return false;}
     return economiaBool(static function() use($obj,$pg,$corp,$qta,$requestKey,&$orderId): bool {
         $db=getDB();
         $eventKey=$requestKey!==null && $requestKey!=='' ? 'commerce-order:'.$pg.':'.$requestKey : null;
@@ -905,7 +905,7 @@ function rejectOrdine(int $id, int $pg): bool
 /** La corporazione formula il primo prezzo; poi le proposte alternano le parti. */
 function updateOrdine(int $id, int $pg, float $prezzo, int $qta, int $stato): bool
 {
-    if (!commercioPrezzoValido($prezzo,$qta)) return false;
+    if (!commercioPrezzoValido($prezzo,$qta)) {return false;}
     return economiaBool(static function() use($id,$pg,$prezzo,$qta,$stato): bool {
         $db=getDB();
         $d=$db->query('SELECT * FROM trasferimenti WHERE id=? AND verso=2 AND stato BETWEEN 1 AND 4 AND (pg=? OR pgcorp=?) FOR UPDATE',[$id,$pg,$pg])[0] ?? null;
@@ -1004,18 +1004,18 @@ function consegna(int $id, int $pg, int $corp): string
                 $role=$db->query('SELECT c.provvigione FROM utenti u JOIN carichecorporazioni c ON c.id=u.caricacorporazione AND c.corporazione=u.corporazione WHERE u.id=? AND u.corporazione=?',[$pg,$corp])[0] ?? null;
                 economiaVerifica($role && (float)$role['provvigione']>=0 && (float)$role['provvigione']<=100,'Provvigioni non impostate correttamente');
                 $commission=(int)floor((float)$role['provvigione']*$total/100);
-            } else economiaVerifica(!empty($info['stipendio']),'Provvigioni non impostate correttamente');
+            } else {economiaVerifica(!empty($info['stipendio']),'Provvigioni non impostate correttamente');}
             require_once __DIR__.'/item-engine.inc.php';item_stock_delivery($item,$qty);
             $mag=array_column($db->query('SELECT materia,qta FROM equipcorp WHERE corp=? FOR UPDATE',[$corp]),'qta','materia');
             foreach (GetMateriePrime($item) ?: [] as $mat=>$unit) {
                 $need=(int)$unit*$qty;
                 economiaVerifica($need>=0 && ($mag[$mat] ?? 0)>=$need,'Non disponi delle materie prime');
-                if ($need>0) $db->execute('UPDATE equipcorp SET qta=qta-? WHERE corp=? AND materia=?',[$need,$corp,$mat]);
+                if ($need>0) {$db->execute('UPDATE equipcorp SET qta=qta-? WHERE corp=? AND materia=?',[$need,$corp,$mat]);}
             }
             $db->execute('UPDATE utenti SET denari=denari-? WHERE id=?',[$total,$d['pg']]);
-            if ($commission>0) $db->execute('UPDATE utenti SET denari=denari+? WHERE id=?',[$commission,$pg]);
+            if ($commission>0) {$db->execute('UPDATE utenti SET denari=denari+? WHERE id=?',[$commission,$pg]);}
             $db->execute('UPDATE corporazioni SET budget=budget+? WHERE id=?',[$total-$commission,$corp]);
-            for ($i=0;$i<$qty;$i++) $db->execute('INSERT INTO equippg(uid,idpg) VALUES(?,?)',[$d['obj'],$d['pg']]);
+            for ($i=0;$i<$qty;$i++) {$db->execute('INSERT INTO equippg(uid,idpg) VALUES(?,?)',[$d['obj'],$d['pg']]);}
             $db->execute('UPDATE trasferimenti SET stato=7 WHERE id=?',[$id]);
             commercioAttivita('order-delivered',$pg,$d,'Ordine consegnato e pagato',alphano_currency_text("Consegnati {$qty}× {$d['nomeobj']}. Addebitate {$total} Corone al cliente; provvigione {$commission} Corone."),['stato'=>5],['stato'=>7],['totale'=>$total,'provvigione'=>$commission,'entrata_corporazione'=>$total-$commission,'materie_consumate'=>array_map(static fn($n)=>(int)$n*$qty,GetMateriePrime($item) ?: [])]);
             return 'Consegna andata a buon fine';
@@ -1029,7 +1029,7 @@ function consegna(int $id, int $pg, int $corp): string
 function impostaProduzioniCorp(int $corp, int $actor, array $selection, ?string $requestKey = null): bool
 {
     return economiaBool(static function() use($corp,$actor,$selection,$requestKey): bool {
-        if (!alphano_operation_once('corporation-production',$actor,$requestKey,[$corp,$selection])) return true;
+        if (!alphano_operation_once('corporation-production',$actor,$requestKey,[$corp,$selection])) {return true;}
         $db=getDB();
         economiaVerifica((bool)$db->query('SELECT id FROM utenti WHERE id=? AND (admin=1 OR (corporazione=? AND admincorporazione=1)) FOR UPDATE',[$actor,$corp]),'Mandato non valido');
         economiaVerifica((bool)$db->query('SELECT id FROM corporazioni WHERE id=? FOR UPDATE',[$corp]),'Corporazione non valida');
@@ -1042,16 +1042,16 @@ function impostaProduzioniCorp(int $corp, int $actor, array $selection, ?string 
         $before=$db->query('SELECT produzione,quality FROM produzionicorporazioni WHERE corporazione=? ORDER BY produzione FOR UPDATE',[$corp]);
         $db->query('SELECT id FROM equip WHERE corp=? ORDER BY id FOR UPDATE',[$corp]);
         $db->execute('DELETE FROM produzionicorporazioni WHERE corporazione=?',[$corp]);
-        foreach ($selection as $subtype=>$quality) if ($quality>0) $db->execute('INSERT INTO produzionicorporazioni(corporazione,produzione,quality) VALUES(?,?,?)',[$corp,(int)$subtype,$quality]);
+        foreach ($selection as $subtype=>$quality) {if ($quality>0) {$db->execute('INSERT INTO produzionicorporazioni(corporazione,produzione,quality) VALUES(?,?,?)',[$corp,(int)$subtype,$quality]);}}
         $items=$db->query('SELECT e.id,e.durata,p.quality FROM equip e JOIN tipo t ON t.id=e.tipo JOIN produzionicorporazioni p ON p.produzione=t.subtipo AND p.corporazione=e.corp WHERE e.corp=? AND e.visibile=1',[$corp]);
         foreach ($items as $item) {
             $limit=(int)QUALITY[(int)$item['quality']]['durata'];
-            if ((int)$item['durata']>$limit) $db->execute('UPDATE equip SET durata=? WHERE id=?',[$limit,$item['id']]);
+            if ((int)$item['durata']>$limit) {$db->execute('UPDATE equip SET durata=? WHERE id=?',[$limit,$item['id']]);}
         }
         $hidden=$db->execute('UPDATE equip e JOIN tipo t ON t.id=e.tipo LEFT JOIN produzionicorporazioni p ON p.produzione=t.subtipo AND p.corporazione=e.corp SET e.visibile=0 WHERE e.corp=? AND e.visibile=1 AND p.produzione IS NULL',[$corp]);
         $after=$db->query('SELECT produzione,quality FROM produzionicorporazioni WHERE corporazione=? ORDER BY produzione',[$corp]);
-        if ($before!==$after || $hidden>0) alphano_record_activity('corporation-production-updated',$actor,[['scope'=>'corporazioni','id'=>$corp,'section'=>'production','role'=>'admin']],
-            'Produzioni corporative aggiornate',"Assegnati {$points} punti produzione. Oggetti nascosti perché non più producibili: {$hidden}.",['corporazione'=>$corp,'prima'=>$before,'dopo'=>$after,'punti'=>$points,'oggetti_nascosti'=>$hidden]);
+        if ($before!==$after || $hidden>0) {alphano_record_activity('corporation-production-updated',$actor,[['scope'=>'corporazioni','id'=>$corp,'section'=>'production','role'=>'admin']],
+            'Produzioni corporative aggiornate',"Assegnati {$points} punti produzione. Oggetti nascosti perché non più producibili: {$hidden}.",['corporazione'=>$corp,'prima'=>$before,'dopo'=>$after,'punti'=>$points,'oggetti_nascosti'=>$hidden]);}
         return true;
     });
 }
@@ -1078,10 +1078,10 @@ function getStipendi(int $corp): int
 function consegnastipendi(int $corp, ?string $requestKey = null): bool
 {
     require_once __DIR__.'/treasury.inc.php';
-    if(alphano_treasury_ready())return economiaBool(static fn():bool=>alphano_treasury_payroll('corporazioni',$corp,(int)($_SESSION['user_id']??0),$requestKey?:bin2hex(random_bytes(16)))['status']==='applied');
+    if(alphano_treasury_ready()){return economiaBool(static fn():bool=>alphano_treasury_payroll('corporazioni',$corp,(int)($_SESSION['user_id']??0),$requestKey?:bin2hex(random_bytes(16)))['status']==='applied');}
     $actor=(int)($_SESSION['user_id'] ?? 0);
     return economiaBool(static function() use($corp,$requestKey,$actor): bool {
-        if (!alphano_operation_once('corporation-payroll',$actor,$requestKey,[$corp])) return true;
+        if (!alphano_operation_once('corporation-payroll',$actor,$requestKey,[$corp])) {return true;}
         $db=getDB();
         economiaVerifica((bool)$db->query('SELECT id FROM utenti WHERE id=? AND (admin=1 OR (corporazione=? AND admincorporazione=1)) FOR UPDATE',[$actor,$corp]),'Mandato non valido');
         $organization=$db->query('SELECT budget,stipendio,nome FROM corporazioni WHERE id=? FOR UPDATE',[$corp])[0] ?? null;
@@ -1090,12 +1090,12 @@ function consegnastipendi(int $corp, ?string $requestKey = null): bool
         foreach ($members as $m) {
             $amount=(int)$m['stipendio'];
             economiaVerifica($amount>=0 && $amount<=PHP_INT_MAX-$total && (int)$m['denari']<=PHP_INT_MAX-$amount,'Stipendio o saldo non valido');
-            $total+=$amount;if($amount>0)$paid++;
+            $total+=$amount;if($amount>0){$paid++;}
         }
         economiaVerifica($organization && !empty($organization['stipendio']) && $total>0 && (int)$organization['budget']>=$total,'Fondi insufficienti o stipendi non impostati');
         $db->execute('UPDATE corporazioni SET budget=budget-?,ultimostipendio=? WHERE id=?',[$total,time(),$corp]);
         foreach ($members as $m) {
-            $amount=(int)$m['stipendio'];if($amount<1)continue;
+            $amount=(int)$m['stipendio'];if($amount<1){continue;}
             $db->execute('UPDATE utenti SET denari=denari+? WHERE id=?',[$amount,$m['id']]);
             InviaMissiva('Stipendio corporativo ricevuto',alphano_currency_text("Hai ricevuto {$amount} Corone di stipendio da {$organization['nome']}."),(int)$m['id']);
             alphano_record_activity('corporation-salary-received',$actor,[['scope'=>'personale','id'=>(int)$m['id'],'section'=>'trasferimenti','role'=>'member']],
@@ -1112,7 +1112,7 @@ function consegnastipendi(int $corp, ?string $requestKey = null): bool
  */
 function clearTrasferimenti(int $corp): bool
 {
-    if ($corp<=0) return true;
+    if ($corp<=0) {return true;}
     return economiaBool(static function() use($corp): bool {
         $db=getDB();
         $rows=$db->query('SELECT t.* FROM trasferimenti t WHERE t.corp=? AND t.stato BETWEEN 0 AND 5 ORDER BY t.id FOR UPDATE',[$corp]);
@@ -1156,7 +1156,7 @@ function consegnaStipendiCity(int $city, ?string $requestKey = null): string
     }
     $actor=(int)($_SESSION['user_id'] ?? 0);
     $ok=economiaBool(static function() use($city,$requestKey,$actor): bool {
-        if (!alphano_operation_once('city-payroll',$actor,$requestKey,[$city])) return true;
+        if (!alphano_operation_once('city-payroll',$actor,$requestKey,[$city])) {return true;}
         $db=getDB();
         economiaVerifica((bool)$db->query('SELECT u.id FROM utenti u JOIN araldiche a ON a.id=u.araldica WHERE u.id=? AND a.city=? AND u.sindaco=1 FOR UPDATE',[$actor,$city]),'Mandato non valido');
         $row=$db->query('SELECT budget,city FROM city WHERE id=? FOR UPDATE',[$city])[0] ?? null;
@@ -1165,12 +1165,12 @@ function consegnaStipendiCity(int $city, ?string $requestKey = null): string
         foreach ($members as $m) {
             $amount=(int)$m['stipendio'];
             economiaVerifica($amount>=0 && $amount<=PHP_INT_MAX-$total && (int)$m['denari']<=PHP_INT_MAX-$amount,'Stipendio o saldo non valido');
-            $total+=$amount;if($amount>0)$paid++;
+            $total+=$amount;if($amount>0){$paid++;}
         }
         economiaVerifica($row && $total>0 && (int)$row['budget']>=$total,'Fondi insufficienti o stipendi non impostati');
         $db->execute('UPDATE city SET budget=budget-?,ultimostipendio=? WHERE id=?',[$total,time(),$city]);
         foreach ($members as $m) {
-            $amount=(int)$m['stipendio'];if($amount<1)continue;
+            $amount=(int)$m['stipendio'];if($amount<1){continue;}
             $db->execute('UPDATE utenti SET denari=denari+? WHERE id=?',[$amount,$m['id']]);
             InviaMissiva('Stipendio cittadino ricevuto',alphano_currency_text("Hai ricevuto {$amount} Corone di stipendio da {$row['city']}."),(int)$m['id']);
             alphano_record_activity('city-salary-received',$actor,[['scope'=>'personale','id'=>(int)$m['id'],'section'=>'trasferimenti','role'=>'member']],
@@ -1188,10 +1188,10 @@ function consegnaStipendiCity(int $city, ?string $requestKey = null): string
  */
 function creaPrestitoPG(int $org, int $pg, int $denari, ?string $requestKey = null): bool
 {
-    if ($denari<=0 || $denari>2147483647) return false;
+    if ($denari<=0 || $denari>2147483647) {return false;}
     $actor=(int)($_SESSION['user_id'] ?? 0);
     return economiaBool(static function() use($org,$pg,$denari,$requestKey,$actor): bool {
-        if (!alphano_operation_once('loan-pg',$actor,$requestKey,[$org,$pg,$denari])) return true;
+        if (!alphano_operation_once('loan-pg',$actor,$requestKey,[$org,$pg,$denari])) {return true;}
         $db=getDB();
         $budget=$db->query('SELECT budget,nome FROM organizzazioni WHERE id=? FOR UPDATE',[$org])[0] ?? null;
         economiaVerifica((bool)$db->query('SELECT id FROM utenti WHERE id=? AND organizzazione=? AND adminorganizzazione=1 AND bloccato=0 FOR UPDATE',[$actor,$org]),'Mandato non valido');
@@ -1214,9 +1214,9 @@ function creaPrestitoPG(int $org, int $pg, int $denari, ?string $requestKey = nu
 /** Le donazioni rimborsano prima i prestiti più vecchi, poi accrescono il budget. */
 function creaDonazione(int $idpg, string $nomePg, int $org, int $soldi, string $motivo = '', ?string $requestKey = null): bool
 {
-    if ($soldi<=0) return false;
+    if ($soldi<=0) {return false;}
     return economiaBool(static function() use($idpg,$org,$soldi,$motivo,$requestKey): bool {
-        if (!alphano_operation_once('donation',$idpg,$requestKey,[$org,$soldi,$motivo])) return true;
+        if (!alphano_operation_once('donation',$idpg,$requestKey,[$org,$soldi,$motivo])) {return true;}
         $db=getDB();
         $organization=$db->query('SELECT budget,nome FROM organizzazioni WHERE id=? FOR UPDATE',[$org])[0] ?? null;
         $user=$db->query('SELECT denari,nome FROM utenti WHERE id=? FOR UPDATE',[$idpg])[0] ?? null;
@@ -1224,10 +1224,10 @@ function creaDonazione(int $idpg, string $nomePg, int $org, int $soldi, string $
         $remaining=$soldi;$debito=0;$receipts=[];
         foreach ($db->query('SELECT id,qta FROM prestitipg WHERE org=? AND pg=? ORDER BY data,id FOR UPDATE',[$org,$idpg]) as $loan) {
             $amount=(int)$loan['qta'];$debito+=$amount;
-            if ($remaining<=0) continue;
+            if ($remaining<=0) {continue;}
             $receipts[]=['pg_loan_id'=>(int)$loan['id'],'debito_precedente'=>$amount,'rimborso'=>min($amount,$remaining),'debito_residuo'=>max(0,$amount-$remaining)];
-            if ($amount<=$remaining) $db->execute('DELETE FROM prestitipg WHERE id=?',[$loan['id']]);
-            else $db->execute('UPDATE prestitipg SET qta=qta-? WHERE id=?',[$remaining,$loan['id']]);
+            if ($amount<=$remaining) {$db->execute('DELETE FROM prestitipg WHERE id=?',[$loan['id']]);}
+            else {$db->execute('UPDATE prestitipg SET qta=qta-? WHERE id=?',[$remaining,$loan['id']]);}
             $remaining-=min($remaining,$amount);
         }
         $repaid=min($debito,$soldi);
@@ -1235,7 +1235,7 @@ function creaDonazione(int $idpg, string $nomePg, int $org, int $soldi, string $
         $db->execute('UPDATE utenti SET denari=denari-? WHERE id=?',[$soldi,$idpg]);
         $db->execute('INSERT INTO logs_adminpg(azione,esecutore,destinatario,qta,data,descr,chat) VALUES(?,?,?,?,?,?,?)',['donazione',$idpg,$org,$soldi,time(),$motivo,'']);
         $detail=alphano_currency_text("{$user['nome']} ha versato {$soldi} Corone a {$organization['nome']}. Rimborso prestiti: {$repaid} Corone. Donazione: {$remaining} Corone. Debito residuo: ").max(0,$debito-$soldi).alphano_currency_text(' Corone.').($motivo!=='' ? " Motivazione: {$motivo}" : '');
-        foreach ($db->query('SELECT id FROM utenti WHERE organizzazione=? AND adminorganizzazione=1',[$org]) as $admin) InviaMissiva($repaid>0?'Rimborso prestito PG':'Donazione ricevuta',$detail,(int)$admin['id']);
+        foreach ($db->query('SELECT id FROM utenti WHERE organizzazione=? AND adminorganizzazione=1',[$org]) as $admin) {InviaMissiva($repaid>0?'Rimborso prestito PG':'Donazione ricevuta',$detail,(int)$admin['id']);}
         alphano_record_activity('organization-payment',$idpg,[
             ['scope'=>'organizzazioni','id'=>$org,'section'=>$repaid>0?'prestiti':'finanze','role'=>'admin'],
             ['scope'=>'personale','id'=>$idpg,'section'=>'trasferimenti','role'=>'member'],
@@ -1298,7 +1298,7 @@ function riparaOggetto(int $instance, int $pg, int $corp): string
             foreach (GetMateriePrime($item) ?: [] as $mat=>$units) {
                 $need=(int)ceil((int)$units*$ratio);
                 economiaVerifica($need>=0 && ($mag[$mat] ?? 0)>=$need,'Non disponi delle materie prime');
-                if ($need>0) $db->execute('UPDATE equipcorp SET qta=qta-? WHERE corp=? AND materia=?',[$need,$corp,$mat]);
+                if ($need>0) {$db->execute('UPDATE equipcorp SET qta=qta-? WHERE corp=? AND materia=?',[$need,$corp,$mat]);}
             }
             $db->execute('UPDATE equippg SET consumo=0 WHERE id=? AND idpg=?',[$instance,$pg]);
             $db->execute("INSERT INTO logs_equip(data,esecutore,origine,obj,azione) VALUES(?,?,?,?,'RIPARA')",[time(),$pg,$pg,$item['id']]);

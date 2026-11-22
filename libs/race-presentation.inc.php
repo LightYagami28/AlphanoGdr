@@ -32,7 +32,7 @@ function alphanoRaceView(?int $id):array {
  }
  }
  $groups['all']=array_merge($groups['innate'],$groups['purchasable']);
- $familyKind=$selected?(in_array($selected['id'],[2,5],true)?'vampire':(in_array($selected['id'],[3,6],true)?'lycan':null)):null;
+ $familyKind=null;if($selected){ if(in_array($selected['id'],[2,5],true)){ $familyKind='vampire'; }elseif(in_array($selected['id'],[3,6],true)){ $familyKind='lycan'; } }
  $families=[];
  if($familyKind){ foreach(connectDB()->query('SELECT u.id,u.nome,u.razza,u.vampire_human_form,u.sesso,u.avatar,u.avatar2 FROM lineage_members l JOIN utenti u ON u.id=l.player_id WHERE l.kind=? AND l.creator_id IS NULL ORDER BY u.dataregistrazione,u.id',[$familyKind]) as $u){$portrait=alphanoProfilePortrait($u);$families[]=['id'=>(int)$u['id'],'name'=>$u['nome'],'portrait'=>$portrait['url'],'portrait_default'=>$portrait['default']];} }
  $learnable=[];

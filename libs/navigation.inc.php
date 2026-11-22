@@ -1,5 +1,19 @@
 <?php
 declare(strict_types=1);
+function alphanoNavigationItem(array $item,array $groups,array $art,array $labels):?array
+{
+    if(in_array($item['label'],['Account','Bacheca'],true)||str_starts_with($item['label'],'Posta')){ return null; }
+    $group='gioco';
+    foreach($groups as $key=>$definition){ if(in_array($item['label'],$definition['items'],true)){$group=$key;break;} }
+    $item['appearance_key']=alphanoAppearanceItemKey($item['label'],$group);
+    $item['group']=$group;$item['icon']=$groups[$group]['icon'];$item['image']=$art[$item['label']]??$art['Cronaca e notifiche'];
+    $item['_order']=array_search($item['label'],$groups[$group]['items'],true);
+    // L'elenco pubblico viene aggiunto una sola volta qui sotto.
+    if($group==='citta'&&$item['label']==='Città'){ return null; }
+    if($group==='citta'){ $item['_order']+=10; } // Dopo elenco e città di appartenenza, conserva le amministrazioni autorizzate.
+    $item['label']=$labels[$item['label']]??$item['label'];
+    return $item;
+}
 function alphanoNavigation(array $items): array
 {
     require_once __DIR__.'/appearance.inc.php';$appearance=alphanoAppearance();
@@ -14,16 +28,8 @@ function alphanoNavigation(array $items): array
         'Admin Utenti'=>'Incarichi e utenti','Admin Stato Soc.'=>'Stato sociale','Strumenti OFF'=>'Strumenti personali'];
     $result=[];
     foreach($items as $item){
-        if(in_array($item['label'],['Account','Bacheca'],true)||str_starts_with($item['label'],'Posta')){ continue; }
-        $group='gioco';
-        foreach($groups as $key=>$definition){ if(in_array($item['label'],$definition['items'],true)){$group=$key;break;} }
-        $item['appearance_key']=alphanoAppearanceItemKey($item['label'],$group);
-        $item['group']=$group;$item['icon']=$groups[$group]['icon'];$item['image']=$art[$item['label']]??$art['Cronaca e notifiche'];
-        $item['_order']=array_search($item['label'],$groups[$group]['items'],true);
-        if($group==='citta'&&$item['label']==='Città'){ continue; } // L'elenco pubblico viene aggiunto una sola volta qui sotto.
-        if($group==='citta'){ $item['_order']+=10; } // Dopo elenco e città di appartenenza, conserva le amministrazioni autorizzate.
-        $item['label']=$labels[$item['label']]??$item['label'];
-        $result[]=$item;
+        $mapped=alphanoNavigationItem($item,$groups,$art,$labels);
+        if($mapped!==null){ $result[]=$mapped; }
     }
     $result[]=['url'=>'/citta/','label'=>'Elenco città','group'=>'citta','icon'=>'city','image'=>$art['Elenco città'],'w'=>1000,'h'=>750,'_order'=>0];
     foreach(connectDB()->query('SELECT c.id,c.city FROM city c JOIN araldiche a ON a.city=c.id JOIN utenti u ON u.araldica=a.id WHERE u.id=? ORDER BY c.city', [(int)(alphanoUser()['id'] ?? 0)]) as $city)

@@ -60,16 +60,30 @@
   const update=()=>{raf=0;const typing=/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName||'')||[...document.querySelectorAll('iframe')].some(frame=>{try{return /^(INPUT|TEXTAREA|SELECT)$/.test(frame.contentDocument?.activeElement?.tagName||'');}catch(_){return false;}});const keyboard=compact.matches&&typing&&window.innerHeight-vv.height>120;document.documentElement.style.setProperty('--game-viewport-height',Math.round(vv.height)+'px');document.body.classList.toggle('mobile-keyboard-open',keyboard);};
   const queue=()=>{if(!raf){raf=requestAnimationFrame(update);}};vv.addEventListener('resize',queue);vv.addEventListener('scroll',queue);window.addEventListener('resize',queue);document.addEventListener('focusin',queue);document.addEventListener('focusout',queue);window.addEventListener('alphano:field-focus',queue);update();
  }
- function tables(){
-  for(const table of document.querySelectorAll('body.ui-page table')){
-   const headerRow=table.tHead?.rows[table.tHead.rows.length-1]||[...table.rows].find(row=>row.querySelector('th')),headers=headerRow?[...headerRow.cells]:[];
-   if(table.matches('.ui-data-table,.session-table')&&headers.length>1&&table.tBodies.length){
-    table.dataset.mobileCards='true';headerRow.dataset.mobileHead='true';for(const row of table.rows){if(row===headerRow){continue;}for(const [index,cell] of [...row.cells].entries())if(cell.colSpan===1){cell.dataset.columnLabel=headers[index]?.textContent.trim()||'';}}
-   }
-   if(table.closest('.ui-table-scroll,.table-responsive,.mobile-table-scroll')||table.closest('dialog')){continue;}
-   const region=create('div','mobile-table-scroll');region.setAttribute('role','region');region.setAttribute('aria-label',table.caption?.textContent.trim()||'Tabella: scorri lateralmente per tutte le colonne');region.tabIndex=0;table.before(region);region.append(table);
+  function tableHeader(table){
+    const headerRow=table.tHead?.rows[table.tHead.rows.length-1]||[...table.rows].find(row=>row.querySelector('th')),headers=headerRow?[...headerRow.cells]:[];
+    return [headerRow,headers];
   }
- }
+  function labelDataCells(table,headerRow,headers){
+    for(const row of table.rows){
+      if(row===headerRow){continue;}
+      for(const [index,cell] of [...row.cells].entries())if(cell.colSpan===1){cell.dataset.columnLabel=headers[index]?.textContent.trim()||'';}
+    }
+  }
+  function wrapTable(table){
+    const region=create('div','mobile-table-scroll');region.setAttribute('role','region');region.setAttribute('aria-label',table.caption?.textContent.trim()||'Tabella: scorri lateralmente per tutte le colonne');region.tabIndex=0;table.before(region);region.append(table);
+  }
+ function tables(){
+    for(const table of document.querySelectorAll('body.ui-page table')){
+      const [headerRow,headers]=tableHeader(table);
+      if(table.matches('.ui-data-table,.session-table')&&headers.length>1&&table.tBodies.length){
+        table.dataset.mobileCards='true';headerRow.dataset.mobileHead='true';
+        labelDataCells(table,headerRow,headers);
+      }
+      if(table.closest('.ui-table-scroll,.table-responsive,.mobile-table-scroll')||table.closest('dialog')){continue;}
+      wrapTable(table);
+    }
+  }
 
  function boot(){try{if(window.parent!==window&&window.parent.document.body.matches('[data-view=main]')){document.body.classList.add('is-game-frame');}}catch(_){}shell();chatTools();viewport();tables();
   if(!document.body.matches('[data-view=main],[data-view=map],[data-view=chat-index]')){window.addEventListener('load',tables,{once:true});let pending=false;new MutationObserver(records=>{if(pending||!records.some(record=>[...record.addedNodes].some(node=>node.nodeType===1&&(node.matches('table,thead,tbody,tr,th,td')||node.querySelector('table'))))){return;}pending=true;requestAnimationFrame(()=>{pending=false;tables();});}).observe(document.body,{childList:true,subtree:true});}

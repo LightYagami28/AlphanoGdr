@@ -5,13 +5,16 @@ function aiKnowledgeValidate(array $in):array{
  if(!in_array($v['origin'],['official','general'],true)){ throw new DomainException('Origine non valida.',422); }
  if($v['source']!==''&&!preg_match('~^(https://|manuale:)[^\s<>]+$~D',$v['source'])){ throw new DomainException('Usa un collegamento HTTPS o manuale:ID.',422); }
  $v['active']=aiInteger($in,'active',0,1);$v['mechanics']=$in['mechanics']??[];
+ aiKnowledgeValidateMechanics($v);
+ return $v;
+}
+function aiKnowledgeValidateMechanics(array &$v):void{
  if(!is_array($v['mechanics'])||($v['mechanics']!==[]&&array_is_list($v['mechanics']))){ throw new DomainException('Criteri tecnici non validi.',422); }
  if($v['origin']==='general'&&$v['mechanics']){ throw new DomainException('Le conoscenze generali non autorizzano meccaniche.',422); }
  if(array_diff(array_keys($v['mechanics']),['initiative','damage','resolution','max_range','reload_rounds','charge_space','armor_absorption'])){ throw new DomainException('Criterio non riconosciuto.',422); }
  foreach(['damage'=>MAXPUNTIF-1,'max_range'=>1000,'reload_rounds'=>20,'charge_space'=>1000,'armor_absorption'=>1000] as $k=>$max){ if(isset($v['mechanics'][$k])){ $v['mechanics'][$k]=aiInteger($v['mechanics'],$k,0,$max); } }
  if(isset($v['mechanics']['initiative'])&&!in_array($v['mechanics']['initiative'],['entry','force'],true)){ throw new DomainException('Ordine non valido.',422); }
  if(isset($v['mechanics']['resolution'])&&!in_array($v['mechanics']['resolution'],['review','opposed_force_d20'],true)){ throw new DomainException('Risoluzione non valida.',422); }
- return $v;
 }
 /** General lore is quoted as data only and never becomes a rule by retrieval. */
 function aiKnowledgeRetrieve(string $question,int $limit=3):array{

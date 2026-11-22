@@ -23,29 +23,14 @@ function alphanoRegistrationIsLocal(): bool
 function validkey(string $lettera): bool
 {
     $ord = ord($lettera);
-
-    // cifre
-    if ($ord >= 48 && $ord <= 57) {
-        return true;
-    }
-    // A–Z
-    if ($ord >= 65 && $ord <= 90) {
-        return true;
-    }
-    // a–z
-    if ($ord >= 97 && $ord <= 122) {
-        return true;
-    }
-    // lettere accentate ISO-8859-1
-    if (($ord >= 192 && $ord <= 214) ||
-        ($ord >= 216 && $ord <= 221) ||
-        ($ord >= 224 && $ord <= 246) ||
-        ($ord >= 248 && $ord <= 253)
-    ) {
-        return true;
-    }
-    // pochi simboli ammessi
-    return in_array($ord, [32, 138, 142, 154, 158, 159, 255], true);
+    return ($ord >= 48 && $ord <= 57)
+        || ($ord >= 65 && $ord <= 90)
+        || ($ord >= 97 && $ord <= 122)
+        || ($ord >= 192 && $ord <= 214)
+        || ($ord >= 216 && $ord <= 221)
+        || ($ord >= 224 && $ord <= 246)
+        || ($ord >= 248 && $ord <= 253)
+        || in_array($ord, [32, 138, 142, 154, 158, 159, 255], true);
 }
 
 /**

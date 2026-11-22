@@ -74,5 +74,5 @@ foreach ($organizzazioni as $group) {
 $groupPage=['title'=>'Organizzazioni','singular'=>'Organizzazione','parameter'=>'org','member'=>(int)$org,'pending'=>(bool)$denied,'catalogue'=>false,'proposal'=>'./neworg.php','message'=>$msg];
 require_once __DIR__.'/../libs/group-listing.inc.php';
 $groups=alphanoGroupListing($groups,'organizzazioni');
-require __DIR__.'/../templates/groups/index.php';
+require_once __DIR__.'/../templates/groups/index.php';
 closePage();

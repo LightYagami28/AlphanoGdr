@@ -18,4 +18,4 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         $form['enabled']=($_POST['enabled']??'0')==='1';
     }
 }
-require __DIR__.'/../templates/admin/welcome.php';
+require_once __DIR__.'/../templates/admin/welcome.php';

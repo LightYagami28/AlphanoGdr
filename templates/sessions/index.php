@@ -5,7 +5,7 @@
 <?php if($isSessionAdmin): ?><div class="session-admin-tools"><a class="action-btn" data-icon="book" href="?azione=cancellazioni" title="Registro cancellazioni" aria-label="Registro cancellazioni"></a>
 <?php if(array_filter($rows,static fn($row)=>(int)$row['run']===1)): ?><form method="post" action="/sessione/viewlog.php" data-session-close><input type="hidden" name="azione" value="chiudi_in_corso"><input type="hidden" name="_csrf" value="<?=$h(alphanoCsrfToken())?>"><button type="submit" class="action-btn" data-icon="x">Chiudi sessioni in corso</button></form><?php endif; ?></div><?php endif; ?></header>
 <?php if($archiveNotice): ?><script type="application/json" id="session-archive-notice"><?=json_encode($archiveNotice,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_UNESCAPED_UNICODE)?></script><?php endif; ?>
-<?php require __DIR__.'/archive-tabs.php'; ?>
+<?php require_once __DIR__.'/archive-tabs.php'; ?>
 <section class="session-archive" aria-label="Archivio delle sessioni"><section class="session-table-scroll ui-table-scroll" aria-label="Sessioni: tabella scorrevole"><table class="session-table">
 <caption><?=count($rows)?> sessioni · dalla più recente</caption><colgroup><col class="session-name-col"><col class="session-location-col"><col class="session-date-col"><col class="session-date-col"><col class="session-actions-col"></colgroup>
 <thead><tr><th scope="col">Sessione</th><th scope="col">Luogo</th><th scope="col">Apertura</th><th scope="col">Chiusura</th><th scope="col">Azioni</th></tr></thead><tbody>

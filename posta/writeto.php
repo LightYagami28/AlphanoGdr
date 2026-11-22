@@ -71,7 +71,7 @@ if ($oldid) {
     }
 }
 
-if(!$send && $destId>0){unset($row);require __DIR__.'/../templates/mail/workspace.php';closePage();exit;}
+if(!$send && $destId>0){unset($row);require_once __DIR__.'/../templates/mail/workspace.php';closePage();exit;}
 
 // ———————————————————————————
 // COSTRUZIONE QUERY DESTINATARI
@@ -178,7 +178,7 @@ if ($send) {
             $failed[] = $row['nome'];
         }
     }
-    require __DIR__.'/../templates/mail/result.php';
+    require_once __DIR__.'/../templates/mail/result.php';
     closePage();
     exit;
 }
@@ -187,5 +187,5 @@ if ($send) {
 // FORM DI COMPOSIZIONE
 // ———————————————————————————
 $composePeople=count($destRows)===1?alphanoMailPeople([$idpg,(int)$destRows[0]['id']]):[];
-require __DIR__.'/../templates/mail/compose.php';
+require_once __DIR__.'/../templates/mail/compose.php';
 closePage();

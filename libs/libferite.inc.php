@@ -55,9 +55,10 @@ function alphanoMasterAction(int $pg, int $executor, string $chat, string $actio
         $after=$snapshot($db->query('SELECT * FROM utenti WHERE id=?',[$pg])[0]);
         $title=match($action) {LIBFERITE_INC_RICOMPENSA_SOLDI=>alphanoCurrencyText('Premio in Corone consegnato'),LIBFERITE_INC_RICOMPENSA_OGGETTO=>'Oggetto premio consegnato','consuma'=>'Oggetto consumato dal Master','rimuovi'=>'Oggetto rimosso dal Master','rompi'=>'Oggetto rotto dal Master','nota'=>'Annotazione del Master registrata','impostaferite'=>'Condizione del personaggio aggiornata','resuscita'=>'Personaggio resuscitato',default=>'Stato del personaggio aggiornato'};
         $section=match($action) {LIBFERITE_INC_RICOMPENSA_SOLDI=>'ricompensa',LIBFERITE_INC_RICOMPENSA_OGGETTO=>'oggetto','consuma','rimuovi','rompi'=>'consuma','nota'=>'addnote','impostaferite'=>'ferisci','resuscita'=>'resuscita',default=>'uccidi'};
+        if(in_array($action,['consuma','rimuovi','rompi',LIBFERITE_INC_RICOMPENSA_OGGETTO],true)){ $personalSection='oggetti'; }elseif($action===LIBFERITE_INC_RICOMPENSA_SOLDI){ $personalSection='trasferimenti'; }else{ $personalSection='profilo'; }
         alphanoRecordActivity($scope,$executor,[
             ['scope'=>'master','id'=>0,'section'=>$section,'role'=>'admin'],
-            ['scope'=>'personale','id'=>$pg,'section'=>in_array($action,['consuma','rimuovi','rompi',LIBFERITE_INC_RICOMPENSA_OGGETTO],true)?'oggetti':($action===LIBFERITE_INC_RICOMPENSA_SOLDI?'trasferimenti':'profilo'),'role'=>'member'],
+            ['scope'=>'personale','id'=>$pg,'section'=>$personalSection,'role'=>'member'],
         ],$title,$actor['nome'].': '.html_entity_decode(strip_tags($target['nome'].' '.$text),ENT_QUOTES|ENT_HTML5,'UTF-8'),
             ['destinatario'=>$pg,'esecutore'=>$executor,'chat'=>$chat,'sessione'=>(int)($session['id'] ?? 0),'quantita'=>(int)$quantity,'oggetto'=>(int)$item,'reason'=>$reason,'before'=>$before,'after'=>$after,'operation'=>$result[4] ?? []]);
         $html='<span class="Off">'.htmlspecialchars($target['nome'],ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8').' '.$text.'</span>';

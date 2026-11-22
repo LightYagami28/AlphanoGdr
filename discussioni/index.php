@@ -19,4 +19,4 @@ $requested = $_GET['tipo'] ?? '';
 $tipo = is_string($requested) && isset($channels[$requested]) ? $requested : array_key_first($channels);
 $forum = ['mode'=>'discussion', 'title'=>'Discussioni', 'channels'=>$channels, 'tipo'=>$tipo,
     'apiBaseUrl'=>'/api', 'currentUserId'=>$idpg, 'csrfToken'=>alphanoCsrfToken()];
-require __DIR__ . '/../templates/forum/index.php';
+require_once __DIR__ . '/../templates/forum/index.php';

@@ -56,23 +56,28 @@ function lineageDeath(array $victim,int $killer=0,string $killerName='',string $
     $nodes=$db->query('SELECT l.*,u.nome,u.chat,u.lastmove,u.posizione,u.razza,u.puntif FROM lineage_members l JOIN utenti u ON u.id=l.player_id WHERE l.kind=? AND l.root_id=? ORDER BY l.player_id FOR UPDATE',[$node['kind'],$node['root_id']]);
     $byParent=[];$byId=[];foreach($nodes as $n){$byParent[(int)$n['creator_id']][]=$n;$byId[(int)$n['player_id']]=$n;}
     $queue=[(int)$victim['id']];$visited=[];$count=0;
-    for($cursor=0;$cursor<count($queue);$cursor++){$id=$queue[$cursor];if(isset($visited[$id])){ continue; }$visited[$id]=true;
-        $current=$byId[$id]??null;
-        if(!$current){ continue; }
-        if($node['kind']==='vampire'){ foreach($byParent[$id]??[] as $child){ $queue[]=(int)$child['player_id']; } }
-        if(in_array($current['status'],['eliminated','cancelled'],true)){ continue; }
-        $pending=$current['status']==='pending';$status=$pending?'cancelled':'eliminated';
-        $why=$id===(int)$victim['id']?$reason:'Collegamento di stirpe interrotto dalla morte di '.$victim['nome'].'.';
-        $db->execute('UPDATE lineage_members SET status=?,killed_at=?,killer_id=?,killer_name=?,cause_id=?,death_reason=? WHERE player_id=? AND kind=?',[$status,$now,$killer,$killerName,(int)$victim['id'],$why,$id,$node['kind']]);
-        if(!$pending&&$node['kind']==='vampire'){
-            $appearance=alphanoTransformationReady()?',vampire_human_form=0':'';
-            $db->execute('UPDATE utenti SET puntif=0,razza=?,infetto=0,ancestrale=0,senziente=0'.$appearance.',datamorte=? WHERE id=?',[ALPHANO_RACE_DEAD_VAMPIRE,$now,$id]);$count++;
-            lineageNotice($current+['id'=>$id],'La stirpe si spezza',$current['nome'].' viene eliminato. '.$why);
-        }
-        require_once __DIR__.'/libferite.inc.php';
-        insertNote($id,$killer,($pending?'Contagio annullato':'✕ Eliminato').' · '.date('d/m/Y H:i',$now).' · '.$killerName.' · '.$why);
-        $db->execute('INSERT INTO logs_adminpg(azione,data,chat,esecutore,destinatario,qta,obj,descr) VALUES(?,?,?,?,?,0,0,?)',['stirpe-'.$status,$now,(string)$current['chat'],$killer,$id,$why.' Responsabile: '.$killerName]);
+    for($cursor=0;$cursor<count($queue);$cursor++){
+        $id=$queue[$cursor];if(isset($visited[$id])){ continue; }$visited[$id]=true;
+        $count+=lineageDeathNode($db,$byId[$id]??null,$node,$victim,$killer,$killerName,$reason,$now,$id,$byParent,$queue);
     }
+    return $count;
+}
+function lineageDeathNode($db,?array $current,array $node,array $victim,int $killer,string $killerName,string $reason,int $now,int $id,array $byParent,array &$queue):int {
+    if(!$current){ return 0; }
+    $count=0;
+    if($node['kind']==='vampire'){ foreach($byParent[$id]??[] as $child){ $queue[]=(int)$child['player_id']; } }
+    if(in_array($current['status'],['eliminated','cancelled'],true)){ return 0; }
+    $pending=$current['status']==='pending';$status=$pending?'cancelled':'eliminated';
+    $why=$id===(int)$victim['id']?$reason:'Collegamento di stirpe interrotto dalla morte di '.$victim['nome'].'.';
+    $db->execute('UPDATE lineage_members SET status=?,killed_at=?,killer_id=?,killer_name=?,cause_id=?,death_reason=? WHERE player_id=? AND kind=?',[$status,$now,$killer,$killerName,(int)$victim['id'],$why,$id,$node['kind']]);
+    if(!$pending&&$node['kind']==='vampire'){
+        $appearance=alphanoTransformationReady()?',vampire_human_form=0':'';
+        $db->execute('UPDATE utenti SET puntif=0,razza=?,infetto=0,ancestrale=0,senziente=0'.$appearance.',datamorte=? WHERE id=?',[ALPHANO_RACE_DEAD_VAMPIRE,$now,$id]);$count++;
+        lineageNotice($current+['id'=>$id],'La stirpe si spezza',$current['nome'].' viene eliminato. '.$why);
+    }
+    require_once __DIR__.'/libferite.inc.php';
+    insertNote($id,$killer,($pending?'Contagio annullato':'✕ Eliminato').' · '.date('d/m/Y H:i',$now).' · '.$killerName.' · '.$why);
+    $db->execute('INSERT INTO logs_adminpg(azione,data,chat,esecutore,destinatario,qta,obj,descr) VALUES(?,?,?,?,?,0,0,?)',['stirpe-'.$status,$now,(string)$current['chat'],$killer,$id,$why.' Responsabile: '.$killerName]);
     return $count;
 }
 /** Worker and profile refresh use the same durable six-hour deadline, also offline. */

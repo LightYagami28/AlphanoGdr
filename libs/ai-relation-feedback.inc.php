@@ -8,26 +8,25 @@ function aiRelationRevision(array $relation):string {
     $context=aiRelationContextCurrent((int)($relation['npc_id']??0),(int)($relation['player_id']??0));
     return hash('sha256',json_encode([...$values,'state'=>$relation['state']??'conoscenza','context_id'=>(int)($context['id']??0)],JSON_THROW_ON_ERROR));
 }
-function aiRelationEvent(int $npc,int $player,array $before,array $after,string $reason,array $options=[]):int {
-    $context=$options['context']??[];
-    $job=(int)($options['job']??0);
-    $actor=(int)($options['actor']??0);
+function aiRelationApplyNotice($db,int $player,int $npc,string $chat,int $source,int $actor,array $changes,array &$after):void
+{
+    $origin=$source>0?($db->query('SELECT pg,chat,dest FROM chat WHERE id=?',[$source])[0]??[]):[];
+    $owner=$db->query('SELECT chat,bloccato FROM utenti WHERE id=?',[$player])[0]??[];
+    $validSource=$origin&&(int)$origin['pg']===$player&&$origin['chat']===$chat&&(int)$origin['dest']===0;
+    // A metamorphosis is authored by the system (pg=0); its witness ledger
+    // supplies the actor instead of treating arbitrary Master prose as proof.
+    if(!$validSource&&$origin&&(int)$origin['pg']===0&&$origin['chat']===$chat&&(int)$origin['dest']===0){ $validSource=(bool)$db->query("SELECT e.id FROM ai_scene_events e JOIN ai_scene_witnesses w ON w.event_id=e.id WHERE e.source_id=? AND BINARY e.chat_key=BINARY ? AND e.kind='transformation' AND e.actor_id=? AND w.npc_id=?",[$source,$chat,$player,$npc]); }
+    $staffHere=$actor>0&&($owner['chat']??'')===$chat;
+    if(($validSource||$staffHere)&&!empty($owner)&&empty($owner['bloccato'])){
+        $mode=alphanoExperienceSettings($player)['relationship_effects'];$audience=[];
+        if($mode==='public'){ foreach($db->query('SELECT id FROM utenti WHERE BINARY chat=BINARY ? AND bloccato=0 AND lastmove>? ORDER BY id LIMIT 250',[$chat,time()-900]) as $u){ $audience[]=(int)$u['id']; } }
+        $after['_notice']=['chat_key'=>$chat,'source_id'=>$source,'visibility'=>$mode,'audience'=>$audience,'deltas'=>$changes];
+    }
+}
+function aiRelationEvent(int $npc,int $player,array $before,array $after,string $reason,array $context=[],int $job=0,int $actor=0):int {
     $db=aiDb();$changes=[];foreach(AI_RELATION_METRICS as $key=>$_){$delta=(int)($after[$key]??0)-(int)($before[$key]??0);if($delta){ $changes[$key]=$delta; }}
     $chat=(string)($context['chat_key']??'');$source=(int)($context['source_id']??0);
-    if($changes&&$chat!==''){
-        $origin=$source>0?($db->query('SELECT pg,chat,dest FROM chat WHERE id=?',[$source])[0]??[]):[];
-        $owner=$db->query('SELECT chat,bloccato FROM utenti WHERE id=?',[$player])[0]??[];
-        $validSource=$origin&&(int)$origin['pg']===$player&&$origin['chat']===$chat&&(int)$origin['dest']===0;
-        // A metamorphosis is authored by the system (pg=0); its witness ledger
-        // supplies the actor instead of treating arbitrary Master prose as proof.
-        if(!$validSource&&$origin&&(int)$origin['pg']===0&&$origin['chat']===$chat&&(int)$origin['dest']===0){ $validSource=(bool)$db->query("SELECT e.id FROM ai_scene_events e JOIN ai_scene_witnesses w ON w.event_id=e.id WHERE e.source_id=? AND BINARY e.chat_key=BINARY ? AND e.kind='transformation' AND e.actor_id=? AND w.npc_id=?",[$source,$chat,$player,$npc]); }
-        $staffHere=$actor>0&&($owner['chat']??'')===$chat;
-        if(($validSource||$staffHere)&&!empty($owner)&&empty($owner['bloccato'])){
-            $mode=alphanoExperienceSettings($player)['relationship_effects'];$audience=[];
-            if($mode==='public'){ foreach($db->query('SELECT id FROM utenti WHERE BINARY chat=BINARY ? AND bloccato=0 AND lastmove>? ORDER BY id LIMIT 250',[$chat,time()-900]) as $u){ $audience[]=(int)$u['id']; } }
-            $after['_notice']=['chat_key'=>$chat,'source_id'=>$source,'visibility'=>$mode,'audience'=>$audience,'deltas'=>$changes];
-        }
-    }
+    if($changes&&$chat!==''){ aiRelationApplyNotice($db,$player,$npc,$chat,$source,$actor,$changes,$after); }
     $db->execute('INSERT INTO ai_relationship_events(npc_id,player_id,job_id,before_state,after_state,reason,actor_id,created_at) VALUES(?,?,?,?,?,?,?,?)',[$npc,$player,$job>0?$job:null,json_encode($before,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR),json_encode($after,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR),$reason,$actor,time()]);
     return (int)$db->lastInsertId();
 }

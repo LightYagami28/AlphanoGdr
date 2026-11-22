@@ -5,6 +5,67 @@ require_once __DIR__.'/libeconomia.inc.php';
 require_once __DIR__.'/libpg.inc.php';
 require_once __DIR__.'/libelezioni.inc.php';
 
+
+/** Extracted branch of alphanoGroupAdminAction. */
+function alphanoGroupAdminDelegation($db,string $scope,int $group,int $actor,array $input,array $groupRow,array &$state): void
+{
+        $field=$state['field'] ?? '';
+                $section='flag';$target=economiaIntero($input['nome'] ?? '',1) ?? 0;
+                $flags=$scope==='organizzazioni'?['adminorganizzazione'=>'adminorg']:['admincorporazione'=>'admincorporazione','admintrasfcorp'=>'admintrasfcorp','admincatalogo'=>'admincatalogo'];
+                if($scope==='organizzazioni'){ foreach(['resurgo'=>'adminmorti','cerimonia'=>'adminstatosociale','ferite'=>'adminferite'] as $capability=>$flag){ if(!empty($groupRow[$capability])){ $flags[$flag]=$capability; } } }
+                $columns=implode(',',array_keys($flags));
+                $before=$db->query("SELECT id,nome,{$columns} FROM utenti WHERE id=? AND {$field}=? FOR UPDATE",[$target,$group])[0] ?? [];
+                economiaVerifica((bool)$before,'Personaggio non appartenente al gruppo');
+                require_once __DIR__.'/admin-governance.inc.php';
+                $updates=[];foreach($flags as $column=>$key){ $updates[$column]=!empty($input[$key])?1:0; }
+                alphanoGovernanceApply($actor,$target,$updates,'Delega dal pannello '.$groupRow['nome'],null,$scope,$group);
+                $after=$db->query("SELECT id,nome,{$columns} FROM utenti WHERE id=?",[$target])[0];
+                $changed=$before!==$after;$personal=true;$title='Privilegi nel gruppo aggiornati';$detail="Aggiornati i privilegi di {$before['nome']} in {$groupRow['nome']}.";
+        $state['section']=$section;$state['target']=$target;$state['before']=$before;$state['after']=$after;
+        $state['changed']=$changed;$state['personal']=$personal;$state['title']=$title;$state['detail']=$detail;
+}
+
+/** Extracted branch of alphanoGroupAdminAction. */
+function alphanoGroupAdminPrivateRoom($db,string $scope,int $group,array $input,array $groupRow,array &$state): void
+{
+        $action=$state['action'] ?? null;
+        $section=$state['section'] ?? null;$target=$state['target'] ?? null;$before=$state['before'] ?? null;$after=$state['after'] ?? null;
+        $changed=$state['changed'] ?? null;$personal=$state['personal'] ?? null;$title=$state['title'] ?? null;$detail=$state['detail'] ?? null;
+            if ($action==='modifypvt') {
+                $section='pvt';$city=economiaIntero($input['city'] ?? '',1);$password=trim((string)($input['pvt'] ?? ''));
+                economiaVerifica($city!==null && (bool)$db->query('SELECT id FROM city WHERE id=?',[$city]) && ($scope!=='organizzazioni' || $password!==''),'Città o password non validi');
+                $columns=['city','sito','pvt','sfondotop','sfondo','mappa','descrizione'];$values=[$city,trim((string)($input['sito'] ?? '')),base64_encode($password),trim((string)($input['sfondotop'] ?? '')),trim((string)($input['sfondo'] ?? '')),trim((string)($input['mappa'] ?? '')),trim((string)($input['descrizione'] ?? ''))];
+                $before=array_intersect_key($groupRow,array_flip($columns));
+                $db->execute("UPDATE {$scope} SET city=?,sito=?,pvt=?,sfondotop=?,sfondo=?,mappa=?,descrizione=? WHERE id=?",[...$values,$group]);
+                $after=$db->query('SELECT '.implode(',',$columns)." FROM {$scope} WHERE id=?",[$group])[0];
+                $changed=$before!=$after;
+                foreach(['pvt','descrizione'] as $secret){$before[$secret]=hash('sha256',(string)$before[$secret]);$after[$secret]=hash('sha256',(string)$after[$secret]);}
+                $title='Dati e stanza privata aggiornati';$detail="Aggiornati città, sito e impostazioni della stanza privata di {$groupRow['nome']}.";
+        }
+        $state=compact('section','target','before','after','changed','personal','title','detail');
+}
+
+/** Extracted branch of alphanoGroupAdminAction. */
+function alphanoGroupAdminProposal($db,int $group,array $input,array $groupRow,array &$state): void
+{
+        $action=$state['action'] ?? null;
+        $section=$state['section'] ?? null;$target=$state['target'] ?? null;$before=$state['before'] ?? null;$after=$state['after'] ?? null;
+        $changed=$state['changed'] ?? null;$personal=$state['personal'] ?? null;$title=$state['title'] ?? null;$detail=$state['detail'] ?? null;
+            if ($action==='proponi') {
+                $section='elezioni';$city=economiaIntero($input['city'] ?? '',1) ?? 0;$target=economiaIntero($input['pg'] ?? '',1) ?? 0;$program=trim((string)($input['programma'] ?? ''));
+                if(alphanoElectionsReady()){ throw new DomainException('La candidatura è una scelta personale: ogni cittadino può presentarla dal registro elettorale della propria città.',409); }
+                $cityRow=$db->query('SELECT budget,costoelezioni,city FROM city WHERE id=? AND elezioni=1 FOR UPDATE',[$city])[0] ?? null;
+                $member=$db->query('SELECT u.id,u.nome FROM utenti u JOIN araldiche a ON a.id=u.araldica WHERE u.id=? AND u.organizzazione=? AND a.city=? FOR UPDATE',[$target,$group,$city])[0] ?? null;
+                economiaVerifica($cityRow && $member && $program!=='' && electionTime($city) && !$db->query('SELECT idpg FROM candidati WHERE idpg=? FOR UPDATE',[$target]),'Candidatura non valida, già presente o candidature chiuse');
+                $cost=(int)$cityRow['costoelezioni'];
+                economiaVerifica($cost>=0 && (int)$groupRow['budget']>=$cost && (int)$cityRow['budget']<=2147483647-$cost,'Fondi insufficienti o saldo non valido');
+                $db->execute('INSERT INTO candidati(idpg,organizzazione,city,programma) VALUES(?,?,?,?)',[$target,$group,$city,$program]);
+                $db->execute('UPDATE organizzazioni SET budget=budget-? WHERE id=?',[$cost,$group]);$db->execute('UPDATE city SET budget=budget+? WHERE id=?',[$cost,$city]);
+                $after=['candidato'=>$target,'city'=>$city,'programma'=>mb_substr($program,0,3000),'costo'=>$cost];$changed=true;$personal=true;
+                $title='Candidatura proposta';$detail=alphanoCurrencyText("{$groupRow['nome']} ha candidato {$member['nome']} alle elezioni di {$cityRow['city']}. Costo: {$cost} Corone.");
+            }
+        $state=compact('section','target','before','after','changed','personal','title','detail');
+}
 /** Only allowlisted group mutations enter this shared transaction and receipt. */
 function alphanoGroupAdminAction(string $scope, int $group, int $actor, string $action, array $input, array $files = []): ?string
 {
@@ -131,41 +192,13 @@ function alphanoGroupAdminAction(string $scope, int $group, int $actor, string $
                 $changed=$before!==$after;
                 if(isset($before['descrizione'])){ $before['descrizione']=hash('sha256',$before['descrizione']); }
                 if(isset($after['descrizione'])){ $after['descrizione']=hash('sha256',$after['descrizione']); }
-            } elseif ($action==='setflag') {
-                $section='flag';$target=economiaIntero($input['nome'] ?? '',1) ?? 0;
-                $flags=$scope==='organizzazioni'?['adminorganizzazione'=>'adminorg']:['admincorporazione'=>'admincorporazione','admintrasfcorp'=>'admintrasfcorp','admincatalogo'=>'admincatalogo'];
-                if($scope==='organizzazioni'){ foreach(['resurgo'=>'adminmorti','cerimonia'=>'adminstatosociale','ferite'=>'adminferite'] as $capability=>$flag){ if(!empty($groupRow[$capability])){ $flags[$flag]=$capability; } } }
-                $columns=implode(',',array_keys($flags));
-                $before=$db->query("SELECT id,nome,{$columns} FROM utenti WHERE id=? AND {$field}=? FOR UPDATE",[$target,$group])[0] ?? [];
-                economiaVerifica((bool)$before,'Personaggio non appartenente al gruppo');
-                require_once __DIR__.'/admin-governance.inc.php';
-                $updates=[];foreach($flags as $column=>$key){ $updates[$column]=!empty($input[$key])?1:0; }
-                alphanoGovernanceApply($actor,$target,$updates,'Delega dal pannello '.$groupRow['nome'],null,$scope,$group);
-                $after=$db->query("SELECT id,nome,{$columns} FROM utenti WHERE id=?",[$target])[0];
-                $changed=$before!==$after;$personal=true;$title='Privilegi nel gruppo aggiornati';$detail="Aggiornati i privilegi di {$before['nome']} in {$groupRow['nome']}.";
-            } elseif ($action==='modifypvt') {
-                $section='pvt';$city=economiaIntero($input['city'] ?? '',1);$password=trim((string)($input['pvt'] ?? ''));
-                economiaVerifica($city!==null && (bool)$db->query('SELECT id FROM city WHERE id=?',[$city]) && ($scope!=='organizzazioni' || $password!==''),'Città o password non validi');
-                $columns=['city','sito','pvt','sfondotop','sfondo','mappa','descrizione'];$values=[$city,trim((string)($input['sito'] ?? '')),base64_encode($password),trim((string)($input['sfondotop'] ?? '')),trim((string)($input['sfondo'] ?? '')),trim((string)($input['mappa'] ?? '')),trim((string)($input['descrizione'] ?? ''))];
-                $before=array_intersect_key($groupRow,array_flip($columns));
-                $db->execute("UPDATE {$scope} SET city=?,sito=?,pvt=?,sfondotop=?,sfondo=?,mappa=?,descrizione=? WHERE id=?",[...$values,$group]);
-                $after=$db->query('SELECT '.implode(',',$columns)." FROM {$scope} WHERE id=?",[$group])[0];
-                $changed=$before!=$after;
-                foreach(['pvt','descrizione'] as $secret){$before[$secret]=hash('sha256',(string)$before[$secret]);$after[$secret]=hash('sha256',(string)$after[$secret]);}
-                $title='Dati e stanza privata aggiornati';$detail="Aggiornati città, sito e impostazioni della stanza privata di {$groupRow['nome']}.";
-            } elseif ($action==='proponi') {
-                $section='elezioni';$city=economiaIntero($input['city'] ?? '',1) ?? 0;$target=economiaIntero($input['pg'] ?? '',1) ?? 0;$program=trim((string)($input['programma'] ?? ''));
-                if(alphanoElectionsReady()){ throw new DomainException('La candidatura è una scelta personale: ogni cittadino può presentarla dal registro elettorale della propria città.',409); }
-                $cityRow=$db->query('SELECT budget,costoelezioni,city FROM city WHERE id=? AND elezioni=1 FOR UPDATE',[$city])[0] ?? null;
-                $member=$db->query('SELECT u.id,u.nome FROM utenti u JOIN araldiche a ON a.id=u.araldica WHERE u.id=? AND u.organizzazione=? AND a.city=? FOR UPDATE',[$target,$group,$city])[0] ?? null;
-                economiaVerifica($cityRow && $member && $program!=='' && electionTime($city) && !$db->query('SELECT idpg FROM candidati WHERE idpg=? FOR UPDATE',[$target]),'Candidatura non valida, già presente o candidature chiuse');
-                $cost=(int)$cityRow['costoelezioni'];
-                economiaVerifica($cost>=0 && (int)$groupRow['budget']>=$cost && (int)$cityRow['budget']<=2147483647-$cost,'Fondi insufficienti o saldo non valido');
-                $db->execute('INSERT INTO candidati(idpg,organizzazione,city,programma) VALUES(?,?,?,?)',[$target,$group,$city,$program]);
-                $db->execute('UPDATE organizzazioni SET budget=budget-? WHERE id=?',[$cost,$group]);$db->execute('UPDATE city SET budget=budget+? WHERE id=?',[$cost,$city]);
-                $after=['candidato'=>$target,'city'=>$city,'programma'=>mb_substr($program,0,3000),'costo'=>$cost];$changed=true;$personal=true;
-                $title='Candidatura proposta';$detail=alphanoCurrencyText("{$groupRow['nome']} ha candidato {$member['nome']} alle elezioni di {$cityRow['city']}. Costo: {$cost} Corone.");
             }
+            $state=compact('section','target','before','after','changed','personal','title','detail');
+            $state['action']=$action;$state['field']=$field;
+            if($action==='setflag'){alphanoGroupAdminDelegation($db,$scope,$group,$actor,$input,$groupRow,$state);}
+            elseif($action==='modifypvt'){alphanoGroupAdminPrivateRoom($db,$scope,$group,$input,$groupRow,$state);}
+            elseif($action==='proponi'){alphanoGroupAdminProposal($db,$group,$input,$groupRow,$state);}
+            extract($state);
             if ($changed) {
                 $audiences=[['scope'=>$scope,'id'=>$group,'section'=>$section,'role'=>'admin']];
                 if($personal && $target>0){ $audiences[]=['scope'=>'personale','id'=>$target,'section'=>'profilo','role'=>'member']; }

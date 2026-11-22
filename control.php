@@ -9,12 +9,12 @@ declare(strict_types=1);
  |------------------------------------------------------------------
 */
 
-require __DIR__.'/libs/kernel.inc.php';
-require __DIR__.'/libs/libpg.inc.php';
-require __DIR__.'/libs/libblocco.inc.php';
-require __DIR__.'/libs/libmeteo.inc.php';
-require __DIR__.'/libs/libgrafica.inc.php';
-require __DIR__.'/libs/libtext.inc.php';
+require_once __DIR__.'/libs/kernel.inc.php';
+require_once __DIR__.'/libs/libpg.inc.php';
+require_once __DIR__.'/libs/libblocco.inc.php';
+require_once __DIR__.'/libs/libmeteo.inc.php';
+require_once __DIR__.'/libs/libgrafica.inc.php';
+require_once __DIR__.'/libs/libtext.inc.php';
 require_once __DIR__.'/libs/media-assets.inc.php';
 
 use Alphano\Database\PDOMySQLDriver;

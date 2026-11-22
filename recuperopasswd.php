@@ -77,5 +77,5 @@ $recovery = [
     'mode' => match(true){$verified=>'complete',$reset=>'password',default=>'request'},
     'user' => $user, 'email' => $mail, 'token' => $resetToken,
 ];
-require __DIR__ . '/templates/account/recovery.php';
+require_once __DIR__ . '/templates/account/recovery.php';
 closePage();

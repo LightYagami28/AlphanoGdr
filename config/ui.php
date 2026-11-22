@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 if (!defined('S1192_CONFIG_UI_PHP_866F85_CITTA')) { define('S1192_CONFIG_UI_PHP_866F85_CITTA', 'Città'); }
 /** Contratti di presentazione: selettori espliciti, nessuna modifica ai dati o ai permessi. */
-return [
+return $GLOBALS['ALPHANO_CONFIG_CACHE'][__FILE__] = [
     'views' => [
         'admin-assistenza'=>['title'=>'Assistenza Utenti','icon'=>'users','description'=>'Accessi temporanei agli account, motivazioni e registro delle operazioni.'],
         'manuali-index'=>['title'=>'Biblioteca','icon'=>'book','description'=>'Le guide di Alphano, consultabili prima di entrare in gioco.'],

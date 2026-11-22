@@ -1,25 +1,30 @@
 /** Illustrated racial limitations. Values and recorded conditions remain server-authoritative. */
-export function renderRacialMalus(host,sheet){
- if(!host||!sheet.malus){return;}
- host.replaceChildren();
- const el=(tag,text,className)=>{const e=document.createElement(tag);if(text!==undefined){e.textContent=text;}if(className){e.className=className;}return e;};
- const malus=sheet.malus,heading=el('h3','Vulnerabilità della stirpe');
- host.append(heading,el('p','Limiti innati e condizioni attuali di '+sheet.identity.name+'. Le penalità dello stesso tipo non si sommano; condizioni diverse restano distinte.'));
+const el=(tag,text,className)=>{const e=document.createElement(tag);if(text!==undefined){e.textContent=text;}if(className){e.className=className;}return e;};
+
+function renderBalance(host,malus){
  const physical=malus.physical,mental=malus.mental,balance=el('div',undefined,'malus-current');
  for(const [name,result] of [['Prove fisiche',physical],['Prove mentali',mental]]){
   const chip=el('div',undefined,'malus-penalty');chip.append(el('span',name),el('strong',result.penalty>0?'−'+result.penalty+' p.p.':'Nessuna penalità'));
   if(result.penalty>0){chip.classList.add('has-penalty');}balance.append(chip);
  }
  host.append(balance);
+}
+function renderAlerts(host,malus){
+ const physical=malus.physical;
  if(physical.incapacitated){host.append(el('p','Incapacità di agire registrata.', 'malus-alert'));}
  if(physical.regeneration_blocked){host.append(el('p','Rigenerazione della zona ferita sospesa.', 'malus-alert'));}
  if(malus.command){host.append(el('p','Comando soprannaturale attivo: '+malus.command.command,'malus-alert'));}
  if(malus.corruption){host.append(el('p',malus.corruption.resisted?'Offerta corruttiva: resistenza riuscita.':'Offerta corruttiva: concessione temporanea e proporzionata, senza obbedienza assoluta.'));}
- if(!malus.catalog.length){host.append(el('p','Nessun malus di questa stirpe è definito nel manuale Umani e Malus v2. Consulta il regolamento specifico.'));return;}
+}
+function activeNumbers(malus){
+ const physical=malus.physical,mental=malus.mental;
  const active=new Set([...(physical.active||[]),...(mental.active||[])]);
  if(malus.command){active.add(malus.family==='vampire'?8:2);}
  if(malus.corruption&&!malus.corruption.resisted){active.add(3);}
  if(malus.state.destroyed||malus.state.dismembered){active.add(6);}
+ return active;
+}
+function renderCatalog(host,malus,active){
  const family={human:'Umani',vampire:'Vampiri',lycan:'Lycan'},grid=el('div',undefined,'malus-catalog');
  for(const m of malus.catalog){
   const card=el('details',undefined,'malus-card'),summary=el('summary'),copy=el('span',undefined,'malus-card-copy'),labels=el('span',undefined,'malus-card-labels');
@@ -34,7 +39,8 @@ export function renderRacialMalus(host,sheet){
   card.append(summary,body);grid.append(card);
  }
  host.append(grid);
- if(!sheet.can_manage_malus){return;}
+}
+function renderManagement(host,sheet,malus){
  const details=el('details',undefined,'malus-management'),summary=el('summary','Master · Gestisci le condizioni'),form=el('form'),fields=el('div'),reason=el('textarea'),save=el('button','Registra le condizioni'),feedback=el('p');
  fields.className='creation-stat-grid';details.append(summary);
  for(const [key,[label,min,max]] of Object.entries(malus.fields)){
@@ -49,4 +55,16 @@ export function renderRacialMalus(host,sheet){
    const result=await response.json();if(!response.ok){throw new Error(result.error||'Condizioni non salvate.');}renderRacialMalus(host,result);
   }catch(error){feedback.textContent=error.message;}finally{save.disabled=false;}
  });
+}
+export function renderRacialMalus(host,sheet){
+ if(!host||!sheet.malus){return;}
+ host.replaceChildren();
+const malus=sheet.malus,heading=el('h3','Vulnerabilità della stirpe');
+host.append(heading,el('p','Limiti innati e condizioni attuali di '+sheet.identity.name+'. Le penalità dello stesso tipo non si sommano; condizioni diverse restano distinte.'));
+ renderBalance(host,malus);
+ renderAlerts(host,malus);
+ if(!malus.catalog.length){host.append(el('p','Nessun malus di questa stirpe è definito nel manuale Umani e Malus v2. Consulta il regolamento specifico.'));return;}
+ const active=activeNumbers(malus);
+ renderCatalog(host,malus,active);
+ if(!sheet.can_manage_malus){return;}
 }

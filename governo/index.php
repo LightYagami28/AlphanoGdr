@@ -12,4 +12,4 @@ $anchor=$scope==='corporazioni'?'#iscritti':'#tab-iscritti';
 if($scope==='citta'){ $rolesUrl='/admin/cariche.php'; }else{ $rolesUrl=$dest.$anchor; }
 if($scope==='citta'){ $memberUrl='/admin/city.php?city='.$id.'#richieste-cittadinanza'; }else{ $memberUrl=$dest.$anchor; }
 $requestCount=$manage?count(match($scope){'citta'=>GetRichiesteCity($id),'corporazioni'=>GetRichiesteCorp($id),default=>GetRichiesteOrg($id)}):0;
-require __DIR__.'/../templates/admin/governance.php';
+require_once __DIR__.'/../templates/admin/governance.php';

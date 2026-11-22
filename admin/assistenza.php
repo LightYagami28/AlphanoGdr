@@ -18,4 +18,4 @@ $users=connectDB()->query('SELECT id,nome,admin,bloccato,posizione,lastmove,razz
 foreach($users as &$person){ $person['portrait']=alphanoProfilePortrait($person); }unset($person);
 $logs=connectDB()->query('SELECT s.*,a.nome AS actor_name,t.nome AS target_name FROM support_sessions s LEFT JOIN utenti a ON a.id=s.actor LEFT JOIN utenti t ON t.id=s.target ORDER BY s.id DESC LIMIT 100');
 $selected=max(0,(int)($_GET['session']??0));$audit=$selected?connectDB()->query('SELECT * FROM support_audit WHERE support_id=? ORDER BY id DESC LIMIT 200',[$selected]):[];
-require __DIR__.'/../templates/admin/user-support.php';
+require_once __DIR__.'/../templates/admin/user-support.php';

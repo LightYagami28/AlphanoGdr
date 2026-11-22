@@ -4,10 +4,7 @@ class AIQuestTurnException extends DomainException {
     public function __construct(string $message){parent::__construct($message,409);}
 }
 
-/** One authoritative description for chat status and rejected actions. No model decides the queue. */
-function aiQuestTurnState(array $quest, ?array $guidance=null): array {
-    $guidance??=aiGameGuidance((int)$quest['session_id']);
-    $order=json_decode($guidance['turn_order'],true)?:[];
+function aiQuestTurnQueues(array $quest,array $guidance,array $order):array {
     $cast=aiDb()->query('SELECT kind,actor_id,active,state FROM ai_quest_cast WHERE session_id=?',[(int)$quest['session_id']]);
     $active=[];$joining=[];
     foreach($cast as $member){
@@ -26,15 +23,27 @@ function aiQuestTurnState(array $quest, ?array $guidance=null): array {
     $next=$queue;
     foreach($joining as $member){ $next[]=[...$member,'name'=>aiQuestName($member['kind'],$member['id'])]; }
     if((json_decode($quest['policy']??'{}',true)['initiative']??'entry')==='force'){ usort($next,static fn($a,$b)=>(int)(aiQuestActor($b['kind'],$b['id'])['forza']??0)<=>(int)(aiQuestActor($a['kind'],$a['id'])['forza']??0)); }
+    return [$queue,$remaining,$next];
+}
+function aiQuestTurnLabel(bool $paused,string $status,array $quest,?string $turn):string {
+ $label=$paused?'Regia sospesa dal Master':'In attesa del prossimo turno';
+ if(!$paused){
+  if($status==='review'){ $label=$quest['mode']==='human'?'Giro completato · esito al Master umano':'Giro completato · in attesa di convalida del Master'; }
+  elseif($status==='resolving'){ $label='Giro completato · il Master IA sta preparando il verdetto'; }
+  elseif($status==='attention'){ $label='Intervento del Master richiesto'; }
+  elseif($status==='closed'){ $label='Quest conclusa'; }
+  elseif($turn){ $label='Tocca a '.$turn; }
+ }
+ return $label;
+}
+/** One authoritative description for chat status and rejected actions. No model decides the queue. */
+function aiQuestTurnState(array $quest, ?array $guidance=null): array {
+    $guidance??=aiGameGuidance((int)$quest['session_id']);
+    $order=json_decode($guidance['turn_order'],true)?:[];
+    [$queue,$remaining,$next]=aiQuestTurnQueues($quest,$guidance,$order);
     $paused=(bool)$guidance['paused'];$status=$quest['status'];
     $turn=(!$paused&&$status==='active')?($remaining[0]['name']??null):null;
-    $label=$paused?'Regia sospesa dal Master':match($status){
-        'review'=>$quest['mode']==='human'?'Giro completato · esito al Master umano':'Giro completato · in attesa di convalida del Master',
-        'resolving'=>'Giro completato · il Master IA sta preparando il verdetto',
-        'attention'=>'Intervento del Master richiesto',
-        'closed'=>'Quest conclusa',
-        default=>$turn?'Tocca a '.$turn:'In attesa del prossimo turno',
-    };
+    $label=aiQuestTurnLabel($paused,$status,$quest,$turn);
     return ['turn'=>$turn,'phase_label'=>$label,'queue'=>$queue,'remaining'=>$status==='active'?$remaining:[],'next_queue'=>$next];
 }
 

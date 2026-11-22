@@ -7,13 +7,13 @@ declare(strict_types=1);
 header('Content-Type: application/json; charset=utf-8');
 
 // Adatta il percorso se la tua cartella libs non è in ../libs
-require __DIR__ . '/../libs/kernel.inc.php';
-require __DIR__ . '/../libs/libpg.inc.php';
-require __DIR__ . '/../libs/libmeteo.inc.php';
-require __DIR__ . '/../libs/libgrafica.inc.php';
-require __DIR__ . '/../libs/libtext.inc.php';
-require __DIR__ . '/../libs/libelezioni.inc.php';
-require __DIR__ . '/../libs/libblocco.inc.php';
+require_once __DIR__ . '/../libs/kernel.inc.php';
+require_once __DIR__ . '/../libs/libpg.inc.php';
+require_once __DIR__ . '/../libs/libmeteo.inc.php';
+require_once __DIR__ . '/../libs/libgrafica.inc.php';
+require_once __DIR__ . '/../libs/libtext.inc.php';
+require_once __DIR__ . '/../libs/libelezioni.inc.php';
+require_once __DIR__ . '/../libs/libblocco.inc.php';
 
 use Alphano\Database\PDOMySQLDriver;
 

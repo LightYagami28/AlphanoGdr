@@ -7,9 +7,8 @@ function alphanoBoardImage(array $board):string {
     return alphanoDefaultArt('board');
 }
 function alphanoBoardValidateImage(string $path):string {
-    if(trim($path)===''){ return alphanoDefaultArt('board'); }
-    if(alphanoIsDefaultArt($path)){ return $path; }
-    if($path==='/assets/placeholder.svg'){ return $path; }
+    $special=trim($path)===''||alphanoIsDefaultArt($path)||$path==='/assets/placeholder.svg';
+    if($special){ return trim($path)==='' ? alphanoDefaultArt('board') : $path; }
     if(!preg_match('~^/uploads/forum/boards/[a-z0-9-]+\.webp$~D',$path)||!is_file(dirname(__DIR__).$path)){ throw new DomainException('Scegli un’immagine delle bacheche disponibili.',422); }
     return $path;
 }

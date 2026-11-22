@@ -10,7 +10,7 @@ function rpgAbilityLearnable(array $a):bool {
 }
 function rpgCreationStatus(string $kind,int $id,?array $identity=null):array {
  $identity??=rpg_identity($kind,$id);$state=rpgCreationReady()?(connectDB()->query('SELECT * FROM rpg_creation WHERE owner_kind=? AND owner_id=?',[$kind,$id])[0]??[]):[];
- $lineage=(int)($identity['native_race_id']??$identity['race_id']);$eligible=(int)alphanoConfig('initial_innates')>0;
+ $eligible=(int)alphanoConfig('initial_innates')>0;
  return ['manual_points'=>(bool)($state['manual_points']??false),'innates_chosen'=>(bool)($state['innates_chosen']??false),'needs_points'=>$kind==='pg'&&empty($state['manual_points']),'needs_innates'=>$eligible&&empty($state['innates_chosen']),'eligible'=>$eligible,'choices'=>(int)alphanoConfig('initial_innates')];
 }
 function rpgCreationCatalog():array {

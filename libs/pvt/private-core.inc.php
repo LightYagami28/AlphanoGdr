@@ -1,5 +1,7 @@
 <?php
 declare(strict_types=1);
+const PRIVATE_CORE_INC_UPDATE_CITY_SET_BUDGET_BUDGET_WHERE_ID = 'UPDATE city SET budget=budget+? WHERE id=?';
+const PRIVATE_CORE_INC_LOCATION = 'Location: ';
 /** Stanze private, sedi e dimore: permessi, canoni e inventario condivisi. */
 require_once dirname(__DIR__) . '/kernel.inc.php';
 require_once dirname(__DIR__) . '/libpg.inc.php';
@@ -81,7 +83,7 @@ function alphanoPrivateJoin(string $type,array $city,int $pg,array $input): stri
             if ($user['chat']!==$key || !isset($_SESSION['private_rooms'][$key])) {
                 if ((int)$user['denari']<$cost) { throw new DomainException(alphanoCurrencyText('Non hai abbastanza Corone per questa stanza'),409); }
                 $db->execute('UPDATE utenti SET denari=denari-? WHERE id=?',[$cost,$pg]);
-                $db->execute('UPDATE city SET budget=budget+? WHERE id=?',[$cost,$city['id']]);
+                $db->execute(PRIVATE_CORE_INC_UPDATE_CITY_SET_BUDGET_BUDGET_WHERE_ID,[$cost,$city['id']]);
             }
             $key=alphanoPrivateGrant('pvt',$city,$pg,0,$secret,'pvt'.$city['city'].base64_encode($secret));
         } elseif ($type==='stanze') {
@@ -94,7 +96,7 @@ function alphanoPrivateJoin(string $type,array $city,int $pg,array $input): stri
                 $cost=max(0,(int)$city[$costField]);
                 if ((int)$record['budget']<$cost) { throw new DomainException('Il fondo della sede non copre il canone mensile',409); }
                 $db->execute("UPDATE $table SET budget=budget-?,lastpay=? WHERE id=?",[$cost,alphanoPrivateMonth(),$id]);
-                $db->execute('UPDATE city SET budget=budget+? WHERE id=?',[$cost,$city['id']]);
+                $db->execute(PRIVATE_CORE_INC_UPDATE_CITY_SET_BUDGET_BUDGET_WHERE_ID,[$cost,$city['id']]);
             } else { $db->execute("UPDATE $table SET lastpay=? WHERE id=?",[alphanoPrivateMonth(),$id]); }
             $key=alphanoPrivateGrant($kind,$city,$pg,$id,$record['pvt'],'pvt'.$kind.$id.$record['pvt']);
         } else {
@@ -106,7 +108,7 @@ function alphanoPrivateJoin(string $type,array $city,int $pg,array $input): stri
                 $cost=max(0,(int)$record['costo']);
                 if ((int)$user['denari']<$cost) { throw new DomainException(alphanoCurrencyText('Non hai abbastanza Corone per il canone della dimora'),409); }
                 $db->execute('UPDATE utenti SET denari=denari-? WHERE id=?',[$cost,$pg]);
-                $db->execute('UPDATE city SET budget=budget+? WHERE id=?',[$cost,$city['id']]);
+                $db->execute(PRIVATE_CORE_INC_UPDATE_CITY_SET_BUDGET_BUDGET_WHERE_ID,[$cost,$city['id']]);
                 $db->execute('INSERT INTO logs_dimore(data,pg,city) VALUES (?,?,?)',[time(),$pg,$city['id']]);
                 require_once dirname(__DIR__) . '/libposta.inc.php';
                 inviaMissiva('Affitto','Ti sono stati scalati '.$cost.alphanoCurrencyText(' Corone per il canone mensile della tua casa a ').$city['city'],$pg);
@@ -196,14 +198,14 @@ function alphanoPrivateDispatch(string $type,string $slug,string $page): void
     catch (DomainException $e) { alphanoFail($e->getMessage(), $e->getCode() ?: 403); }
     $base='/chat/'.$slug.'/'.$type.'/';$message='';$room=null;
     try {
-        if ($page==='index') { header('Location: '.$base.'pvt.php');return; }
+        if ($page==='index') { header(PRIVATE_CORE_INC_LOCATION.$base.'pvt.php');return; }
         if ($_SERVER['REQUEST_METHOD']==='POST') { alphanoRequireCsrf(); }
         if ($page==='pvt' && $_SERVER['REQUEST_METHOD']==='POST') {
             if (!empty($_POST['indirizzo']) && empty($_POST['accept']) && $type==='dimore' && isset($_POST['password'])) {
                 alphanoPrivateRent($city,$pg,(int)$_POST['indirizzo'],(string)$_POST['password']);$message='Contratto di affitto creato. Puoi entrare nella tua dimora.';
             } elseif (!empty($_POST['accept'])) {
                 $key=alphanoPrivateJoin($type,$city,$pg,$_POST);
-                header('Location: '.$base.'chat.php?room='.rawurlencode($key),true,303);return;
+                header(PRIVATE_CORE_INC_LOCATION.$base.'chat.php?room='.rawurlencode($key),true,303);return;
             }
         }
         if (in_array($page,['chat','control','addLchat','showdetails'],true)) {
@@ -211,7 +213,7 @@ function alphanoPrivateDispatch(string $type,string $slug,string $page): void
             $room=alphanoPrivateRoom($key,$pg);
             if ($room && ($room['private_slug']!==$slug || ($type==='stanze' ? !in_array($room['private_kind'],['org','corp'],true) : $room['private_kind']!==$type))) { $room=null; }
             if (!$room) {
-                if ($page==='chat') {header('Location: '.$base.'pvt.php');return;}
+                if ($page==='chat') {header(PRIVATE_CORE_INC_LOCATION.$base.'pvt.php');return;}
                 throw new DomainException('Apri prima la stanza e verifica la password',403);
             }
             if ($page==='chat' && $_SERVER['REQUEST_METHOD']==='POST') {
@@ -219,7 +221,7 @@ function alphanoPrivateDispatch(string $type,string $slug,string $page): void
                 if (in_array($action,['movetoarmadio','movetozaino','movetovetrina'],true)) { alphanoPrivateMove($room,$pg,$action,(int)($_POST['oggetto'] ?? 0)); }
                 elseif (!empty($_POST['aggiorna'])) { alphanoPrivateUpdate($room,$pg,$_POST); }
                 else { throw new DomainException('Azione non valida',400); }
-                header('Location: '.$base.'chat.php?room='.rawurlencode($key),true,303);return;
+                header(PRIVATE_CORE_INC_LOCATION.$base.'chat.php?room='.rawurlencode($key),true,303);return;
             }
             if ($page==='control') { header('Location: /chat/messages.php?chat='.rawurlencode($key).'&initial=1');return; }
             if ($page==='addLchat') {

@@ -1,5 +1,8 @@
 <?php
 declare(strict_types=1);
+const LIBFERITE_INC_RICOMPENSA_OGGETTO = 'ricompensa(oggetto)';
+const LIBFERITE_INC_RICOMPENSA_SOLDI = 'ricompensa(soldi)';
+const LIBFERITE_INC_ISTANZA = 'istanza #';
 require_once __DIR__ . '/kernel.inc.php';
 require_once __DIR__ . '/libchat.inc.php';
 require_once __DIR__ . '/libequip.inc.php';
@@ -27,7 +30,7 @@ function alphanoMasterAction(int $pg, int $executor, string $chat, string $actio
         $session=$db->query('SELECT id,partecipanti FROM sessioni WHERE chat=? AND run=1 ORDER BY id DESC LIMIT 1 FOR UPDATE',[$chat])[0] ?? null;
         $reward=str_starts_with($action,'ricompensa(');
         if ($reward && (!$session || $pg===$executor || !in_array((string)$pg,array_filter(explode(';',$session['partecipanti'])),true))) { throw new DomainException('Il premio richiede una sessione attiva e un partecipante diverso dal Master',400); }
-        $scope=match($action) {'ricompensa(soldi)'=>'master-reward-money','ricompensa(oggetto)'=>'master-reward-item','consuma'=>'master-consume',default=>'master-'.preg_replace('/[^a-z0-9_-]/i','-',$action)};
+        $scope=match($action) {LIBFERITE_INC_RICOMPENSA_SOLDI=>'master-reward-money',LIBFERITE_INC_RICOMPENSA_OGGETTO=>'master-reward-item','consuma'=>'master-consume',default=>'master-'.preg_replace('/[^a-z0-9_-]/i','-',$action)};
         $operationPayload=[$pg,$chat,$action,$reward?(int)$session['id']:0,$payload];
         if($reason!==''){ $operationPayload[]=$reason; }
         if (!alphanoOperationOnce($scope,$executor,$requestKey,$operationPayload)) {
@@ -46,11 +49,11 @@ function alphanoMasterAction(int $pg, int $executor, string $chat, string $actio
         $db->execute('INSERT INTO logs_adminpg (azione,data,chat,esecutore,destinatario,qta,obj,descr) VALUES (?,?,?,?,?,?,?,?)',
             [$action,time(),$chat,$executor,$pg,$quantity,$item,$description.($reason!==''?"\nMotivazione: ".$reason:'')]);
         $after=$snapshot($db->query('SELECT * FROM utenti WHERE id=?',[$pg])[0]);
-        $title=match($action) {'ricompensa(soldi)'=>alphanoCurrencyText('Premio in Corone consegnato'),'ricompensa(oggetto)'=>'Oggetto premio consegnato','consuma'=>'Oggetto consumato dal Master','rimuovi'=>'Oggetto rimosso dal Master','rompi'=>'Oggetto rotto dal Master','nota'=>'Annotazione del Master registrata','impostaferite'=>'Condizione del personaggio aggiornata','resuscita'=>'Personaggio resuscitato',default=>'Stato del personaggio aggiornato'};
-        $section=match($action) {'ricompensa(soldi)'=>'ricompensa','ricompensa(oggetto)'=>'oggetto','consuma','rimuovi','rompi'=>'consuma','nota'=>'addnote','impostaferite'=>'ferisci','resuscita'=>'resuscita',default=>'uccidi'};
+        $title=match($action) {LIBFERITE_INC_RICOMPENSA_SOLDI=>alphanoCurrencyText('Premio in Corone consegnato'),LIBFERITE_INC_RICOMPENSA_OGGETTO=>'Oggetto premio consegnato','consuma'=>'Oggetto consumato dal Master','rimuovi'=>'Oggetto rimosso dal Master','rompi'=>'Oggetto rotto dal Master','nota'=>'Annotazione del Master registrata','impostaferite'=>'Condizione del personaggio aggiornata','resuscita'=>'Personaggio resuscitato',default=>'Stato del personaggio aggiornato'};
+        $section=match($action) {LIBFERITE_INC_RICOMPENSA_SOLDI=>'ricompensa',LIBFERITE_INC_RICOMPENSA_OGGETTO=>'oggetto','consuma','rimuovi','rompi'=>'consuma','nota'=>'addnote','impostaferite'=>'ferisci','resuscita'=>'resuscita',default=>'uccidi'};
         alphanoRecordActivity($scope,$executor,[
             ['scope'=>'master','id'=>0,'section'=>$section,'role'=>'admin'],
-            ['scope'=>'personale','id'=>$pg,'section'=>in_array($action,['consuma','rimuovi','rompi','ricompensa(oggetto)'],true)?'oggetti':($action==='ricompensa(soldi)'?'trasferimenti':'profilo'),'role'=>'member'],
+            ['scope'=>'personale','id'=>$pg,'section'=>in_array($action,['consuma','rimuovi','rompi',LIBFERITE_INC_RICOMPENSA_OGGETTO],true)?'oggetti':($action===LIBFERITE_INC_RICOMPENSA_SOLDI?'trasferimenti':'profilo'),'role'=>'member'],
         ],$title,$actor['nome'].': '.html_entity_decode(strip_tags($target['nome'].' '.$text),ENT_QUOTES|ENT_HTML5,'UTF-8'),
             ['destinatario'=>$pg,'esecutore'=>$executor,'chat'=>$chat,'sessione'=>(int)($session['id'] ?? 0),'quantita'=>(int)$quantity,'oggetto'=>(int)$item,'reason'=>$reason,'before'=>$before,'after'=>$after,'operation'=>$result[4] ?? []]);
         $html='<span class="Off">'.htmlspecialchars($target['nome'],ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8').' '.$text.'</span>';
@@ -111,7 +114,7 @@ function resuscita(int $pgId,int $esecutore,string $chat): bool
 function ricompensa(int $pgId,int $amount,int $esecutore,string $chat,?string $requestKey=null,?bool &$replayed=null,string $reason='',bool $journal=false): bool
 {
     if ($amount <= 0 || $amount > 1000000000) { return false; }
-    return alphanoMasterAction($pgId,$esecutore,$chat,'ricompensa(soldi)',static function($db,$target) use($amount) {
+    return alphanoMasterAction($pgId,$esecutore,$chat,LIBFERITE_INC_RICOMPENSA_SOLDI,static function($db,$target) use($amount) {
         if ((int)$target['denari']>PHP_INT_MAX-$amount) { throw new DomainException('Il premio supera il saldo massimo consentito',400); }
         $db->execute('UPDATE utenti SET denari=denari+? WHERE id=?', [$amount,$target['id']]);
         return [alphanoCurrencyText("riceve in premio $amount corone"),$amount,0,''];
@@ -121,7 +124,7 @@ function ricompensa(int $pgId,int $amount,int $esecutore,string $chat,?string $r
 function daiOggetto(int $pgId,int $itemId,int $esecutore,string $chat,?string $requestKey=null,?bool &$replayed=null,int $quantity=1,string $reason='',bool $journal=false): bool
 {
     if($quantity<1||$quantity>100){ return false; }
-    return alphanoMasterAction($pgId,$esecutore,$chat,'ricompensa(oggetto)',static function($db,$target) use($itemId,$quantity) {
+    return alphanoMasterAction($pgId,$esecutore,$chat,LIBFERITE_INC_RICOMPENSA_OGGETTO,static function($db,$target) use($itemId,$quantity) {
         $item = $db->query('SELECT id,shortDesc FROM equip WHERE id=? AND approvato=1 AND corp=0', [$itemId])[0] ?? null;
         if (!$item) { throw new DomainException('Oggetto premio non disponibile',400); }
         $instances=[];for($i=0;$i<$quantity;$i++){$db->execute('INSERT INTO equippg(idpg,uid) VALUES (?,?)', [$target['id'],$itemId]);$instances[]=(int)$db->lastInsertID();}
@@ -137,7 +140,7 @@ function consumaMaster(int $pg,int $instance,int $quantity,int $executor,string 
         $item=$db->query('SELECT p.uid,p.consumo,e.shortDesc FROM equippg p JOIN equip e ON e.id=p.uid WHERE p.id=? AND p.idpg=? FOR UPDATE',[$instance,$target['id']])[0] ?? null;
         if (!$item || !consuma((int)$target['id'],$instance,$quantity)) { throw new DomainException('Oggetto del personaggio non disponibile',400); }
         $after=$db->query('SELECT consumo FROM equippg WHERE id=? AND idpg=?',[$instance,$target['id']])[0] ?? null;
-        return ["consuma {$quantity} unità di ".htmlspecialchars($item['shortDesc'],ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8'),$quantity,(int)$item['uid'],'istanza #'.$instance,
+        return ["consuma {$quantity} unità di ".htmlspecialchars($item['shortDesc'],ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8'),$quantity,(int)$item['uid'],LIBFERITE_INC_ISTANZA.$instance,
             ['istanza'=>$instance,'consumo_prima'=>(int)$item['consumo'],'consumo_dopo'=>$after?(int)$after['consumo']:null,'rimosso'=>$after===null]];
     },$requestKey,[$instance,$quantity],$replayed,$reason,$journal);
 }
@@ -158,7 +161,7 @@ function rompiOggettoMaster(int $pg,int $instance,int $executor,string $chat,?st
         $db->execute("INSERT INTO logs_equip(data,esecutore,origine,obj,azione) VALUES(?,?,?,?,'ROMPI')",[time(),$executor,$target['id'],$item['uid']]);
         $after=$db->query('SELECT p.*,e.shortDesc,e.durata FROM equippg p JOIN equip e ON e.id=p.uid WHERE p.id=? AND p.idpg=?',[$instance,$target['id']])[0];
         $stateAfter=$stateBefore?($db->query('SELECT * FROM equipment_state WHERE instance_id=?',[$instance])[0]??null):null;
-        return ['vede rompersi l’oggetto '.htmlspecialchars($item['shortDesc'],ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8'),1,(int)$item['uid'],'istanza #'.$instance,['before'=>$item,'after'=>$after,'released_children'=>$children,'equipment_state_before'=>$stateBefore,'equipment_state_after'=>$stateAfter]];
+        return ['vede rompersi l’oggetto '.htmlspecialchars($item['shortDesc'],ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8'),1,(int)$item['uid'],LIBFERITE_INC_ISTANZA.$instance,['before'=>$item,'after'=>$after,'released_children'=>$children,'equipment_state_before'=>$stateBefore,'equipment_state_after'=>$stateAfter]];
     },$requestKey,[$instance],$replayed,$reason,$journal);
 }
 
@@ -167,7 +170,7 @@ function rimuoviOggettoMaster(int $pg,int $instance,int $executor,string $chat,?
     return alphanoMasterAction($pg,$executor,$chat,'rimuovi',static function($db,$target)use($instance,$executor){
         $item=$db->query('SELECT p.*,e.shortDesc FROM equippg p JOIN equip e ON e.id=p.uid WHERE p.id=? AND p.idpg=? FOR UPDATE',[$instance,$target['id']])[0]??null;
         if(!$item||!deleteObject($instance,(int)$target['id'],$executor)){ throw new DomainException('Oggetto del personaggio non disponibile.',409); }
-        return ['perde l’oggetto '.htmlspecialchars($item['shortDesc'],ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8'),1,(int)$item['uid'],'istanza #'.$instance,['before'=>$item,'after'=>null]];
+        return ['perde l’oggetto '.htmlspecialchars($item['shortDesc'],ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8'),1,(int)$item['uid'],LIBFERITE_INC_ISTANZA.$instance,['before'=>$item,'after'=>null]];
     },$requestKey,[$instance],$replayed,$reason,$journal);
 }
 

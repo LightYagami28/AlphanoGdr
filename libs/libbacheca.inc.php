@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+const LIBBACHECA_INC_NESSUN_OGGETTO = 'Nessun Oggetto';
 // libs/libbacheca_pdo.inc.php
 
 use Alphano\Database\PDOMySQLDriver;
@@ -116,7 +117,7 @@ function aggiornaMessaggio(int $id, string $oggetto, string $messaggio): bool
             WHERE id = :id';
     $stmt = $db->prepare($sql);
     $ok = $stmt->execute([
-        ':o'  => $oggetto !== '' ? $oggetto : 'Nessun Oggetto',
+        ':o'  => $oggetto !== '' ? $oggetto : LIBBACHECA_INC_NESSUN_OGGETTO,
         ':m'  => $messaggio,
         ':id' => $id,
     ]);
@@ -322,7 +323,7 @@ function inserisciPost(
     $db = getBachecaDb();
 
     if ($oggetto === '') {
-        $oggetto = 'Nessun Oggetto';
+        $oggetto = LIBBACHECA_INC_NESSUN_OGGETTO;
     }
 
     $parent=$db->query('SELECT * FROM bacheche WHERE id=? AND bacheca=? AND replyid=0',[$replyId,$bc])[0] ?? null;
@@ -370,7 +371,7 @@ function inserisciThread(
     $db = getBachecaDb();
 
     if ($oggetto === '') {
-        $oggetto = 'Nessun Oggetto';
+        $oggetto = LIBBACHECA_INC_NESSUN_OGGETTO;
     }
 
     $sql = 'INSERT INTO bacheche

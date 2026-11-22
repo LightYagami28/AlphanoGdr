@@ -1,21 +1,23 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/alphano-exceptions.inc.php';
+
 require_once __DIR__.'/kernel.inc.php';
 
 /** Immutable receipts. Audiences retain current role checks when read. */
 function alphanoRecordActivity(string $type,int $actor,array $audiences,string $title,string $detail,array $data=[],?string $eventKey=null): int
 {
-    if(!preg_match('/^[a-zA-Z0-9:_-]{1,64}$/D',$type)||$actor<0||!$audiences||count($audiences)>30){ throw new InvalidArgumentException('Evento non valido'); }
+    if(!preg_match('/^[a-zA-Z0-9:_-]{1,64}$/D',$type)||$actor<0||!$audiences||count($audiences)>30){ throw new AlphanoValidationException('Evento non valido'); }
     $scopes=['organizzazioni','corporazioni','citta','accademia','personale','master','gestione'];
     $roles=['member','admin','trade','catalogue'];
     foreach($audiences as $a){
         if(!is_array($a)||!in_array($a['scope']??'',$scopes,true)||!in_array($a['role']??'member',$roles,true)
-            ||!is_int($a['id']??null)||$a['id']<0||!preg_match('/^[a-z0-9_-]{1,64}$/D',$a['section']??'')){ throw new InvalidArgumentException('Destinazione evento non valida'); }
+            ||!is_int($a['id']??null)||$a['id']<0||!preg_match('/^[a-z0-9_-]{1,64}$/D',$a['section']??'')){ throw new AlphanoValidationException('Destinazione evento non valida'); }
     }
     $eventKey??=bin2hex(random_bytes(24));
-    if(strlen($eventKey)>190||!preg_match('/^[a-zA-Z0-9:_-]+$/D',$eventKey)){ throw new InvalidArgumentException('Chiave evento non valida'); }
+    if(strlen($eventKey)>190||!preg_match('/^[a-zA-Z0-9:_-]+$/D',$eventKey)){ throw new AlphanoValidationException('Chiave evento non valida'); }
     $json=json_encode($data,JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE|JSON_THROW_ON_ERROR,20);
-    if(strlen($json)>65535){ throw new InvalidArgumentException('Dettagli evento troppo lunghi'); }
+    if(strlen($json)>65535){ throw new AlphanoValidationException('Dettagli evento troppo lunghi'); }
     $db=connectDB();$own=!$db->inTransaction();if($own){ $db->beginTransaction(); }
     try{
         $actorName=$actor?($db->query('SELECT nome FROM utenti WHERE id=?',[$actor])[0]['nome']??'Personaggio'):'Sistema';
@@ -29,7 +31,7 @@ function alphanoRecordActivity(string $type,int $actor,array $audiences,string $
                 $out=[];foreach($list as $a){ $out[]=[$a['scope'],(int)$a['id'],$a['section'],$a['role']??'member']; }sort($out);return array_values(array_unique($out,SORT_REGULAR));
             };
             if($stored['event_type']!==$type||(int)$stored['actor_id']!==$actor||$stored['title']!==mb_substr($title,0,255)||$stored['detail']!==mb_substr($detail,0,10000)
-                ||json_decode($stored['data_json'],true,20,JSON_THROW_ON_ERROR)!=$data||$normalize($existing)!==$normalize($audiences)){ throw new RuntimeException('Identificativo della ricevuta già usato con dati diversi.',409); }
+                ||json_decode($stored['data_json'],true,20,JSON_THROW_ON_ERROR)!=$data||$normalize($existing)!==$normalize($audiences)){ throw new AlphanoStorageException('Identificativo della ricevuta già usato con dati diversi.',409); }
         }
         if($created){ foreach($audiences as $a){ $db->execute('INSERT IGNORE INTO activity_event_audiences(event_id,audience_scope,scope_id,section_key,access_role) VALUES(?,?,?,?,?)',
             [$event,$a['scope'],$a['id'],$a['section'],$a['role']??'member']); 
@@ -101,7 +103,7 @@ function alphanoActivityWhere(array $user,bool $includeRead=false,?string $group
 function alphanoRecordedSources(array $user,string $source,array $ids): array
 {
     if(!$ids){ return []; }
-    if(!in_array($source,['loan','order'],true)){ throw new InvalidArgumentException('Fonte attività non valida'); }
+    if(!in_array($source,['loan','order'],true)){ throw new AlphanoValidationException('Fonte attività non valida'); }
     [$acl,$params]=alphanoActivityAcl($user);$known=[];
     foreach(array_chunk(array_values(array_unique(array_map('intval',$ids))),300) as $chunk){
         $path='$.'.$source.'_id';

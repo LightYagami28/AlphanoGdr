@@ -1,5 +1,7 @@
 <?php
 declare(strict_types=1);
+const ITEM_ENGINE_INC_FOR_UPDATE = ' FOR UPDATE';
+const ITEM_ENGINE_INC_DELETE_FROM_EQUIPPG_WHERE_ID = 'DELETE FROM equippg WHERE id=?';
 require_once __DIR__.'/libequip.inc.php';
 require_once __DIR__.'/rpg.inc.php';
 function itemEngineReady():bool {static $r;return $r??=(bool)db()->query("SHOW TABLES LIKE 'equipment_state'");}
@@ -17,10 +19,10 @@ function itemSpec(mixed $raw):array {
  if(in_array($kind,['feed','consumable'],true)){ $out['charges']=1; }return $out;
 }
 function itemInstance(int $id,int $owner,bool $lock=false):array {
- $r=db()->query('SELECT p.*,e.shortDesc,e.game_rules,e.durata,t.subtipo,t.nome AS type FROM equippg p JOIN equip e ON e.id=p.uid JOIN tipo t ON t.id=e.tipo WHERE p.id=? AND p.idpg=?'.($lock?' FOR UPDATE':''),[$id,$owner])[0]??null;if(!$r){ throw new DomainException('Oggetto non posseduto.',403); }$r['rules']=itemSpec($r['game_rules']);return $r;
+ $r=db()->query('SELECT p.*,e.shortDesc,e.game_rules,e.durata,t.subtipo,t.nome AS type FROM equippg p JOIN equip e ON e.id=p.uid JOIN tipo t ON t.id=e.tipo WHERE p.id=? AND p.idpg=?'.($lock?ITEM_ENGINE_INC_FOR_UPDATE:''),[$id,$owner])[0]??null;if(!$r){ throw new DomainException('Oggetto non posseduto.',403); }$r['rules']=itemSpec($r['game_rules']);return $r;
 }
 function itemState(array $i,bool $lock=false):array {
- $s=db()->query('SELECT * FROM equipment_state WHERE instance_id=?'.($lock?' FOR UPDATE':''),[$i['id']])[0]??['instance_id'=>(int)$i['id'],'charges'=>(int)($i['rules']['charges']??0),'cycles'=>0,'ready_round'=>0,'session_id'=>0,'ready_at'=>0,'fed_until'=>0,'mode'=>'','updated_at'=>0];$s['charges']=min((int)$s['charges'],(int)($i['rules']['charges']??0));return array_map(static fn($v)=>is_numeric($v)?(int)$v:$v,$s);
+ $s=db()->query('SELECT * FROM equipment_state WHERE instance_id=?'.($lock?ITEM_ENGINE_INC_FOR_UPDATE:''),[$i['id']])[0]??['instance_id'=>(int)$i['id'],'charges'=>(int)($i['rules']['charges']??0),'cycles'=>0,'ready_round'=>0,'session_id'=>0,'ready_at'=>0,'fed_until'=>0,'mode'=>'','updated_at'=>0];$s['charges']=min((int)$s['charges'],(int)($i['rules']['charges']??0));return array_map(static fn($v)=>is_numeric($v)?(int)$v:$v,$s);
 }
 function itemSaveState(array $s):void {db()->execute('INSERT INTO equipment_state(instance_id,charges,cycles,ready_round,ready_at,fed_until,mode,session_id,updated_at) VALUES(?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE charges=VALUES(charges),cycles=VALUES(cycles),ready_round=VALUES(ready_round),ready_at=VALUES(ready_at),fed_until=VALUES(fed_until),mode=VALUES(mode),session_id=VALUES(session_id),updated_at=VALUES(updated_at)',[$s['instance_id'],$s['charges'],$s['cycles'],$s['ready_round'],$s['ready_at'],$s['fed_until'],$s['mode'],$s['session_id']??0,time()]);}
 /** Round counters apply only to the quest that created the cooldown. */
@@ -50,7 +52,7 @@ function itemUseCommit(int $owner,int $instance,string $operation,string $key,in
   if(in_array($spec['kind'],['consumable','feed','animal','container'],true)||!$spec['charges']||!$spec['recharge_rounds']){ throw new DomainException('Questo oggetto non è ricaricabile.',422); }
   if(($s['mode']??'')==='charging'){ throw new DomainException('La ricarica è già in corso.',409); }
   $provider=$spec['kind']==='generator'?$i:itemInstance($target,$owner,true);if(!in_array($provider['rules']['kind']??'',['generator','battery'],true)||($provider['id']===$i['id']&&$spec['kind']!=='generator')){ throw new DomainException('Scegli un generatore o accumulatore compatibile posseduto.',422); }$ps=itemState($provider,true);if($ps['charges']<1&&$spec['kind']!=='generator'){ throw new DomainException('La fonte è scarica.',409); }
-  if(!empty($provider['rules']['fuel'])){$needed=(int)($provider['rules']['fuel_quantity']??1);$fuel=db()->query("SELECT p.id FROM equippg p JOIN equip e ON e.id=p.uid WHERE p.idpg=? AND p.slot='' AND e.materiaprima=? ORDER BY p.id LIMIT ".$needed." FOR UPDATE",[$owner,$provider['rules']['fuel']]);if(count($fuel)<$needed){ throw new DomainException('Manca il combustibile della fonte.',409); }foreach($fuel as $unit){ db()->execute('DELETE FROM equippg WHERE id=?',[$unit['id']]); }}
+  if(!empty($provider['rules']['fuel'])){$needed=(int)($provider['rules']['fuel_quantity']??1);$fuel=db()->query("SELECT p.id FROM equippg p JOIN equip e ON e.id=p.uid WHERE p.idpg=? AND p.slot='' AND e.materiaprima=? ORDER BY p.id LIMIT ".$needed.ITEM_ENGINE_INC_FOR_UPDATE,[$owner,$provider['rules']['fuel']]);if(count($fuel)<$needed){ throw new DomainException('Manca il combustibile della fonte.',409); }foreach($fuel as $unit){ db()->execute(ITEM_ENGINE_INC_DELETE_FROM_EQUIPPG_WHERE_ID,[$unit['id']]); }}
   if($provider['id']!==$i['id']){$ps['charges']--;itemSaveState($ps);}$s['mode']='charging';$s['session_id']=$session;$s['ready_round']=$session?$round+$spec['recharge_rounds']:0;$s['ready_at']=time()+$spec['recharge_rounds']*60;
  }elseif($operation==='maintain'){
   $staff=db()->query('SELECT admin,corporazione,admintrasfcorp,admincorporazione FROM utenti WHERE id=?',[$owner])[0];$corp=(int)db()->query('SELECT corp FROM equip WHERE id=?',[$i['uid']])[0]['corp'];if(empty($staff['admin'])&&((int)$staff['corporazione']!==$corp||(!$staff['admintrasfcorp']&&!$staff['admincorporazione']))){ throw new DomainException('Manutenzione riservata alla bottega produttrice.',403); }$s['cycles']=0;$s['mode']='';
@@ -61,7 +63,7 @@ function itemUseCommit(int $owner,int $instance,string $operation,string $key,in
   if($child['id']===$i['id']||($child['rules']['kind']??'')==='animal'||db()->query('SELECT id FROM equippg WHERE idpadre=?',[$child['id']])){ throw new DomainException('Non puoi riporre questo bene nel contenitore.',422); }
   if($operation==='pack'){$load=(float)db()->query('SELECT COALESCE(SUM(e.peso),0) AS total FROM equippg p JOIN equip e ON e.id=p.uid WHERE p.idpadre=? AND p.id<>?',[$instance,$target])[0]['total'];$weight=(float)db()->query('SELECT peso FROM equip WHERE id=?',[$child['uid']])[0]['peso'];if($load+$weight>($spec['capacity']??0)){ throw new DomainException('Capacità del contenitore superata.',409); }db()->execute("UPDATE equippg SET idpadre=?,slot='' WHERE id=?",[$instance,$target]);}else{if((int)$child['idpadre']!==$instance){ throw new DomainException('Il bene non è in questo contenitore.',422); }db()->execute("UPDATE equippg SET idpadre=0,slot='' WHERE id=?",[$target]);}
  }elseif($operation==='feed'){
-  if($spec['kind']!=='feed'){ throw new DomainException('Non è un alimento per animali.',422); }$animal=itemInstance($target,$owner,true);if(($animal['rules']['kind']??'')!=='animal'||$animal['rules']['diet']!==$spec['diet']){ throw new DomainException('Alimento non compatibile con l’animale scelto.',422); }$as=itemState($animal,true);$as['fed_until']=time()+86400;itemSaveState($as);db()->execute('DELETE FROM equippg WHERE id=?',[$instance]);$s['charges']=0;
+  if($spec['kind']!=='feed'){ throw new DomainException('Non è un alimento per animali.',422); }$animal=itemInstance($target,$owner,true);if(($animal['rules']['kind']??'')!=='animal'||$animal['rules']['diet']!==$spec['diet']){ throw new DomainException('Alimento non compatibile con l’animale scelto.',422); }$as=itemState($animal,true);$as['fed_until']=time()+86400;itemSaveState($as);db()->execute(ITEM_ENGINE_INC_DELETE_FROM_EQUIPPG_WHERE_ID,[$instance]);$s['charges']=0;
  }elseif($operation==='activate'){
   if(($s['mode']??'')==='charging'){
    if(($session&&$round<$s['ready_round'])||(!$session&&time()<$s['ready_at'])){ throw new DomainException('La ricarica non è ancora conclusa.',409); }$s['mode']='';$s['charges']=$spec['charges'];
@@ -71,7 +73,7 @@ function itemUseCommit(int $owner,int $instance,string $operation,string $key,in
   if($spec['charges']&&$s['charges']<1){ throw new DomainException('Oggetto scarico: occorre ricaricarlo.',409); }
   if((int)$i['consumo']>=(int)$i['durata']){ throw new DomainException('Oggetto inutilizzabile.',409); }
   if($spec['charges']){$s['charges']--;if($s['charges']===0){ $s['cycles']++; }}$s['session_id']=$session;$s['ready_round']=$session?$round+$spec['cooldown_rounds']:0;$s['ready_at']=time()+$spec['cooldown_rounds']*60;
-  if(in_array($spec['kind'],['consumable','feed'],true)){ db()->execute('DELETE FROM equippg WHERE id=?',[$instance]); }
+  if(in_array($spec['kind'],['consumable','feed'],true)){ db()->execute(ITEM_ENGINE_INC_DELETE_FROM_EQUIPPG_WHERE_ID,[$instance]); }
  }else { throw new DomainException('Operazione sconosciuta.',422); }
  if(db()->query('SELECT id FROM equippg WHERE id=?',[$instance])){ itemSaveState($s); }
  $after=['state'=>$s,'operation'=>$operation,'name'=>$i['shortDesc']];db()->execute('INSERT INTO equipment_ledger(request_key,actor_id,instance_id,operation,session_id,round_number,before_state,after_state,created_at) VALUES(?,?,?,?,?,?,?,?,?)',[$key,$owner,$instance,$operation,$session,$round,rpg_json($before),rpg_json($after),time()]);return $after;
@@ -106,7 +108,7 @@ function itemActiveScene(array $state,int $sid,int $round,string $kind,int $id):
 }
 /** Pure projection: effects and charges are persisted only by verdict publication. */
 function itemSceneAction(array $declaration,array $actor,array $target,int $sid,int $round,int $roll,int $defence,array &$hp,array &$conditions,array &$cast,array &$changes,array &$result,bool $training):bool {
- $s=$declaration['rules'];$key=$actor['kind'].':'.$actor['id'];$targetKey=($target['kind']??'').':'.($target['id']??0);$owner=(int)$actor['id'];$i=itemInstance((int)$declaration['instance'],$owner);itemUsagePrecheck($i,$declaration['operation'],(int)$declaration['provider'],$round,$sid);$state=itemEffectiveState($i,$sid,$round);
+ $s=$declaration['rules'];$key=$actor['kind'].':'.$actor['id'];$targetKey=($target['kind']??'').':'.($target['id']??0);$owner=(int)$actor['id'];$i=itemInstance((int)$declaration['instance'],$owner);itemUsagePrecheck($i,$declaration['operation'],(int)$declaration['provider'],$round,$sid);itemEffectiveState($i,$sid,$round);
  if($declaration['operation']!=='activate'){$changes[]=['type'=>'item-use','kind'=>'pg','id'=>$owner,'declaration'=>$declaration];$result['outcome']=$declaration['operation']==='recharge'?'inizia una ricarica verificata':'nutre il proprio animale';$result['reason']='L’operazione usa gli oggetti effettivamente posseduti; disponibilità e tempi sono verificati alla pubblicazione.';return true;}
  if($s['target']==='opponent'&&(!$target||$targetKey===$key||$target['chat']!==$actor['chat']||in_array((int)$target['razza'],[4,7,8],true)||($hp[$targetKey]??0)<1)){ throw new DomainException('Scegli un bersaglio fisico presente nella quest.',422); }
  if($training){$result['outcome']='simula l’impiego del manufatto';$result['reason']='L’allenamento non consuma dosi né cariche e non applica effetti persistenti.';return true;}

@@ -11,7 +11,7 @@ function rpgOrgMembershipReason(array $a,array $identity):string {
  if((int)($identity['organization_rank_level']??0)<$org['minimum_rank']){ return 'Richiede una carica di livello almeno '.$org['minimum_rank'].' in '.$org['name'].'.'; }return '';
 }
 function rpgOrgFormReason(array $a,array $identity):string {
- $org=$a['organization'];$native=rpgLineageId($identity);$visible=(int)$identity['race_id'];$human=alphanoHumanRaceId();
+ $org=$a['organization'];$visible=(int)$identity['race_id'];$human=alphanoHumanRaceId();
  if($org['form']==='human'&&$visible!==$human){ return 'La disciplina dell’organizzazione richiede la forma umana.'; }
  if($org['form']==='native'&&$visible===$human){ return 'La disciplina richiede la forma speciale indicata nella proposta approvata.'; }
  if($visible===3&&empty($identity['sentient'])){ return 'Il Lycan Puro non esegue discipline organizzative deliberate.'; }

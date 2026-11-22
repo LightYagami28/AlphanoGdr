@@ -1,5 +1,7 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/alphano-exceptions.inc.php';
+
 require_once __DIR__.'/player-runtime.inc.php';
 require_once __DIR__.'/libelezioni.inc.php';
 require_once __DIR__.'/activity.inc.php';
@@ -270,17 +272,17 @@ function alphanoReadNotificationThread(int $recipient,array $target): void
     $db=connectDB();$user=$db->query('SELECT * FROM utenti WHERE id=?',[$recipient])[0] ?? [];
     $source=$target['source'] ?? null;$scope=$target['scope'] ?? null;
     $thread=$target['thread'] ?? null;$max=$target['max_id'] ?? null;
-    if(!is_int($thread)||$thread<1||!is_int($max)||$max<1){ throw new RuntimeException('Discussione non valida',400); }
+    if(!is_int($thread)||$thread<1||!is_int($max)||$max<1){ throw new AlphanoStorageException('Discussione non valida',400); }
     if($source==='board'){
-        if(!is_int($scope)||$scope<1){ throw new RuntimeException('Bacheca non valida',400); }
+        if(!is_int($scope)||$scope<1){ throw new AlphanoStorageException('Bacheca non valida',400); }
         playerRequireBoard($db,$scope,$user);
         $table='bacheche';$column='bacheca';$prefix='board:';
     }elseif($source==='discussion'){
-        if(!is_string($scope)||strlen($scope)>50){ throw new RuntimeException('Discussione non valida',400); }
+        if(!is_string($scope)||strlen($scope)>50){ throw new AlphanoStorageException('Discussione non valida',400); }
         playerDiscussionAccess($scope,$user);
         $table='discussioni';$column='tipo';$prefix='discussion:';
-    }else { throw new RuntimeException('Fonte non valida',400); }
-    if(!$db->query("SELECT id FROM $table WHERE id=? AND $column=? AND replyid=0",[$thread,$scope])){ throw new RuntimeException('Discussione non trovata',404); }
+    }else { throw new AlphanoStorageException('Fonte non valida',400); }
+    if(!$db->query("SELECT id FROM $table WHERE id=? AND $column=? AND replyid=0",[$thread,$scope])){ throw new AlphanoStorageException('Discussione non trovata',404); }
     $rows=$db->query("SELECT id FROM $table WHERE $column=? AND (id=? OR replyid=?) AND id<=?",[$scope,$thread,$thread,$max]);
     alphanoStoreNotificationReads($recipient,array_map(static fn(array $row):string=>$prefix.$row['id'],$rows));
 }

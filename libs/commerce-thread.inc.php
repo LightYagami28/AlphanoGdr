@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+const COMMERCE_THREAD_INC_DA_ASSEGNARE = 'Da assegnare';
 require_once __DIR__.'/player-runtime.inc.php';
 require_once __DIR__.'/libeconomia.inc.php';
 
@@ -28,7 +29,7 @@ function alphanoTradeThread(int $id,int $viewer,bool $lock=false):array {
  return ['image'=>alphanoEquipmentImage(rawurldecode($image)),'id'=>$id,'revision'=>$revision,'order'=>$order,'state'=>$s,'status'=>statoTransf($s,(int)$t['verso']),
   'corporation'=>(string)($db->query('SELECT nome FROM corporazioni WHERE id=?',[$t['corp']])[0]['nome']??'Corporazione'),
   'item'=>(string)$t['nomeobj'],'quantity'=>(int)$t['qta'],'price'=>(int)$t['prezzo'],'total'=>$order?(int)$t['qta']*(int)$t['prezzo']:(int)$t['prezzo'],
-  'customer'=>GetPGFromID((int)$t['pg']),'responsible'=>(int)$t['pgcorp']?GetPGFromID((int)$t['pgcorp']):'Da assegnare','actions'=>$actions,
+  'customer'=>GetPGFromID((int)$t['pg']),'responsible'=>(int)$t['pgcorp']?GetPGFromID((int)$t['pgcorp']):COMMERCE_THREAD_INC_DA_ASSEGNARE,'actions'=>$actions,
   'url'=>$owner?'/trasferimenti/?trade='.$id:'/corporazioni/trasferimenti.php?corp='.(int)$t['corp'].'&trade='.$id,
   'corp'=>(int)$t['corp'],'owner'=>$owner];
 }
@@ -55,10 +56,10 @@ function alphanoTradeSummary(array $t):array {
  if($state===6){$key='cancelled';$label='Trattativa annullata';$next='Nessuna azione richiesta';}
  elseif($state===7||(!$t['order']&&$state===5)){$key='completed';$label=$t['order']?'Consegnato e pagato':'Acquisto completato';$next='Transazione conclusa';}
  elseif(in_array('deliver',$actions,true)){$key='delivery';$label='Ordine concordato';$next='Consegna l’oggetto';}
- elseif(in_array('take',$actions,true)){$key='action';$label='Da assegnare';$next='Prendi in carico';}
+ elseif(in_array('take',$actions,true)){$key='action';$label=COMMERCE_THREAD_INC_DA_ASSEGNARE;$next='Prendi in carico';}
  elseif(in_array('accept',$actions,true)){$key='action';$label='Proposta ricevuta';$next='Rispondi alla proposta';}
  elseif(in_array('propose',$actions,true)){$key='action';$label='In trattativa';$next='Invia la tua proposta';}
- else{$key='waiting';$label=$state===5?'Ordine concordato':'In attesa';$next=$state===5?'Attendi la consegna':($t['responsible']==='Da assegnare'?'Attendi la presa in carico':'Attendi la controparte');}
+ else{$key='waiting';$label=$state===5?'Ordine concordato':'In attesa';$next=$state===5?'Attendi la consegna':($t['responsible']===COMMERCE_THREAD_INC_DA_ASSEGNARE?'Attendi la presa in carico':'Attendi la controparte');}
  return ['id'=>$t['id'],'key'=>$key,'label'=>$label,'next'=>$next,'image'=>$t['image'],'item'=>$t['item'],'state'=>$state,'revision'=>$t['revision']];
 }
 function alphanoTradeCurrentSummary(int $id,int $viewer):?array {

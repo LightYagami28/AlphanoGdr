@@ -1,5 +1,7 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/alphano-exceptions.inc.php';
+
 require_once __DIR__.'/kernel.inc.php';
 require_once __DIR__.'/experience.inc.php';
 /** Enabling one category must not discard pending mail in another category. */
@@ -58,7 +60,7 @@ function alphanoEmailDeliver(int $limit=20,int $budget=15):array {
   try{
    $body='Ciao '.$u['nome'].",\n\n".$row['title'].". Accedi a ".alphanoConfig('game_name')." per consultare i dettagli aggiornati e rispondere.\n\nLe informazioni riservate restano disponibili soltanto nel gioco.";
    $html=alphanoEmailRender($row['title'],$body,$row['category'],$row['path'],true);
-   if(!alphanoMailer()->send(alphanoConfig('mail_from'),$u['email'],alphanoConfig('game_name').' · '.$row['title'],$body,$html)){ throw new RuntimeException('Invio non completato'); }
+   if(!alphanoMailer()->send(alphanoConfig('mail_from'),$u['email'],alphanoConfig('game_name').' · '.$row['title'],$body,$html)){ throw new AlphanoStorageException('Invio non completato'); }
    $db->execute("UPDATE email_notification_outbox SET status='sent',sent_at=?,retry_at=0 WHERE id=?",[time(),$id]);$sent++;
   }catch(Throwable $e){$db->execute('UPDATE email_notification_outbox SET status=?,retry_at=? WHERE id=?',[(int)$row['attempts']>=4?'failed':'retry',time()+min(86400,300*(2**min(8,(int)$row['attempts']))),$id]);error_log('[email-notifications] Consegna non riuscita, ricevuta '.$id);}
  }return ['sent'=>$sent,'skipped'=>$skipped];

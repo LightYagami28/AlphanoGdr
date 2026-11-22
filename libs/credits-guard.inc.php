@@ -1,11 +1,16 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/alphano-exceptions.inc.php';
+
+const CREDITS_GUARD_INC_JSON = '.json';
+const CREDITS_GUARD_INC_CREDITS = '/credits-';
+const CREDITS_GUARD_INC_CREDITS_RESTORE_PHP = '/credits/restore.php';
 // This hash authenticates repair fragments only. It never locks authored source files.
 const ALPHANO_CREDIT_BUNDLE_HASH = '23cedc0846f8f9a2a84399fbc822ae6eec6708d2b600c0eac68061d1fca35603';
 function alphanoCreditsBundle(): array
 {
     $file=dirname(__DIR__).'/config/credit-originals.json';
-    if(!is_file($file)||!hash_equals(ALPHANO_CREDIT_BUNDLE_HASH,hash_file('sha256',$file))){ throw new DomainException('La copia di ripristino dei crediti è mancante o alterata: ricarica il pacchetto originale.'); }
+    if(!is_file($file)||!hash_equals(ALPHANO_CREDIT_BUNDLE_HASH,hash_file('sha256',$file))){ throw new AlphanoDomainException('La copia di ripristino dei crediti è mancante o alterata: ricarica il pacchetto originale.'); }
     return json_decode(file_get_contents($file),true,32,JSON_THROW_ON_ERROR)['fragments'];
 }
 function alphanoCreditPage(): ?string
@@ -16,14 +21,14 @@ function alphanoCreditPage(): ?string
 }
 function alphanoCreditState(string $name): array
 {
-    $file=dirname(__DIR__).'/private/credits-'.$name.'.json';
+    $file=dirname(__DIR__).'/private/credits-'.$name.CREDITS_GUARD_INC_JSON;
     $value=is_file($file)?json_decode((string)file_get_contents($file),true):[];
     return is_array($value)?$value:[];
 }
 function alphanoCreditWrite(string $name,array $data): void
 {
     $dir=dirname(__DIR__).'/private';$temp=tempnam($dir,'credits-');
-    try{chmod($temp,0600);if(file_put_contents($temp,json_encode($data,JSON_PRETTY_PRINT|JSON_THROW_ON_ERROR),LOCK_EX)===false||!rename($temp,$dir.'/credits-'.$name.'.json')){ throw new RuntimeException('Impossibile salvare lo stato dei crediti.'); }}
+    try{chmod($temp,0600);if(file_put_contents($temp,json_encode($data,JSON_PRETTY_PRINT|JSON_THROW_ON_ERROR),LOCK_EX)===false||!rename($temp,$dir.CREDITS_GUARD_INC_CREDITS.$name.CREDITS_GUARD_INC_JSON)){ throw new AlphanoStorageException('Impossibile salvare lo stato dei crediti.'); }}
     finally{if(is_file($temp)){ unlink($temp); }}
 }
 function alphanoCreditsIssues(): array
@@ -42,17 +47,17 @@ function alphanoCreditsIssues(): array
 function alphanoCreditBlockHtml(): string
 {
     require_once __DIR__.'/status-page.inc.php';
-    return alphanoStatusDocument('Accesso sospeso: ripristina i crediti','Il controllo incluso nel pacchetto non rileva il credito predefinito nella pagina generata. Correggi il credito o usa il ripristino, che conserva le personalizzazioni. Puoi anche modificare o rimuovere questo controllo secondo la AGPL: il blocco tecnico non significa che tu abbia violato la licenza.','/credits/restore.php','Ripristina i crediti');
+    return alphanoStatusDocument('Accesso sospeso: ripristina i crediti','Il controllo incluso nel pacchetto non rileva il credito predefinito nella pagina generata. Correggi il credito o usa il ripristino, che conserva le personalizzazioni. Puoi anche modificare o rimuovere questo controllo secondo la AGPL: il blocco tecnico non significa che tu abbia violato la licenza.',CREDITS_GUARD_INC_CREDITS_RESTORE_PHP,'Ripristina i crediti');
 }
 function alphanoCreditsGuard(): void
 {
     $path=parse_url($_SERVER['SCRIPT_NAME']??'',PHP_URL_PATH);
     // Credit-bearing pages must remain reachable to revalidate a corrected layout.
-    if(alphanoCreditPage()!==null||in_array($path,['/credits/restore.php','/checkuser.php'],true)||!alphanoCreditsIssues()){ return; }
-    if(PHP_SAPI==='cli'){ throw new DomainException('Credito non visibile: visitare la pagina corretta o usare il ripristino.'); }
+    if(alphanoCreditPage()!==null||in_array($path,[CREDITS_GUARD_INC_CREDITS_RESTORE_PHP,'/checkuser.php'],true)||!alphanoCreditsIssues()){ return; }
+    if(PHP_SAPI==='cli'){ throw new AlphanoDomainException('Credito non visibile: visitare la pagina corretta o usare il ripristino.'); }
     http_response_code(503);header('Cache-Control: no-store');
     if(str_starts_with($_SERVER['REQUEST_URI']??'','/api/')||str_contains($_SERVER['HTTP_ACCEPT']??'','application/json')||str_contains($_SERVER['CONTENT_TYPE']??'','application/json')){
-        header('Content-Type: application/json; charset=utf-8');echo json_encode(['error'=>'Credito predefinito non rilevato dal controllo locale. Controllo e link sono modificabili o rimovibili secondo la AGPL; questo non è un accertamento di violazione.','code'=>'credits_integrity','recovery_url'=>'/credits/restore.php'],JSON_UNESCAPED_UNICODE);exit;
+        header('Content-Type: application/json; charset=utf-8');echo json_encode(['error'=>'Credito predefinito non rilevato dal controllo locale. Controllo e link sono modificabili o rimovibili secondo la AGPL; questo non è un accertamento di violazione.','code'=>'credits_integrity','recovery_url'=>CREDITS_GUARD_INC_CREDITS_RESTORE_PHP],JSON_UNESCAPED_UNICODE);exit;
     }
     echo alphanoCreditBlockHtml();exit;
 }
@@ -179,10 +184,10 @@ function alphanoCreditsFilterHtml(string $html): string
 function alphanoCreditsRestore(): array
 {
     alphanoCreditsBundle();$issues=alphanoCreditsIssues();if(!$issues){ return []; }
-    $root=dirname(__DIR__);$lock=fopen($root.'/private/credits-restore.lock','c');if(!$lock||!flock($lock,LOCK_EX|LOCK_NB)){ throw new DomainException('Ripristino già in corso.'); }
+    $root=dirname(__DIR__);$lock=fopen($root.'/private/credits-restore.lock','c');if(!$lock||!flock($lock,LOCK_EX|LOCK_NB)){ throw new AlphanoDomainException('Ripristino già in corso.'); }
     try{
-        $backup=$root.'/private/credits-recovery-'.gmdate('Ymd-His').'-'.bin2hex(random_bytes(4));if(!mkdir($backup,0700,true)){ throw new DomainException('Impossibile salvare lo stato precedente.'); }
-        foreach(['health','repairs'] as $name){$path=$root.'/private/credits-'.$name.'.json';if(is_file($path)){if(!copy($path,$backup.'/credits-'.$name.'.json')){ throw new DomainException('Copia privata non riuscita.'); }chmod($backup.'/credits-'.$name.'.json',0600);}}
+        $backup=$root.'/private/credits-recovery-'.gmdate('Ymd-His').'-'.bin2hex(random_bytes(4));if(!mkdir($backup,0700,true)){ throw new AlphanoDomainException('Impossibile salvare lo stato precedente.'); }
+        foreach(['health','repairs'] as $name){$path=$root.'/private/credits-'.$name.CREDITS_GUARD_INC_JSON;if(is_file($path)){if(!copy($path,$backup.CREDITS_GUARD_INC_CREDITS.$name.CREDITS_GUARD_INC_JSON)){ throw new AlphanoDomainException('Copia privata non riuscita.'); }chmod($backup.CREDITS_GUARD_INC_CREDITS.$name.CREDITS_GUARD_INC_JSON,0600);}}
         $repairs=alphanoCreditState('repairs');$state=alphanoCreditState('health');foreach($issues as $page){$repairs[$page]=true;unset($state[$page]);}
         alphanoCreditWrite('repairs',$repairs);alphanoCreditWrite('health',$state);return $issues;
     }finally{flock($lock,LOCK_UN);fclose($lock);}

@@ -1,5 +1,7 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/alphano-exceptions.inc.php';
+
 require_once __DIR__.'/engine-settings.inc.php';
 require_once __DIR__.'/default-art.inc.php';
 
@@ -33,24 +35,24 @@ function alphanoAppearanceItemKey(string $label,string $group): string {
     return $group.'-'.substr(hash('sha256',$label),0,16);
 }
 function alphanoAppearanceImage(mixed $url): string {
-    if(!is_string($url)||strlen($url)>300){ throw new DomainException('Immagine non valida.'); }
+    if(!is_string($url)||strlen($url)>300){ throw new AlphanoDomainException('Immagine non valida.'); }
     $url=trim($url);if($url===''){ return ''; }
     if($url==='/assets/alphanogdr-logo.png'){ return $url; }
     if(alphanoIsDefaultArt($url)&&is_file(dirname(__DIR__).$url)){ return $url; }
-    if(!preg_match('~^/(?:uploads/[a-zA-Z0-9_/-]+\.(?:png|jpe?g|webp)|assets/[a-zA-Z0-9_-]+\.svg)$~D',$url)||str_contains($url,'..')||!is_file(dirname(__DIR__).$url)){ throw new DomainException('Carica un’immagine oppure indica il percorso di un’immagine già presente in uploads.'); }
+    if(!preg_match('~^/(?:uploads/[a-zA-Z0-9_/-]+\.(?:png|jpe?g|webp)|assets/[a-zA-Z0-9_-]+\.svg)$~D',$url)||str_contains($url,'..')||!is_file(dirname(__DIR__).$url)){ throw new AlphanoDomainException('Carica un’immagine oppure indica il percorso di un’immagine già presente in uploads.'); }
     return $url;
 }
 function alphanoAppearanceUpload(array $file): string {
-    if(($file['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_OK||!is_uploaded_file($file['tmp_name']??'')){ throw new DomainException('Caricamento non riuscito.'); }
-    if(($file['size']??0)>5*1024*1024){ throw new DomainException('Ogni immagine può occupare al massimo 5 MB.'); }
+    if(($file['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_OK||!is_uploaded_file($file['tmp_name']??'')){ throw new AlphanoDomainException('Caricamento non riuscito.'); }
+    if(($file['size']??0)>5*1024*1024){ throw new AlphanoDomainException('Ogni immagine può occupare al massimo 5 MB.'); }
     $info=@getimagesize($file['tmp_name']);$types=[IMAGETYPE_PNG=>'png',IMAGETYPE_JPEG=>'jpg',IMAGETYPE_WEBP=>'webp'];
-    if(!$info||!isset($types[$info[2]])||$info[0]>6000||$info[1]>6000||$info[0]*$info[1]>16000000){ throw new DomainException('Usa PNG, JPEG o WebP, massimo 6000 pixel per lato e 16 milioni di pixel.'); }
+    if(!$info||!isset($types[$info[2]])||$info[0]>6000||$info[1]>6000||$info[0]*$info[1]>16000000){ throw new AlphanoDomainException('Usa PNG, JPEG o WebP, massimo 6000 pixel per lato e 16 milioni di pixel.'); }
     $mime=(new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']);
-    if($mime!==image_type_to_mime_type($info[2])){ throw new DomainException('Il contenuto non corrisponde al formato dell’immagine.'); }
-    $dir=dirname(__DIR__).'/uploads/appearance';if(!is_dir($dir)&&!mkdir($dir,0755,true)){ throw new RuntimeException('Cartella immagini non scrivibile.'); }
+    if($mime!==image_type_to_mime_type($info[2])){ throw new AlphanoDomainException('Il contenuto non corrisponde al formato dell’immagine.'); }
+    $dir=dirname(__DIR__).'/uploads/appearance';if(!is_dir($dir)&&!mkdir($dir,0755,true)){ throw new AlphanoStorageException('Cartella immagini non scrivibile.'); }
     $path='/uploads/appearance/'.bin2hex(random_bytes(16)).'.'.$types[$info[2]];
     // Fixed bitmap extensions, nosniff and the uploads execution ban also protect hosts without GD.
-    if(!move_uploaded_file($file['tmp_name'],dirname(__DIR__).$path)){ throw new RuntimeException('Impossibile salvare l’immagine.'); }
+    if(!move_uploaded_file($file['tmp_name'],dirname(__DIR__).$path)){ throw new AlphanoStorageException('Impossibile salvare l’immagine.'); }
     chmod(dirname(__DIR__).$path,0644);return $path;
 }
 function alphanoAppearancePublicManuals(): array {
@@ -84,34 +86,34 @@ function alphanoAppearancePage(?string $url=null): array {
 }
 function alphanoAppearanceSave(array $input,array $files): void {
     $dir=dirname(__DIR__).'/private';$lock=fopen($dir.'/appearance.lock','c');
-    if(!$lock||!flock($lock,LOCK_EX)){ throw new RuntimeException('Impossibile acquisire la configurazione.'); }
+    if(!$lock||!flock($lock,LOCK_EX)){ throw new AlphanoStorageException('Impossibile acquisire la configurazione.'); }
     $newFiles=[];
     try{
-        if(!hash_equals(alphanoAppearanceRevision(),(string)($input['revision']??''))){ throw new DomainException('Le impostazioni sono cambiate in un’altra pagina. Ricarica prima di salvare.'); }
+        if(!hash_equals(alphanoAppearanceRevision(),(string)($input['revision']??''))){ throw new AlphanoDomainException('Le impostazioni sono cambiate in un’altra pagina. Ricarica prima di salvare.'); }
         $file=$dir.'/appearance.json';$a=is_file($file)?json_decode(file_get_contents($file),true,32,JSON_THROW_ON_ERROR):[];
         $section=$input['section']??'';$target=$input['target']??'';$catalog=alphanoAppearanceCatalog();$groups=require_once dirname(__DIR__).'/config/navigation.php';
-        if(!is_string($target)){ throw new DomainException('Voce non valida.'); }
+        if(!is_string($target)){ throw new AlphanoDomainException('Voce non valida.'); }
         $valid=match($section){'defaults','home'=>$target==='','groups'=>isset($groups[$target]),'items'=>isset(alphanoAppearanceMenuCatalog()[$target]),'pages'=>isset($catalog[$target]),default=>false};
-        if(!$valid){ throw new DomainException('Seleziona una voce del catalogo.'); }
+        if(!$valid){ throw new AlphanoDomainException('Seleziona una voce del catalogo.'); }
         $fields=match($section){'home'=>['background','banner','logo','scene_library'],'groups','items'=>['image'],default=>['background','header']};
         $values=[];
         foreach($fields as $field){
             $preset=$input['preset_'.$field]??'';
-            if(!is_string($preset)||($preset!==''&&!alphanoIsDefaultArt($preset))){ throw new DomainException('Immagine predefinita non valida.'); }
+            if(!is_string($preset)||($preset!==''&&!alphanoIsDefaultArt($preset))){ throw new AlphanoDomainException('Immagine predefinita non valida.'); }
             if(isset($files[$field])&&($files[$field]['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_NO_FILE){$values[$field]=alphanoAppearanceUpload($files[$field]);$newFiles[]=$values[$field];}
             else { $values[$field]=!empty($input['remove_'.$field])?'':alphanoAppearanceImage($preset!==''?$preset:($input[$field]??'')); }
         }
         if($section==='home'){
             $headline=$input['headline']??'';$intro=$input['intro']??'';
-            if(!is_string($headline)||!is_string($intro)||mb_strlen($headline)>160||mb_strlen($intro)>2000){ throw new DomainException('Titolo o presentazione troppo lunghi.'); }
+            if(!is_string($headline)||!is_string($intro)||mb_strlen($headline)>160||mb_strlen($intro)>2000){ throw new AlphanoDomainException('Titolo o presentazione troppo lunghi.'); }
             $values+=['headline'=>trim($headline),'intro'=>trim($intro)];
-            $ids=$input['manuals']??[];if(!is_array($ids)||count($ids)>20){ throw new DomainException('Puoi fissare fino a 20 manuali.'); }
+            $ids=$input['manuals']??[];if(!is_array($ids)||count($ids)>20){ throw new AlphanoDomainException('Puoi fissare fino a 20 manuali.'); }
             $public=array_column(alphanoAppearancePublicManuals(),'id');$values['manuals']=[];
-            foreach($ids as $id){if(!is_scalar($id)||!ctype_digit((string)$id)||!in_array((int)$id,array_map('intval',$public),true)){ throw new DomainException('Puoi fissare soltanto manuali pubblici.'); }$values['manuals'][]=(int)$id;}
+            foreach($ids as $id){if(!is_scalar($id)||!ctype_digit((string)$id)||!in_array((int)$id,array_map('intval',$public),true)){ throw new AlphanoDomainException('Puoi fissare soltanto manuali pubblici.'); }$values['manuals'][]=(int)$id;}
             $values['manuals']=array_values(array_unique($values['manuals']));
         }
         if(in_array($section,['defaults','home'],true)){ $a[$section]=$values; }else { $a[$section][$target]=$values; }
-        $temp=tempnam($dir,'appearance-');try{chmod($temp,0600);if(file_put_contents($temp,json_encode($a,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR))===false||!rename($temp,$file)){ throw new RuntimeException('Salvataggio non riuscito.'); }}finally{if(is_file($temp)){ unlink($temp); }}
+        $temp=tempnam($dir,'appearance-');try{chmod($temp,0600);if(file_put_contents($temp,json_encode($a,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR))===false||!rename($temp,$file)){ throw new AlphanoStorageException('Salvataggio non riuscito.'); }}finally{if(is_file($temp)){ unlink($temp); }}
     }catch(Throwable $e){foreach($newFiles as $path){ if(is_file(dirname(__DIR__).$path)){ unlink(dirname(__DIR__).$path); } }throw $e;}
     finally{flock($lock,LOCK_UN);fclose($lock);}
 }

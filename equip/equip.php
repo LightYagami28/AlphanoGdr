@@ -67,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action==='equipaggiapadre' && ($padre===$id || !$db->query('SELECT 1 FROM equippg WHERE id=? AND idpg=?',[$padre,$pgid]))) { http_response_code(400); exit('Contenitore non valido'); }
     switch ($action) {
         case 'equipaggia':
-            if ($isSame || $admin || $fatepower) { equipObject($id, $slot, $side); }
+            if ($isSame || $admin || $fatepower) { equipObject($id, $slot); }
             break;
         case 'disequipaggia':
             if ($isSame || $admin || $fatepower) { unequipObject($id); }

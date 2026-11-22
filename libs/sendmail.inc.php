@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+const SENDMAIL_INC_MAIL = '[mail] ';
 
 // Carica il tuo SMTPMailer (mettilo accanto a questo file)
 require_once __DIR__ . '/kernel.inc.php';
@@ -87,7 +88,7 @@ function sendDelAdvice(array $value): void
     }
 
     try { $mailer->send($from, $email, $subject, $body,alphanoEmailRender($subject,$body,'alerts',$path)); }
-    catch (Throwable $e) { error_log('[mail] ' . $e->getMessage()); }
+    catch (Throwable $e) { error_log(SENDMAIL_INC_MAIL . $e->getMessage()); }
 }
 
 /**
@@ -116,7 +117,7 @@ La gestione del gioco
 EOT;
 
     try { return $mailer->send($from, $email, $subject, $body,alphanoEmailRender($subject,$body,'alerts','/bug/?id='.rawurlencode($codice))); }
-    catch (Throwable $e) { error_log('[mail] ' . $e->getMessage()); return false; }
+    catch (Throwable $e) { error_log(SENDMAIL_INC_MAIL . $e->getMessage()); return false; }
 }
 
 /** Il link permette al titolare della casella di scegliere la nuova password. */
@@ -125,5 +126,5 @@ function sendPasswordReset(string $email, string $name, string $token): bool
     $link = rtrim(alphanoConfig('base_url'), '/') . '/recuperopasswd.php?token=' . rawurlencode($token);
     $body = "Ciao {$name},\n\nper scegliere una nuova password apri questo collegamento entro un'ora:\n{$link}\n\nSe non hai chiesto il recupero, puoi ignorare questa email.\nLa gestione del gioco";
     try { return alphanoMailer()->send(alphanoConfig('mail_from'), $email, 'Recupero password '.alphanoConfig('game_name'), $body,alphanoEmailRender('Recupero password '.alphanoConfig('game_name'),$body,'security','/recuperopasswd.php?token='.rawurlencode($token))); }
-    catch (Throwable $exception) { error_log('[mail] ' . $exception->getMessage()); return false; }
+    catch (Throwable $exception) { error_log(SENDMAIL_INC_MAIL . $exception->getMessage()); return false; }
 }

@@ -5,6 +5,9 @@
  */
 
 declare(strict_types=1);
+const LIBEQUIP_INC_UPDATE_EQUIPPG_SET_IDPADRE_0_SLOT_WHERE_IDPADRE_AND_IDPG = 'UPDATE equippg SET idpadre=0,slot=\'\' WHERE idpadre=? AND idpg=?';
+const LIBEQUIP_INC_SELECT_1_FROM_EQUIPPG_WHERE_IDPG_AND_SLOT_SCUDO_LIMIT_1 = 'SELECT 1 FROM equippg WHERE idpg = ? AND slot = \'scudo\' LIMIT 1';
+const LIBEQUIP_INC_ASSETS_PLACEHOLDER_SVG = '/assets/placeholder.svg';
 
 /** Uniforma i percorsi storici delle immagini senza dipendere dall'URL del modulo. */
 function alphanoEquipmentImage(string $source, string $slot = 'attrezzi'): string
@@ -121,7 +124,7 @@ function consuma(int $pg, int $obj, int $quantita = 1): bool
         $item=$db->query('SELECT p.consumo,e.durata FROM equippg p JOIN equip e ON e.id=p.uid WHERE p.id=? AND p.idpg=? FOR UPDATE',[$obj,$pg])[0] ?? null;
         if (!$item) { return false; }
         if ((int)$item['consumo']+$quantita >= (int)$item['durata']) {
-            $db->execute("UPDATE equippg SET idpadre=0,slot='' WHERE idpadre=? AND idpg=?",[$obj,$pg]);
+            $db->execute(LIBEQUIP_INC_UPDATE_EQUIPPG_SET_IDPADRE_0_SLOT_WHERE_IDPADRE_AND_IDPG,[$obj,$pg]);
             $db->execute('DELETE FROM equippg WHERE id=? AND idpg=?',[$obj,$pg]);
         } else { $db->execute('UPDATE equippg SET consumo=consumo+? WHERE id=? AND idpg=?',[$quantita,$obj,$pg]); }
         return true;
@@ -225,9 +228,9 @@ function getInformation(int $equippgId): array
 /*======================================================================
  *                    EQUIP / UNEQUIP (slot singolo)
  *====================================================================*/
-function equipObject(int $equippgId, string $slot, string $side = ''): void
+function equipObject(int $equippgId, string $slot): void
 {
-    equipAtomico(static function() use($equippgId,$slot,$side): void {
+    equipAtomico(static function() use($equippgId,$slot): void {
         $db=db();
         $item=getInformation($equippgId);
         if (!$item || empty($item['equipaggiabile']) || (int)$item['padre']>0 || $item['slot']!=='') { return; }
@@ -299,7 +302,7 @@ function checkSlot(string $slot, int $pgid): int
         if (count($busyArms) > 1) { return 0; }
         if ($busyArms && (int)$busyArms[0]['mani'] === 2) { return 0; }
         $hasShield = db()->query(
-            "SELECT 1 FROM equippg WHERE idpg = ? AND slot = 'scudo' LIMIT 1",
+            LIBEQUIP_INC_SELECT_1_FROM_EQUIPPG_WHERE_IDPG_AND_SLOT_SCUDO_LIMIT_1,
             [$pgid]
         );
         return $hasShield ? 0 : 1;
@@ -334,7 +337,7 @@ function checkSlotWeapon(int $pgid, int $mani): int
             if ((int)$r['mani'] === 2) { return 0; } // già un'arma 2-mani
         }
         $hasShield = db()->query(
-            "SELECT 1 FROM equippg WHERE idpg = ? AND slot = 'scudo' LIMIT 1", [$pgid]
+            LIBEQUIP_INC_SELECT_1_FROM_EQUIPPG_WHERE_IDPG_AND_SLOT_SCUDO_LIMIT_1, [$pgid]
         );
         if ($hasShield && ($sx || $dx)) { return 0; }
 
@@ -352,7 +355,7 @@ function checkSlotWeapon(int $pgid, int $mani): int
     );
     if ($busyArms) { return 0; }
     $hasShield = db()->query(
-        "SELECT 1 FROM equippg WHERE idpg = ? AND slot = 'scudo' LIMIT 1", [$pgid]
+        LIBEQUIP_INC_SELECT_1_FROM_EQUIPPG_WHERE_IDPG_AND_SLOT_SCUDO_LIMIT_1, [$pgid]
     );
     return $hasShield ? 0 : 2;
 }
@@ -445,7 +448,7 @@ function moveObject(int $equippgId, int $src, int $dest, int $mandante): bool
         $db=db();
         $row=$db->query('SELECT uid FROM equippg WHERE id=? AND idpg=? FOR UPDATE',[$equippgId,$src])[0] ?? null;
         if (!$row || !$db->query('SELECT 1 FROM utenti WHERE id=?',[$dest])) { return false; }
-        $db->execute("UPDATE equippg SET idpadre=0,slot='' WHERE idpadre=? AND idpg=?",[$equippgId,$src]);
+        $db->execute(LIBEQUIP_INC_UPDATE_EQUIPPG_SET_IDPADRE_0_SLOT_WHERE_IDPADRE_AND_IDPG,[$equippgId,$src]);
         $db->execute("UPDATE equippg SET idpg=?,slot='',idpadre=0 WHERE id=? AND idpg=?",[$dest,$equippgId,$src]);
         $db->execute("INSERT INTO logs_equip(data,esecutore,origine,destinatario,obj,azione) VALUES(?,?,?,?,?,'SPOSTA')",[time(),$mandante,$src,$dest,$row['uid']]);
         inviaMissiva('Notifica Trasferimento Oggetto',GetPGFromID($src).' ti ha inviato un oggetto.',$dest);
@@ -459,7 +462,7 @@ function deleteObject(int $equippgId, int $pgid, int $mandante): bool
         $db=db();
         $row=$db->query('SELECT uid FROM equippg WHERE id=? AND idpg=? FOR UPDATE',[$equippgId,$pgid])[0] ?? null;
         if (!$row) { return false; }
-        $db->execute("UPDATE equippg SET idpadre=0,slot='' WHERE idpadre=? AND idpg=?",[$equippgId,$pgid]);
+        $db->execute(LIBEQUIP_INC_UPDATE_EQUIPPG_SET_IDPADRE_0_SLOT_WHERE_IDPADRE_AND_IDPG,[$equippgId,$pgid]);
         $db->execute('DELETE FROM equippg WHERE id=? AND idpg=?',[$equippgId,$pgid]);
         $db->execute("INSERT INTO logs_equip(data,esecutore,origine,obj,azione) VALUES(?,?,?,?,'CANCELLA')",[time(),$mandante,$pgid,$row['uid']]);
         return true;
@@ -473,25 +476,25 @@ function getSlottedEquip(int $pgid): array
 {
     /* placeholder icone */
     $equip = [
-        'guanti'   => ['img'=>'/assets/placeholder.svg',   'desc'=>'Guanti'],
-        'elmo'     => ['img'=>'/assets/placeholder.svg',     'desc'=>'Elmo'],
-        'mantello' => ['img'=>'/assets/placeholder.svg', 'desc'=>'Mantello'],
-        'veste'    => ['img'=>'/assets/placeholder.svg',    'desc'=>'Veste'],
+        'guanti'   => ['img'=>LIBEQUIP_INC_ASSETS_PLACEHOLDER_SVG,   'desc'=>'Guanti'],
+        'elmo'     => ['img'=>LIBEQUIP_INC_ASSETS_PLACEHOLDER_SVG,     'desc'=>'Elmo'],
+        'mantello' => ['img'=>LIBEQUIP_INC_ASSETS_PLACEHOLDER_SVG, 'desc'=>'Mantello'],
+        'veste'    => ['img'=>LIBEQUIP_INC_ASSETS_PLACEHOLDER_SVG,    'desc'=>'Veste'],
 
-        'armasx'   => ['img'=>'/assets/placeholder.svg',  'desc'=>'Arma Braccio Sinistro'],
-        'armatura' => ['img'=>'/assets/placeholder.svg', 'desc'=>'Armatura'],
-        'armadx'   => ['img'=>'/assets/placeholder.svg',  'desc'=>'Arma Braccio Destro'],
-        'bracciali'=> ['img'=>'/assets/placeholder.svg','desc'=>'Bracciali'],
+        'armasx'   => ['img'=>LIBEQUIP_INC_ASSETS_PLACEHOLDER_SVG,  'desc'=>'Arma Braccio Sinistro'],
+        'armatura' => ['img'=>LIBEQUIP_INC_ASSETS_PLACEHOLDER_SVG, 'desc'=>'Armatura'],
+        'armadx'   => ['img'=>LIBEQUIP_INC_ASSETS_PLACEHOLDER_SVG,  'desc'=>'Arma Braccio Destro'],
+        'bracciali'=> ['img'=>LIBEQUIP_INC_ASSETS_PLACEHOLDER_SVG,'desc'=>'Bracciali'],
 
-        'faretra'  => ['img'=>'/assets/placeholder.svg',  'desc'=>'Faretra'],
-        'stivali'  => ['img'=>'/assets/placeholder.svg',  'desc'=>'Stivali / Schinieri'],
-        'scudo'    => ['img'=>'/assets/placeholder.svg',    'desc'=>'Scudo'],
-        'musica'   => ['img'=>'/assets/placeholder.svg',    'desc'=>'Strumenti Musicali'],
+        'faretra'  => ['img'=>LIBEQUIP_INC_ASSETS_PLACEHOLDER_SVG,  'desc'=>'Faretra'],
+        'stivali'  => ['img'=>LIBEQUIP_INC_ASSETS_PLACEHOLDER_SVG,  'desc'=>'Stivali / Schinieri'],
+        'scudo'    => ['img'=>LIBEQUIP_INC_ASSETS_PLACEHOLDER_SVG,    'desc'=>'Scudo'],
+        'musica'   => ['img'=>LIBEQUIP_INC_ASSETS_PLACEHOLDER_SVG,    'desc'=>'Strumenti Musicali'],
 
-        'anellosx' => ['img'=>'/assets/placeholder.svg', 'desc'=>'Anello Mano Sinistra'],
-        'collana'  => ['img'=>'/assets/placeholder.svg','desc'=>'Medaglione / Collana'],
-        'anellodx' => ['img'=>'/assets/placeholder.svg', 'desc'=>'Anello Mano Destra'],
-        'attrezzi' => ['img'=>'/assets/placeholder.svg',    'desc'=>'Attrezzi'],
+        'anellosx' => ['img'=>LIBEQUIP_INC_ASSETS_PLACEHOLDER_SVG, 'desc'=>'Anello Mano Sinistra'],
+        'collana'  => ['img'=>LIBEQUIP_INC_ASSETS_PLACEHOLDER_SVG,'desc'=>'Medaglione / Collana'],
+        'anellodx' => ['img'=>LIBEQUIP_INC_ASSETS_PLACEHOLDER_SVG, 'desc'=>'Anello Mano Destra'],
+        'attrezzi' => ['img'=>LIBEQUIP_INC_ASSETS_PLACEHOLDER_SVG,    'desc'=>'Attrezzi'],
     ];
 
     $rows = db()->query(

@@ -1,5 +1,7 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/alphano-exceptions.inc.php';
+
 
 require_once __DIR__ . '/kernel.inc.php';  // per connectDB()
 
@@ -19,13 +21,13 @@ function canVote(int $pgid, int $sondaggio): bool
 function vote(int $idrisp, int $sondaggio, int $pgid): void
 {
     $db = connectDB();
-    if ($pgid <= 0) { throw new RuntimeException('Utente non valido', 400); }
+    if ($pgid <= 0) { throw new AlphanoStorageException('Utente non valido', 400); }
     $db->beginTransaction();
     try {
         // Lock the poll itself: the existing schema has no unique vote key.
         $poll = $db->query('SELECT attivo,risposte FROM sondaggi WHERE id=? FOR UPDATE', [$sondaggio])[0] ?? null;
-        if (!$poll || empty($poll['attivo'])) { throw new RuntimeException('Sondaggio non disponibile', 400); }
-        if ($idrisp < 1 || $idrisp > count(explode(';', $poll['risposte']))) { throw new RuntimeException('Risposta non valida', 400); }
+        if (!$poll || empty($poll['attivo'])) { throw new AlphanoStorageException('Sondaggio non disponibile', 400); }
+        if ($idrisp < 1 || $idrisp > count(explode(';', $poll['risposte']))) { throw new AlphanoStorageException('Risposta non valida', 400); }
         if ($db->query('SELECT 1 FROM risondaggi WHERE idsondaggio=? AND idpg=?', [$sondaggio,$pgid])) {
             $db->rollBack();
             return;

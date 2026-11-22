@@ -1,5 +1,9 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/alphano-exceptions.inc.php';
+
+const WEB_PUSH_INC_CHIAVE_DEL_DISPOSITIVO_NON_VALIDA = 'Chiave del dispositivo non valida.';
+const WEB_PUSH_INC_VENDOR_AUTOLOAD_PHP = '/vendor/autoload.php';
 require_once __DIR__.'/kernel.inc.php';
 
 /** Web Push is optional. Private keys and capability URLs never leave this boundary. */
@@ -23,9 +27,9 @@ function alphanoPushKeys(): ?array
 
 function alphanoPushDecode(mixed $value): string
 {
-    if (!is_string($value) || strlen($value)>256 || !preg_match('/^[A-Za-z0-9_-]+={0,2}$/D', $value)) { throw new RuntimeException('Chiave del dispositivo non valida.', 400); }
+    if (!is_string($value) || strlen($value)>256 || !preg_match('/^[A-Za-z0-9_-]+={0,2}$/D', $value)) { throw new AlphanoStorageException(WEB_PUSH_INC_CHIAVE_DEL_DISPOSITIVO_NON_VALIDA, 400); }
     $bytes = base64_decode(strtr($value, '-_', '+/'), true);
-    if ($bytes === false) { throw new RuntimeException('Chiave del dispositivo non valida.', 400); }
+    if ($bytes === false) { throw new AlphanoStorageException(WEB_PUSH_INC_CHIAVE_DEL_DISPOSITIVO_NON_VALIDA, 400); }
     return $bytes;
 }
 
@@ -33,8 +37,8 @@ function alphanoPushReady(): bool
 {
     foreach (['curl','mbstring','openssl'] as $extension) { if (!extension_loaded($extension)) { return false; } }
     if (!in_array('prime256v1', openssl_get_curve_names() ?: [], true) || !in_array('aes-128-gcm', openssl_get_cipher_methods(), true)) { return false; }
-    if (!alphanoPushKeys() || !is_file(dirname(__DIR__).'/vendor/autoload.php')) { return false; }
-    require_once dirname(__DIR__).'/vendor/autoload.php';
+    if (!alphanoPushKeys() || !is_file(dirname(__DIR__).WEB_PUSH_INC_VENDOR_AUTOLOAD_PHP)) { return false; }
+    require_once dirname(__DIR__).WEB_PUSH_INC_VENDOR_AUTOLOAD_PHP;
     return class_exists(\Minishlink\WebPush\WebPush::class)
         && (bool)connectDB()->query("SHOW TABLES LIKE 'web_push_subscriptions'");
 }
@@ -42,38 +46,38 @@ function alphanoPushReady(): bool
 /** Restrict outbound destinations to browser vendors, never arbitrary user URLs (SSRF). */
 function alphanoPushEndpoint(mixed $value): string
 {
-    if (!is_string($value) || strlen($value) > 2048 || preg_match('/[\x00-\x20\x7f]/', $value)) { throw new RuntimeException('Dispositivo non valido.', 400); }
+    if (!is_string($value) || strlen($value) > 2048 || preg_match('/[\x00-\x20\x7f]/', $value)) { throw new AlphanoStorageException('Dispositivo non valido.', 400); }
     $url = parse_url($value); $host = strtolower($url['host'] ?? '');
     $allowed = $host === 'fcm.googleapis.com' || $host === 'fcmregistrations.googleapis.com'
         || str_ends_with($host, '.push.services.mozilla.com')
         || str_ends_with($host, '.notify.windows.com') || str_ends_with($host, '.push.apple.com');
     if (!$allowed || ($url['scheme'] ?? '') !== 'https' || isset($url['user']) || isset($url['pass'])
-        || isset($url['fragment']) || (isset($url['port']) && $url['port'] !== 443) || empty($url['path'])) { throw new RuntimeException('Servizio push del browser non riconosciuto.', 400); }
+        || isset($url['fragment']) || (isset($url['port']) && $url['port'] !== 443) || empty($url['path'])) { throw new AlphanoStorageException('Servizio push del browser non riconosciuto.', 400); }
     return $value;
 }
 
 function alphanoPushSubscription(array $input): array
 {
     $endpoint = alphanoPushEndpoint($input['endpoint'] ?? null);
-    if (!is_array($input['keys'] ?? null)) { throw new RuntimeException('Chiavi del dispositivo non valide.', 400); }
+    if (!is_array($input['keys'] ?? null)) { throw new AlphanoStorageException('Chiavi del dispositivo non valide.', 400); }
     $p256dh = $input['keys']['p256dh'] ?? null; $auth = $input['keys']['auth'] ?? null;
     $point = alphanoPushDecode($p256dh);
-    if (strlen($point) !== 65 || $point[0] !== "\x04" || strlen(alphanoPushDecode($auth)) !== 16) { throw new RuntimeException('Chiavi del dispositivo non valide.', 400); }
+    if (strlen($point) !== 65 || $point[0] !== "\x04" || strlen(alphanoPushDecode($auth)) !== 16) { throw new AlphanoStorageException('Chiavi del dispositivo non valide.', 400); }
     $der = hex2bin('3059301306072a8648ce3d020106082a8648ce3d030107034200').$point;
-    if (!@openssl_pkey_get_public("-----BEGIN PUBLIC KEY-----\n".chunk_split(base64_encode($der), 64, "\n")."-----END PUBLIC KEY-----\n")) { throw new RuntimeException('Chiave del dispositivo non valida.', 400); }
+    if (!@openssl_pkey_get_public("-----BEGIN PUBLIC KEY-----\n".chunk_split(base64_encode($der), 64, "\n")."-----END PUBLIC KEY-----\n")) { throw new AlphanoStorageException(WEB_PUSH_INC_CHIAVE_DEL_DISPOSITIVO_NON_VALIDA, 400); }
     return compact('endpoint','p256dh','auth');
 }
 
 function alphanoPushSubscribe(int $user, array $input): void
 {
-    if (!alphanoPushReady()) { throw new RuntimeException('Le notifiche del browser non sono ancora disponibili.', 503); }
+    if (!alphanoPushReady()) { throw new AlphanoStorageException('Le notifiche del browser non sono ancora disponibili.', 503); }
     $sub = alphanoPushSubscription($input); $hash = hash('sha256', $sub['endpoint']); $now = time(); $db = connectDB();
     $db->beginTransaction();
     try {
         $account = $db->query('SELECT id,bloccato FROM utenti WHERE id=? FOR UPDATE', [$user])[0] ?? null;
-        if (!$account || !empty($account['bloccato'])) { throw new RuntimeException('Accesso non consentito.', 403); }
+        if (!$account || !empty($account['bloccato'])) { throw new AlphanoStorageException('Accesso non consentito.', 403); }
         $existing = $db->query('SELECT * FROM web_push_subscriptions WHERE endpoint_hash=? FOR UPDATE', [$hash])[0] ?? null;
-        if ((!$existing || (int)$existing['user_id']!==$user || !$existing['enabled']) && (int)$db->query('SELECT COUNT(*) AS n FROM web_push_subscriptions WHERE user_id=? AND enabled=1', [$user])[0]['n'] >= 10) { throw new RuntimeException('Hai già dieci dispositivi attivi. Disattivane uno prima di aggiungerne un altro.', 429); }
+        if ((!$existing || (int)$existing['user_id']!==$user || !$existing['enabled']) && (int)$db->query('SELECT COUNT(*) AS n FROM web_push_subscriptions WHERE user_id=? AND enabled=1', [$user])[0]['n'] >= 10) { throw new AlphanoStorageException('Hai già dieci dispositivi attivi. Disattivane uno prima di aggiungerne un altro.', 429); }
         $same = $existing && (int)$existing['user_id']===$user && $existing['enabled'] && hash_equals(hash('sha256',alphanoPushKeys()['publicKey']),$existing['vapid_hash']);
         $latest = $same ? (int)$existing['last_mail_id'] : (int)$db->query('SELECT COALESCE(MAX(id),0) AS id FROM mail WHERE iddestinatario=?', [$user])[0]['id'];
         $db->execute('INSERT INTO web_push_subscriptions(user_id,endpoint_hash,endpoint,p256dh,auth,vapid_hash,last_mail_id,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE user_id=VALUES(user_id),endpoint=VALUES(endpoint),p256dh=VALUES(p256dh),auth=VALUES(auth),vapid_hash=VALUES(vapid_hash),enabled=1,last_mail_id=VALUES(last_mail_id),failures=?,available_at=?,updated_at=VALUES(updated_at)', [$user,$hash,$sub['endpoint'],$sub['p256dh'],$sub['auth'],hash('sha256',alphanoPushKeys()['publicKey']),$latest,$now,$now,$same ? (int)$existing['failures'] : 0,$same ? (int)$existing['available_at'] : 0]);
@@ -92,7 +96,7 @@ function alphanoPushDisable(int $user, string $hash): void
 /** Factory is injectable only from trusted PHP tests, never from HTTP input. */
 function alphanoPushTransport(array $keys, array $clientOptions = []): \Minishlink\WebPush\WebPush
 {
-    require_once dirname(__DIR__).'/vendor/autoload.php';
+    require_once dirname(__DIR__).WEB_PUSH_INC_VENDOR_AUTOLOAD_PHP;
     return new \Minishlink\WebPush\WebPush(['VAPID'=>$keys], ['TTL'=>300,'urgency'=>'normal'], 5,
         array_replace(['allow_redirects'=>false,'connect_timeout'=>3,'verify'=>true], $clientOptions));
 }

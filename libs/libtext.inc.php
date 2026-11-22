@@ -233,7 +233,7 @@ function alphanoSanitizeHtml(string $html): string
         if (!$image && str_starts_with(strtolower($value), 'mailto:')) { return true; }
         return !preg_match('~^[a-z][a-z0-9+.-]*:~i', $value) && !str_contains($value, '\\');
     };
-    $clean = function (DOMNode $node) use (&$clean, $document, $allowed, $drop, $safeUrl): void {
+    $clean = function (DOMNode $node) use (&$clean, $allowed, $drop, $safeUrl): void {
         foreach (iterator_to_array($node->childNodes) as $child) {
             if (!$child instanceof DOMElement) {
                 if ($child instanceof DOMComment || $child instanceof DOMProcessingInstruction) { $node->removeChild($child); }

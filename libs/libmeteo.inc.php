@@ -2,6 +2,7 @@
 // libs/libmeteo.inc.php
 
 declare(strict_types=1);
+const LIBMETEO_INC_TEMPO_STAZIONARIO = 'Tempo Stazionario';
 
 use Alphano\Database\PDOMySQLDriver;
 
@@ -41,8 +42,8 @@ $GLOBALS['temperature'] = [
 ];
 
 // Descrizioni di tempo, cielo e vento
-$GLOBALS['tempo'] = [-2=>"Pioggia",-1=>"Tempo Stazionario",0=>"Tempo Stazionario",1=>"Tempo Stazionario",2=>"Pioggia"];
-$GLOBALS['cold'] = [-2=>"Neve",-1=>"Tempo Stazionario",0=>"Tempo Stazionario",1=>"Tempo Stazionario",2=>"Neve"];
+$GLOBALS['tempo'] = [-2=>"Pioggia",-1=>LIBMETEO_INC_TEMPO_STAZIONARIO,0=>LIBMETEO_INC_TEMPO_STAZIONARIO,1=>LIBMETEO_INC_TEMPO_STAZIONARIO,2=>"Pioggia"];
+$GLOBALS['cold'] = [-2=>"Neve",-1=>LIBMETEO_INC_TEMPO_STAZIONARIO,0=>LIBMETEO_INC_TEMPO_STAZIONARIO,1=>LIBMETEO_INC_TEMPO_STAZIONARIO,2=>"Neve"];
 $GLOBALS['cielo'] = [-2=>"Tuoni e Fulmini",-1=>"Cielo Nuvoloso",0=>"Cielo Sgombro",1=>"Cielo Nuvoloso",2=>"Tuoni e Fulmini"];
 $GLOBALS['vento'] = [
     -4=>"Vento Forte",-3=>"Vento",-2=>"Brezza Leggera",-1=>"Vento Assente",
@@ -56,7 +57,6 @@ function getNewMeteo(array $dati): array
 {
     global $temperature;
     $stagione = getStagione();
-    $notte    = licanTime();
 
     // drift temperatura
     $t = $dati["temperatura"] > 0 ? 1 : -1;

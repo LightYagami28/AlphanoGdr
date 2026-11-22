@@ -1,5 +1,7 @@
 <?php
 declare(strict_types=1);
+const ELECTIONS_INC_CITTA_ELEZIONI_PHP_CITY = '/citta/elezioni.php?city=';
+const ELECTIONS_INC_Y_M_D_H_I_S = 'Y-m-d H:i:s';
 require_once __DIR__.'/kernel.inc.php';
 require_once __DIR__.'/admin-governance.inc.php';
 require_once __DIR__.'/libposta.inc.php';
@@ -25,7 +27,7 @@ function alphanoElectionsSummaries(?int $now=null):array {
  foreach(connectDB()->query('SELECT id FROM city ORDER BY id') as $c){
   $id=(int)$c['id'];$r=$rounds[$id]??null;$phase=$r['civic_state']??($ready?'waiting':'unavailable');
   $utc=$r?($r[$phase==='candidacy'?'start_elezioni':'end_elezioni']):null;
-  $out[$id]=['city_id'=>$id,'phase'=>$phase,'active'=>$r!==null,'round_id'=>(int)($r['id']??0),'candidates'=>(int)($r['candidates']??0),'deadline'=>$utc?strtotime($utc.' UTC'):0,'deadline_label'=>$utc?alphanoElectionsDeadlineLabel($utc):'','server_time'=>$now,'url'=>'/citta/elezioni.php?city='.$id];
+  $out[$id]=['city_id'=>$id,'phase'=>$phase,'active'=>$r!==null,'round_id'=>(int)($r['id']??0),'candidates'=>(int)($r['candidates']??0),'deadline'=>$utc?strtotime($utc.' UTC'):0,'deadline_label'=>$utc?alphanoElectionsDeadlineLabel($utc):'','server_time'=>$now,'url'=>ELECTIONS_INC_CITTA_ELEZIONI_PHP_CITY.$id];
  }
  return $out;
 }
@@ -37,7 +39,7 @@ function alphanoElectionsCandidates(array $round):array {
 function alphanoElectionsAnnounce(int $city,int $round,string $key,string $title,string $body,int $now):void {
  $db=connectDB();if($db->query('SELECT id FROM civic_election_events WHERE event_key=?',[$key])){ return; }
  $db->execute('INSERT INTO civic_election_events(event_key,city_id,round_id,title,body,created_at) VALUES(?,?,?,?,?,?)',[$key,$city,$round,$title,$body,$now]);$event=(int)$db->lastInsertId();
- $link='/citta/elezioni.php?city='.$city;$html=htmlspecialchars($body,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8').'<br><a href="'.$link.'">Apri le elezioni e partecipa</a>';
+ $link=ELECTIONS_INC_CITTA_ELEZIONI_PHP_CITY.$city;$html=htmlspecialchars($body,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8').'<br><a href="'.$link.'">Apri le elezioni e partecipa</a>';
  foreach($db->query('SELECT u.id FROM utenti u JOIN araldiche a ON a.id=u.araldica WHERE a.city=? AND u.bloccato=0',[$city]) as $u){inviaMissiva($title,$html,(int)$u['id'],0,0);$mail=(int)$db->lastInsertId();$db->execute('INSERT INTO civic_election_deliveries(event_id,player_id,mail_id) VALUES(?,?,?)',[$event,(int)$u['id'],$mail]);}
  alphanoRecordActivity('civic-election',0,[['scope'=>'citta','id'=>$city,'section'=>'elezioni','role'=>'member']],$title,$body,['city_id'=>$city,'round_id'=>$round,'event_id'=>$event],'civic:'.$key);
 }
@@ -62,7 +64,7 @@ function alphanoElectionsAdvance(array $city,int $now):void {
   if(count($c)>1&&count($ties)>1){
    $ids=array_column($ties,'id');$marks=implode(',',array_fill(0,count($ids),'?'));$ballot=(int)$r['civic_ballot']+1;
    $db->execute("UPDATE civic_election_candidates SET eligible=0 WHERE round_id=? AND player_id NOT IN($marks)",[$rid,...$ids]);
-   $db->execute("UPDATE storicoelezioni SET civic_state='runoff',civic_ballot=?,start_elezioni=?,end_elezioni=? WHERE id=?",[$ballot,gmdate('Y-m-d H:i:s',$now),gmdate('Y-m-d H:i:s',$now+ALPHANO_ELECTION_RUNOFF),$rid]);$db->execute('UPDATE city SET ballottaggio=1 WHERE id=?',[$cid]);
+   $db->execute("UPDATE storicoelezioni SET civic_state='runoff',civic_ballot=?,start_elezioni=?,end_elezioni=? WHERE id=?",[$ballot,gmdate(ELECTIONS_INC_Y_M_D_H_I_S,$now),gmdate(ELECTIONS_INC_Y_M_D_H_I_S,$now+ALPHANO_ELECTION_RUNOFF),$rid]);$db->execute('UPDATE city SET ballottaggio=1 WHERE id=?',[$cid]);
    alphanoElectionsAnnounce($cid,$rid,'runoff:'.$rid.':'.$ballot,'Ballottaggio a '.$city['city'],'Parità fra '.implode(', ',array_column($ties,'name')).'. Si apre un nuovo voto di 48 ore fra i candidati a pari merito. Il voto precedente rimane nel registro. Nessun vincitore viene sorteggiato.',$now);return;
   }
   $winner=$c?(int)$c[0]['id']:0;
@@ -86,7 +88,7 @@ function alphanoElectionsCandidate(int $city,int $player,string $program,?int $n
   if(alphanoElectionsCity($player)!==$city){ throw new DomainException('Solo un cittadino vivo e non bloccato può candidarsi nella propria città.',403); }
   $r=alphanoElectionsRound($city);
   if($expectedRound>0&&(!$r||(int)$r['id']!==$expectedRound)){ throw new DomainException('La tornata è cambiata. Rileggi il registro prima di confermare.',409); }
-  if(!$r){$db->execute("INSERT INTO storicoelezioni(city_id,tipologia,start_candidature,start_elezioni,end_elezioni,civic_state) VALUES(?,'civiche',?,?,?,'candidacy')",[$city,gmdate('Y-m-d H:i:s',$now),gmdate('Y-m-d H:i:s',$now+ALPHANO_ELECTION_CANDIDACY),gmdate('Y-m-d H:i:s',$now+ALPHANO_ELECTION_CANDIDACY+ALPHANO_ELECTION_VOTING)]);$r=alphanoElectionsRound($city);}
+  if(!$r){$db->execute("INSERT INTO storicoelezioni(city_id,tipologia,start_candidature,start_elezioni,end_elezioni,civic_state) VALUES(?,'civiche',?,?,?,'candidacy')",[$city,gmdate(ELECTIONS_INC_Y_M_D_H_I_S,$now),gmdate(ELECTIONS_INC_Y_M_D_H_I_S,$now+ALPHANO_ELECTION_CANDIDACY),gmdate(ELECTIONS_INC_Y_M_D_H_I_S,$now+ALPHANO_ELECTION_CANDIDACY+ALPHANO_ELECTION_VOTING)]);$r=alphanoElectionsRound($city);}
   if($r['civic_state']!=='candidacy'){ throw new DomainException('Le candidature di questa tornata sono chiuse.',409); }
   $rid=(int)$r['id'];$org=(int)($db->query('SELECT organizzazione FROM utenti WHERE id=? FOR UPDATE',[$player])[0]['organizzazione']??0);
   $db->execute('INSERT INTO civic_election_candidates(round_id,player_id,organization_id,program,created_at,updated_at) VALUES(?,?,?,?,?,?) ON DUPLICATE KEY UPDATE program=VALUES(program),updated_at=VALUES(updated_at)',[$rid,$player,$org,$program,$now,$now]);
@@ -108,12 +110,12 @@ function alphanoElectionsVote(int $city,int $player,int $candidate,?int $now=nul
 }
 function alphanoElectionsState(int $city,int $viewer=0,?int $now=null):array {
  $now??=time();$db=connectDB();$c=$db->query('SELECT id,city,elections_enabled FROM city WHERE id=?',[$city])[0]??null;if(!$c){ throw new DomainException('Città non disponibile.',404); }
- if(!alphanoElectionsReady()||empty($c['elections_enabled'])){ return ['city_id'=>$city,'city'=>$c['city'],'office_title'=>alphanoGovernanceCityTitle($city),'phase'=>'unavailable','round_id'=>0,'ballot'=>1,'server_time'=>$now,'deadline'=>0,'candidates'=>[],'is_citizen'=>false,'can_candidate'=>false,'can_vote'=>false,'voted'=>false,'own_program'=>'','last_result'=>null,'url'=>'/citta/elezioni.php?city='.$city]; }
+ if(!alphanoElectionsReady()||empty($c['elections_enabled'])){ return ['city_id'=>$city,'city'=>$c['city'],'office_title'=>alphanoGovernanceCityTitle($city),'phase'=>'unavailable','round_id'=>0,'ballot'=>1,'server_time'=>$now,'deadline'=>0,'candidates'=>[],'is_citizen'=>false,'can_candidate'=>false,'can_vote'=>false,'voted'=>false,'own_program'=>'','last_result'=>null,'url'=>ELECTIONS_INC_CITTA_ELEZIONI_PHP_CITY.$city]; }
  $r=alphanoElectionsRound($city);$citizen=$viewer>0&&alphanoElectionsCity($viewer)===$city;$candidates=$r?alphanoElectionsCandidates($r):[];
  $voted=$r&&$citizen&&(bool)$db->query('SELECT 1 FROM civic_election_votes WHERE round_id=? AND ballot=? AND voter_id=?',[(int)$r['id'],(int)$r['civic_ballot'],$viewer]);
  $own='';foreach($candidates as &$entry){if($entry['id']===$viewer){ $own=$entry['program']; }$entry['portrait']=alphanoProfilePortrait($entry)['url'];$entry=array_intersect_key($entry,array_flip(['id','name','organization','program','portrait']));}unset($entry);
  $last=$db->query("SELECT s.id,s.winner_id,s.civic_closed_at,s.consultazioni,u.nome AS winner_name FROM storicoelezioni s LEFT JOIN utenti u ON u.id=s.winner_id WHERE s.city_id=? AND s.civic_state='closed' ORDER BY s.id DESC LIMIT 1",[$city])[0]??null;
- return ['city_id'=>$city,'city'=>$c['city'],'office_title'=>alphanoGovernanceCityTitle($city),'phase'=>$r['civic_state']??'waiting','round_id'=>(int)($r['id']??0),'ballot'=>(int)($r['civic_ballot']??1),'server_time'=>$now,'deadline'=>$r?strtotime($r[$r['civic_state']==='candidacy'?'start_elezioni':'end_elezioni'].' UTC'):0,'candidates'=>$candidates,'is_citizen'=>$citizen,'can_candidate'=>$citizen&&(!$r||$r['civic_state']==='candidacy'),'can_vote'=>$citizen&&$r&&in_array($r['civic_state'],['voting','runoff'],true)&&!$voted,'voted'=>$voted,'own_program'=>$own,'last_result'=>$last,'url'=>'/citta/elezioni.php?city='.$city];
+ return ['city_id'=>$city,'city'=>$c['city'],'office_title'=>alphanoGovernanceCityTitle($city),'phase'=>$r['civic_state']??'waiting','round_id'=>(int)($r['id']??0),'ballot'=>(int)($r['civic_ballot']??1),'server_time'=>$now,'deadline'=>$r?strtotime($r[$r['civic_state']==='candidacy'?'start_elezioni':'end_elezioni'].' UTC'):0,'candidates'=>$candidates,'is_citizen'=>$citizen,'can_candidate'=>$citizen&&(!$r||$r['civic_state']==='candidacy'),'can_vote'=>$citizen&&$r&&in_array($r['civic_state'],['voting','runoff'],true)&&!$voted,'voted'=>$voted,'own_program'=>$own,'last_result'=>$last,'url'=>ELECTIONS_INC_CITTA_ELEZIONI_PHP_CITY.$city];
 }
 /** Call autonomously every minute; no visitor is required for transitions or delivery. */
 function alphanoElectionsTick(?int $now=null,bool $deliver=true):array {
@@ -125,7 +127,7 @@ function alphanoElectionsTick(?int $now=null,bool $deliver=true):array {
 function alphanoElectionsDeliver(int $limit=25,?int $now=null,int $budget=20):int {
  require_once __DIR__.'/email-notifications.inc.php';$db=connectDB();
  foreach($db->query("SELECT d.event_id,d.player_id,e.created_at,e.city_id FROM civic_election_deliveries d JOIN civic_election_events e ON e.id=d.event_id WHERE d.email_status IN('pending','retry','sending') ORDER BY d.event_id LIMIT ".max(1,min(100,$limit))) as $row){
-  alphanoEmailEnqueue((int)$row['player_id'],'civic:'.$row['event_id'],'civic','Aggiornamento delle elezioni cittadine','/citta/elezioni.php?city='.$row['city_id'],(int)$row['created_at']);
+  alphanoEmailEnqueue((int)$row['player_id'],'civic:'.$row['event_id'],'civic','Aggiornamento delle elezioni cittadine',ELECTIONS_INC_CITTA_ELEZIONI_PHP_CITY.$row['city_id'],(int)$row['created_at']);
   $db->execute("UPDATE civic_election_deliveries SET email_status='queued',email_error='' WHERE event_id=? AND player_id=?",[$row['event_id'],$row['player_id']]);
  }
  return alphanoEmailDeliver($limit,$budget)['sent'];

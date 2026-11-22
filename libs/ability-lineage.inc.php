@@ -53,7 +53,7 @@ function rpgLineageSheet(array $identity):array {
 
 /** Catalogue editing may tune mechanics, but cannot mix or reverse authored bloodlines. */
 function rpgValidateLineageAssignment(string $key,array $races):void {
- $origins=rpgAbilityOrigin(['key'=>$key,'race_ids'=>$races]);$human=alphanoHumanRaceId();
+ $origins=rpgAbilityOrigin(['key'=>$key,'race_ids'=>$races]);
  $families=[];foreach($origins as $race){ $families[]=match($race){2,5=>'vampire',3,6=>'lycan',default=>'race:'.$race}; }
  if(count(array_unique($families))>1){ throw new DomainException('Un’abilità non può unire stirpi diverse. Configura una competenza per ciascuna stirpe.',422); }
  foreach($races as $race){ if(!rpgLineageContains($race,$origins)){ throw new DomainException('Non puoi assegnare un potere a una stirpe estranea o a un rango inferiore. Il patrimonio umano viene condiviso automaticamente secondo le sue regole.',422); } }

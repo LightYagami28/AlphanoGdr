@@ -1,5 +1,7 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/alphano-exceptions.inc.php';
+
 
 /* =========================================================================
  *  libchat.inc.php – funzioni condivise per il motore delle chat
@@ -75,23 +77,23 @@ function insertIntoChat(string $chat, string $html, array $metadata=[]): int
         if ($row) {
             $logFile=rtrim(HTMLROOT,'/').'/sessione/log/'.$row[0]['id'].'.html';
             $handle=@fopen($logFile,'c+b');
-            if ($handle===false) { throw new RuntimeException('Impossibile aprire il registro della sessione'); }
+            if ($handle===false) { throw new AlphanoStorageException('Impossibile aprire il registro della sessione'); }
             $locked=@flock($handle,LOCK_EX);
-            if (!$locked) { throw new RuntimeException('Impossibile bloccare il registro della sessione'); }
+            if (!$locked) { throw new AlphanoStorageException('Impossibile bloccare il registro della sessione'); }
             $stat=@fstat($handle);
-            if (!$stat || (($stat['mode'] & 0170000)!==0100000)) { throw new RuntimeException('Registro della sessione non valido'); }
+            if (!$stat || (($stat['mode'] & 0170000)!==0100000)) { throw new AlphanoStorageException('Registro della sessione non valido'); }
             $originalSize=(int)$stat['size'];
             // Alcuni stream locali non implementano questa opzione: i controlli
             // su scrittura e flush restano obbligatori in entrambi i casi.
             @stream_set_write_buffer($handle,0);
-            if (@fseek($handle,0,SEEK_END)!==0) { throw new RuntimeException('Impossibile aggiornare il registro della sessione'); }
+            if (@fseek($handle,0,SEEK_END)!==0) { throw new AlphanoStorageException('Impossibile aggiornare il registro della sessione'); }
             $content=$html."<br>\n";$offset=0;$length=strlen($content);
             while ($offset<$length) {
                 $written=@fwrite($handle,substr($content,$offset));
-                if ($written===false || $written===0) { throw new RuntimeException('Scrittura del registro della sessione incompleta'); }
+                if ($written===false || $written===0) { throw new AlphanoStorageException('Scrittura del registro della sessione incompleta'); }
                 $offset+=$written;
             }
-            if (!@fflush($handle)) { throw new RuntimeException('Impossibile salvare il registro della sessione'); }
+            if (!@fflush($handle)) { throw new AlphanoStorageException('Impossibile salvare il registro della sessione'); }
         }
         if ($own) { $db->commit(); }
     } catch (Throwable $error) {
@@ -99,7 +101,7 @@ function insertIntoChat(string $chat, string $html, array $metadata=[]): int
         $restored=true;
         if (is_resource($handle) && $locked && $originalSize!==null) { $restored=@ftruncate($handle,$originalSize) && @fflush($handle); }
         if ($own && $db->inTransaction()) { $db->rollBack(); }
-        if (!$restored) { throw new RuntimeException('Ripristino del registro della sessione non riuscito',0,$error); }
+        if (!$restored) { throw new AlphanoStorageException('Ripristino del registro della sessione non riuscito',0,$error); }
         throw $error;
     } finally {
         if (is_resource($handle)) {

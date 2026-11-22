@@ -48,6 +48,37 @@ function getChatImages(): array
 /* --------------------------------------------------------------------------
  *  insertIntoChat()
  * ------------------------------------------------------------------------ */
+/** Append to the session log while holding a lock; file state is returned for rollback. */
+function chatAppendSessionLog(int $sessionId,string $html,&$handle,bool &$locked,?int &$originalSize):void
+{
+    $logFile=rtrim(HTMLROOT,'/').'/sessione/log/'.$sessionId.'.html';
+    $handle=@fopen($logFile,'c+b');
+    if ($handle===false) { throw new AlphanoStorageException('Impossibile aprire il registro della sessione'); }
+    $locked=@flock($handle,LOCK_EX);
+    if (!$locked) { throw new AlphanoStorageException('Impossibile bloccare il registro della sessione'); }
+    $stat=@fstat($handle);
+    if (!$stat || (($stat['mode'] & 0170000)!==0100000)) { throw new AlphanoStorageException('Registro della sessione non valido'); }
+    $originalSize=(int)$stat['size'];
+    // Alcuni stream locali non implementano questa opzione: i controlli
+    // su scrittura e flush restano obbligatori in entrambi i casi.
+    @stream_set_write_buffer($handle,0);
+    if (@fseek($handle,0,SEEK_END)!==0) { throw new AlphanoStorageException('Impossibile aggiornare il registro della sessione'); }
+    $content=$html."<br>\n";$offset=0;$length=strlen($content);
+    while ($offset<$length) {
+        $written=@fwrite($handle,substr($content,$offset));
+        if ($written===false || $written===0) { throw new AlphanoStorageException('Scrittura del registro della sessione incompleta'); }
+        $offset+=$written;
+    }
+    if (!@fflush($handle)) { throw new AlphanoStorageException('Impossibile salvare il registro della sessione'); }
+}
+/** Undo a partial append, then roll back the transaction. */
+function chatRollbackSessionLog($db,bool $own,$handle,bool $locked,?int $originalSize,Throwable $error):void
+{
+    $restored=true;
+    if (is_resource($handle) && $locked && $originalSize!==null) { $restored=@ftruncate($handle,$originalSize) && @fflush($handle); }
+    if ($own && $db->inTransaction()) { $db->rollBack(); }
+    if (!$restored) { throw new AlphanoStorageException('Ripristino del registro della sessione non riuscito',0,$error); }
+}
 function insertIntoChat(string $chat, string $html, array $metadata=[]): int
 {
     $html = stripslashes($html);
@@ -73,35 +104,12 @@ function insertIntoChat(string $chat, string $html, array $metadata=[]): int
             aiSceneCaptureSystem($chat,$source,$html,$metadata);
         }
 
-        // Tutte le query devono riuscire prima di aggiungere testo al file.
         if ($row) {
-            $logFile=rtrim(HTMLROOT,'/').'/sessione/log/'.$row[0]['id'].'.html';
-            $handle=@fopen($logFile,'c+b');
-            if ($handle===false) { throw new AlphanoStorageException('Impossibile aprire il registro della sessione'); }
-            $locked=@flock($handle,LOCK_EX);
-            if (!$locked) { throw new AlphanoStorageException('Impossibile bloccare il registro della sessione'); }
-            $stat=@fstat($handle);
-            if (!$stat || (($stat['mode'] & 0170000)!==0100000)) { throw new AlphanoStorageException('Registro della sessione non valido'); }
-            $originalSize=(int)$stat['size'];
-            // Alcuni stream locali non implementano questa opzione: i controlli
-            // su scrittura e flush restano obbligatori in entrambi i casi.
-            @stream_set_write_buffer($handle,0);
-            if (@fseek($handle,0,SEEK_END)!==0) { throw new AlphanoStorageException('Impossibile aggiornare il registro della sessione'); }
-            $content=$html."<br>\n";$offset=0;$length=strlen($content);
-            while ($offset<$length) {
-                $written=@fwrite($handle,substr($content,$offset));
-                if ($written===false || $written===0) { throw new AlphanoStorageException('Scrittura del registro della sessione incompleta'); }
-                $offset+=$written;
-            }
-            if (!@fflush($handle)) { throw new AlphanoStorageException('Impossibile salvare il registro della sessione'); }
+            chatAppendSessionLog($row[0]['id'], $html, $handle, $locked, $originalSize);
         }
         if ($own) { $db->commit(); }
     } catch (Throwable $error) {
-        // Un append parziale viene rimosso mantenendo il lock sullo stesso file.
-        $restored=true;
-        if (is_resource($handle) && $locked && $originalSize!==null) { $restored=@ftruncate($handle,$originalSize) && @fflush($handle); }
-        if ($own && $db->inTransaction()) { $db->rollBack(); }
-        if (!$restored) { throw new AlphanoStorageException('Ripristino del registro della sessione non riuscito',0,$error); }
+        chatRollbackSessionLog($db, $own, $handle, $locked, $originalSize, $error);
         throw $error;
     } finally {
         if (is_resource($handle)) {

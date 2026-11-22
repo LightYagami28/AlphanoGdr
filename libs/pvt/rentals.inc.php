@@ -36,6 +36,10 @@ function alphanoRentalEnter(int $pg,string $host,string $word,string $action,int
  if($action==='rent'&&($hours<1||$hours>168||!preg_match('/^[a-zA-Z0-9-]{16,80}$/D',$request))){ throw new DomainException('Durata o identificativo dell’affitto non valido (da 1 a 168 ore).',422); }
  alphanoRentalExpire();$db=connectDB();$db->beginTransaction();
  try{
+  return alphanoRentalEnterLocked($db,$pg,$host,$word,$action,$hours,$request);
+ }catch(Throwable $e){if($db->inTransaction()){ $db->rollBack(); }throw $e;}
+ }
+function alphanoRentalEnterLocked($db,int $pg,string $host,string $word,string $action,int $hours,string $request):array {
   $u=$db->query('SELECT * FROM utenti WHERE id=? FOR UPDATE',[$pg])[0]??null;if(!$u||$u['bloccato']||$u['imprigionato']){ throw new DomainException('Non puoi affittare o raggiungere una camera in questo momento.',403); }
   // A durable receipt resolves a retry even if the first response was lost after moving the player.
   $old=$action==='rent'?($db->query('SELECT * FROM chat_rentals WHERE owner_id=? AND request_key=?',[$pg,$request])[0]??null):null;
@@ -61,5 +65,4 @@ function alphanoRentalEnter(int $pg,string $host,string $word,string $action,int
   $db->execute('INSERT IGNORE INTO chat_rental_members(rental_id,player_id,joined_at) VALUES(?,?,?)',[$room['id'],$pg,time()]);
   $db->execute('UPDATE utenti SET chat=?,posizione=?,lastmove=? WHERE id=?',[$room['chat_key'],$place['title'].' · Camera '.$room['id'],time(),$pg]);$db->commit();
   return ['chat_key'=>$room['chat_key'],'expires_at'=>(int)$room['expires_at'],'total_cost'=>$action==='rent'?(int)$room['total_cost']:0];
- }catch(Throwable $e){if($db->inTransaction()){ $db->rollBack(); }throw $e;}
-}
+ }

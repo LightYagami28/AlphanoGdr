@@ -5,23 +5,31 @@ require_once __DIR__.'/email-theme.inc.php';
 function alphanoExperienceDefaults():array {
  return ['map_effects'=>true,'map_lighting'=>true,'ambient_sound'=>false,'notification_sound'=>true,'ambient_volume'=>80,'notification_volume'=>80,'sound_theme'=>'castle','relationship_effects'=>'private','chess_skin'=>'classic']+array_fill_keys(array_map(static fn($k)=>'email_'.$k,array_keys(alphanoEmailCategories())),false);
 }
+function alphanoExperienceCast($default,$value) {
+ if(is_bool($default)){ return (bool)$value; }
+ if(is_int($default)){ return (int)$value; }
+ return (string)$value;
+}
 function alphanoExperienceSettings(int $user):array {
  $row=connectDB()->query('SELECT * FROM user_experience_settings WHERE user_id=?',[$user])[0]??[];
- $settings=alphanoExperienceDefaults();$email=json_decode($row['email_preferences']??'{}',true)??[];foreach($email as $key=>$value){ if(array_key_exists($key,$settings)&&str_starts_with($key,'email_')){ $row[$key]=$value; } }foreach($settings as $key=>$default){ if(array_key_exists($key,$row)){ $settings[$key]=is_bool($default)?(bool)$row[$key]:(is_int($default)?(int)$row[$key]:(string)$row[$key]); } }return $settings;
+ $settings=alphanoExperienceDefaults();$email=json_decode($row['email_preferences']??'{}',true)??[];foreach($email as $key=>$value){ if(array_key_exists($key,$settings)&&str_starts_with($key,'email_')){ $row[$key]=$value; } }foreach($settings as $key=>$default){ if(array_key_exists($key,$row)){ $settings[$key]=alphanoExperienceCast($default,$row[$key]); } }return $settings;
+}
+function alphanoExperienceValidateValue(string $key,$value):void {
+ if(str_starts_with($key,'email_')||in_array($key,['map_effects','map_lighting','ambient_sound','notification_sound'],true)){
+  if(!is_bool($value)){ throw new DomainException('Valore della preferenza non valido.',400); }
+ }elseif(in_array($key,['ambient_volume','notification_volume'],true)){
+  if(!is_int($value)||$value<0||$value>100){ throw new DomainException('Il volume deve essere compreso tra 0 e 100.',400); }
+ }elseif($key==='chess_skin'){
+  if(!is_string($value)||!in_array($value,['classic'],true)){ throw new DomainException('Skin degli scacchi non valida.',400); }
+ }elseif($key==='relationship_effects'){
+  if(!is_string($value)||!in_array($value,['private','public','off'],true)){ throw new DomainException('Visibilità delle emozioni non valida.',400); }
+ }elseif(!is_string($value)||!in_array($value,['castle','bell','chime','soft'],true)){ throw new DomainException('Suono non valido.',400); }
 }
 function alphanoExperienceValidate(array $input,array $current):array {
  $allowed=array_keys(alphanoExperienceDefaults());
  foreach($input as $key=>$value){
   if(!in_array($key,$allowed,true)){ throw new DomainException('Preferenza sconosciuta.',400); }
-  if(str_starts_with($key,'email_')||in_array($key,['map_effects','map_lighting','ambient_sound','notification_sound'],true)){
-   if(!is_bool($value)){ throw new DomainException('Valore della preferenza non valido.',400); }
-  }elseif(in_array($key,['ambient_volume','notification_volume'],true)){
-   if(!is_int($value)||$value<0||$value>100){ throw new DomainException('Il volume deve essere compreso tra 0 e 100.',400); }
-  }elseif($key==='chess_skin'){
-   if(!is_string($value)||!in_array($value,['classic'],true)){ throw new DomainException('Skin degli scacchi non valida.',400); }
-  }elseif($key==='relationship_effects'){
-   if(!is_string($value)||!in_array($value,['private','public','off'],true)){ throw new DomainException('Visibilità delle emozioni non valida.',400); }
-  }elseif(!is_string($value)||!in_array($value,['castle','bell','chime','soft'],true)){ throw new DomainException('Suono non valido.',400); }
+  alphanoExperienceValidateValue((string)$key,$value);
   $current[$key]=$value;
  }return $current;
 }
@@ -47,6 +55,7 @@ function alphanoMapEnvironment(?array $weather=null,?int $now=null,?array $sun=n
  require_once __DIR__.'/astro.inc.php';require_once __DIR__.'/libmeteo.inc.php';
  $weather??=getMeteo();$now??=time();[$dawn,$dusk]=$sun??sorgeCala();
  $night=$now<$dawn||$now>=$dusk;$twilight=min(abs($now-$dawn),abs($now-$dusk))<1800;
- $precipitation=abs((int)$weather['tempo'])>=2?((int)$weather['temperatura']<=0?'snow':'rain'):'none';
- return ['server_time'=>$now,'period'=>$twilight?'twilight':($night?'night':'day'),'night'=>$night,'dawn'=>$dawn,'dusk'=>$dusk,'precipitation'=>$precipitation,'wind'=>abs((int)$weather['vento']),'fog'=>(int)$weather['vento']===0,'storm'=>abs((int)$weather['cielo'])>=2,'temperature'=>(int)$weather['temperatura']];
+ if(abs((int)$weather['tempo'])>=2){ $precipitation=(int)$weather['temperatura']<=0?'snow':'rain'; }else{ $precipitation='none'; }
+ if($twilight){ $period='twilight'; }elseif($night){ $period='night'; }else{ $period='day'; }
+ return ['server_time'=>$now,'period'=>$period,'night'=>$night,'dawn'=>$dawn,'dusk'=>$dusk,'precipitation'=>$precipitation,'wind'=>abs((int)$weather['vento']),'fog'=>(int)$weather['vento']===0,'storm'=>abs((int)$weather['cielo'])>=2,'temperature'=>(int)$weather['temperatura']];
 }

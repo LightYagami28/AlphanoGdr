@@ -307,12 +307,12 @@ function alphanoRaceIcon(): string
     return '/assets/avatar.svg';
 }
 
-function processRazza(int $razzaId, int $etniaId = 0): string
+function processRazza(int $razzaId, string|int $etniaId = 0): string
 {
     if ($razzaId === ALPHANO_RACE_LEGACY_SPIRIT) {$razzaId = ALPHANO_RACE_SPIRIT;}
     $db     = getDB();
     $razza  = $db->query('SELECT nome FROM razze WHERE id=?', [$razzaId])[0]['nome'] ?? '';
-    $etniaT = $etniaId ? ' ' . htmlspecialchars(getEtnia($etniaId) ?? '', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') : '';
+    $etniaT = is_numeric($etniaId) && (int)$etniaId > 0 ? ' ' . htmlspecialchars(getEtnia((int)$etniaId) ?? '', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') : '';
 
     $file = alphanoRaceIcon();
 

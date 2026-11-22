@@ -33,7 +33,7 @@ async function loadAll(){
     const r=await fetch('/api/trasferimenti.php?azione=list');
     j=await r.json();
     if(!j.success) {throw new Error(j.message||'Errore server');}
-  }catch(e){showTransferStatus('Impossibile caricare i dati. Ricarica la pagina e riprova.',true);return false;}
+  }catch(e){/* Errore di rete o risposta non valida: avvisa e interrompi il caricamento. */showTransferStatus('Impossibile caricare i dati. Ricarica la pagina e riprova.',true);return false;}
 
   ['transazioni','storicoAcq','ordini','ordiniPresi','consegne',
    'cronologiaDenaro'].forEach(k=>{
@@ -275,7 +275,7 @@ async function commerceRun(payload) {
     const result=await postAction(payload);
     if(result.success){await loadAll();}
     showTransferStatus(result.message || 'Operazione non riuscita.',!result.success);
-  } catch(error) {showTransferStatus('Connessione interrotta. Ricarica i dati prima di riprovare.',true);}
+  } catch(error) {/* L'errore e' gia' notificato all'utente; il finally ripristina i pulsanti. */showTransferStatus('Connessione interrotta. Ricarica i dati prima di riprovare.',true);}
   finally {commerceBusy=false;document.querySelectorAll('#trasf button').forEach(button=>button.disabled=false);}
 }
 function acceptTransf(id){return commerceRun({azione:'admintransf',id,accetta:1});}

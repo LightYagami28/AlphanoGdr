@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/exceptions.inc.php';
 require_once __DIR__.'/libpg.inc.php';
 require_once __DIR__.'/chat-format.inc.php';
 
@@ -14,6 +15,13 @@ function aiNpcProfile(array $npc): array {
     $profile=is_array($npc['profile']??null)?$npc['profile']:json_decode($npc['profile']??'{}',true);
     return array_replace(aiProfileDefaults(),array_intersect_key(is_array($profile)?$profile:[],aiProfileDefaults()));
 }
+function aiValidateProfileDetails(array $details):array {
+ if (!is_array($details) || !array_is_list($details) || count($details)>12) { throw new DomainException('Massimo 12 informazioni aggiuntive.',422); }
+ return array_map(static function($detail) {
+  if (!is_array($detail)) { throw new DomainException('Informazione aggiuntiva non valida.',422); }
+  return ['label'=>aiField($detail,'label',80,true),'value'=>aiField($detail,'value',2000,true)];
+ },$details);
+}
 function aiValidateProfile(array $input, array $previous): array {
     $p=array_replace($previous,$input);
     if (array_diff(array_keys($p),array_keys(aiProfileDefaults()))) { throw new DomainException('Campo del profilo non consentito.',422); }
@@ -25,11 +33,7 @@ function aiValidateProfile(array $input, array $previous): array {
     }
     foreach (['portrait'=>512,'motto'=>500,'appearance'=>3000,'biography'=>4000,'psychology'=>3000,'occupation'=>160,'social_status'=>160,'relationships'=>2000,'affections'=>2000,'animals'=>2000,'notes'=>3000,'wounds'=>500,'scene_position'=>100,'scene_activity'=>240,'scene_purpose'=>240] as $key=>$max) { $p[$key]=aiField($p,$key,$max); }
     if ($p['portrait']!=='' && (!preg_match('~^(?:https?://[^/\s]+/|/(?!/))~i',$p['portrait']) || preg_match('/[\x00-\x20<>"\x27]/',$p['portrait']))) { throw new DomainException('Indirizzo del ritratto non valido.',422); }
-    if (!is_array($p['details']) || !array_is_list($p['details']) || count($p['details'])>12) { throw new DomainException('Massimo 12 informazioni aggiuntive.',422); }
-    $p['details']=array_map(static function($detail) {
-        if (!is_array($detail)) { throw new DomainException('Informazione aggiuntiva non valida.',422); }
-        return ['label'=>aiField($detail,'label',80,true),'value'=>aiField($detail,'value',2000,true)];
-    },$p['details']);
+    $p['details']=aiValidateProfileDetails($p['details']);
     return $p;
 }
 function aiProfileLink(array $npc, bool $icon=true): string {
@@ -57,9 +61,9 @@ function aiUploadPortrait(array $file): string {
     $clean=imagecreatetruecolor($width,$height);imagealphablending($clean,false);imagesavealpha($clean,true);
     imagecopyresampled($clean,$image,0,0,0,0,$width,$height,$info[0],$info[1]);imagedestroy($image);
     $dir=aiPortraitDirectory();
-    if (!is_dir($dir) && !mkdir($dir,0700,true) && !is_dir($dir)) { throw new RuntimeException('Cartella dei ritratti non disponibile.'); }
+    if (!is_dir($dir) && !mkdir($dir,0700,true) && !is_dir($dir)) { throw new AiQuestRuntimeException('Cartella dei ritratti non disponibile.'); }
     $name=bin2hex(random_bytes(16)).'.png';
-    try { if (!imagepng($clean,$dir.'/'.$name)) { throw new RuntimeException('Salvataggio del ritratto non riuscito.'); }chmod($dir.'/'.$name,0600); }
+    try { if (!imagepng($clean,$dir.'/'.$name)) { throw new AiQuestRuntimeException('Salvataggio del ritratto non riuscito.'); }chmod($dir.'/'.$name,0600); }
     finally { imagedestroy($clean); }
     return '/api/ai.php?action=portrait&file='.$name;
 }

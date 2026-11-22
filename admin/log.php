@@ -12,7 +12,7 @@ use Alphano\Database\PDOMySQLDriver;
 alphanoRequireLogin();
 if ($_SERVER['REQUEST_METHOD'] === 'POST') { alphanoRequireCsrf(); }
 
-$idpg    = GetIDPG(0, 1) ?: die('<h1>Accesso negato</h1>');
+$idpg    = GetIDPG(0) ?: die('<h1>Accesso negato</h1>');
 $db      = connectDB();
 
 // — Privilegi —

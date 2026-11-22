@@ -22,8 +22,40 @@ function alphanoEmailEnqueue(int $recipient,string $key,string $category,string 
 function alphanoEmailMailNotice(int $recipient,int $sender,string $subject,string $body,int $id,?int $created=null):void {
  if($recipient===$sender){ return; }
  $trade=preg_match('/\[alphano-trade:|trasferimento|trattativa|ordine|acquisto|consegna|proposta di prezzo/iu',$subject.' '.substr($body,0,100));
- $category=$trade?'trade':($sender>0?'mail':'alerts');
- alphanoEmailEnqueue($recipient,'mail:'.$id,$category,$trade?'Aggiornamento di una trattativa':($sender>0?'Hai una nuova missiva':'Nuovo avviso per il tuo personaggio'),'/posta/',$created??time());
+ if($trade){ $category='trade'; }elseif($sender>0){ $category='mail'; }else{ $category='alerts'; }
+ if($trade){ $title='Aggiornamento di una trattativa'; }elseif($sender>0){ $title='Hai una nuova missiva'; }else{ $title='Nuovo avviso per il tuo personaggio'; }
+ alphanoEmailEnqueue($recipient,'mail:'.$id,$category,$title,'/posta/',$created??time());
+}
+function alphanoEmailNoticeCategory(string $group,string $section,string $key):string {
+ return match(true){
+  $section==='giochi'=>'games',
+  in_array($group,['organizzazioni','corporazioni','accademia'],true)=>'groups',
+  $group==='citta'=>'civic',
+  $group==='bacheche'=>'boards',
+  $group==='master'=>'quests',
+  default=>'alerts'
+ };
+}
+function alphanoEmailCollectMails($db,int $uid,int $since):void {
+ foreach($db->query('SELECT m.id,m.idmittente,m.oggetto,m.messaggio,m.data,d.event_id AS civic_event FROM mail m LEFT JOIN civic_election_deliveries d ON d.mail_id=m.id WHERE m.iddestinatario=? AND m.idmittente<>? AND m.data>=? AND m.letto=0 AND m.deldest=0 ORDER BY m.id DESC LIMIT 200',[$uid,$uid,max($since,time()-86400)]) as $mail){
+  if($mail['civic_event']){ alphanoEmailEnqueue($uid,'civic:'.$mail['civic_event'],'civic','Aggiornamento delle elezioni cittadine','/citta/elezioni.php',(int)$mail['data']); }
+  else{ alphanoEmailMailNotice($uid,(int)$mail['idmittente'],$mail['oggetto'],$mail['messaggio'],(int)$mail['id'],(int)$mail['data']); }
+ }
+}
+function alphanoEmailCollectNotices(int $uid):int {
+ $count=0;
+ foreach(alphanoActivityNotifications($uid) as $notice){
+  if(($notice['event_type']??'')==='civic-election'){ continue; }
+  $key=(string)$notice['key'];$group=$notice['group'];
+  $category=alphanoEmailNoticeCategory((string)$group,(string)($notice['section']??''),$key);
+  // Personal trade receipts can have the gioco group.
+  if(preg_match('/trade|transfer|order|loan|commerc|trasferiment/i',$key.' '.($notice['section']??''))){ $category='trade'; }
+  alphanoEmailEnqueue($uid,'notice:'.$key,$category,'Nuovo aggiornamento · '.alphanoEmailCategories()[$category][0],'/notifiche/',(int)($notice['created_at']??0));$count++;
+ }
+ return $count;
+}
+function alphanoEmailCollectQuests($db,int $uid,int $since):void {
+ foreach($db->query('SELECT id,title,chat_key,created_at FROM quest_notifications WHERE recipient=? AND read_at IS NULL AND created_at>=?',[$uid,$since]) as $q){ alphanoEmailEnqueue($uid,'quest:'.$q['id'],'quests','Una nuova quest ti attende','/chat/index.php?chat='.rawurlencode($q['chat_key']),(int)$q['created_at']); }
 }
 /** Reuse current notification ACLs, including memberships revoked since the event. */
 function alphanoEmailCollect(int $limit=25):int {
@@ -31,19 +63,23 @@ function alphanoEmailCollect(int $limit=25):int {
  $cursor=(int)($db->query("SELECT state_value FROM email_dispatch_state WHERE state_key='cursor'")[0]['state_value']??0);
  $rows=$db->query("SELECT user_id,email_preferences,email_enabled_at FROM user_experience_settings WHERE user_id>? AND email_enabled_at>0 ORDER BY user_id LIMIT ".max(1,min(100,$limit)),[$cursor]);
  if(!$rows){$db->execute("INSERT INTO email_dispatch_state VALUES('cursor',0) ON DUPLICATE KEY UPDATE state_value=0");return 0;}
- $count=0;foreach($rows as $row){$uid=(int)$row['user_id'];$cursor=$uid;$prefs=json_decode($row['email_preferences']??'{}',true)??[];if(!in_array(true,$prefs,true)){ continue; }
-  foreach($db->query('SELECT m.id,m.idmittente,m.oggetto,m.messaggio,m.data,d.event_id AS civic_event FROM mail m LEFT JOIN civic_election_deliveries d ON d.mail_id=m.id WHERE m.iddestinatario=? AND m.idmittente<>? AND m.data>=? AND m.letto=0 AND m.deldest=0 ORDER BY m.id DESC LIMIT 200',[$uid,$uid,max((int)$row['email_enabled_at'],time()-86400)]) as $mail){if($mail['civic_event']){ alphanoEmailEnqueue($uid,'civic:'.$mail['civic_event'],'civic','Aggiornamento delle elezioni cittadine','/citta/elezioni.php',(int)$mail['data']); }else { alphanoEmailMailNotice($uid,(int)$mail['idmittente'],$mail['oggetto'],$mail['messaggio'],(int)$mail['id'],(int)$mail['data']); }}
-  foreach(alphanoActivityNotifications($uid) as $notice){
-   if(($notice['event_type']??'')==='civic-election'){ continue; }
-   $key=(string)$notice['key'];$group=$notice['group'];
-   $category=($notice['section']??'')==='giochi'?'games':(in_array($group,['organizzazioni','corporazioni','accademia'],true)?'groups':($group==='citta'?'civic':($group==='bacheche'?'boards':($group==='master'?'quests':'alerts'))));
-   // Personal trade receipts can have the gioco group.
-   if(preg_match('/trade|transfer|order|loan|commerc|trasferiment/i',$key.' '.($notice['section']??''))){ $category='trade'; }
-   alphanoEmailEnqueue($uid,'notice:'.$key,$category,'Nuovo aggiornamento · '.alphanoEmailCategories()[$category][0],'/notifiche/',(int)($notice['created_at']??0));$count++;
-  }
-  foreach($db->query('SELECT id,title,chat_key,created_at FROM quest_notifications WHERE recipient=? AND read_at IS NULL AND created_at>=?',[$uid,(int)$row['email_enabled_at']]) as $q){ alphanoEmailEnqueue($uid,'quest:'.$q['id'],'quests','Una nuova quest ti attende','/chat/index.php?chat='.rawurlencode($q['chat_key']),(int)$q['created_at']); }
+ $count=0;
+ foreach($rows as $row){
+  $uid=(int)$row['user_id'];$cursor=$uid;$prefs=json_decode($row['email_preferences']??'{}',true)??[];
+  if(!in_array(true,$prefs,true)){ continue; }
+  $since=(int)$row['email_enabled_at'];
+  alphanoEmailCollectMails($db,$uid,$since);
+  $count+=alphanoEmailCollectNotices($uid);
+  alphanoEmailCollectQuests($db,$uid,$since);
  }
  $db->execute("INSERT INTO email_dispatch_state VALUES('cursor',?) ON DUPLICATE KEY UPDATE state_value=VALUES(state_value)",[$cursor]);return $count;
+}
+function alphanoEmailSendRow($db,array $row,array $u):bool {
+ $body='Ciao '.$u['nome'].",\n\n".$row['title'].". Accedi a ".alphanoConfig('game_name')." per consultare i dettagli aggiornati e rispondere.\n\nLe informazioni riservate restano disponibili soltanto nel gioco.";
+ $html=alphanoEmailRender($row['title'],$body,$row['category'],$row['path'],true);
+ if(!alphanoMailer()->send(alphanoConfig('mail_from'),$u['email'],alphanoConfig('game_name').' · '.$row['title'],$body,$html)){ throw new AlphanoStorageException('Invio non completato'); }
+ $db->execute("UPDATE email_notification_outbox SET status='sent',sent_at=?,retry_at=0 WHERE id=?",[time(),(int)$row['id']]);
+ return true;
 }
 /** Worker only: UI mutations never wait for SMTP. A claim also tolerates worker crashes. */
 function alphanoEmailDeliver(int $limit=20,int $budget=15):array {
@@ -58,10 +94,7 @@ function alphanoEmailDeliver(int $limit=20,int $budget=15):array {
   if(!$authorized||$row['created_at']<$enabled||!$u||$u['bloccato']||!alphanoExperienceSettings($uid)['email_'.$row['category']]||$row['created_at']<time()-86400){$db->execute("UPDATE email_notification_outbox SET status='skipped' WHERE id=?",[$id]);$skipped++;continue;}
   if((int)$db->query('SELECT COUNT(*) n FROM email_notification_outbox WHERE recipient=? AND sent_at>=?',[$uid,time()-86400])[0]['n']>=20){$db->execute("UPDATE email_notification_outbox SET status='retry',retry_at=? WHERE id=?",[time()+3600,$id]);continue;}
   try{
-   $body='Ciao '.$u['nome'].",\n\n".$row['title'].". Accedi a ".alphanoConfig('game_name')." per consultare i dettagli aggiornati e rispondere.\n\nLe informazioni riservate restano disponibili soltanto nel gioco.";
-   $html=alphanoEmailRender($row['title'],$body,$row['category'],$row['path'],true);
-   if(!alphanoMailer()->send(alphanoConfig('mail_from'),$u['email'],alphanoConfig('game_name').' · '.$row['title'],$body,$html)){ throw new AlphanoStorageException('Invio non completato'); }
-   $db->execute("UPDATE email_notification_outbox SET status='sent',sent_at=?,retry_at=0 WHERE id=?",[time(),$id]);$sent++;
+   if(alphanoEmailSendRow($db,$row,$u)){ $sent++; }
   }catch(Throwable $e){$db->execute('UPDATE email_notification_outbox SET status=?,retry_at=? WHERE id=?',[(int)$row['attempts']>=4?'failed':'retry',time()+min(86400,300*(2**min(8,(int)$row['attempts']))),$id]);error_log('[email-notifications] Consegna non riuscita, ricevuta '.$id);}
  }return ['sent'=>$sent,'skipped'=>$skipped];
 }

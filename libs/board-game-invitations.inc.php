@@ -8,7 +8,7 @@ function bg_access(array $m,int $uid):void{
 }
 function bg_invite_options(int $uid,int $other,string $chat=''):array{
  if($uid===$other){ throw new DomainException('Scegli un altro giocatore.',422); }bg_online_player($uid);$opponent=bg_online_player($other);$s=bgSettings();if(!$s['enabled']){ throw new DomainException('I giochi sono disabilitati.',403); }
- $rooms=[];require_once __DIR__.'/../chat/libs/http-chat.php';foreach(connectDB()->query("SELECT m.chat_key,m.title,r.scacchi,r.dama FROM mappe m JOIN board_game_rooms r ON r.chat_key=m.chat_key WHERE m.chat=1 AND (r.scacchi=1 OR r.dama=1) ORDER BY m.title") as $r){if(!($s['scacchi']&&$r['scacchi'])&&!($s['dama']&&$r['dama'])){ continue; }try{httpChatRoom($r['chat_key'],$uid);httpChatRoom($r['chat_key'],$other);$rooms[]=$r;}catch(DomainException){}}
+ $rooms=[];require_once __DIR__.'/../chat/libs/http-chat.php';foreach(connectDB()->query("SELECT m.chat_key,m.title,r.scacchi,r.dama FROM mappe m JOIN board_game_rooms r ON r.chat_key=m.chat_key WHERE m.chat=1 AND (r.scacchi=1 OR r.dama=1) ORDER BY m.title") as $r){if(!($s['scacchi']&&$r['scacchi'])&&!($s['dama']&&$r['dama'])){ continue; }try{httpChatRoom($r['chat_key'],$uid);httpChatRoom($r['chat_key'],$other);$rooms[]=$r;}catch(DomainException){ continue; }}
  if(!$rooms){ throw new DomainException('Nessun luogo di gioco disponibile per entrambi.',403); }$chat=$chat?:$rooms[0]['chat_key'];if(!in_array($chat,array_column($rooms,'chat_key'),true)){ throw new DomainException('Luogo non disponibile.',403); }
  return ['viewer'=>$uid,'opponent'=>$other,'rooms'=>$rooms,'chat'=>$chat,'settings'=>$s,'room'=>bgRoom($chat),'players'=>[['id'=>$other,'nome'=>$opponent['nome']]],'inventory'=>bgInventory($uid),'games'=>[],'npcs'=>[]];
 }

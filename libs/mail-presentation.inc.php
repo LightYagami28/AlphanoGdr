@@ -18,7 +18,7 @@ function alphanoMailKind(array $mail):string {
  return preg_match('/\[alphano-trade:\d+:\d+\]/',(string)$mail['messaggio'])||preg_match('/(?:trasferimento|trattativa|ordine|acquisto|consegna|proposta di prezzo)/iu',(string)$mail['oggetto'])?'commerce':'system';
 }
 function alphanoMailArtwork(string $kind):string {
- return $kind==='commerce'?'/assets/placeholder.svg':'/assets/placeholder.svg';
+ return '/assets/placeholder.svg';
 }
 function alphanoMailBoxes(array $rows,int $viewer):array {
  $boxes=[[],[],[]];$people=alphanoMailPeople([$viewer,...array_column($rows,'idmittente'),...array_column($rows,'iddestinatario')]);$h=static fn($s)=>htmlspecialchars((string)$s,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');

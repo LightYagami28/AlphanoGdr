@@ -14,7 +14,7 @@ function alphanoRentalExpire(?string $key=null):void {
   $db->execute('INSERT INTO registrazionichat(registrazione,testo) SELECT id,? FROM registrazioni WHERE chat=?',[$html,$room['chat_key']]);
   $db->execute('UPDATE utenti SET chat=?,posizione=?,lastmove=? WHERE chat=?',[$room['host_key'],$host,time(),$room['chat_key']]);
   $db->execute('UPDATE chat_rentals SET closed_at=?,word_lookup=NULL WHERE id=?',[time(),$room['id']]);$db->commit();
- }catch(Throwable $e){if($db->inTransaction()){ $db->rollBack(); 
+ }catch(Throwable $e){if($db->inTransaction()){ $db->rollBack();
  }throw $e;
  }
  }

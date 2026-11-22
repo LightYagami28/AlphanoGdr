@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/exceptions.inc.php';
 
 /** A small, bounded proposal schema prevents narrative/extra fields from consuming the output budget. */
 function aiSocialProposalSchema(int $playerSegments,int $npcSegments):array {
@@ -58,13 +59,13 @@ function aiSocialProposalDecode(array $response):array {
     $tokens=(int)($response['usage']['completion_tokens']??0);
     if($reason==='length'){
         $thought=trim((string)($choice['message']['content']??''))===''&&!empty($choice['message']['reasoning_content']);
-        throw new RuntimeException('Riflessione JSON troncata: limite di generazione raggiunto ('.$tokens.' token). '.($thought?'Il runtime ha prodotto soltanto il canale di ragionamento, senza JSON. ':'').'Nessuna variazione applicata.');
+        throw new AiQuestRuntimeException('Riflessione JSON troncata: limite di generazione raggiunto ('.$tokens.' token). '.($thought?'Il runtime ha prodotto soltanto il canale di ragionamento, senza JSON. ':'').'Nessuna variazione applicata.');
     }
     $text=$choice['message']['content']??null;
-    if(!is_string($text)||trim($text)===''){ throw new RuntimeException('Riflessione JSON vuota o non testuale. Nessuna variazione applicata.'); }
+    if(!is_string($text)||trim($text)===''){ throw new AiQuestRuntimeException('Riflessione JSON vuota o non testuale. Nessuna variazione applicata.'); }
     try{$proposal=json_decode($text,true,32,JSON_THROW_ON_ERROR);}
-    catch(JsonException $e){throw new RuntimeException('Riflessione JSON non valida (fine '.$reason.', '.$tokens.' token): '.$e->getMessage(),0,$e);}
-    if(!is_array($proposal)||array_is_list($proposal)){ throw new RuntimeException('Proposta sociale non valida: occorre un oggetto JSON.'); }
+    catch(JsonException $e){throw new AiQuestRuntimeException('Riflessione JSON non valida (fine '.$reason.', '.$tokens.' token): '.$e->getMessage(),0,$e);}
+    if(!is_array($proposal)||array_is_list($proposal)){ throw new AiQuestRuntimeException('Proposta sociale non valida: occorre un oggetto JSON.'); }
     return $proposal;
 }
 

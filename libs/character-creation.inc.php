@@ -29,11 +29,18 @@ function rpgValidateInnates(mixed $input):array {
  $ids=array_map(static fn($v)=>rpg_int($v,1,PHP_INT_MAX,'Abilità innata'),$input);if(count(array_unique($ids))!==(int)alphanoConfig('initial_innates')){ throw new DomainException('Le quattro abilità devono essere differenti.',422); }
  $allowed=array_column(rpgCreationCatalog()['abilities'],'id');if(array_diff($ids,$allowed)){ throw new DomainException('Scegli soltanto abilità innate del nuovo catalogo umano.',422); }sort($ids);return $ids;
 }
+function rpgCreationReceiptSheet(string $kind,int $id,array $payload,string $request):?array {
+ $receipt=rpg_receipt($kind,$id,$request,'creation');
+ if(!$receipt){ return null; }
+ if(rpg_decode($receipt['payload'])!=$payload){ throw new DomainException('Questa conferma contiene scelte diverse.',409); }
+ return rpg_sheet($kind,$id);
+}
 function rpgCompleteCreation(string $kind,int $id,mixed $allocation,mixed $innates,string $request,int $actor):array {
  if(!rpgCreationReady()){ throw new DomainException('Creazione personaggio in aggiornamento.',503); }
  return rpg_atomic(function()use($kind,$id,$allocation,$innates,$request,$actor){
   $identity=rpg_identity($kind,$id,true);$p=rpg_progress($kind,$id,true);$db=connectDB();$status=rpgCreationStatus($kind,$id,$identity);
-  $payload=['allocation'=>$allocation,'innates'=>$innates];$receipt=rpg_receipt($kind,$id,$request,'creation');if($receipt){if(rpg_decode($receipt['payload'])!=$payload){ throw new DomainException('Questa conferma contiene scelte diverse.',409); }return rpg_sheet($kind,$id);}
+  $payload=['allocation'=>$allocation,'innates'=>$innates];
+  $sheet=rpgCreationReceiptSheet($kind,$id,$payload,$request);if($sheet!==null){ return $sheet; }
   if(!$status['needs_points']&&!$status['needs_innates']){ throw new DomainException('Le scelte iniziali sono già state confermate.',409); }
   $points=$status['needs_points']?rpgValidateAllocation($allocation,$identity,$p):null;$selected=$status['needs_innates']?rpgValidateInnates($innates):[];
   $db->execute('INSERT IGNORE INTO rpg_creation(owner_kind,owner_id) VALUES(?,?)',[$kind,$id]);

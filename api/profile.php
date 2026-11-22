@@ -108,7 +108,7 @@ $notes = apiProfileNotes($db, $profileId);
 // 6) Composizione JSON
 // ────────────────────────────────────────────────────────────────────
 $lineageRace = alphanoProfileLineageRace($row);
-$output = [
+return [
     'sidebar_art_url' => alphanoProfileDefaultBanner($lineageRace, (string)$row['sesso']),
     'lineage_race_label' => GetRazza($lineageRace),
     'id'           => (int)$row['id'],
@@ -173,5 +173,4 @@ $output = [
 // ────────────────────────────────────────────────────────────────────
 // 7) Output JSON
 // ────────────────────────────────────────────────────────────────────
-return $output;
 });

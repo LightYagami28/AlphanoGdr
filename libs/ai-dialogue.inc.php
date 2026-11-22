@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/exceptions.inc.php';
 
 function aiDialogueSelectNpc(array $npc,array $selected,string $text,array $roles,string $role,bool $joint,bool $collective,string $faction,array $g,array $npcs):bool
 {
@@ -88,13 +89,13 @@ function aiDialogueWithoutRepeats(array $npc,array $job,string $text): string {
     $sentences=preg_split('/(?<=[.!?])(?:[»”"])*(?:\s+|$)/u',$text,-1,PREG_SPLIT_OFFSET_CAPTURE|PREG_SPLIT_NO_EMPTY);
     // Use offsets in the original text so unmatched punctuation, quotes and accents are preserved.
     $remove=[];
-    foreach($sentences as $i=>[$sentence,$start]){
+    foreach($sentences as $i=>[,$start]){
         $end=$sentences[$i+1][1]??strlen($text);$fragment=substr($text,$start,$end-$start);$normal=$normalize($fragment);
         if(preg_match_all('/\p{L}+/u',$normal)<8||mb_strlen($normal)<45){ continue; }
         foreach($history as $old){ if(str_contains($old,' '.$normal.' ')){$remove[]=[$start,$end-$start];break;} }
     }
     foreach(array_reverse($remove) as [$start,$length]){ $text=substr_replace($text,'',$start,$length); }
     $text=trim(preg_replace('/^\s*[»”]+\s*/u','',$text));
-    if(mb_strlen($normalize($text))<30){ throw new RuntimeException('Risposta ripetuta: nuovo tentativo senza pubblicare il duplicato.'); }
+    if(mb_strlen($normalize($text))<30){ throw new AiQuestRuntimeException('Risposta ripetuta: nuovo tentativo senza pubblicare il duplicato.'); }
     return $text;
 }

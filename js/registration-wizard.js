@@ -3,6 +3,7 @@ import {createCharacterBuilder} from './character-creation.js?v=registration-wiz
 export function createRegistrationWizard(form){
  const panels=[...form.querySelectorAll('[data-registration-step]')],steps=form.querySelector('[data-registration-steps]'),back=form.querySelector('[data-registration-back]'),next=form.querySelector('[data-registration-next]'),submit=form.querySelector('[type=submit]'),stage=form.querySelector('[data-registration-stage]'),caption=form.querySelector('[data-registration-caption]'),review=form.querySelector('[data-registration-review]');
  let index=0,furthest=0,data=null,points=null,innates=null,busy=false;
+  const appendTarget=(src,identity,label,basics,details)=>{if(src){return identity;}return ['Personaggio','E-mail'].includes(label)?basics:details;};
  const buttons=panels.map((panel,i)=>{
   const li=document.createElement('li'),b=document.createElement('button');
   b.type='button';b.setAttribute('aria-label',`Passaggio ${i+1}: ${panel.dataset.title}`);
@@ -15,7 +16,7 @@ export function createRegistrationWizard(form){
  function focus(){panels[index].querySelector('h3').focus({preventScroll:true});}
  function show(i,moveFocus=true){const changed=index!==i;index=i;furthest=Math.max(furthest,i);panels.forEach((p,n)=>p.hidden=n!==index);buttons.forEach((b,n)=>{b.disabled=busy||n>furthest;if(n===index){b.setAttribute('aria-current','step');}else {b.removeAttribute('aria-current');}b.classList.toggle('is-complete',n<index);});caption.textContent=`Passaggio ${index+1} di ${panels.length} · ${panels[index].dataset.title}`;back.hidden=index===0;next.hidden=index===panels.length-1;submit.hidden=index!==panels.length-1;back.disabled=busy;next.disabled=busy||!data;submit.disabled=busy||!data;stage.scrollTop=0;const art=document.querySelector('[data-registration-art]');if(art){art.src=panels[index].querySelector('.registration-step-image').src;}document.querySelector('[data-registration-art-caption]').textContent=panels[index].dataset.title;if(index===panels.length-1){summary();}if(moveFocus){focus();}if(changed){form.dispatchEvent(new CustomEvent('registration:step'));}}
  function validate(i){
-  if(!data){throw Error('Attendi il caricamento delle guide e riprova.');}
+  if(!data){throw new Error('Attendi il caricamento delle guide e riprova.');}
   if(i===0){const c=form.elements.passwdConfirm;c.setCustomValidity(c.value===form.elements.passwd.value?'':'Le password non corrispondono.');}
   const invalid=[...panels[i].querySelectorAll('input,select,textarea')].find(el=>!el.checkValidity());if(invalid){show(i,false);invalid.reportValidity();return false;}
   if(i===3||i===4){try{(i===3?points:innates).payload();}catch(e){show(i);throw e;}}
@@ -52,7 +53,7 @@ export function createRegistrationWizard(form){
     dd.className='registration-review-choice';dd.append(img);
    }
    dd.append(text);row.append(dt,dd);
-   (src?identity:['Personaggio','E-mail'].includes(label)?basics:details).append(row);
+   (appendTarget(src,identity,label,basics,details)).append(row);
   }
   review.append(basics,identity,details);
  }

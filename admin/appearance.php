@@ -13,7 +13,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
         $posted=$_POST['section']??'';if($posted!==$section||($_POST['target']??'')!==$target){throw new DomainException('Destinazione non valida.');}
         $layout=[];
         if($section==='defaults'){foreach(['theme'=>array_keys(alphanoThemes()),'sidebar_position'=>['left','right'],'header_position'=>['top','bottom']] as $key=>$allowed){if(!in_array($_POST[$key]??'', $allowed,true)){throw new DomainException('Opzione non valida: '.$key);}$layout[$key]=$_POST[$key];}}
-        alphanoAppearanceSave($_POST,$_FILES,$groups);
+        alphanoAppearanceSave($_POST,$_FILES);
         if($layout){$file=dirname(__DIR__).'/private/settings.json';$old=is_file($file)?json_decode(file_get_contents($file),true,32,JSON_THROW_ON_ERROR):[];alphanoSettingsWrite(array_replace($old,$layout));}
         connectDB()->execute('INSERT INTO engine_admin_audit(actor,action,created_at) VALUES(?,?,?)',[$uid,'appearance:'.$section.':'.$target,time()]);
         header('Location: /admin/appearance.php?'.http_build_query(['section'=>$section,'target'=>$target,'saved'=>1]),true,303);exit;
@@ -43,7 +43,7 @@ function appearanceSelect(string $key,string $label,array $options,array $config
 <header data-page-heading><div><p class="eyebrow">Gestione · Aspetto del gioco</p><h1>Template e homepage</h1><p>Colori coerenti, immagini e disposizione per costruire l’identità del tuo mondo.</p></div></header>
 <p><a href="/admin/settings.php">Impostazioni generali ed email</a> · <a href="/admin/setup.php?step=appearance">Configurazione guidata</a> · <a href="/main.php">Torna al gioco</a> · <a href="/?preview=1" target="_blank" rel="noopener">Apri il sito</a></p>
 <nav class="appearance-tabs" aria-label="Personalizzazione"><?php foreach($sections as $key=>$title):?><a href="?section=<?=$key?>"<?=$section===$key?' aria-current="page"':''?>><?=alphanoEscape($title)?></a><?php endforeach;?></nav>
-<?php if($error):?><p class="error" role="alert"><?=alphanoEscape($error)?></p><?php elseif(isset($_GET['saved'])):?><p class="notice" role="status">Personalizzazione salvata. Il tema si aggiorna anche nelle pagine del gioco già aperte. Le bozze della chat rimangono nel campo di scrittura.</p><?php endif;?>
+<?php if($error):?><p class="error" role="alert"><?=alphanoEscape($error)?></p><?php elseif(isset($_GET['saved'])):?><p class="notice" aria-live="polite">Personalizzazione salvata. Il tema si aggiorna anche nelle pagine del gioco già aperte. Le bozze della chat rimangono nel campo di scrittura.</p><?php endif;?>
 <?php if(in_array($section,['defaults','home'],true)||$selection):?>
 <form method="post" enctype="multipart/form-data" class="appearance-editor"><input type="hidden" name="_csrf" value="<?=alphanoCsrfToken()?>"><input type="hidden" name="revision" value="<?=alphanoAppearanceRevision()?>"><input type="hidden" name="section" value="<?=$section?>"><input type="hidden" name="target" value="<?=alphanoEscape($target)?>">
 <h2><?=alphanoEscape($selection['label']??$sections[$section])?></h2>

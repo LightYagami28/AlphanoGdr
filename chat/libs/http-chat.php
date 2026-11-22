@@ -55,7 +55,7 @@ function httpChatHistory(string $chat, int $since, int $viewer, bool $initial, i
     foreach ($rows as $row) {
         if(!empty($row['history_only'])){ continue; }
         if (isset($legacy[(int)$row['id']])) {
-            try { $row['msg']=ai_message_html($legacy[(int)$row['id']]); }
+            try { $row['msg']=aiMessageHtml($legacy[(int)$row['id']]); }
             catch (Throwable $e) { error_log('[Master IA storico] '.$e->getMessage()); }
         }
         // Anche i sussurri non visibili fanno avanzare il cursore, senza esporne il testo.

@@ -14,10 +14,10 @@ class Move
   private $capture = '';
   private $castling = '';
   private $promotion = '';
-  private $check_mate = '';
+  private $checkMate = '';
   private $annotation = '';
 
-  function __construct(string $move)
+  public function __construct(string $move)
   {
     $matches = array();
 
@@ -30,12 +30,12 @@ class Move
       $this->castling = $castling;
       $this->origin = new Square;
       $this->target = new Square;
-      $this->check_mate = $matches[2];
+      $this->checkMate = $matches[2];
       $this->annotation = $matches[3];
       return;
     }
 
-    if (!preg_match('/^([PNBRQK]?)([a-h]?[1-8]?)([x]?)([a-h][1-8])(?:=([NBRQ]))?([+#]?)([!?]*)$/', $move, $matches)) {
+    if (!preg_match('/^([PNBRQK]?)([a-h]?[1-8]?)(x?)([a-h][1-8])(?:=([NBRQ]))?([+#]?)([!?]*)$/', $move, $matches)) {
       throw new ParseException('Move "' . $move . '" is not valid.');
     }
 
@@ -44,23 +44,23 @@ class Move
     $this->capture = $matches[3];
     $this->target = new Square($matches[4]);
     $this->promotion = $matches[5];
-    $this->check_mate = $matches[6];
+    $this->checkMate = $matches[6];
     $this->annotation = $matches[7];
 
-    self::validate_promotion();
+    self::validatePromotion();
   }
 
-  private function validate_promotion() : void
+  private function validatePromotion() : void
   {
-    if ($this->get_promotion() && $this->get_piece_type() != 'P') {
+    if ($this->getPromotion() && $this->getPieceType() != 'P') {
       throw new RulesException;
     }
 
-    if ($this->get_promotion() && $this->target->get_rank_index() != 7 && $this->target->get_rank_index() != 0) {
+    if ($this->getPromotion() && $this->target->getRankIndex() != 7 && $this->target->getRankIndex() != 0) {
       throw new RulesException;
     }
 
-    if (!$this->get_promotion() && $this->get_piece_type() == 'P' && ($this->target->get_rank_index() == 7 || $this->target->get_rank_index() == 0)) {
+    if (!$this->getPromotion() && $this->getPieceType() == 'P' && ($this->target->getRankIndex() == 7 || $this->target->getRankIndex() == 0)) {
       throw new RulesException;
     }
   }
@@ -68,16 +68,16 @@ class Move
   public function export() : string
   {
     $str = '';
-    if ($this->get_castling()) {
-      $str .= $this->get_castling();
+    if ($this->getCastling()) {
+      $str .= $this->getCastling();
     } else {
-      $str .= $this->san_piece();
-      $str .= $this->san_origin();
+      $str .= $this->sanPiece();
+      $str .= $this->sanOrigin();
       $str .= $this->capture;
-      $str .= $this->get_target();
-      $str .= $this->san_promotion();
+      $str .= $this->getTarget();
+      $str .= $this->sanPromotion();
     }
-    $str .= $this->san_extension();
+    $str .= $this->sanExtension();
     return $str;
   }
 
@@ -86,41 +86,41 @@ class Move
     return $this->export();
   }
 
-  private function san_origin() : string
+  private function sanOrigin() : string
   {
-    if (!$this->origin->is_null()) {
+    if (!$this->origin->isNull()) {
       return $this->origin->export();
     }
     return '';
   }
 
-  private function san_piece() : string
+  private function sanPiece() : string
   {
-    if ($this->get_piece_type() != 'P') {
-      return $this->get_piece_type();
+    if ($this->getPieceType() != 'P') {
+      return $this->getPieceType();
     }
     return '';
   }
 
-  private function san_extension() : string
+  private function sanExtension() : string
   {
-    return $this->get_check_mate() . $this->get_annotation();
+    return $this->getCheckMate() . $this->getAnnotation();
   }
 
-  private function san_promotion() : string
+  private function sanPromotion() : string
   {
-    if ($this->get_promotion()) {
-      return '=' . $this->get_promotion();
+    if ($this->getPromotion()) {
+      return '=' . $this->getPromotion();
     }
     return '';
   }
 
-  public function get_capture() : bool
+  public function getCapture() : bool
   {
     return $this->capture;
   }
 
-  public function get_target(bool $as_object = false)
+  public function getTarget(bool $as_object = false)
   {
     if ($as_object) {
       return $this->target;
@@ -129,7 +129,7 @@ class Move
     }
   }
 
-  public function get_origin(bool $as_object = false)
+  public function getOrigin(bool $as_object = false)
   {
     if ($as_object) {
       return $this->origin;
@@ -138,7 +138,7 @@ class Move
     }
   }
 
-  public function set_origin($square) : void
+  public function setOrigin($square) : void
   {
     if (is_string($square)) {
       $square = new Square($square);
@@ -146,7 +146,7 @@ class Move
     $this->origin = $square;
   }
 
-  public function get_piece_type() : string
+  public function getPieceType() : string
   {
     if ($this->piece == '') {
       return 'P';
@@ -154,24 +154,35 @@ class Move
     return $this->piece;
   }
 
-  public function get_castling() : string
+  public function getCastling() : string
   {
     return $this->castling;
   }
 
-  public function get_promotion() : string
+  public function getPromotion() : string
   {
     return $this->promotion;
   }
 
-  public function get_check_mate() : string
+  public function getCheckMate() : string
   {
-    return $this->check_mate;
+    return $this->checkMate;
   }
 
-  public function get_annotation() : string
+  public function getAnnotation() : string
   {
     return $this->annotation;
   }
 
+  /**
+   * Compatibilita' con la API storica in snake_case della libreria vendored.
+   */
+  public function __call(string $name, array $arguments): mixed
+  {
+    $camel = lcfirst(str_replace(' ', '', ucwords(str_replace('_', ' ', $name))));
+    if (method_exists($this, $camel)) {
+      return $this->$camel(...$arguments);
+    }
+    throw new \BadMethodCallException('Metodo sconosciuto: ' . $name);
+  }
 }

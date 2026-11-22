@@ -12,6 +12,6 @@
   const values=Object.fromEntries(new FormData(form));form.querySelectorAll('[type=checkbox]').forEach(c=>values[c.name]=c.checked?1:0);form.querySelectorAll('[type=number],[type=range]').forEach(c=>c.name&&(values[c.name]=Number(c.value)));
   if(values.id!==undefined){values.id=Number(values.id);}
   form.dataset.nonce ||= crypto.randomUUID();const payload={action:form.dataset.adminAction,npc_id:npc,player_id:player,request_id:form.dataset.nonce,...(form.dataset.adminAction==='admin_rules'?{settings:values}:values)};
-  try{const res=await fetch('/api/ai-social.php',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':document.querySelector('meta[name=csrf-token]').content},body:JSON.stringify(payload)});const data=await res.json();if(!res.ok){throw Error(data.error||'Operazione non riuscita.');}location.reload();}catch(e){document.querySelector('[data-admin-feedback]').textContent=e.message;button.disabled=false;delete form.dataset.busy;}
+  try{const res=await fetch('/api/ai-social.php',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':document.querySelector('meta[name=csrf-token]').content},body:JSON.stringify(payload)});const data=await res.json();if(!res.ok){throw new Error(data.error||'Operazione non riuscita.');}location.reload();}catch(e){document.querySelector('[data-admin-feedback]').textContent=e.message;button.disabled=false;delete form.dataset.busy;}
  });
 })();

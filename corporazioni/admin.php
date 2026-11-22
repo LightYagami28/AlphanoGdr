@@ -11,7 +11,28 @@ foreach (array_merge($_GET,$_POST) as $value) {
 
 require_once __DIR__ . '/../libs/kernel.inc.php';
 $h = static fn(mixed $v): string => htmlspecialchars((string)($v ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') alphanoRequireCsrf();
+
+const ALPHANO_CORP_INCOMPLETE_PARAMS = 'Parametri non esaurienti';
+const ALPHANO_CORP_ROLE_QUERY = 'SELECT * FROM carichecorporazioni WHERE id=? AND corporazione=?';
+
+function alphanoCorpAdmitMessage(bool $ok, bool $allow, int $pg): string
+{
+    if (!$ok) {
+        return 'Errore nell\'operazione su '.GetPGFromID($pg);
+    }
+    return $allow ? GetPGFromID($pg).' ammesso nella corporazione' : GetPGFromID($pg).' respinto con successo';
+}
+
+function alphanoCorpCaricaMessage(bool $ok, int $car, int $pg): string
+{
+    if (!$ok) {
+        return 'Errore nell\'operazione su '.GetPGFromID($pg);
+    }
+    return $car ? 'Modifica carica di '.GetPGFromID($pg).' avvenuta con successo' : 'Espulsione di '.GetPGFromID($pg).' avvenuta con successo';
+}
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+    alphanoRequireCsrf();
+}
 require_once __DIR__ . '/../libs/libpg.inc.php';
 require_once __DIR__ . '/../libs/libgrafica.inc.php';
 require_once __DIR__ . '/../libs/libeconomia.inc.php';
@@ -21,7 +42,7 @@ require_once __DIR__ . '/../libs/libposta.inc.php';
 require_once __DIR__ . '/../libs/libequip.inc.php';
 
 $db   = getDB();
-$pgid = GetIDPG(0, 1);
+$pgid = GetIDPG(0);
 
 $quality = QUALITY;
 
@@ -62,7 +83,9 @@ if (empty($actor['admin']) && !(bool)$user['admincorporazione']) {
 }
 
 // --- Costanti e variabili principali ---
-if (!defined('MAXPOINTVALUE')) define('MAXPOINTVALUE', 20);
+if (!defined('MAXPOINTVALUE')) {
+    define('MAXPOINTVALUE', 20);
+}
 
 $corpId         = (int)$user['corporazione'];
 $nomeCorp       = htmlspecialchars($user['nomecorp']    ?? '', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
@@ -116,21 +139,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
         http_response_code(403); exit('Ramo non appartenente alla tua corporazione');
     }
     $groupActionResult=alphanoGroupAdminAction('corporazioni',$corpId,$pgid,(string)$action,$_POST,$_FILES);
-    if ($groupActionResult!==null) $msg=$groupActionResult;
-    else switch ($action) {
+    if ($groupActionResult !== null) {
+        $msg = $groupActionResult;
+    } else {
+        switch ($action) {
         case 'admitpg':
             $pg    = (int)($_POST['pg'] ?? 0);
             $allow = (int)($_POST['admit'] ?? 0);
             $last  = GetLastCaricaCorp($corpId);
             if ($pg > 0 && $last) {
                 $ok = AdmitPGCorp($pg, $corpId, $last, $allow);
-                $msg = $ok
-                     ? ($allow
-                        ? GetPGFromID($pg) . " ammesso nella corporazione"
-                        : GetPGFromID($pg) . " respinto con successo")
-                     : "Errore nell'operazione su " . GetPGFromID($pg);
+                $msg = alphanoCorpAdmitMessage($ok, $allow, $pg);
             } else {
-                $msg = $last ? "Parametri non esaurienti" : "Prima carica non impostata";
+                $msg = $last ? ALPHANO_CORP_INCOMPLETE_PARAMS : "Prima carica non impostata";
             }
             break;
 
@@ -158,7 +179,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
                 );
                 $msg = $ok ? "Nuovo ramo inserito correttamente" : "Errore nell'inserimento del nuovo ramo";
             } else {
-                $msg = "Parametri non esaurienti";
+                $msg = ALPHANO_CORP_INCOMPLETE_PARAMS;
             }
             break;
 
@@ -191,7 +212,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
                     ($_FILES['immagine'] ?? ['error'=>UPLOAD_ERR_NO_FILE])
                 );
             } else {
-                $msg = "Parametri non esaurienti";
+                $msg = ALPHANO_CORP_INCOMPLETE_PARAMS;
             }
             break;
 
@@ -200,13 +221,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
             $car = (int)($_POST['carica'] ?? 0);
             if ($pg > 0 && $car >= 0) {
                 $ok = AdmitPGCorp($pg, $corpId, $car, (bool)$car);
-                $msg= $ok
-                    ? ($car
-                       ? "Modifica carica di " . GetPGFromID($pg) . " avvenuta con successo"
-                       : "Espulsione di " . GetPGFromID($pg) . " avvenuta con successo")
-                    : "Errore nell'operazione su " . GetPGFromID($pg);
+                $msg = alphanoCorpCaricaMessage($ok, $car, $pg);
             } else {
-                $msg = "Parametri non esaurienti";
+                $msg = ALPHANO_CORP_INCOMPLETE_PARAMS;
             }
             break;
 
@@ -217,7 +234,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
             if ($orgId && $qta!==null && $int!==null) {
                 $ok = economiaAzioneModulo(static fn(): bool => createPrestito($pgid,$corpId,$orgId,$qta,$int,$_POST['_request_key'] ?? null));
                 $msg = $ok ? 'Richiesta creata correttamente' : 'Richiesta non consentita o già inviata';
-            } else $msg = 'Inserisci quantità intere positive e interessi tra 0 e 100';
+            } else {
+                $msg = 'Inserisci quantità intere positive e interessi tra 0 e 100';
+            }
             break;
 
         case 'adminprestito':
@@ -229,13 +248,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
             $pag = economiaIntero($_POST['pagamento'] ?? '',1);
             if ($pid && ($acc || $canc || $pag!==null || ($qta!==null && $int!==null))) {
                 $ok = economiaAzioneModulo(static function() use($pid,$pgid,$acc,$canc,$qta,$int,$pag): bool {
-                    if ($acc) return acceptPrestito($pid,$pgid,$_POST['_request_key'] ?? null);
-                    if ($canc) return deletePrestito($pid,$pgid,$_POST['_request_key'] ?? null);
-                    if ($pag!==null) return pagaPrestito($pid,$pgid,(float)$pag,$_POST['_request_key'] ?? null);
-                    return updatePrestito($pid,$pgid,$qta,$int,2,$_POST['_request_key'] ?? null);
+                    if (!alphanoOperationOnce('corporation-loan-action',$pgid,$_POST['_request_key'] ?? null,[$pid,$acc,$canc,$qta,$int,$pag])) {
+                        return true;
+                    }
+                    $result = true;
+                    if ($acc) {
+                        $result = acceptPrestito($pid,$pgid,$_POST['_request_key'] ?? null);
+                    } elseif ($canc) {
+                        $result = deletePrestito($pid,$pgid,$_POST['_request_key'] ?? null);
+                    } elseif ($pag!==null) {
+                        $result = pagaPrestito($pid,$pgid,(float)$pag,$_POST['_request_key'] ?? null);
+                    } else {
+                        $result = updatePrestito($pid,$pgid,$qta,$int,2,$_POST['_request_key'] ?? null);
+                    }
+                    return $result;
                 });
                 $msg = $ok ? 'Prestito aggiornato correttamente' : 'Operazione non consentita, già inviata o fondi insufficienti';
-            } else $msg = 'Inserisci importi interi positivi e interessi tra 0 e 100';
+            } else {
+                $msg = 'Inserisci importi interi positivi e interessi tra 0 e 100';
+            }
             break;
 
         case 'visualizzaflag':
@@ -249,7 +280,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
                 );
                 $datiflag = $datiflagRows[0] ?? [];
             } else {
-                $msg = "Parametri non esaurienti";
+                $msg = ALPHANO_CORP_INCOMPLETE_PARAMS;
             }
             break;
 
@@ -294,17 +325,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
                 );
                 $datiramo = $datarows[0] ?? [];
             } else {
-                $msg = "Parametri non esaurienti";
+                $msg = ALPHANO_CORP_INCOMPLETE_PARAMS;
             }
             break;
 
         case 'modifycarica':
             $cid=economiaIntero($_POST['carica'] ?? '',1);
             if ($cid && !isset($_POST['nome'])) {
-                $daticarica=$db->query('SELECT * FROM carichecorporazioni WHERE id=? AND corporazione=?',[$cid,$corpId])[0] ?? [];
+                $daticarica=$db->query(ALPHANO_CORP_ROLE_QUERY,[$cid,$corpId])[0] ?? [];
                 break;
             }
-            $existing=$cid?$db->query('SELECT * FROM carichecorporazioni WHERE id=? AND corporazione=?',[$cid,$corpId])[0] ?? null:null;
+            $existing=$cid?$db->query(ALPHANO_CORP_ROLE_QUERY,[$cid,$corpId])[0] ?? null:null;
             $name=trim((string)($_POST['nome'] ?? ''));
             $salary=economiaIntero($_POST['stipendio'] ?? $existing['stipendio'] ?? 0,0,2147483647);
             $commission=economiaPercentuale($_POST['provvigione'] ?? $existing['provvigione'] ?? 0);
@@ -316,15 +347,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
             $first=!empty($_POST['prima']);$description=trim((string)($_POST['descrizione'] ?? ''));
             $file=$_FILES['immagine'] ?? ['error'=>UPLOAD_ERR_NO_FILE];
             $ok=economiaAzioneModulo(static fn(): bool => economiaBool(static function() use($db,$corpId,$pgid,$cid,$name,$salary,$commission,$level,$branch,$first,$description,$file): bool {
-                if (!alphanoOperationOnce('corporation-role-update',$pgid,$_POST['_request_key'] ?? null,[$corpId,$cid,$name,$salary,$commission,$level,$branch,$first,$description])) return true;
+                if (!alphanoOperationOnce('corporation-role-update',$pgid,$_POST['_request_key'] ?? null,[$corpId,$cid,$name,$salary,$commission,$level,$branch,$first,$description])) {
+                    return true;
+                }
                 $before=$db->query('SELECT * FROM carichecorporazioni WHERE id=? AND corporazione=? FOR UPDATE',[$cid,$corpId])[0];
                 if ((int)($file['error'] ?? UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_NO_FILE) {
                     $result=ModifyCaricaCorp($corpId,$cid,$name,$first,$branch,$level,$description,(float)$salary,$commission,$file);
                     economiaVerifica($result==='Carica corporazione aggiornata',$result);
-                } else $db->execute('UPDATE carichecorporazioni SET nome=?,prima=?,stipendio=?,provvigione=?,livello=?,ramo=?,descrizione=? WHERE id=? AND corporazione=?',[$name,$first?1:0,$salary,$commission,$level,$branch,$description,$cid,$corpId]);
-                $after=$db->query('SELECT * FROM carichecorporazioni WHERE id=? AND corporazione=?',[$cid,$corpId])[0];
-                if ($before!==$after) alphanoRecordActivity('corporation-role-updated',$pgid,[['scope'=>'corporazioni','id'=>$corpId,'section'=>'iscritti','role'=>'admin']],
-                    'Carica corporativa aggiornata',alphanoCurrencyText("{$name}: stipendio {$salary} Corone, provvigione {$commission}%."),['corporazione'=>$corpId,'carica'=>$cid,'prima'=>$before,'dopo'=>$after]);
+                } else {
+                    $db->execute('UPDATE carichecorporazioni SET nome=?,prima=?,stipendio=?,provvigione=?,livello=?,ramo=?,descrizione=? WHERE id=? AND corporazione=?',[$name,$first?1:0,$salary,$commission,$level,$branch,$description,$cid,$corpId]);
+                }
+                $after=$db->query(ALPHANO_CORP_ROLE_QUERY,[$cid,$corpId])[0];
+                if ($before!==$after) {
+                    alphanoRecordActivity('corporation-role-updated',$pgid,[['scope'=>'corporazioni','id'=>$corpId,'section'=>'iscritti','role'=>'admin']],
+                        'Carica corporativa aggiornata',alphanoCurrencyText("{$name}: stipendio {$salary} Corone, provvigione {$commission}%."),['corporazione'=>$corpId,'carica'=>$cid,'prima'=>$before,'dopo'=>$after]);
+                }
                 return true;
             }));
             $msg=$ok?'Carica modificata con successo':'Impossibile modificare la carica';
@@ -356,7 +393,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
                 );
                 $msg = $ok ? "Dati modificati con successo" : "Errore nella modifica dei dati";
             } else {
-                $msg = "Parametri non esaurienti";
+                $msg = ALPHANO_CORP_INCOMPLETE_PARAMS;
             }
             break;
 
@@ -364,11 +401,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
             $st=!empty($_POST['stipendi'])?1:0;$pv=!empty($_POST['provvigioni'])?1:0;
             if (!$st && !$pv) {$msg='Devi selezionare almeno un metodo di pagamento';break;}
             $ok=economiaAzioneModulo(static fn(): bool => economiaBool(static function() use($db,$corpId,$pgid,$st,$pv): bool {
-                if (!alphanoOperationOnce('corporation-payment-method',$pgid,$_POST['_request_key'] ?? null,[$corpId,$st,$pv])) return true;
+                if (!alphanoOperationOnce('corporation-payment-method',$pgid,$_POST['_request_key'] ?? null,[$corpId,$st,$pv])) {
+                    return true;
+                }
                 $old=$db->query('SELECT stipendio,provvigione FROM corporazioni WHERE id=? FOR UPDATE',[$corpId])[0];
                 $db->execute('UPDATE corporazioni SET stipendio=?,provvigione=? WHERE id=?',[$st,$pv,$corpId]);
-                if ((int)$old['stipendio']!==$st || (int)$old['provvigione']!==$pv) alphanoRecordActivity('corporation-payment-method-updated',$pgid,[['scope'=>'corporazioni','id'=>$corpId,'section'=>'finanze','role'=>'admin']],
-                    'Metodi di pagamento aggiornati',($st?'Stipendi attivi. ':'Stipendi disattivati. ').($pv?'Provvigioni attive.':'Provvigioni disattivate.'),['corporazione'=>$corpId,'prima'=>$old,'dopo'=>['stipendio'=>$st,'provvigione'=>$pv]]);
+                if ((int)$old['stipendio']!==$st || (int)$old['provvigione']!==$pv) {
+                    alphanoRecordActivity('corporation-payment-method-updated',$pgid,[['scope'=>'corporazioni','id'=>$corpId,'section'=>'finanze','role'=>'admin']],
+                        'Metodi di pagamento aggiornati',($st?'Stipendi attivi. ':'Stipendi disattivati. ').($pv?'Provvigioni attive.':'Provvigioni disattivate.'),['corporazione'=>$corpId,'prima'=>$old,'dopo'=>['stipendio'=>$st,'provvigione'=>$pv]]);
+                }
                 return true;
             }));
             $msg=$ok?'Metodi di pagamento impostati correttamente':'Impossibile impostare i metodi di pagamento';
@@ -385,6 +426,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
             $ok=economiaAzioneModulo(static fn(): bool => impostaProduzioniCorp($corpId,$pgid,$selection,$_POST['_request_key'] ?? null));
             $msg=$ok ? 'Produzioni aggiornate con successo' : 'Produzioni non aggiornate: controlla i punti disponibili';
             break;
+        default:
+            $msg = 'Azione non riconosciuta';
+            break;
+        }
     }
 }
 
@@ -446,7 +491,7 @@ $lista2     = listaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
       const defaultTab = <?= !empty($datiflag) ? "'flag'" : "'iscritti'" ?>;
       const initial=location.hash.slice(1);activate([...panes].some(p=>p.id===initial)?initial:defaultTab);
 
-      const MAXPOINTVALUE = <?= MAXPOINTVALUE ?>;
+      const maxpointvalue = <?= MAXPOINTVALUE ?>;
       const tipi = [];
       <?php foreach($subtipi as $sid => $sname): ?>
         tipi[<?= $h((int)$sid) ?>] = <?= $h($produzioni[$sid] ?? 0) ?>;
@@ -460,6 +505,12 @@ $lista2     = listaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
         };
       <?php endforeach; ?>
       const productionCategories=<?=json_encode($categorie,JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_AMP|JSON_HEX_QUOT|JSON_UNESCAPED_UNICODE)?>;
+      window.submitGerarchia=(action,value)=>{
+        const form=document.getElementById('frmGer');
+        form.action.value=action;
+        form[action==='modifyramo'?'ramo':'carica'].value=String(value);
+        form.submit();
+      };
       window.ShowDetails=tipo=>{
         const details=document.getElementById('dettagli');
         const categories=productionCategories[tipo]||[];
@@ -472,19 +523,19 @@ $lista2     = listaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
         const previous=tipi[tipo]||0;
         tipi[tipo]=quality[Number(sel.value)]?Number(sel.value):0;
         let n=GetTotalSelection();
-        if(n>MAXPOINTVALUE){
+        if(n>maxpointvalue){
           alert("Hai superato il punteggio massimo");
           tipi[tipo]=previous;sel.value=String(previous);
           n=GetTotalSelection();
         }
         const selected=quality[tipi[tipo]]||quality[0];
-        document.getElementById("points").innerText = MAXPOINTVALUE-n;
+        document.getElementById("points").innerText = maxpointvalue-n;
         document.getElementById("dettagli").textContent =
           `Nome: ${selected.nome}\nDurata max: ${selected.durata}\nCosto PV: ${selected.costo}`;
-        if(MAXPOINTVALUE-n===0) alert("Point Value esaurito");
+        if(maxpointvalue-n===0) alert("Point Value esaurito");
       };
       window.SetProduction = ()=>{
-        if(GetTotalSelection()<MAXPOINTVALUE){
+        if(GetTotalSelection()<maxpointvalue){
           if(!confirm("PV residui, confermi?")) return;
         }
         document.getElementById('frmProduction').submit();
@@ -494,7 +545,7 @@ $lista2     = listaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
         form.querySelectorAll('select[name^="produzione"]').forEach(select=>{
           tipi[Number(select.name.slice('produzione'.length))]=Number(select.value)||0;
         });
-        document.getElementById('points').innerText=MAXPOINTVALUE-GetTotalSelection();
+        document.getElementById('points').innerText=maxpointvalue-GetTotalSelection();
         document.getElementById('dettagli').textContent='Qui compariranno le descrizioni...';
       };
     });
@@ -527,7 +578,7 @@ $lista2     = listaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
             <tbody>
               <?php foreach($richieste as $r): ?>
                 <tr>
-                  <td><a href="#" onclick="openProfileId('<?= $h((int)$r['idpg']) ?>')"><?= htmlentities(GetPGFromID($r['idpg']), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></a></td>
+                  <td><button type="button" class="u-link-button" onclick="openProfileId('<?= $h((int)$r['idpg']) ?>')"><?= htmlentities(GetPGFromID($r['idpg']), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></button></td>
                   <td><?= htmlspecialchars(formatTimestamp($r['data']), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></td>
                   <td>
                     <form method="post" class="u-434fc32ec"><input type="hidden" name="corp" value="<?=$corpId?>">
@@ -563,28 +614,36 @@ $lista2     = listaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
           <input type="hidden" name="ramo">
           <input type="hidden" name="carica">
         </form>
-        <div class="ui-table-scroll" tabindex="0" role="region" aria-label="Gerarchia della corporazione">
+        <section class="ui-table-scroll" aria-label="Gerarchia della corporazione">
         <table class="ui-hierarchy-table">
+          <tr><th scope="col">Gerarchia</th></tr>
           <?php foreach($cariche as $lvl => $ramiLivello): ?>
             <tr>
               <?php foreach($ramiLivello as $idRamo=>$gruppo): ?>
                 <td>
                   <strong>
-                    <a href="#" onclick="document.getElementById('frmGer').action.value='modifyramo';document.getElementById('frmGer').ramo.value='<?= $h((int)$idRamo) ?>';document.getElementById('frmGer').submit();">
+                    <button type="button" class="u-link-button" onclick="submitGerarchia('modifyramo',<?= $h((int)$idRamo) ?>)">
                       <?= htmlentities($gruppo['nomeramo'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>
-                    </a>
+                    </button>
                   </strong>
                   <ul class="u-1ac13a3d3">
                     <?php foreach($gruppo['cariche'] as $idCar=>$car):
-                      $flags=[]; if($hasStipendio&&($car['stipendio'] ?? 0)>0)$flags[]=($car['stipendio'] ?? 0).alphanoCurrencyHtml(" Corone");
-                      if($hasProvvigione&&($car['provvigione'] ?? 0)>0)$flags[]=($car['provvigione'] ?? 0)."%";
-                      if(($car['prima'] ?? 0))$flags[]='★';
+                      $flags=[];
+                      if ($hasStipendio&&($car['stipendio'] ?? 0)>0) {
+                        $flags[]=($car['stipendio'] ?? 0).alphanoCurrencyHtml(" Corone");
+                      }
+                      if ($hasProvvigione&&($car['provvigione'] ?? 0)>0) {
+                        $flags[]=($car['provvigione'] ?? 0)."%";
+                      }
+                      if ($car['prima'] ?? 0) {
+                        $flags[]='★';
+                      }
                     ?>
                       <li>
-                        <a href="#" onclick="document.getElementById('frmGer').action.value='modifycarica';document.getElementById('frmGer').carica.value='<?= $h((int)$idCar) ?>';document.getElementById('frmGer').submit();">
+                        <button type="button" class="u-link-button" onclick="submitGerarchia('modifycarica',<?= $h((int)$idCar) ?>)">
                           <?=GetCaricaCorp($corpId,(int)$idCar,false)?>
                           <?= htmlentities($car['nomecarica'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>
-                        </a>
+                        </button>
                         <?php if($flags): ?><small>(<?= implode(' | ',$flags) ?>)</small><?php endif; ?>
                       </li>
                     <?php endforeach; ?>
@@ -594,7 +653,7 @@ $lista2     = listaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
             </tr>
           <?php endforeach; ?>
         </table>
-        </div>
+        </section>
 
         <!-- Aggiungi/Modifica Ramo -->
         <div class="u-5f6fe1c69">
@@ -606,7 +665,7 @@ $lista2     = listaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
             <label>Nome<input type="text" name="nome" value="<?= htmlspecialchars((string)($datiramo['nome']??''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>"></label>
             <label>Livello<input type="number" name="livello" min="0" value="<?= $h((int)($datiramo['livello']??0)) ?>"></label>
             <button class="btn"><?= isset($datiramo)?'Salva':'Aggiungi' ?></button>
-            <?php if(isset($datiramo)):?><a href="#" onclick="location.reload()" class="btn">Annulla</a><?php endif; ?>
+            <?php if(isset($datiramo)):?><button type="button" onclick="location.reload()" class="btn">Annulla</button><?php endif; ?>
           </form>
           <form method="post" class="u-ee3d55bf9"><input type="hidden" name="corp" value="<?=$corpId?>">
       <input type="hidden" name="_request_key" value="<?=bin2hex(random_bytes(16))?>">
@@ -733,7 +792,7 @@ $lista2     = listaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
 
         <h5>Gestisci i tuoi prestiti</h5>
         <p>Le controproposte devono essere accettate dall’altra parte. Gli interessi maturano dal finanziamento, per mesi interi.</p>
-        <?php foreach ($lista2 as $d): $state=(int)$d['stato']; if ($state>=6) continue; ?>
+        <?php foreach ($lista2 as $d): $state=(int)$d['stato']; if ($state>=6) { continue; } ?>
           <article class="ui-panel">
             <h6>Prestito #<?=$h((int)$d['id'])?> · <?=htmlspecialchars(GetOrg((int)$d['org']), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')?></h6>
             <p><?=processStato($state)?> · <?=(int)$d['quantita']?> <?=alphanoCurrencyHtml()?> · <?=(int)$d['interessi']?>% al mese</p>
@@ -852,7 +911,7 @@ $lista2     = listaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
           <form id="frmProduction" method="post"><input type="hidden" name="corp" value="<?=$corpId?>">
             <input type="hidden" name="action" value="setproduction">
           <input type="hidden" name="_request_key" value="<?=bin2hex(random_bytes(16))?>">
-            <div class="ui-table-scroll" tabindex="0" role="region" aria-label="Qualità delle produzioni">
+            <section class="ui-table-scroll" aria-label="Qualità delle produzioni">
                 <table id="production-categories" class="ui-data-table">
                   <thead><tr><th scope="col">Categorie</th><th scope="col">Qualità</th></tr></thead><tbody>
                   <?php foreach($subtipi as $sid=>$sname): ?>
@@ -860,7 +919,7 @@ $lista2     = listaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
                       <td><a href="javascript:ShowDetails(<?= (int)$sid ?>)"><?= htmlentities($sname, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></a></td>
                       <td>
                         <label class="sr-only" for="produzione<?= (int)$sid ?>">Qualita per <?= htmlentities($sname, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></label>
-                        <select id="produzione<?= (int)$sid ?>" name="produzione<?= (int)$sid ?>" onchange="Controlla(this,<?= (int)$sid ?>)">
+                        <select id="produzione<?= (int)$sid ?>" name="produzione<?= (int)$sid ?>" aria-label="Qualità di produzione" onchange="Controlla(this,<?= (int)$sid ?>)">
                           <?php foreach($quality as $qk=>$qv): ?>
                             <option value="<?= (int)$qk ?>" <?= ($produzioni[$sid]??0)==$qk?'selected':'' ?>>
                               <?= htmlentities($qv['nome'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>
@@ -872,7 +931,7 @@ $lista2     = listaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
                   <?php endforeach; ?>
                   </tbody>
                 </table>
-            </div>
+            </section>
           </form>
           <aside class="ui-production-summary" aria-label="Riepilogo delle produzioni">
             <h3>Point Value</h3>

@@ -1,15 +1,12 @@
 <?php
 declare(strict_types=1);
-const COMPANIONS_INC_FOR_UPDATE = ' FOR UPDATE';
-const COMPANIONS_INC_RENT_A_F0_9_40_D = '/^rent_[a-f0-9]{40}$/D';
-const COMPANIONS_INC_AI_INC_PHP = '/ai.inc.php';
 require_once __DIR__.'/kernel.inc.php';
 require_once __DIR__.'/ai-profile.inc.php';
 require_once __DIR__.'/pvt/rentals.inc.php';
 
 /** Paid time buys a private conversation, never affection or a sexual outcome. */
 function companionshipPlayerConsent(int $player, bool $lock=false): array {
-    $row=connectDB()->query('SELECT * FROM ai_player_preferences WHERE player_id=?'.($lock?COMPANIONS_INC_FOR_UPDATE:''),[$player])[0]??[];
+    $row=connectDB()->query('SELECT * FROM ai_player_preferences WHERE player_id=?'.($lock?' FOR UPDATE':''),[$player])[0]??[];
     if ((int)($row['character_age']??0)<18 || empty($row['romance_enabled']) || empty($row['intimacy_enabled'])) {
         throw new DomainException('Dichiara un personaggio adulto e abilita separatamente trame romantiche e intimità nelle preferenze del profilo PNG.',403);
     }
@@ -17,14 +14,14 @@ function companionshipPlayerConsent(int $player, bool $lock=false): array {
 }
 
 function companionshipPartner(array $npc): int {
-    return function_exists('ai_adult_partner')?(int)ai_adult_partner((int)$npc['id']):(int)($npc['exclusive_player_id']??0);
+    return function_exists('aiAdultPartner')?(int)aiAdultPartner((int)$npc['id']):(int)($npc['exclusive_player_id']??0);
 }
 
 /** Current game health, rather than active/public visibility, determines capacity to consent. */
 function companionshipNpcAvailable(array $npc): bool {
-    $profile=ai_npc_profile($npc);
+    $profile=aiNpcProfile($npc);
     if (empty($npc['active']) || (int)$profile['age']<18 || (int)$profile['hit_points']<=0) { return false; }
-    $settings=connectDB()->query('SELECT settings FROM ai_npc_game WHERE npc_id=?',[(int)$npc['id']])[0]['settings']??'{}';
+    $settings=connectDB()->query('SELECT settings FROM aiNpcGame WHERE npc_id=?',[(int)$npc['id']])[0]['settings']??'{}';
     $conditions=(string)((json_decode($settings,true)?:[])['conditions']??'');
     // This is the staff-maintained current condition field, never biography or player dialogue.
     $conditions=preg_replace('/\bnon\s+(?:è\s+)?(?:incosciente|svenut[ao]|mort[ao]|privo di sensi|priva di sensi)\b/iu','',$conditions);
@@ -33,13 +30,13 @@ function companionshipNpcAvailable(array $npc): bool {
 
 function companionshipNpcInQuest(int $npc): bool {
     $db=connectDB();
-    return (bool)$db->query("SELECT 1 FROM ai_quest_cast c JOIN ai_quests q ON q.session_id=c.session_id JOIN sessioni s ON s.id=c.session_id WHERE c.kind='npc' AND c.actor_id=? AND c.active=1 AND s.run=1 AND q.status IN('active','resolving','review','attention') AND EXISTS(SELECT 1 FROM mappe m WHERE BINARY m.chat_key=BINARY q.chat_key AND m.chat=1) LIMIT 1".($db->inTransaction()?COMPANIONS_INC_FOR_UPDATE:''),[$npc]);
+    return (bool)$db->query("SELECT 1 FROM ai_quest_cast c JOIN ai_quests q ON q.session_id=c.session_id JOIN sessioni s ON s.id=c.session_id WHERE c.kind='npc' AND c.actor_id=? AND c.active=1 AND s.run=1 AND q.status IN('active','resolving','review','attention') AND EXISTS(SELECT 1 FROM mappe m WHERE BINARY m.chat_key=BINARY q.chat_key AND m.chat=1) LIMIT 1".($db->inTransaction()?' FOR UPDATE':''),[$npc]);
 }
 
 /** Called under the rental row lock by the ordinary password-join path. */
 function companionshipAssertRentalJoin(int $rentalId,int $player): void {
     $db=connectDB();
-    $appointment=$db->query('SELECT player_id FROM companion_appointments WHERE rental_id=? AND finished_at=0 AND expires_at>?'.($db->inTransaction()?COMPANIONS_INC_FOR_UPDATE:''),[$rentalId,time()])[0]??null;
+    $appointment=$db->query('SELECT player_id FROM companion_appointments WHERE rental_id=? AND finished_at=0 AND expires_at>?'.($db->inTransaction()?' FOR UPDATE':''),[$rentalId,time()])[0]??null;
     if ($appointment && (int)$appointment['player_id']!==$player) { throw new DomainException('Questa camera ospita una visita riservata e non può accogliere altri ospiti.',403); }
 }
 
@@ -74,12 +71,12 @@ function companionshipReleaseExpired(?string $chat=null): void {
 
 /** Configured NPC and rental membership, with no client-controlled NPC substitution. */
 function companionshipRoomNpc(string $chat,?int $player=null): ?array {
-    if (!preg_match(COMPANIONS_INC_RENT_A_F0_9_40_D,$chat)) { return null; }
+    if (!preg_match('/^rent_[a-f0-9]{40}$/D',$chat)) { return null; }
     if (!connectDB()->inTransaction()) { companionshipReleaseExpired($chat); }
     $db=connectDB();$now=time();
     $row=$db->query('SELECT n.*,a.id AS appointment_id,a.player_id AS appointment_player,a.expires_at AS appointment_expires,a.host_key AS appointment_host,a.kind AS appointment_kind FROM companion_appointments a JOIN chat_rentals r ON r.id=a.rental_id JOIN ai_npcs n ON n.id=a.npc_id JOIN ai_npc_adult p ON p.npc_id=n.id WHERE r.chat_key=? AND r.closed_at=0 AND r.expires_at>? AND a.finished_at=0 AND a.expires_at>? AND n.active=1 AND p.sexuality_enabled=1',[$chat,$now,$now])[0]??null;
     if (!$row || !companionshipNpcAvailable($row) || companionshipNpcInQuest((int)$row['id'])) { return null; }
-    require_once __DIR__.COMPANIONS_INC_AI_INC_PHP;
+    require_once __DIR__.'/ai.inc.php';
     $owner=(int)$row['appointment_player'];
     if ($player!==null && $owner!==$player) { return null; }
     if (!$db->query('SELECT 1 FROM chat_rental_members m JOIN chat_rentals r ON r.id=m.rental_id WHERE r.chat_key=? AND m.player_id=?',[$chat,$owner])) { return null; }
@@ -107,7 +104,7 @@ function companionshipList(int $player,string $host): array {
         $compatible=!$consenting || ($viewer && aiRomanceAllowed($npc,$viewer,aiSocialRules((int)$npc['id'])));
         $available=!$busy && (!$partner || $partner===$player) && !$quest && $compatible;
         $reason=$busy?'Questa persona è impegnata in una visita.':($quest?'È impegnata in una quest.':(($partner && $partner!==$player)?'Non desidera accettare un nuovo incontro.':(!$compatible?'Le sue preferenze non consentono questo incontro.':'')));
-        $npcs[]=[...ai_public_npc($npc),'available'=>$available,'status'=>$available?'available':($busy?'busy':'unavailable'),'unavailable_reason'=>$reason,'busy_until'=>(int)($npc['busy_until']??0)];
+        $npcs[]=[...aiPublicNpc($npc),'available'=>$available,'status'=>$available?'available':($busy?'busy':'unavailable'),'unavailable_reason'=>$reason,'busy_until'=>(int)($npc['busy_until']??0)];
     }
     return ['host'=>$host,'title'=>$place['title'],'minutes'=>(int)$place['companion_minutes'],'price'=>(int)$place['companion_price'],'server_time'=>time(),'preferences'=>array_map('intval',$preferences),'npcs'=>$npcs];
 }
@@ -125,7 +122,7 @@ function companionshipBookingError(Throwable $error): never {
 /** Player then host/NPC locks serialize bookings; unique active slots defend every write path. */
 function companionshipBook(int $player,string $host,int $npcId,string $request): array {
     // Kept lazy so private-room ACLs can load this library without loading the AI worker.
-    require_once __DIR__.COMPANIONS_INC_AI_INC_PHP;
+    require_once __DIR__.'/ai.inc.php';
     if (!preg_match('/^[a-zA-Z0-9-]{16,80}$/D',$request) || $npcId<1 || strlen($host)>100) { throw new DomainException('Prenotazione non valida.',422); }
     companionshipReleaseExpired();alphanoRentalExpire();
     $db=connectDB();$db->beginTransaction();
@@ -186,8 +183,8 @@ function companionshipInvitations(int $player,int $npcId): array {
 
 /** A free invitation requires the relationship evaluator, independent of any payment. */
 function companionshipInvite(int $player,int $npcId,string $chat,string $request): array {
-    require_once __DIR__.COMPANIONS_INC_AI_INC_PHP;
-    if (!preg_match(COMPANIONS_INC_RENT_A_F0_9_40_D,$chat) || !preg_match('/^[a-zA-Z0-9-]{16,80}$/D',$request) || $npcId<1) { throw new DomainException('Invito non valido.',422); }
+    require_once __DIR__.'/ai.inc.php';
+    if (!preg_match('/^rent_[a-f0-9]{40}$/D',$chat) || !preg_match('/^[a-zA-Z0-9-]{16,80}$/D',$request) || $npcId<1) { throw new DomainException('Invito non valido.',422); }
     companionshipReleaseExpired();alphanoRentalExpire();$db=connectDB();$db->beginTransaction();
     try {
         // Match the rental-expiry lock order before locking the owner's account.
@@ -209,7 +206,7 @@ function companionshipInvite(int $player,int $npcId,string $chat,string $request
         $partner=companionshipPartner($npc);
         if ($partner && $partner!==$player) { $db->commit();return ['accepted'=>false,'reason'=>'La persona resta fedele al proprio legame e declina con rispetto l’invito.']; }
         if ($db->query('SELECT id FROM companion_appointments WHERE active_npc_id=? OR active_player_id=? OR rental_id=?',[$npcId,$player,(int)$rental['id']])) { throw new DomainException('La persona o la camera sono già impegnate in una visita.',409); }
-        $decision=function_exists('ai_adult_invitation_decision')?ai_adult_invitation_decision($npcId,$player):['allowed'=>false,'reason'=>'La persona preferisce continuare a conoscervi nella sala comune.'];
+        $decision=function_exists('aiAdultInvitationDecision')?aiAdultInvitationDecision($npcId,$player):['allowed'=>false,'reason'=>'La persona preferisce continuare a conoscervi nella sala comune.'];
         if (empty($decision['allowed'])) { $db->commit();return ['accepted'=>false,'reason'=>(string)($decision['reason']??'La persona declina con rispetto l’invito.')]; }
         $now=time();$expires=(int)$rental['expires_at'];
         $db->execute("INSERT INTO companion_appointments(npc_id,player_id,rental_id,host_key,started_at,expires_at,request_key,price,kind,active_npc_id,active_player_id) VALUES(?,?,?,?,?,?,?,0,'invitation',?,?)",[$npcId,$player,(int)$rental['id'],$rental['host_key'],$now,$expires,$request,$npcId,$player]);
@@ -223,7 +220,7 @@ function companionshipInvite(int $player,int $npcId,string $chat,string $request
 
 /** Ending early forfeits the remaining paid time, with a durable, repeatable close request. */
 function companionshipEnd(int $player,string $chat): array {
-    if (!preg_match(COMPANIONS_INC_RENT_A_F0_9_40_D,$chat)) { throw new DomainException('Camera non valida.',422); }
+    if (!preg_match('/^rent_[a-f0-9]{40}$/D',$chat)) { throw new DomainException('Camera non valida.',422); }
     $db=connectDB();$db->beginTransaction();
     try {
         $rental=$db->query('SELECT * FROM chat_rentals WHERE chat_key=? FOR UPDATE',[$chat])[0]??null;

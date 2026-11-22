@@ -5,7 +5,8 @@
   let visitor = null, rooms = [], current = '', busy = false, sending = false, choosing = false, signature = '', timer;
   const drafts = new Map();
   async function api(data, chat = '') {
-    const response = await fetch('/api/demo.php' + (data ? '' : '?chat=' + encodeURIComponent(chat) + (chat ? '&poll=1' : '')), data ? {
+    const poll=chat ? '&poll=1' : '';
+    const response = await fetch('/api/demo.php' + (data ? '' : '?chat=' + encodeURIComponent(chat) + poll), data ? {
       method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content}, body: JSON.stringify(data)
     } : {cache: 'no-store'});
     const out = await response.json();
@@ -42,7 +43,8 @@
     const mark = JSON.stringify(turns);
     busy = turns.some(t => ['queued', 'running'].includes(t.status));
     const pending = turns.find(t => ['queued', 'running'].includes(t.status));
-    $('demo-typing').textContent = pending ? pending.npc_name + ' sta scrivendo…' + (pending.status === 'queued' ? ' (in attesa del Master)' : '') : '';
+    const queued=pending.status === 'queued' ? ' (in attesa del Master)' : '';
+    $('demo-typing').textContent = pending ? pending.npc_name + ' sta scrivendo…' + queued : '';
     $('demo-compose').querySelector('button').disabled = busy || sending;
     if (mark === signature) {return;}
     signature = mark;
@@ -91,7 +93,7 @@
     catch (error) { notice(error.message); } finally { button.disabled = false; }
   });
   $('demo-change').addEventListener('click', () => { choosing = true; $('demo-play').hidden = true; $('demo-entry').hidden = false; clearTimeout(timer); $('demo-name').focus(); });
-  $('demo-room').addEventListener('change', () => { current = $('demo-room').value; roomDescription(); notice(); refresh(); });
+  $('demo-room').addEventListener('change', () => { current = $('demo-room').value; roomDescription(); notice(); void refresh(); });
   $('demo-compose').addEventListener('submit', async e => {
     e.preventDefault(); if (busy || sending) {return;}
     const text = $('demo-text').value.trim(); if (!text) {return;}
@@ -102,6 +104,6 @@
     catch (error) { notice(error.message); }
     finally { sending = false; $('demo-compose').querySelector('button').disabled = busy; }
   });
-  document.addEventListener('visibilitychange', () => { if (!document.hidden && !choosing) {refresh();} });
-  refresh(true);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && !choosing) {void refresh();} });
+  void refresh(true);
 })();

@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 /** Prompt excerpts are complete sentences where possible, otherwise complete UTF-8 words. */
-function ai_expression_excerpt(string $text,int $budget):string {
+function aiExpressionExcerpt(string $text,int $budget):string {
     if($budget<1){ return ''; }
     $text=trim(preg_replace('/\s+/u',' ',html_entity_decode(strip_tags($text),ENT_QUOTES|ENT_HTML5,'UTF-8'))??'');
     if(mb_strlen($text)<=$budget){ return $text; }
@@ -23,7 +23,7 @@ function ai_expression_excerpt(string $text,int $budget):string {
 }
 
 /** One temperament description, deduplicated without throwing away qualifying words. */
-function ai_expression_persona(array $npc,array $rules,int $budget=320):string {
+function aiExpressionPersona(array $npc,array $rules,int $budget=320):string {
     if($budget<1){ return ''; }
     $normalize=static fn(string $text):string=>trim(preg_replace('/[^\p{L}\p{N}]+/u',' ',mb_strtolower($text))??'');
     $profile=is_array($npc['profile']??null)?$npc['profile']:(json_decode((string)($npc['profile']??'{}'),true)?:[]);
@@ -47,8 +47,8 @@ function ai_expression_persona(array $npc,array $rules,int $budget=320):string {
             if(!$duplicate){ $units[]=['text'=>$sentence,'key'=>$key,'score'=>$score,'position'=>$position++]; }
         }
     }
-    if(($rules['voice_example']??'')!==''&&function_exists('ai_voice_register')){
-        $register=ai_voice_register((string)$rules['voice_example']);
+    if(($rules['voice_example']??'')!==''&&function_exists('aiVoiceRegister')){
+        $register=aiVoiceRegister((string)$rules['voice_example']);
         // Keep only the derived register, never the concrete example or its scene.
         $register=trim(preg_split('/(?<=[.!?])\s+/u',$register,2)[0]??'');
         if($register!==''){ $units[]=['text'=>'Voce: '.$register,'key'=>$normalize($register),'score'=>45,'position'=>$position++]; }
@@ -60,12 +60,12 @@ function ai_expression_persona(array $npc,array $rules,int $budget=320):string {
         $chosen[]=$unit;$used+=$size+($used?1:0);
     }
     // Only when no complete personality unit fits do we fall back to whole words.
-    if(!$chosen&&$units){ return ai_expression_excerpt($units[0]['text'],$budget); }
+    if(!$chosen&&$units){ return aiExpressionExcerpt($units[0]['text'],$budget); }
     return implode(' ',array_column($chosen,'text'));
 }
 
 /** Biographical colour and unrelated canon should not become the current topic. */
-function ai_expression_related(string $text,string $question):bool {
+function aiExpressionRelated(string $text,string $question):bool {
     $stop=array_fill_keys(['sono','come','avete','avere','avrei','vorrei','voglio','potete','posso','possiamo','siete','visto','vedere','dove','quando','quale','quali','questo','questa','quello','quella','della','delle','dello','degli','dalla','dalle','allo','alla','alle','nella','nelle','nello','anche','ancora','vicino','buonasera','buongiorno','grazie','salve','favore','sapere','chiedere','qualcosa'],true);
     preg_match_all('/\p{L}{4,}/u',mb_strtolower($question),$matches);
     $plain=mb_strtolower($text);
@@ -79,7 +79,7 @@ function ai_expression_related(string $text,string $question):bool {
 
 
 /** A bounded language heuristic, including short conventional Italian replies. */
-function ai_expression_italian(string $text):bool {
+function aiExpressionItalian(string $text):bool {
     if(preg_match('/[\x{3400}-\x{9fff}\x{0400}-\x{04ff}]/u',$text)){ return false; }
     $words=preg_match_all('/\p{L}+(?:[’\x27]\p{L}+)*/u',$text);
     if($words<1){ return false; }
@@ -89,11 +89,11 @@ function ai_expression_italian(string $text):bool {
 }
 
 /** Select the topic before clipping: even a short dossier may contain unrelated restrictions. */
-function ai_expression_knowledge(string $text,string $question,int $budget=350):string {
+function aiExpressionKnowledge(string $text,string $question,int $budget=350):string {
     $sentences=preg_split('/(?<=[.!?;])\s+/u',trim($text),-1,PREG_SPLIT_NO_EMPTY)?:[];
     $topics=[['music','melodi','suon','violin','canzon'],['allogg','stanza','stanze','camera','camere','dormir'],['proprietar','possess','appartien','sacca','borsa']];
     $matches=static function(string $sentence)use($question,$topics):bool{
-        if(ai_expression_related($sentence,$question)){ return true; }
+        if(aiExpressionRelated($sentence,$question)){ return true; }
         foreach($topics as $topic){$pattern='/'.implode('|',$topic).'/iu';if(preg_match($pattern,$question)&&preg_match($pattern,$sentence)){ return true; }}
         return false;
     };
@@ -105,13 +105,13 @@ function ai_expression_knowledge(string $text,string $question,int $budget=350):
         $next=$sentences[$i+1]??'';
         if(preg_match('/^(?:non\s+(?:sa|conosce|ha\s+visto|ricorda)|ignora|ma\b|tuttavia\b|però\b)/iu',$next)){ $chosen[$i+1]=$next; }
     }
-    if(!$chosen){ return ai_prompt_relevant_text($text,$question,$budget); }
+    if(!$chosen){ return aiPromptRelevantText($text,$question,$budget); }
     ksort($chosen);
-    return ai_prompt_relevant_text(implode(' ',$chosen),$question,$budget);
+    return aiPromptRelevantText(implode(' ',$chosen),$question,$budget);
 }
 
 /** Narrative sampling follows the verified model profile; structured verdicts keep their own settings. */
-function ai_expression_sampling(string $model,string $kind):array {
+function aiExpressionSampling(string $model,string $kind):array {
     static $registry=null;
     if($registry===null){ $registry=json_decode((string)file_get_contents(__DIR__.'/../config/ai-models.json'),true,32,JSON_THROW_ON_ERROR); }
     $sampling=['temperature'=>$kind==='npc-turn'?.4:.55,'top_p'=>.9,'top_k'=>40,'min_p'=>0.0,'repeat_penalty'=>1.0,'repeat_last_n'=>256];
@@ -124,13 +124,13 @@ function ai_expression_sampling(string $model,string $kind):array {
         }
         $sampling['top_k']=(int)$sampling['top_k'];break;
     }
-    $local=function_exists('ai_local_model_pin')?(ai_local_model_pin()['settings']??[]):[];
+    $local=function_exists('aiLocalModelPin')?(aiLocalModelPin()['settings']??[]):[];
     foreach(['temperature','top_p','top_k','min_p','repeat_penalty'] as $key){ if(isset($local[$key])){ $sampling[$key]=$local[$key]; } }
     return $sampling;
 }
 
 /** Constrain syntax only; meaning, identity, agency and equipment still need the usual guards. */
-function ai_expression_format(array $npc,array $job):array {
+function aiExpressionFormat(array $npc,array $job):array {
     if(($job['kind']??'')!=='npc-turn'){ return []; }
     $name=trim(preg_replace('/\s+/u',' ',(string)($npc['name']??''))??'');
     if($name===''||mb_strlen($name)>100){ return []; }
@@ -139,7 +139,7 @@ function ai_expression_format(array $npc,array $job):array {
 }
 
 /** Feedback is a bounded instruction, never a database/network error copied into a prompt. */
-function ai_expression_retry_hint(string $error,?array $perception=null):?string {
+function aiExpressionRetryHint(string $error,?array $perception=null):?string {
     foreach([
         '/^(?:Manca la reazione di paura|La paura personale|La replica ignora il pericolo|La reazione nega una metamorfosi|Mantieni la postura persistente|Il PNG è ancora scosso|Il profilo impone)/u'=>'La scena richiede paura visibile nel tuo corpo: tremore, fiato corto o voce spezzata. Non limitarti a cautela, verifica o voce ferma. Rispondi al pericolo attuale mantenendo soltanto i tuoi gesti.',
         '/^(?:Il PNG tratta una presa|Il turno PNG richiede una nuova stesura)/u'=>'Descrivi solo i tuoi tentativi: nessuna presa già chiusa, parata riuscita o posizione raggiunta se il Master non le ha accertate. Conserva anche lo stato emotivo e le ferite già presenti.',

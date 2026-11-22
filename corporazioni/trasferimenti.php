@@ -55,7 +55,7 @@ $admintrasf = (bool)$db->query(
 </head>
 <body data-corporation="<?=$corp?>">
   <p><strong>Budget della corporazione:</strong> <span id="corporate-trade-balance"><?= (int)$budget ?></span> <?=alphanoCurrencyHtml()?></p>
-  <p id="corporate-trade-feedback" class="notice" role="status" aria-live="polite" hidden></p>
+  <p id="corporate-trade-feedback" class="notice" aria-live="polite" hidden></p>
   <nav class="ui-tablist" role="tablist" aria-label="Commercio della corporazione">
     <button type="button" id="mpersonal" role="tab" aria-controls="personal">Acquisti dai giocatori</button>
     <button type="button" id="mstacq" role="tab" aria-controls="stacq">Storico acquisti</button>

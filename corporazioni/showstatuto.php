@@ -145,7 +145,7 @@ global $quality;
     </nav>
 </header>
 <main class="container corporation-dossier-content">
-    <?php if ($msg): ?><p class="flash" role="status"><?=$h($msg)?></p><?php endif; ?>
+    <?php if ($msg): ?><p class="flash" aria-live="polite"><?=$h($msg)?></p><?php endif; ?>
     <?php if ($modify && ($admin || $admincorp)): ?>
         <section class="editor">
             <h2>Modifica statuto</h2>

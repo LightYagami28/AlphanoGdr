@@ -9,14 +9,14 @@ function rpgCombatScore(array $stats,string $test):int {
  $settings=rpg_settings();$score=0;foreach($groups[$test] as $key){ $score+=(int)($stats[$key]??0)*(int)$settings[$test.'_'.$key]; }return (int)round($score/100);
 }
 function rpgCombatHasWeapon(string $kind,int $id):bool {
- foreach(ai_game_inventory($kind,$id) as $item){ if(in_array($item['slot'],['armadx','armasx'],true)&&(int)$item['consumo']<(int)$item['durata']){ return true; } }return false;
+ foreach(aiGameInventory($kind,$id) as $item){ if(in_array($item['slot'],['armadx','armasx'],true)&&(int)$item['consumo']<(int)$item['durata']){ return true; } }return false;
 }
 function rpgCombatAbilityIntent(array $ability):string {
  return match($ability['effect']['type']){'attack'=>'attacco','defence'=>'difesa','mental'=>'potere','heal'=>'cura','perception'=>'osserva',default=>'azione'};
 }
 function rpgCombatAssertEquipment(string $kind,int $id,array $ability):void {
- $n=(int)($ability['rules']['number']??$ability['human_rules']['number']??0);$held=array_filter(ai_game_inventory($kind,$id),static fn($i)=>in_array($i['slot'],['armadx','armasx'],true)&&(int)$i['consumo']<(int)$i['durata']);
- if($n===2){foreach(ai_game_inventory($kind,$id) as $item){ if(in_array($item['slot'],['scudo','armadx','armasx'],true)&&(int)$item['consumo']<(int)$item['durata']){ return; } }}
+ $n=(int)($ability['rules']['number']??$ability['human_rules']['number']??0);$held=array_filter(aiGameInventory($kind,$id),static fn($i)=>in_array($i['slot'],['armadx','armasx'],true)&&(int)$i['consumo']<(int)$i['durata']);
+ if($n===2){foreach(aiGameInventory($kind,$id) as $item){ if(in_array($item['slot'],['scudo','armadx','armasx'],true)&&(int)$item['consumo']<(int)$item['durata']){ return; } }}
  if(in_array($n,[1,5,7,8,9],true)){$valid=array_filter($held,static fn($i)=>in_array($n,[1,5],true)?rpgRangedFamily($i)==='':($n===9?rpgRangedFamily($i)==='firearm':rpgRangedFamily($i)!==''));if(!$valid){ throw new DomainException('Manca l’arma realmente impugnata richiesta da questa tecnica.',422); }$identity=rpg_identity($kind,$id);$allowed=array_filter($valid,static fn($i)=>rpgWeaponLineageReason($identity,$i)==='');if(!$allowed){ throw new DomainException(rpgWeaponLineageReason($identity,reset($valid)),422); }}
  if($n===10&&(count($held)>=2||array_filter($held,static fn($i)=>(int)$i['mani']>=2))){ throw new DomainException('La presa richiede mani libere.',422); }
  if(!empty($ability['effect']['requires_weapon'])&&!rpgCombatHasWeapon($kind,$id)){ throw new DomainException('Questa abilità richiede un’arma utilizzabile realmente impugnata.',422); }
@@ -37,7 +37,7 @@ function rpgCombatInferAbility(int $id,string $raw):int {
 function rpgCombatChooseNpc(int $id,int $sid,int $round,string $decision):?array {
  if(!in_array($decision,['attacco','difesa','ritirata','aiuto','allenamento'],true)){ return null; }
  $sheet=rpg_sheet('npc',$id,false);$types=in_array($decision,['difesa','ritirata','aiuto'],true)?['defence','heal']:['attack'];$choices=[];
- foreach($sheet['abilities'] as $a){if(!$a['usable']||!in_array($a['effect']['type'],$types,true)){ continue; }if($a['effect']['type']==='heal'&&$sheet['identity']['hit_points']>MAXPUNTIF-30){ continue; }
+ foreach($sheet['abilities'] as $a){if(!$a['usable']||!in_array($a['effect']['type'],$types,true)){ continue; }if($a['effect']['type']==='heal'&&$sheet['identity']['hit_points']>maxpuntif-30){ continue; }
   try{rpgCombatAssertEquipment('npc',$id,$a);}catch(DomainException){continue;}
   $last=aiDb()->query('SELECT round_number FROM rpg_ability_uses WHERE owner_kind=\'npc\' AND owner_id=? AND ability_id=? AND session_id=? ORDER BY id DESC LIMIT 1',[$id,$a['id'],$sid])[0]??null;
   if($last&&(int)$last['round_number']+(int)$a['cooldown']+(isset($a['rules'])?1:0)>$round){ continue; }
@@ -48,7 +48,7 @@ function rpgCombatChooseNpc(int $id,int $sid,int $round,string $decision):?array
  return $choices[0]??null;
 }
 function rpgCombatSettings():array {
- $rules=require_once __DIR__.'/../config/quest-rules.php';foreach(rpg_settings() as $key=>$value){ if(str_starts_with($key,'scene_')&&array_key_exists(substr($key,6),$rules)){ $rules[substr($key,6)]=$value; } }return $rules;
+ $rules=require __DIR__.'/../config/quest-rules.php';foreach(rpg_settings() as $key=>$value){ if(str_starts_with($key,'scene_')&&array_key_exists(substr($key,6),$rules)){ $rules[substr($key,6)]=$value; } }return $rules;
 }
 function rpgCombatContext(array $sheet,float $scale=1,string $action=''):string {
  if($scale<=.5){ return rpgCompactSkillContext($sheet,$action,$scale); }

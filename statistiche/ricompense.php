@@ -37,7 +37,8 @@
         else $sessioni[$dati["id"]]["master"][$dati["master"]]["ricompense"][$dati["destinatario"]]["soldi"] = ($sessioni[$dati["id"]]["master"][$dati["master"]]["ricompense"][$dati["destinatario"]]["soldi"] ?? 0) + (int)$dati["qta"];
     }
 ?>
-<HTML>
+<!DOCTYPE html>
+<HTML lang="it">
     <HEAD>
         <TITLE>Statistiche Ricompense <?=TITOLO_SITO?></TITLE>
 

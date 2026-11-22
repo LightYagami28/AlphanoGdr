@@ -7,7 +7,8 @@ export function updateGameClocks(){
   if(!clock||clock.signature!==signature){clock={signature,base:Number(el.dataset.serverTime)*1000,at:performance.now()};calibrated.set(signature,clock);if(calibrated.size>500){calibrated.delete(calibrated.keys().next().value);}}
   const seconds=Math.max(0,Math.ceil(Number(el.dataset.gameDeadline)-(clock.base+performance.now()-clock.at)/1000));
   const days=Math.floor(seconds/86400),hours=Math.floor(seconds%86400/3600),minutes=Math.floor(seconds%3600/60),secs=seconds%60;
-  el.textContent=seconds?(days?days+'g ':'')+(hours||days?String(hours).padStart(2,'0')+'h ':'')+String(minutes).padStart(2,'0')+'m '+String(secs).padStart(2,'0')+'s':(el.dataset.due||'Tempo scaduto');
+  const dayPrefix=days?days+'g ':'',hourPrefix=(hours||days)?String(hours).padStart(2,'0')+'h ':'';
+  el.textContent=seconds?dayPrefix+hourPrefix+String(minutes).padStart(2,'0')+'m '+String(secs).padStart(2,'0')+'s':(el.dataset.due||'Tempo scaduto');
  }
 }
 export function renderMetamorphosis(root,state){

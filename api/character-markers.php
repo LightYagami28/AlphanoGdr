@@ -20,6 +20,6 @@ playerApi(static function():array{
  // Query letterali: gli identificatori gia' convalidati filtrano i risultati in
  // PHP, quindi nessun valore della richiesta raggiunge la costruzione della SQL.
  if($players){foreach($db->query('SELECT id,sesso,posizione,lastmove,bloccato,razza,vampire_human_form,dataregistrazione FROM utenti') as $u){if(!in_array((int)$u['id'],$players,true)){continue;}$race=alphanoVisibleRace($u);if($race===ALPHANO_RACE_LEGACY_SPIRIT){ $race=ALPHANO_RACE_SPIRIT; }$items['pg:'.$u['id']]=['sex'=>$u['sesso'],'online'=>alphanoPlayerOnline($u),'race_id'=>$race,'race'=>$races[$race]??'Razza sconosciuta',...alphanoRegistrationLabel((int)$u['dataregistrazione'])];}}
- if($npcs){foreach($db->query('SELECT id,active,profile FROM ai_npcs') as $n){if(!in_array((int)$n['id'],$npcs,true)){continue;}$p=ai_npc_profile($n);$items['npc:'.$n['id']]=['sex'=>$p['sex'],'online'=>(bool)$n['active'],'race_id'=>(int)$p['race_id'],'race'=>$races[(int)$p['race_id']]??'Razza sconosciuta'];}}
+ if($npcs){foreach($db->query('SELECT id,active,profile FROM ai_npcs') as $n){if(!in_array((int)$n['id'],$npcs,true)){continue;}$p=aiNpcProfile($n);$items['npc:'.$n['id']]=['sex'=>$p['sex'],'online'=>(bool)$n['active'],'race_id'=>(int)$p['race_id'],'race'=>$races[(int)$p['race_id']]??'Razza sconosciuta'];}}
  return ['items'=>(object)$items];
 });

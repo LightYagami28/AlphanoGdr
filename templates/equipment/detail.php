@@ -81,7 +81,7 @@
               <input type="hidden" name="id"     value="<?=$detail_id?>">
               <input type="hidden" name="pgid"   value="<?=$pgid?>">
               <input type="hidden" name="detail_id" value="<?=$detail_id?>">
-              <input type="text" name="to" placeholder="Nome destinatario">
+              <input aria-label="Destinatario" type="text" name="to" placeholder="Nome destinatario">
               <button>Dai a…</button>
             </form>
             <form method="POST" data-equipment-confirm="Vuoi cancellare questo oggetto?">
@@ -99,7 +99,7 @@
               <input type="hidden" name="id"     value="<?=$detail_id?>">
               <input type="hidden" name="pgid"   value="<?=$pgid?>">
               <input type="hidden" name="detail_id" value="<?=$detail_id?>">
-              <input type="text" name="nome" placeholder="Nome animale">
+              <input aria-label="Nome" type="text" name="nome" placeholder="Nome animale">
               <button>Assegna nome</button>
             </form>
           <?php endif; ?>

@@ -20,7 +20,7 @@ function alphanoPresence(): array
     if(!in_array((string)$viewer['posizione'],['','off','online'],true)&&isset($sessions[$viewer['chat']])){
       $sid=(int)$sessions[$viewer['chat']];
       $g=$db->query('SELECT g.*,q.status AS quest_status,q.conductor_id FROM ai_session_guidance g JOIN ai_quests q ON q.session_id=g.session_id WHERE g.session_id=?',[$sid])[0]??null;
-      if($g){$window=ai_turn_window(['session_id'=>$sid,'status'=>$g['quest_status'],'conductor_id'=>$g['conductor_id']],$g,(int)$viewer['id']);if($window['mine']){ $myTurn=$window; }}
+      if($g){$window=aiTurnWindow(['session_id'=>$sid,'status'=>$g['quest_status'],'conductor_id'=>$g['conductor_id']],$g,(int)$viewer['id']);if($window['mine']){ $myTurn=$window; }}
     }
     foreach ($db->query("SELECT chat_key,title,scene_thumbnail FROM mappe WHERE chat=1 AND chat_key<>'' ORDER BY title") as $room) {
         $groups[$room['chat_key']]=['key'=>$room['chat_key'],'title'=>$room['title'],'url'=>'/chat/index.php?chat='.rawurlencode($room['chat_key']),
@@ -41,7 +41,7 @@ function alphanoPresence(): array
     }
     foreach ($db->query('SELECT n.id,n.name,n.chat_key,n.profile FROM ai_npcs n JOIN mappe m ON m.chat_key=n.chat_key COLLATE utf8mb4_unicode_ci WHERE n.active=1 AND m.chat=1 AND NOT EXISTS(SELECT 1 FROM companion_appointments a WHERE a.active_npc_id=n.id AND a.finished_at=0 AND a.expires_at>?) ORDER BY n.name',[time()]) as $npc) {
         if (!isset($groups[$npc['chat_key']])) { continue; }
-        $p=ai_npc_profile($npc);
+        $p=aiNpcProfile($npc);
         $groups[$npc['chat_key']]['members'][]=$person('npc',(int)$npc['id'],$npc['name'],(int)$p['race_id'],$p['sex']);
         $groups[$npc['chat_key']]['npcs']++;$npcs++;
     }

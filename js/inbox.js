@@ -29,6 +29,8 @@
    try{await acknowledge(item);message.querySelector('.inbox-read-state').textContent='Letta · '+date(item.read_at);await load(false);}
    catch(error){message.querySelector('.inbox-read-state').textContent=error.message;const retry=document.createElement('button');retry.type='button';retry.textContent='Riprova a salvare la lettura';retry.addEventListener('click',()=>show(item));message.querySelector('.inbox-message-body').append(retry);}
   }
+  const tradeBadge=item=>`<span class="trade-status trade-${esc(item.commerce.key)}"><strong>${esc(item.commerce.label)}</strong> · ${esc(item.commerce.next)}`;
+  const inboxRow=(item,index)=>`<tr class="${item.read_at?'':'inbox-unread notice-unread'} ${item.commerce?'trade-row-'+esc(item.commerce.key):''}"><td><button type="button" class="ui-text-action" data-open="${index}">${item.read_at?'':'<span class="unread-flag">Da leggere</span> '}<strong>${esc(item.title)}</strong></button><span class="ui-cell-meta">${esc(item.actor||item.detail.slice(0,130))}</span>${item.commerce?tradeBadge(item):''}</td><td>${esc(labels[item.group]||item.group)}</td><td><time>${esc(date(item.created_at))}</time><span class="ui-cell-meta">${item.read_at?'Letta':'Da leggere'}</span></td><td><div class="ui-row-actions"><button type="button" data-open="${index}">Leggi</button><button type="button" data-go="${index}">${item.data?.order_id?'Gestisci':'Apri sezione'}</button></div></td></tr>`;
   async function load(allowOpen=true){
    const sequence=++issued;if(allowOpen){status.textContent='Caricamento…';}
    const query=new URLSearchParams({box:'1',view:view.value,page:String(page)});if(group.value){query.set('group',group.value);}if(section){query.set('section',section);}
@@ -37,18 +39,18 @@
     const focused=document.activeElement?.closest('[data-open],[data-go]');const focusType=focused?.hasAttribute('data-go')?'go':'open';const focusKey=focused?items[Number(focused.dataset[focusType])]?.key:null;
     const inbox=data.inbox;items=inbox.items;page=inbox.page;totalPages=inbox.pages;
     status.textContent=`${inbox.total} ${inbox.total===1?'notifica':'notifiche'}${section?' · sezione '+section.replaceAll('-',' '):''}`;
-    const rendered=items.length?items.map((item,index)=>`<tr class="${item.read_at?'':'inbox-unread notice-unread'} ${item.commerce?'trade-row-'+esc(item.commerce.key):''}"><td><button type="button" class="ui-text-action" data-open="${index}">${item.read_at?'':'<span class="unread-flag">Da leggere</span> '}<strong>${esc(item.title)}</strong></button><span class="ui-cell-meta">${esc(item.actor||item.detail.slice(0,130))}</span>${item.commerce?`<span class="trade-status trade-${esc(item.commerce.key)}"><strong>${esc(item.commerce.label)}</strong> · ${esc(item.commerce.next)}</span>`:''}</td><td>${esc(labels[item.group]||item.group)}</td><td><time>${esc(date(item.created_at))}</time><span class="ui-cell-meta">${item.read_at?'Letta':'Da leggere'}</span></td><td><div class="ui-row-actions"><button type="button" data-open="${index}">Leggi</button><button type="button" data-go="${index}">${item.data?.order_id?'Gestisci':'Apri sezione'}</button></div></td></tr>`).join(''):'<tr><td colspan="4" class="ui-empty">Nessuna notifica in questo registro.</td></tr>';
+    const rendered=items.length?items.map((item,index)=>inboxRow(item,index)):'<tr><td colspan="4" class="ui-empty">Nessuna notifica in questo registro.</td></tr>';
     if(rendered!==lastRows){rows.innerHTML=rendered;lastRows=rendered;if(focusKey){const index=items.findIndex(i=>i.key===focusKey);rows.querySelector(`[data-${focusType}="${index}"]`)?.focus();}}
     document.getElementById('inbox-page').textContent=`Pagina ${page} di ${totalPages}`;document.getElementById('inbox-previous').disabled=page<=1;document.getElementById('inbox-next').disabled=page>=totalPages;
     if(allowOpen&&opened){const item=items.find(item=>item.key===opened);opened=null;if(item){await show(item);}}
    }catch(error){if(sequence===issued){status.textContent=error.message;}}
   }
   rows.addEventListener('click',async event=>{const open=event.target.closest('[data-open]'),go=event.target.closest('[data-go]');if(open){await show(items[Number(open.dataset.open)]);}if(go){const item=items[Number(go.dataset.go)];await show(item);if(item.read_at&&!item.data?.order_id){openSection(item);}}});
-  for(const element of [group,view]){element.addEventListener('change',()=>{page=1;message.hidden=true;load();});}
-  document.getElementById('inbox-reset').addEventListener('click',()=>{section='';page=1;document.getElementById('inbox-reset').hidden=true;load();});
+  for(const element of [group,view]){element.addEventListener('change',()=>{page=1;message.hidden=true;void load();});}
+  document.getElementById('inbox-reset').addEventListener('click',()=>{section='';page=1;document.getElementById('inbox-reset').hidden=true;void load();});
   document.getElementById('inbox-refresh').addEventListener('click',()=>load());
-  document.getElementById('inbox-previous').addEventListener('click',()=>{if(page>1){page--;load();}});
-  document.getElementById('inbox-next').addEventListener('click',()=>{if(page<totalPages){page++;load();}});
-  load();setInterval(()=>{if(!document.hidden){load(false);}},30000);document.addEventListener('alphano:commerce-refresh',()=>load(false));
+  document.getElementById('inbox-previous').addEventListener('click',()=>{if(page>1){page--;void load();}});
+  document.getElementById('inbox-next').addEventListener('click',()=>{if(page<totalPages){page++;void load();}});
+  void load();setInterval(()=>{if(!document.hidden){void load(false);}},30000);document.addEventListener('alphano:commerce-refresh',()=>void load(false));
  });
 })();

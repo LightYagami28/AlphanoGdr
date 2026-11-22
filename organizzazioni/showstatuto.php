@@ -113,7 +113,7 @@ $statuto = getStatutoOrg($org, (bool)$modify);
       <input type="hidden" name="org"    value="<?=htmlspecialchars((string)$org, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')?>">
       <input type="hidden" name="modify" value="1">
       <script>CreateGMLHelper("document.statutoForm.statuto")</script>
-      <textarea name="statuto"><?= htmlspecialchars($statuto, ENT_QUOTES) ?></textarea>
+      <textarea aria-label="Testo dello statuto" name="statuto"><?= htmlspecialchars($statuto, ENT_QUOTES) ?></textarea>
       <div>
         <button type="button" class="btn" onclick="Invia()">Salva</button>
         <button type="button" class="btn" onclick="document.statutoForm.reset()">Annulla</button>

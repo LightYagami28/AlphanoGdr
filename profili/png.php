@@ -15,8 +15,8 @@ $death=alphanoNpcDeath($id);
 $npc = aiDb()->query('SELECT n.*,COALESCE(m.title,n.chat_key) AS title,m.chat AS public_chat FROM ai_npcs n LEFT JOIN mappe m ON m.chat_key=n.chat_key COLLATE utf8mb4_unicode_ci WHERE n.id=?', [$id])[0] ?? null;
 // The immutable memorial remains reachable even if a location or live cast row is retired.
 if(!$npc&&$death){ $npc=['id'=>$id,'name'=>$death['npc_name'],'chat_key'=>$death['chat_key'],'title'=>$death['place_name'],'active'=>0,'profile'=>$death['profile_snapshot'],'public_chat'=>0]; }
-if (!$npc || (!$death&&empty($npc['public_chat'])) || (!(int)$npc['active'] && !$death && !alphanoRelationsStaff((int)$viewer['id']) && (int)ai_npc_profile($npc)['hit_points']>0)) { alphanoFail('Personaggio non disponibile.', 404); }
-$profile = ai_npc_profile($npc);
+if (!$npc || (!$death&&empty($npc['public_chat'])) || (!(int)$npc['active'] && !$death && !alphanoRelationsStaff((int)$viewer['id']) && (int)aiNpcProfile($npc)['hit_points']>0)) { alphanoFail('Personaggio non disponibile.', 404); }
+$profile = aiNpcProfile($npc);
 if($death||(int)$profile['hit_points']<=0){require __DIR__.'/../templates/profiles/npc-memorial.php';closePage();exit;}
 $profile['money']=aiNpcBalance($id);
 $escape = static fn(mixed $value): string => htmlspecialchars((string)($value ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
@@ -41,7 +41,7 @@ if ($profile['details']) {
     }
     $sections[] = ['id' => 'dettagli', 'title' => 'Altre informazioni', 'icon' => 'scroll', 'rows' => $detailRows];
 }
-$gear=[];foreach(ai_game_inventory('npc',$id) as $item){ if($item['slot']!==''){ $gear[]=['label'=>$item['nome']?:$item['shortDesc'],'html'=>$escape($item['slot'])]; } }if($gear){ $sections[]=['id'=>'dotazioni','title'=>'Dotazioni visibili','icon'=>'shield','rows'=>$gear]; }
+$gear=[];foreach(aiGameInventory('npc',$id) as $item){ if($item['slot']!==''){ $gear[]=['label'=>$item['nome']?:$item['shortDesc'],'html'=>$escape($item['slot'])]; } }if($gear){ $sections[]=['id'=>'dotazioni','title'=>'Dotazioni visibili','icon'=>'shield','rows'=>$gear]; }
 $identity = [GetRazza((int)$profile['race_id']), $profile['sex'], GetEtnia((int)$profile['ethnicity_id']) ?: 'Provenienza non indicata'];
 if ($profile['age']) { $identity[] = (int)$profile['age'] . ' anni'; }
 $sheet = [
@@ -51,7 +51,7 @@ $sheet = [
     'metrics' => ['Punti ferita' => $profile['hit_points'], 'Corone' => number_format((int)$profile['money'], 0, ',', '.'), 'Forza'=>alphanoProfileStrength('npc',$id,(int)$profile['race_id'])],
     'sections' => $sections, 'actions' => [['title' => $npc['title'], 'icon' => 'compass', 'url' => '/chat/index.php?chat=' . rawurlencode($npc['chat_key'])]],
 ];
-$game=ai_npc_game($id);
+$game=aiNpcGame($id);
 $sheet['design']=alphanoProfileDesign(['name'=>$npc['name'],'sex'=>$profile['sex'],'race'=>$profile['race_id'],'corp'=>$profile['corporation_id'],'org'=>$profile['organization_id'],'corp_rank'=>$game['corporation_office_id'],'org_rank'=>$game['organization_office_id'],'heraldry'=>$profile['heraldry_id'],'alignment_code'=>$profile['alignment'],'alignment'=>processAl($profile['alignment']),'hp'=>$profile['hit_points'],'location'=>$npc['title']]);
 $ethnicityName=GetEtnia((int)$profile['ethnicity_id'])?:'Origine non indicata';
 $sheet['origin_label']=$ethnicityName.(!empty($profile['age'])?' · '.(int)$profile['age'].' anni':'');
@@ -68,7 +68,7 @@ $sheet['relation_read_only']=$sheet['relations_staff']&&isset($_GET['player']);
 try{$sheet['npc_social']=$sheet['relation_read_only']?alphanoRelationsNpcContext($id,$selectedPlayer,(int)$viewer['id']):aiSocialPrivateView($id,$selectedPlayer);}catch(DomainException $e){alphanoFail($e->getMessage(),(int)$e->getCode());}
 $sheet['npc_knowledge']=alphanoRevelationsProfile('npc',$id,$selectedPlayer);
 $sheet['relation_player']=$selectedPlayer;
-if($sheet['relations_staff']){ $sheet['relation_overview']=$sheet['npc_social']['overview']??ai_personality_overview($id); }
+if($sheet['relations_staff']){ $sheet['relation_overview']=$sheet['npc_social']['overview']??aiPersonalityOverview($id); }
 $sheet['npc_id']=$id;$sheet['npc_rules']=aiSocialRules($id);
 $sheet['rpg_kind']='npc';$sheet['rpg_id']=$id;$sheet['race_id']=(int)$profile['race_id'];
 array_splice($sheet['sections'],1,0,[['id'=>'progressione','title'=>'Caratteristiche e abilità','icon'=>'swords','rows'=>[],'template'=>'progression']]);

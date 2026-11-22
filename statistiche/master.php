@@ -30,7 +30,8 @@
     $parerisessioni=array();
     while($dati=legacyFetchRow($res)) $parerisessioni[$dati["sessione"]][]=$dati["parere"];
 ?>
-<HTML>
+<!DOCTYPE html>
+<HTML lang="it">
     <HEAD>
         <TITLE>Statistiche Master <?=TITOLO_SITO?></TITLE>
 
@@ -200,6 +201,6 @@
     </HEAD>
     <BODY onload="javascript:Carica('nome')">
         <DIV id="lista"></DIV>
-        <CENTER><INPUT type="button" value="Torna Indietro" onclick="javascript:window.location.href = '/sessione/viewlog.php'"></CENTER>
+        <div style="text-align:center"><INPUT type="button" value="Torna Indietro" onclick="javascript:window.location.href = '/sessione/viewlog.php'"></div>
     </BODY>
 </HTML>

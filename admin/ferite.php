@@ -24,7 +24,7 @@ alphanoRequireLogin();
 if ($_SERVER['REQUEST_METHOD'] === 'POST') { alphanoRequireCsrf(); }
 /* sessione + login */
 initSession();
-$idpg = GetIDPG(false, true);
+$idpg = GetIDPG(false);
 if (!$idpg) {
     header('Location: /login.php');
     exit;
@@ -108,7 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             break;
 
         case 'ferisci':
-            $pf   = economiaIntero($_POST['pf'] ?? null,1,MAXPUNTIF);
+            $pf   = economiaIntero($_POST['pf'] ?? null,1,maxpuntif);
             if ($pf===null) { throw new InvalidArgumentException('I PF devono essere un numero intero valido'); }
             $tipo = trim($_POST['tipo']   ?? '');
             if ($target && $pf > 0 && ($canMaster || $canHurt)) {
@@ -251,8 +251,8 @@ foreach ($inChat as $pg) {
 <?php if ($canResurrect): ?>
 <form class="panel" method="post" id="resuscita"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphanoCsrfToken(), ENT_QUOTES) . '">' ?>
   <header>resuscita</header>
-  <label>Personaggio</label>
-  <select name="pg" required>
+  <label for="fer-resuscita-pg">Personaggio</label>
+  <select id="fer-resuscita-pg" name="pg" required>
     <option value="">– seleziona –</option>
     <?php foreach ($deadList as $p): ?>
       <option value="<?=$p['id']?>"><?=htmlspecialchars($p['nome'])?></option>
@@ -266,15 +266,15 @@ foreach ($inChat as $pg) {
 <?php if ($canMaster || $canHurt): ?>
 <form class="panel" method="post" id="uccidi"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphanoCsrfToken(), ENT_QUOTES) . '">' ?>
   <header>Morte e stato spirituale</header>
-  <label>Personaggio</label>
-  <select name="pg" required>
+  <label for="fer-uccidi-pg">Personaggio</label>
+  <select id="fer-uccidi-pg" name="pg" required>
     <option value="">– seleziona –</option>
     <?php foreach ($inChat as $p): ?>
       <option value="<?=$p['id']?>"><?=htmlspecialchars($p['nome'])?></option>
     <?php endforeach; ?>
   </select>
-  <label>Modo</label>
-  <select name="modo">
+  <label for="fer-modo">Modo</label>
+  <select id="fer-modo" name="modo">
     <option value="0">Non-Morto</option>
     <option value="1">Spirito</option>
   </select>
@@ -284,17 +284,17 @@ foreach ($inChat as $pg) {
 
 <form class="panel" method="post" id="ferisci"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphanoCsrfToken(), ENT_QUOTES) . '">' ?>
   <header>Ferisci</header>
-  <label>Personaggio</label>
-  <select name="pg" required>
+  <label for="fer-ferisci-pg">Personaggio</label>
+  <select id="fer-ferisci-pg" name="pg" required>
     <option value="">– seleziona –</option>
     <?php foreach ($inChat as $p): ?>
       <option value="<?=$p['id']?>"><?=htmlspecialchars($p['nome'])?></option>
     <?php endforeach; ?>
   </select>
-  <label>Punti Ferita</label>
-  <input type="number" name="pf" min="1" max="<?=MAXPUNTIF?>" step="1" required>
-  <label>Tipo Ferite</label>
-  <input type="text" name="tipo" required>
+  <label for="fer-pf">Punti Ferita</label>
+  <input id="fer-pf" type="number" name="pf" min="1" max="<?=maxpuntif?>" step="1" required>
+  <label for="fer-tipo">Tipo Ferite</label>
+  <input id="fer-tipo" type="text" name="tipo" required>
   <input type="hidden" name="azione" value="ferisci">
   <button>Ferisci</button>
 </form>
@@ -303,15 +303,15 @@ foreach ($inChat as $pg) {
 <?php if ($canMaster && $sessionRunning): ?>
 <form class="panel" method="post" id="ricompensa"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphanoCsrfToken(), ENT_QUOTES) . '">' ?>
   <header>ricompensa</header>
-  <label>Personaggio</label>
-  <select name="pg" required>
+  <label for="fer-ricompensa-pg">Personaggio</label>
+  <select id="fer-ricompensa-pg" name="pg" required>
     <option value="">– seleziona –</option>
     <?php foreach ($inChat as $p): if ($p['id'] != $idpg): ?>
       <option value="<?=$p['id']?>"><?=htmlspecialchars($p['nome'])?></option>
     <?php endif; endforeach; ?>
   </select>
-  <label><?=alphanoCurrencyHtml()?></label>
-  <input type="number" name="soldi" min="1" max="1000000000" step="1" required>
+  <label for="fer-soldi"><?=alphanoCurrencyHtml()?></label>
+  <input id="fer-soldi" type="number" name="soldi" min="1" max="1000000000" step="1" required>
   <input type="hidden" name="azione" value="ricompensa">
   <input type="hidden" name="_request_key" value="<?=bin2hex(random_bytes(16))?>">
   <button>Consegna</button>
@@ -319,15 +319,15 @@ foreach ($inChat as $pg) {
 
 <form class="panel" method="post" id="oggetto"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphanoCsrfToken(), ENT_QUOTES) . '">' ?>
   <header>Oggetto</header>
-  <label>Personaggio</label>
-  <select name="pg" required>
+  <label for="fer-oggetto-pg">Personaggio</label>
+  <select id="fer-oggetto-pg" name="pg" required>
     <option value="">– seleziona –</option>
     <?php foreach ($inChat as $p): if ($p['id'] != $idpg): ?>
       <option value="<?=$p['id']?>"><?=htmlspecialchars($p['nome'])?></option>
     <?php endif; endforeach; ?>
   </select>
-  <label>Oggetto</label>
-  <select name="oggetto" required>
+  <label for="fer-oggetto">Oggetto</label>
+  <select id="fer-oggetto" name="oggetto" required>
     <option value="">– seleziona –</option>
     <?php foreach ($equipList as $e): ?>
       <option value="<?=$e['id']?>"><?=htmlspecialchars($e['shortDesc'])?></option>
@@ -342,19 +342,19 @@ foreach ($inChat as $pg) {
 <?php if ($canMaster): ?>
 <form class="panel" method="post" id="consuma"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphanoCsrfToken(), ENT_QUOTES) . '">' ?>
   <header>consuma</header>
-  <label>Personaggio</label>
+  <label for="pg-cons">Personaggio</label>
   <select id="pg-cons" name="pg" onchange="onPGChange()" required>
     <option value="">– seleziona –</option>
     <?php foreach ($inChat as $p): ?>
       <option value="<?=$p['id']?>"><?=htmlspecialchars($p['nome'])?></option>
     <?php endforeach; ?>
   </select>
-  <label>Oggetto</label>
+  <label for="obj-cons">Oggetto</label>
   <select id="obj-cons" name="oggetto" required>
     <option value="">– seleziona prima PG –</option>
   </select>
-  <label>Quantità</label>
-  <input type="number" name="quantita" min="1" max="2147483647" step="1" required>
+  <label for="fer-quantita">Quantità</label>
+  <input id="fer-quantita" type="number" name="quantita" min="1" max="2147483647" step="1" required>
   <input type="hidden" name="azione" value="consuma">
   <input type="hidden" name="_request_key" value="<?=bin2hex(random_bytes(16))?>">
   <button>consuma</button>
@@ -362,15 +362,15 @@ foreach ($inChat as $pg) {
 
 <form class="panel" method="post" id="addnote"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphanoCsrfToken(), ENT_QUOTES) . '">' ?>
   <header>Inserisci Nota</header>
-  <label>Personaggio</label>
-  <select name="pg" required>
+  <label for="fer-nota-pg">Personaggio</label>
+  <select id="fer-nota-pg" name="pg" required>
     <option value="">– seleziona –</option>
     <?php foreach ($inChat as $p): ?>
       <option value="<?=$p['id']?>"><?=htmlspecialchars($p['nome'])?></option>
     <?php endforeach; ?>
   </select>
-  <label>Nota</label>
-  <textarea name="nota" rows="4" required></textarea>
+  <label for="fer-nota">Nota</label>
+  <textarea id="fer-nota" name="nota" rows="4" required></textarea>
   <input type="hidden" name="azione" value="addnote">
   <button>Inserisci Nota</button>
 </form>
@@ -390,3 +390,4 @@ function onPGChange() {
 </script>
 </body>
 </html>
+

@@ -225,7 +225,7 @@ foreach ($db->query("SELECT id,nome,imprigionato FROM utenti WHERE imprigionato 
     <section data-section="Blocco Utenti"><h2>Blocco Utenti</h2>
 
       <form method="POST" class="u-5fb9edaa1"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphanoCsrfToken(), ENT_QUOTES) . '">' ?>
-        <select name="posizione" onchange="this.form.submit()">
+        <select aria-label="Posizione" name="posizione" onchange="this.form.submit()">
 <?php foreach($listapos as $p): ?>
           <option value="<?=$p?>"<?= $p===$curpos?' selected':'' ?>><?=$p?></option>
 <?php endforeach; ?>
@@ -233,26 +233,26 @@ foreach ($db->query("SELECT id,nome,imprigionato FROM utenti WHERE imprigionato 
       </form>
       <form method="POST" name="frmblocco" class="u-9548f4c53"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphanoCsrfToken(), ENT_QUOTES) . '">' ?>
         <input type="hidden" name="azione" value="blocca">
-        <select name="pospg" onchange="this.form.pg.value=this.value">
+        <select aria-label="Personaggio" name="pospg" onchange="this.form.pg.value=this.value">
           <option></option>
 <?php foreach($pginpos as $u): ?>
           <option><?=htmlspecialchars($u['nome'])?></option>
 <?php endforeach; ?>
         </select>
-        <input type="text" name="pg" size="10" placeholder="o scrivi nome">
+        <input aria-label="Nome personaggio" type="text" name="pg" size="10" placeholder="o scrivi nome">
         <br><br>
         Data fine:
-        <select name="giorno"><?php for($i=1;$i<=31;$i++): ?>
+        <select aria-label="Giorno" name="giorno"><?php for($i=1;$i<=31;$i++): ?>
           <option value="<?=$i?>"><?=$i?></option>
         <?php endfor; ?></select>
-        <select name="mese"><?php for($i=1;$i<=12;$i++): ?>
+        <select aria-label="Mese" name="mese"><?php for($i=1;$i<=12;$i++): ?>
           <option value="<?=$i?>"><?=$i?></option>
         <?php endfor; ?></select>
-        <select name="anno"><?php $y=date('Y'); for($i=$y;$i<=$y+4;$i++): ?>
+        <select aria-label="Anno" name="anno"><?php $y=date('Y'); for($i=$y;$i<=$y+4;$i++): ?>
           <option value="<?=$i?>"><?=$i?></option>
         <?php endfor; ?></select>
         <br>
-        Motivo: <input type="text" name="motivo" size="40">
+        Motivo: <input aria-label="Motivo" type="text" name="motivo" size="40">
         <br><br>
         <button type="submit">Blocca</button>
       </form>
@@ -264,7 +264,7 @@ foreach ($db->query("SELECT id,nome,imprigionato FROM utenti WHERE imprigionato 
 
       <form method="POST" name="frmsblocco"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphanoCsrfToken(), ENT_QUOTES) . '">' ?>
         <input type="hidden" name="azione" value="sblocca">
-        <select name="pg" onchange="Info(this.value)">
+        <select aria-label="Nome personaggio" name="pg" onchange="Info(this.value)">
           <option></option>
 <?php foreach($lockedpg as $u): ?>
           <option value="<?=$u['id']?>"><?=htmlspecialchars($u['nome'])?></option>
@@ -285,14 +285,14 @@ foreach ($db->query("SELECT id,nome,imprigionato FROM utenti WHERE imprigionato 
 
       <form method="POST" name="frmimprigiona"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphanoCsrfToken(), ENT_QUOTES) . '">' ?>
         <input type="hidden" name="azione" value="imprigiona">
-        <select name="pospg" onchange="this.form.pg.value=this.value">
+        <select aria-label="Personaggio" name="pospg" onchange="this.form.pg.value=this.value">
           <option></option>
 <?php foreach($pginpos as $u): ?>
           <option><?=htmlspecialchars($u['nome'])?></option>
 <?php endforeach; ?>
         </select>
-        <input type="text" name="pg" size="10" placeholder="o scrivi nome">
-        <select name="city">
+        <input aria-label="Nome personaggio" type="text" name="pg" size="10" placeholder="o scrivi nome">
+        <select aria-label="Città" name="city">
           <option></option>
 <?php foreach($listacity as $c): ?>
           <option value="<?=$c['id']?>"><?=htmlspecialchars($c['city'])?></option>
@@ -308,7 +308,7 @@ foreach ($db->query("SELECT id,nome,imprigionato FROM utenti WHERE imprigionato 
 
       <form method="POST" name="frmscarcera"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphanoCsrfToken(), ENT_QUOTES) . '">' ?>
         <input type="hidden" name="azione" value="scarcera">
-        <select name="pg">
+        <select aria-label="Nome personaggio" name="pg">
 <?php foreach($prigione as $city=>$group): ?>
           <optgroup label="<?=htmlspecialchars($listacity[$city]['city'] ?? 'Città sconosciuta')?>">
 <?php foreach($group as $u): ?>

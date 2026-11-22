@@ -4,8 +4,8 @@ var araldiche = new Array();
 var oldtree = "chat";
 var umori = new Array();
 umori[0] = new Object();
-umori[0]["id"] = new Number("");
-umori[0]["nome"] = new String("");
+umori[0]["id"] = 0;
+umori[0]["nome"] = "";
 function ShowChat()
 {
 	if(righe.length) while(righe.length)
@@ -31,7 +31,7 @@ function recupera_frase()
 }
 function CaricaUmori()
 {
-	var out = new String("<UL id=\"umori\">");
+	let out = '<UL id="umori">';
 	for(var i = 0; i < umori.length; i++)
 	{
 		out += "<LI><A href=\"javascript:ImpostaUmore(" + i + ")\">";
@@ -44,20 +44,21 @@ function CaricaUmori()
 function ImpostaUmore(id)
 {
 	document.send.umore.value = umori[id]["id"];
-	var out = new String("<A href=\"javascript:CaricaUmori()\">Umore: ");
+	let out = '<A href="javascript:CaricaUmori()">Umore: ';
 	if(id) out += "<IMG src=\"/chatimg/umori/" + umori[id]["id"] + ".gif\" border=\"0\"> ";
 	document.getElementById("umore").innerHTML = out + umori[id]["nome"] + "</A>";
 	NascondiDescrizione("menu");
 }
 function ImpostaTastiRegistrazione(hasrecord)
 {
+	let out;
 	if(hasrecord)
 	{
-		var out = "<IMG src=\"/assets/placeholder.svg\" alt=\"Avvia Registrazione Giocata\" title=\"Avvia Registrazione Giocata\" border=\"0\"><A href=\"javascript:EventoRegistrazione('salva')\"><IMG src=\"/assets/placeholder.svg\" alt=\"Salva Registrazione Giocata\" title=\"Salva Registrazione Giocata\" border=\"0\"></A>";
+		out = "<IMG src=\"/assets/placeholder.svg\" alt=\"Avvia Registrazione Giocata\" title=\"Avvia Registrazione Giocata\" border=\"0\"><A href=\"javascript:EventoRegistrazione('salva')\"><IMG src=\"/assets/placeholder.svg\" alt=\"Salva Registrazione Giocata\" title=\"Salva Registrazione Giocata\" border=\"0\"></A>";
 	}
 	else
 	{
-		var out = "<A href=\"javascript:EventoRegistrazione('registra')\"><IMG src=\"/assets/placeholder.svg\" alt=\"Avvia Registrazione Giocata\" title=\"Avvia Registrazione Giocata\" border=\"0\"></A><IMG src=\"/assets/placeholder.svg\" alt=\"Salva Registrazione Giocata\" title=\"Salva Registrazione Giocata\" border=\"0\">";
+		out = "<A href=\"javascript:EventoRegistrazione('registra')\"><IMG src=\"/assets/placeholder.svg\" alt=\"Avvia Registrazione Giocata\" title=\"Avvia Registrazione Giocata\" border=\"0\"></A><IMG src=\"/assets/placeholder.svg\" alt=\"Salva Registrazione Giocata\" title=\"Salva Registrazione Giocata\" border=\"0\">";
 	}
 	document.getElementById("registrazione").innerHTML = out;
 }
@@ -71,6 +72,6 @@ function EventoRegistrazione(evento)
 			parent.control.RefreshIt(evento);
 			ok = 0;
 		}
-		catch(e) {}
+		catch(e) {console.error('Aggiornamento chat non disponibile',e);}
 	}
 }

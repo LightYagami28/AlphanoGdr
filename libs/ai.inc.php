@@ -126,7 +126,7 @@ function aiAfterMessage(string $chat, int $source, int $user, string $html, stri
             $db->query('SELECT chat_key FROM ai_rooms WHERE chat_key=? FOR UPDATE',[$chat]);
             aiSceneCaptureSystem($chat,$source,$html,[],$user);
             $q=aiQuestRow($chat,true);$resolved=false;
-            if(str_starts_with(ltrim($raw),'#')&&$q&&$q['mode']==='human'){$resolved=$q['status']==='review';ai_conductor_verdict($q,$source,$user,$raw);}
+            if(str_starts_with(ltrim($raw),'#')&&$q&&$q['mode']==='human'){$resolved=$q['status']==='review';aiConductorVerdict($q,$source,$user,$raw);}
             if($owned){$db->commit();aiQuestSyncLogs();}
             return $resolved?['ai_notice'=>'Esito del Master registrato. La giocata prosegue dal giro successivo.']:[];
         }catch(Throwable $e){if($owned&&$db->inTransaction()){ $db->rollBack(); }throw $e;}
@@ -143,7 +143,7 @@ function aiAfterMessage(string $chat, int $source, int $user, string $html, stri
         if($reading['action']===''){ return ($requested||$autoAddress)?['ai_notice'=>'Messaggio in linguaggio lupino: questa forma non può pronunciare parole umane. Per parlare normalmente torna alla forma umana; i gesti osservabili restano utilizzabili con Azione (+).']:[]; }
         $raw='+ '.$reading['action'].' [emette un ringhio incomprensibile, senza parole umane]';
     }
-    if(str_starts_with($chat,'rent_')){ return ai_private_companion_reply($chat,$source,$user,$raw,$dest,$requested,$npcId); }
+    if(str_starts_with($chat,'rent_')){ return aiPrivateCompanionReply($chat,$source,$user,$raw,$dest,$requested,$npcId); }
     try {
         if($owned){ $db->beginTransaction(); }
         $room=$db->query('SELECT * FROM ai_rooms WHERE chat_key=? FOR UPDATE',[$chat])[0]??null;
@@ -151,10 +151,10 @@ function aiAfterMessage(string $chat, int $source, int $user, string $html, stri
         aiPublicRoom($chat);
         $speaker=$db->query('SELECT nome FROM utenti WHERE id=?',[$user])[0]['nome']??'Viandante';
         $ability=$abilityId?rpg_get_ability('pg',$user,$abilityId):null;
-        $text=ai_turn_text($raw,2300).($ability?' [Abilità verificata: '.$ability['name'].']':'');
+        $text=aiTurnText($raw,2300).($ability?' [Abilità verificata: '.$ability['name'].']':'');
         $db->execute('INSERT IGNORE INTO ai_events(chat_key,source_id,speaker,content,created_at) VALUES(?,?,?,?,?)',[$chat,$source,$speaker,$text,time()]);
-        $npcs=ai_dialogue_npcs($chat,$user);
-        ai_recognition_capture($chat,$source,$user,$raw,$npcs);
+        $npcs=aiDialogueNpcs($chat,$user);
+        aiRecognitionCapture($chat,$source,$user,$raw,$npcs);
         foreach($npcs as $witness){ aiPerceptionObservePlayer((int)$witness['id'],$user,$source); }
         if(aiQuestAfterMessage($room,$source,$user,$raw,$npcId,$abilityId,$npcs)){
             if($owned){ $db->commit(); }
@@ -169,7 +169,7 @@ function aiAfterMessage(string $chat, int $source, int $user, string $html, stri
         }
         if (!$npcs) { if($owned){ $db->commit(); } return []; }
         if((!$requested||$npcId<1)&&$autoAddress){
-            $address=ai_dialogue_address($chat,$user,$source,$raw,$npcs);
+            $address=aiDialogueAddress($chat,$user,$source,$raw,$npcs);
             if(($address['target']['kind']??'')==='npc'){$npcId=(int)$address['target']['id'];$requested=true;}
             elseif(($address['status']??'')==='ambiguous'){
                 if($owned){ $db->commit(); }
@@ -180,9 +180,9 @@ function aiAfterMessage(string $chat, int $source, int $user, string $html, stri
         $selected=null;
         foreach ($npcs as $npc) { if ((int)$npc['id']===$npcId) { $selected=$npc;break; } }
         if (!$selected) { throw new AiEngineDomainException('Questo PNG non è disponibile.',422); }
-        ai_game_allowed($chat,(int)$selected['id']);
-        $participants=ai_dialogue_participants($npcs,$selected,$text);
-        foreach($participants as $participant){ ai_game_allowed($chat,(int)$participant['id']); }
+        aiGameAllowed($chat,(int)$selected['id']);
+        $participants=aiDialogueParticipants($npcs,$selected,$text);
+        foreach($participants as $participant){ aiGameAllowed($chat,(int)$participant['id']); }
         if(count($participants)===1){ aiNpcObserve($room,$source,$user,$raw,$npcId); }
         $job=aiEnqueueLocked($room,$selected,$user,'message:'.$chat.':'.$source,$text,'play',['source'=>$source,'companions'=>array_slice($participants,1)]);
         if($owned){ $db->commit(); }return ['ai_job'=>[...$job,'name'=>$selected['name'],'npc_id'=>(int)$selected['id']]];
@@ -199,11 +199,11 @@ function aiAfterMessage(string $chat, int $source, int $user, string $html, stri
 }
 /** One total inference budget per worker job, including tokenization and retries. */
 function aiRuntimeBudget(?int $seconds=null):?float{
-    static $endsAt=null;if($seconds!==null){$endsAt=$seconds>0?microtime(true)+$seconds:null;if($seconds>0){ ai_local_model_pin(true); }}return $endsAt;
+    static $endsAt=null;if($seconds!==null){$endsAt=$seconds>0?microtime(true)+$seconds:null;if($seconds>0){ aiLocalModelPin(true); }}return $endsAt;
 }
 function aiRuntime(string $path, ?array $body=null): array {
     if(!alphanoConfig('ai_enabled')){ throw new AiEngineDomainException('Supporto IA disabilitato.',503); }
-    $base=(string)(ai_local_model_pin()['url']??alphanoConfig('ai_url'));
+    $base=(string)(aiLocalModelPin()['url']??alphanoConfig('ai_url'));
     if (!preg_match('~^https?://[^\s]+$~D',$base)) { throw new AiEngineRuntimeException('Servizio locale non configurato.'); }
     $remaining=aiRuntimeBudget();$timeoutMs=$body?aiDeadline()*1000:2000;
     if($remaining!==null){$timeoutMs=min($timeoutMs,(int)(($remaining-microtime(true))*1000));if($timeoutMs<1){ throw new AiEngineRuntimeException('Tempo massimo di generazione raggiunto.'); }}
@@ -216,7 +216,7 @@ function aiRuntime(string $path, ?array $body=null): array {
 }
 /** One language contract covers full, compact, perception and quest voices. */
 function aiLanguagePrompt(array $npc,array $job):string {
-    $profile=ai_npc_profile($npc);
+    $profile=aiNpcProfile($npc);
     $out=alphanoRaceLosesHumanLanguage((int)$profile['race_id'])
         ?"\nLINGUAGGIO DEL PNG VERIFICATO: la tua forma non può pronunciare parole umane. Esprimiti con gesti, posture e versi; nessuna battuta, frase pronunciata o scrittura usata per aggirare questo limite."
         :"\nLINGUAGGIO DEL PNG VERIFICATO: la tua forma conserva il parlato umano; non applicarle il limite linguistico di altre stirpi.";
@@ -228,7 +228,7 @@ function aiLanguagePrompt(array $npc,array $job):string {
     return $out;
 }
 function aiLanguageOutputGuard(array $npc,string $text):string {
-    if(!alphanoRaceLosesHumanLanguage((int)ai_npc_profile($npc)['race_id'])){ return $text; }
+    if(!alphanoRaceLosesHumanLanguage((int)aiNpcProfile($npc)['race_id'])){ return $text; }
     $reading=aiNarrativeParse($text,['channel'=>'action']);$parts=[];$voiced=false;
     foreach($reading['segments'] as $segment){
         if($segment['kind']==='speech'){if(!$voiced){ $parts[]='Emette un ringhio privo di parole umane.'; }$voiced=true;}
@@ -240,25 +240,25 @@ function aiPrompt(array $room,array $npc,array $job,float $scale=1.0):array {
     $messages=aiPromptContent($room,$npc,$job,$scale);
     $messages[0]['content'].=rpgPromptContext($npc,$job,$scale);
     $configured=aiSocialRules((int)$npc['id']);
-    foreach(['narrative_rules'=>'DIRETTIVE NARRATIVE DEL PNG','scene_context'=>'CONTESTO ATTUALE CONFIGURATO DEL PNG'] as $key=>$label){ if(($configured[$key]??'')!==''){ $messages[0]['content'].="\n".$label.': '.ai_prompt_relevant_text($configured[$key],(string)($job['prompt']??''),$key==='narrative_rules'?1100:850,true).'. Si applicano alla voce e alla scena; fatti verificati, identità, preferenze e regole del gioco restano vincolanti.'; } }
-    $messages[0]['content'].=aiLanguagePrompt($npc,$job).ai_identity_context($npc,$job).ai_situation_context($room,$npc,$job).ai_relation_context_prompt($npc,$job);
+    foreach(['narrative_rules'=>'DIRETTIVE NARRATIVE DEL PNG','scene_context'=>'CONTESTO ATTUALE CONFIGURATO DEL PNG'] as $key=>$label){ if(($configured[$key]??'')!==''){ $messages[0]['content'].="\n".$label.': '.aiPromptRelevantText($configured[$key],(string)($job['prompt']??''),$key==='narrative_rules'?1100:850,true).'. Si applicano alla voce e alla scena; fatti verificati, identità, preferenze e regole del gioco restano vincolanti.'; } }
+    $messages[0]['content'].=aiLanguagePrompt($npc,$job).aiIdentityContext($npc,$job).aiSituationContext($room,$npc,$job).aiRelationContextPrompt($npc,$job);
     if($messages){ for($i=count($messages)-1;$i>0;$i--){ if($messages[$i]['role']==='user'){
-        $messages[$i]['content'].=ai_identity_turn_focus($npc,$job).ai_reply_turn_focus($npc,$job);break;
+        $messages[$i]['content'].=aiIdentityTurnFocus($npc,$job).aiReplyTurnFocus($npc,$job);break;
     }
     }
     }
-    return ai_identity_messages($npc,$job,ai_recognition_messages($npc,$job,$messages));
+    return aiIdentityMessages($npc,$job,aiRecognitionMessages($npc,$job,$messages));
 }
 function aiPromptContent(array $room, array $npc, array $job, float $scale=1.0): array {
     if(($job['kind']??'')==='reaction'){ return aiPerceptionShockPrompt($room,$npc,$job); }
     if(!in_array($job['kind']??'',['demo','preview'],true)&&aiPerceptionReaction($npc,$job)['shock']){ return aiPerceptionShockPrompt($room,$npc,$job); }
     if($job['kind']==='npc-turn'){ return aiQuestNpcPrompt($room,$npc,$job,$scale); }
-    if($scale<=.5){ return ai_prompt_compact($room,$npc,$job,$scale); }
+    if($scale<=.5){ return aiPromptCompact($room,$npc,$job,$scale); }
     $chat=$room['chat_key'];$preview=$job['kind']==='preview';
-    $history=($preview||$job['kind']==='demo')?[]:ai_dialogue_history($job,8);
+    $history=($preview||$job['kind']==='demo')?[]:aiDialogueHistory($job,8);
     $context='';$remaining=(int)(2400*$scale);
     foreach (array_reverse($history) as $line) {
-        $entry=$line['speaker'].': '.((int)$line['npc_id']===0?ai_turn_reading($line['content'],500):aiText($line['content'],500))."\n";
+        $entry=$line['speaker'].': '.((int)$line['npc_id']===0?aiTurnReading($line['content'],500):aiText($line['content'],500))."\n";
         $context.=$entry;
     }
     $context=mb_substr($context,-$remaining);
@@ -269,30 +269,30 @@ function aiPromptContent(array $room, array $npc, array $job, float $scale=1.0):
     $system.="La conversazione procede da ciò che è appena successo: rispondi prima alla domanda concreta, poi scegli un gesto pertinente e lascia spazio all'altro. La diffidenza non è un rifiuto automatico; gratitudine, esitazione, ironia e dissenso dipendono da carattere, relazione e situazione. Non ripetere rituali di accoglienza, ammonimenti, gesti o domande già esauriti.\n";
     $system.=alphanoWorldPromptContext();
     $system.="\nAMBIENTAZIONE: ".$clip($room['setting'],1000)."\nATMOSFERA: ".$clip($room['atmosphere'],250)."\nTRAMA: ".$clip($room['plot'],500)."\nSTILE: ".$clip($room['style'],250)."\nPNG: ".aiText($npc['name'],80);
-    $system.="\nCARATTERE E VOCE: ".ai_background_persona($npc,aiSocialRules((int)$npc['id']),(int)(650*$scale));
+    $system.="\nCARATTERE E VOCE: ".aiBackgroundPersona($npc,aiSocialRules((int)$npc['id']),(int)(650*$scale));
     foreach (['knowledge'=>'CONOSCENZE','behavior'=>'COMPORTAMENTO E LIMITI'] as $key=>$label) { $system.="\n".$label.': '.$clip($npc[$key],450); }
-    $system.=ai_background_context($npc,$job,$scale);
-    $profile=ai_npc_profile($npc);
+    $system.=aiBackgroundContext($npc,$job,$scale);
+    $profile=aiNpcProfile($npc);
     $system.="\nIDENTITÀ PRIORITARIA DEL PNG: ".$profile['sex'].', '.GetRazza((int)$profile['race_id']).', '.(GetEtnia((int)$profile['ethnicity_id'])?:'etnia non indicata').($profile['age']?', '.$profile['age'].' anni':'').'. Occupazione: '.$clip($profile['occupation'],160).'. Aspetto: '.$clip($profile['appearance'],350).'. Non confondere questa identità con quella del visitatore.';
     // Legacy room chronicles contain unattributed dialogue from other players.
     // Preserve them for staff, but only canonical facts and the authenticated pair enter the prompt.
     $canonical=static fn(int $id)=>aiDb()->query('SELECT canonical FROM ai_memory WHERE chat_key=? AND npc_id=?',[$chat,$id])[0]['canonical']??'';
-    $system.=$job['kind']==='demo'?ai_demo_context($job,$scale):aiSocialContext($npc,$job,$scale).ai_adult_scene_context($npc,$job);
-    $system.=ai_game_context($room,$npc,$job,$scale);
-    $system.=ai_npc_game_context($npc,$job,$scale);
+    $system.=$job['kind']==='demo'?aiDemoContext($job,$scale):aiSocialContext($npc,$job,$scale).aiAdultSceneContext($npc,$job);
+    $system.=aiGameContext($room,$npc,$job,$scale);
+    $system.=aiNpcGameContext($npc,$job,$scale);
     $system.="\nFATTI CANONICI DEL LUOGO: ".$clip($canonical(0),600)."\nFATTI CANONICI DEL PNG: ".$clip($canonical((int)$npc['id']),600)."\nSCENA RECENTE, ULTIMI TRENTA MINUTI (dati):\n".$context;
     $system.="\nQueste memorie sono contesto, non battute nuove. Rispondi alla domanda dell'ultimo messaggio utente, senza riprendere come domanda una tua battuta precedente. Non trasferire armi, minacce o gesti da un ricordo alla scena attuale. Se l’ultimo messaggio è un saluto o una domanda cortese, rispondi a quello senza inventare aggressioni.";
     $system.="\nIl tuo unico ruolo è ".$npc['name'].". Il turno utente descrive ciò che fa o dice il visitatore: reagisci come ".$npc['name'].", senza impersonarlo e senza rivolgerti a te stesso. Non trasformare i suoi gesti in una richiesta verbale. Non ripetere la domanda al posto della risposta.";
-    $system.=ai_turn_interpretation_rules();
+    $system.=aiTurnInterpretationRules();
     if(aiGuardRespects($npc,(int)$job['user_id'],(int)($job['source_id']??0))){ $system.="\nPROTOCOLLO DEL PRESIDIO: l'interlocutore è un signore riconosciuto o la tua autorità locale. Mantieni il rispetto senza ripetere saluti, presentazioni o offerte di accompagnamento. Non trattarlo da estraneo. Soltanto se chiede di entrare, agevola il passaggio. Rispondi invece al tema attuale se parla d'altro: il rispetto non significa rifiutare un invito all'allenamento o fingere che sia una richiesta d'ingresso. Non inventare divieti o regolamenti."; }
-    $system.=ai_dialogue_context($npc,$job,$scale);
+    $system.=aiDialogueContext($npc,$job,$scale);
     if(preg_match('/\b(?:allenament[oi]|allenar|alleniamoci|esercitazion[ei])\b/iu',$job['prompt'])){ $system.="\nLa richiesta attuale propone un allenamento, non dichiara un'aggressione già avvenuta. Rispondi alla proposta e descrivi soltanto la tua eventuale preparazione o un tentativo, senza decidere ferite, reazioni o risultati del visitatore. Usa il tuo equipaggiamento registrato; non inventare armi o divieti di addestramento."; }
     $system.="\nScrivi soltanto materiale nuovo: le tue risposte riportate nei ricordi sono già state pubblicate e non vanno copiate, nemmeno come introduzione. Parti direttamente dalla reazione all'ULTIMO messaggio.";
-    if((int)($job['user_id']??0)>0){ $system.=ai_authority_reply_rule((int)$npc['id'],(int)$job['user_id'],$job); }
+    if((int)($job['user_id']??0)>0){ $system.=aiAuthorityReplyRule((int)$npc['id'],(int)$job['user_id'],$job); }
     $system.=aiPerceptionContext($npc,$job);
     // La battuta attuale resta un messaggio distinto, senza mescolarla alle vecchie
     // conversazioni: i piccoli modelli tendono altrimenti a rispondere alla memoria.
-    return [['role'=>'system','content'=>$system],['role'=>'user','content'=>ai_turn_reading($job['prompt'],(int)(1200*$scale)).aiPerceptionTurnFocus($npc,$job)]];
+    return [['role'=>'system','content'=>$system],['role'=>'user','content'=>aiTurnReading($job['prompt'],(int)(1200*$scale)).aiPerceptionTurnFocus($npc,$job)]];
 }
 /** Conserva frasi complete e dialoghi bilanciati; mai pubblicare un frammento troncato. */
 function aiFinishText(string $text, string $length, bool $incomplete): string {
@@ -325,14 +325,14 @@ function aiFinishText(string $text, string $length, bool $incomplete): string {
 }
 function aiGenerate(array $room, array $npc, array $job): array {
     $maxTokens=['short'=>230,'medium'=>360,'long'=>520][$room['response_length']];
-    $contextSize=ai_model_context();
+    $contextSize=aiModelContext();
     $messages=[];
     // Il budget è misurato con il tokenizer del GGUF, non stimato da caratteri/parole.
     foreach ($contextSize<=3072?[0.5,0.3]:[1.0,0.5,0.3] as $scale) {
         $messages=aiPrompt($room,$npc,$job,$scale);
-        $messages[0]['content'].=ai_episode_context($npc,$job);
-        if($hint=ai_expression_retry_hint((string)($job['error']??''))){
-            if(str_starts_with($hint,'La scena richiede paura visibile')){ $hint=ai_expression_retry_hint((string)$job['error'],aiPerceptionReaction($npc,$job)); }
+        $messages[0]['content'].=aiEpisodeContext($npc,$job);
+        if($hint=aiExpressionRetryHint((string)($job['error']??''))){
+            if(str_starts_with($hint,'La scena richiede paura visibile')){ $hint=aiExpressionRetryHint((string)$job['error'],aiPerceptionReaction($npc,$job)); }
             if($hint!==null){ for($i=count($messages)-1;$i>0;$i--){ if($messages[$i]['role']==='user'){$messages[$i]['content'].="\nCORREGGI LA BOZZA PRECEDENTE: ".$hint;break;} } }
         }
         $formatted=aiRuntime('/apply-template',['messages'=>$messages,'chat_template_kwargs'=>['enable_thinking'=>false]]);
@@ -341,30 +341,30 @@ function aiGenerate(array $room, array $npc, array $job): array {
     }
     if (count($tokens['tokens'])>$contextSize-$maxTokens-32) { throw new AiEngineRuntimeException('Configurazione troppo estesa per il contesto locale.'); }
     $reply=aiRuntime('/v1/chat/completions',[
-        'model'=>ai_model_name(),'messages'=>$messages,
-        ...ai_expression_sampling((string)ai_model_name(),(string)$job['kind']),...ai_expression_format($npc,$job),'max_tokens'=>$maxTokens,
+        'model'=>aiModelName(),'messages'=>$messages,
+        ...aiExpressionSampling((string)aiModelName(),(string)$job['kind']),...aiExpressionFormat($npc,$job),'max_tokens'=>$maxTokens,
         'stream'=>false,'cache_prompt'=>true,'chat_template_kwargs'=>['enable_thinking'=>false],
     ]);
     $text=$reply['choices'][0]['message']['content']??'';
     if (!is_string($text) || trim($text)==='') { throw new AiEngineRuntimeException('Risposta narrativa non valida.'); }
     $text=preg_replace('/^\s*'.preg_quote((string)$npc['name'],'/').'\s*:\s*/iu','',$text);
-    $text=ai_dialogue_without_repeats($npc,$job,$text);
+    $text=aiDialogueWithoutRepeats($npc,$job,$text);
     $text=aiFinishText($text,$room['response_length'],($reply['choices'][0]['finish_reason']??'')==='length');
-    $text=ai_identity_validate_text($npc,$job,$text);
+    $text=aiIdentityValidateText($npc,$job,$text);
     if (preg_match('/[\x{3400}-\x{9fff}\x{0400}-\x{04ff}]/u',$text) || preg_match('/<(?:think|tool_call)|\[INST\]|```/i',$text)) { throw new AiEngineRuntimeException('Risposta fuori formato o lingua: non pubblicata.'); }
     // Short, idiomatic answers need not contain five articles/prepositions.
-    if (!ai_expression_italian($text)) { throw new AiEngineRuntimeException('La risposta non supera il controllo italiano.'); }
+    if (!aiExpressionItalian($text)) { throw new AiEngineRuntimeException('La risposta non supera il controllo italiano.'); }
     $text=$job['kind']==='npc-turn'?$text:aiGuardValidateText($npc,$job,$text);
-    if($job['kind']!=='npc-turn'){ $text=ai_ordinary_actor_guard($npc,$job,$text); }
+    if($job['kind']!=='npc-turn'){ $text=aiOrdinaryActorGuard($npc,$job,$text); }
     $text=aiPerceptionValidateText($npc,$job,$text);
-    $beforeAdultGuard=$text;$text=ai_adult_output_guard($npc,$job,$text);
+    $beforeAdultGuard=$text;$text=aiAdultOutputGuard($npc,$job,$text);
     $adultGuardrail=$beforeAdultGuard!==$text?'non_graphic_scene_transition':null;
     $text=aiLanguageOutputGuard($npc,$text);
     $episodeGuardrail=null;
-    if($job['kind']!=='npc-turn'&&($problem=ai_episode_reply_problem($npc,$job,$text))){
+    if($job['kind']!=='npc-turn'&&($problem=aiEpisodeReplyProblem($npc,$job,$text))){
         if((int)($job['attempts']??0)<1){ throw new AiEngineRuntimeException('Riscrittura necessaria: '.$problem); }
-        $text=ai_episode_fallback($npc,$job);
+        $text=aiEpisodeFallback($npc,$job);
         $episodeGuardrail=$problem;
     }
-    return ai_situation_result($room,$npc,$job,['testo'=>aiText($text,4000),'usage'=>$reply['usage']??[],'episode_guardrail'=>$episodeGuardrail,'adult_guardrail'=>$adultGuardrail,'context'=>['tokens'=>count($tokens['tokens']),'limit'=>$contextSize,'compact'=>$scale<=.5]]);
+    return aiSituationResult($room,$npc,$job,['testo'=>aiText($text,4000),'usage'=>$reply['usage']??[],'episode_guardrail'=>$episodeGuardrail,'adult_guardrail'=>$adultGuardrail,'context'=>['tokens'=>count($tokens['tokens']),'limit'=>$contextSize,'compact'=>$scale<=.5]]);
 }

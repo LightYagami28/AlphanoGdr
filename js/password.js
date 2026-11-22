@@ -1,6 +1,5 @@
 function checkQuality(pass) {
-	var q = new String("");
-	var score = 0;
+  var score = 0;
 	var punctuations = '!@#$%^&*()~`_-+={}[];:"<>,./?\\\''.split('');
 	var uppercases = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 	var lowercases = 'abcdefghijklmnopqrstuvwxyz'.split('');
@@ -48,16 +47,14 @@ function checkQuality(pass) {
 			lastType.value = membership[index];
 		}
 	}
-	if (hasPunctuation) score++;
-	if (hasNumber) score++;
-	if (hasUppercase) score++;
-	if (hasLowercase) score++;
+  const levels=[[8,'Ottima'],[7,'Molto Buona'],[6,'Buona'],[5,'Discreta'],[4,'Decente']];
+	if (hasPunctuation) {score++;}
+	if (hasNumber) {score++;}
+	if (hasUppercase) {score++;}
+	if (hasLowercase) {score++;}
 	
-	if (score > 8) q = 'Ottima';
-	else if (score > 7) q = 'Molto Buona';
-	else if (score > 6) q = 'Buona';
-	else if (score > 5) q = 'Discreta';
-	else if (score > 4) q = 'Decente';
-	else  q = 'Inutile';
-	return (q + ' (' + score + ')');
+  for(const [minimum,label] of levels){
+    if(score>minimum){return label+' ('+score+')';}
+  }
+  return 'Inutile ('+score+')';
 }

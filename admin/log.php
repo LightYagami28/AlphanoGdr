@@ -110,9 +110,9 @@ switch ($_POST['aztartarcontrol'] ?? '') {
       <h2 class="Valore">Tabelle di log</h2>
       <?php foreach ($tables as $t): ?>
         <div class="Valore">
-          <a href="#" onclick="Cambia('<?= htmlspecialchars($t) ?>')">
+          <button type="button" onclick="Cambia('<?= htmlspecialchars($t) ?>')">
             <?= htmlspecialchars($t) ?>
-          </a>
+          </button>
         </div>
       <?php endforeach; ?>
     </aside>
@@ -136,7 +136,7 @@ switch ($_POST['aztartarcontrol'] ?? '') {
               <?php foreach ($campi as $field => $vals): ?>
                 <td class="u-72a68ac34">
                   <?php if (count($vals)>1): ?>
-                    <select onchange="this.form['<?= $field ?>'].value=this.value">
+                    <select aria-label="Campo" onchange="this.form['<?= $field ?>'].value=this.value">
                       <option value=""></option>
                       <?php foreach ($vals as $v): ?>
                         <option value="<?= htmlspecialchars((string)$v) ?>"
@@ -148,7 +148,7 @@ switch ($_POST['aztartarcontrol'] ?? '') {
                   <?php else: ?>
                     <?= converti($field, $vals[0], $idpgs, $idobjs, $idcitys, $idorgs, false) ?>
                   <?php endif; ?>
-                  <input type="text" name="<?= htmlspecialchars($field) ?>"
+                  <input aria-label="Campo" type="text" name="<?= htmlspecialchars($field) ?>"
                          value="<?= htmlspecialchars($_POST[$field] ?? '') ?>">
                 </td>
               <?php endforeach; ?>

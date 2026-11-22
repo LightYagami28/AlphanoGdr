@@ -64,7 +64,7 @@ foreach ($db->query("SELECT * FROM sondaggi ORDER BY id DESC") as $row) {
 <body>
     <!-- Aggiungi un sondaggio -->
     <form method="post" data-section="Nuovo sondaggio">
-<table class="column-width-100">
+<table class="column-width-100"><thead><tr><th scope="col" class="ui-visually-hidden">Dettaglio</th><th scope="col" class="ui-visually-hidden">Valore</th></tr></thead>
             <tr>
                 <td class="Valore align-center" colspan="2">
                     Aggiungi un nuovo sondaggio
@@ -73,11 +73,11 @@ foreach ($db->query("SELECT * FROM sondaggi ORDER BY id DESC") as $row) {
             <tr>
                 <td class="Valore align-center">
                     Tema:<br>
-                    <input type="text" name="tema" size="80">
+                    <input aria-label="Tema" type="text" name="tema" size="80">
                 </td>
                 <td class="Valore align-center">
                     Risposte (separate da “;”):<br>
-                    <textarea name="risposte" cols="40" rows="4"></textarea>
+                    <textarea aria-label="Risposte" name="risposte" cols="40" rows="4"></textarea>
                 </td>
             </tr>
             <tr>
@@ -91,7 +91,7 @@ foreach ($db->query("SELECT * FROM sondaggi ORDER BY id DESC") as $row) {
 
     <!-- Modifica sondaggi esistenti -->
     <form method="post" data-section="Modifica sondaggi">
-<table class="column-width-100">
+<table class="column-width-100"><thead><tr><th scope="col" class="ui-visually-hidden">Dettaglio</th><th scope="col" class="ui-visually-hidden">Valore</th></tr></thead>
             <input type="hidden" name="ids" value="<?= htmlspecialchars(implode(';', $ids), ENT_QUOTES) ?>">
             <tr>
                 <td class="Valore align-center" colspan="3">
@@ -149,7 +149,7 @@ foreach ($db->query("SELECT * FROM sondaggi ORDER BY id DESC") as $row) {
 
     <!-- Elimina un sondaggio -->
     <form method="post" data-section="Elimina sondaggio">
-<table class="column-width-100">
+<table class="column-width-100"><thead><tr><th scope="col" class="ui-visually-hidden">Dettaglio</th><th scope="col" class="ui-visually-hidden">Valore</th></tr></thead>
             <tr>
                 <td class="Valore align-center" colspan="2">
                     Elimina un sondaggio
@@ -157,7 +157,7 @@ foreach ($db->query("SELECT * FROM sondaggi ORDER BY id DESC") as $row) {
             </tr>
             <tr>
                 <td class="Valore align-center">
-                    <select name="id">
+                    <select aria-label="Identificativo" name="id">
                         <option value="">– Seleziona tema –</option>
                         <?php foreach ($sondaggi as $dati):
                             $sid  = (int)$dati['id'];
@@ -179,7 +179,7 @@ foreach ($db->query("SELECT * FROM sondaggi ORDER BY id DESC") as $row) {
             </tr>
         </table>
         </form>
-        <table><tr>
+        <table><thead><tr><th scope="col" class="ui-visually-hidden">Dettaglio</th><th scope="col" class="ui-visually-hidden">Valore</th></tr></thead><tr>
             <td colspan="2" class="align-center">
                 <button onclick="location.href='sondaggi.php'">
                     Torna a “Sondaggi”

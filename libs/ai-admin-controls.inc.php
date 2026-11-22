@@ -1,11 +1,11 @@
 <?php
 declare(strict_types=1);
 
-function ai_npc_controls_revision(int $npc):string {
-    return hash('sha256',aiQuestJson([aiSocialRules($npc),ai_npc_game($npc)]));
+function aiNpcControlsRevision(int $npc):string {
+    return hash('sha256',aiQuestJson([aiSocialRules($npc),aiNpcGame($npc)]));
 }
 /** All validated social/game settings have a typed control, including existing defaults. */
-function ai_npc_controls_schema():array {
+function aiNpcControlsSchema():array {
     $fields=[];
     $add=static function($scope,$key,$label,$group,$type='text',$extra=[])use(&$fields){$fields[]=['scope'=>$scope,'key'=>$key,'label'=>$label,'group'=>$group,'type'=>$type,...$extra];};
     foreach(['voice_example'=>['Battuta di riferimento',450],'duty'=>['Dovere e ruolo',400],'goals'=>['Obiettivi',600],'honor_code'=>['Codice morale',500],'boundaries'=>['Limiti personali e comportamento',500],'narrative_rules'=>['Direttive narrative personalizzate',1600],'scene_context'=>['Contesto attuale del PNG',1200]] as $key=>[$label,$max]){ $add('rules',$key,$label,'Voce, contesto e regole','textarea',['max'=>$max]); }
@@ -25,6 +25,6 @@ function ai_npc_controls_schema():array {
     foreach(['allies'=>'Fazioni alleate · una per riga','enemies'=>'Fazioni nemiche · una per riga'] as $key=>$label){ $add('game',$key,$label,'Ruolo e responsabilità','lines',['max'=>2020]); }
     foreach(['enabled'=>'Addestramento contro stirpi speciali','important_role'=>'Ruolo narrativo importante confermato'] as $key=>$label){ $add('game','super.'.$key,$label,'Preparazione contro stirpi speciali','checkbox'); }
     foreach(['training'=>['Addestramento specialistico',100],'ordinary_victory_cap'=>['Limite vittoria contro stirpi speciali (%)',AI_NPC_SUPER_RULES['ordinary_cap']],'elite_victory_cap'=>['Limite contro Originali e Ancestrali (%)',AI_NPC_SUPER_RULES['elite_cap']]] as $key=>[$label,$max]){ $add('game','super.'.$key,$label,'Preparazione contro stirpi speciali','number',['min'=>0,'max'=>$max]); }
-    $add('game','super.target_race_ids','Stirpi affrontabili','Preparazione contro stirpi speciali','multiple',['options'=>array_map(static fn($r)=>['value'=>$r['id'],'label'=>$r['name']],ai_npc_super_races())]);
+    $add('game','super.target_race_ids','Stirpi affrontabili','Preparazione contro stirpi speciali','multiple',['options'=>array_map(static fn($r)=>['value'=>$r['id'],'label'=>$r['name']],aiNpcSuperRaces())]);
     return $fields;
 }

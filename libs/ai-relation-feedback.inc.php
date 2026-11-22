@@ -3,12 +3,12 @@ declare(strict_types=1);
 require_once __DIR__.'/experience.inc.php';
 require_once __DIR__.'/profile-symbols.inc.php';
 /** One immutable receipt owns the presentation of a score change; no second score table. */
-function ai_relation_revision(array $relation):string {
+function aiRelationRevision(array $relation):string {
     $values=[];foreach(AI_RELATION_METRICS as $key=>$_){ $values[$key]=(int)($relation[$key]??0); }
-    $context=ai_relation_context_current((int)($relation['npc_id']??0),(int)($relation['player_id']??0));
+    $context=aiRelationContextCurrent((int)($relation['npc_id']??0),(int)($relation['player_id']??0));
     return hash('sha256',json_encode([...$values,'state'=>$relation['state']??'conoscenza','context_id'=>(int)($context['id']??0)],JSON_THROW_ON_ERROR));
 }
-function ai_relation_event(int $npc,int $player,array $before,array $after,string $reason,array $context=[],int $job=0,int $actor=0):int {
+function aiRelationEvent(int $npc,int $player,array $before,array $after,string $reason,array $context=[],int $job=0,int $actor=0):int {
     $db=aiDb();$changes=[];foreach(AI_RELATION_METRICS as $key=>$_){$delta=(int)($after[$key]??0)-(int)($before[$key]??0);if($delta){ $changes[$key]=$delta; }}
     $chat=(string)($context['chat_key']??'');$source=(int)($context['source_id']??0);
     if($changes&&$chat!==''){
@@ -29,7 +29,7 @@ function ai_relation_event(int $npc,int $player,array $before,array $after,strin
     return (int)$db->lastInsertId();
 }
 /** Indexed PK cursor, at most 100 receipts; never disclose old history on room entry. */
-function ai_relation_notices(string $chat,int $viewer,int $since,bool $initial=false):array {
+function aiRelationNotices(string $chat,int $viewer,int $since,bool $initial=false):array {
     $db=aiDb();$last=(int)($db->query('SELECT MAX(id) AS last_id FROM ai_relationship_events')[0]['last_id']??0);
     $out=['cursor'=>$last,'events'=>[],'more'=>false];
     if($initial||$since>$last){ return $out; }
@@ -51,8 +51,8 @@ function ai_relation_notices(string $chat,int $viewer,int $since,bool $initial=f
         $npc=$npcs[$nid]??=($db->query('SELECT id,name,profile FROM ai_npcs WHERE id=?',[$nid])[0]??[]);
         if(!$person||!$npc){ continue; }
         // A public overlay must not identify someone the observing NPC cannot identify.
-        if($uid!==$viewer&&!ai_recognition_view($nid,$uid,['chat_key'=>$chat,'source_id'=>(int)($note['source_id']??0)])['identified']){ continue; }
-        $p=ai_npc_profile($npc);
+        if($uid!==$viewer&&!aiRecognitionView($nid,$uid,['chat_key'=>$chat,'source_id'=>(int)($note['source_id']??0)])['identified']){ continue; }
+        $p=aiNpcProfile($npc);
         $out['events'][]=['id'=>(int)$row['id'],'npc_id'=>$nid,'npc_name'=>$npc['name'],'portrait'=>$p['portrait']?:'/assets/placeholder.svg','player_id'=>$uid,'player_name'=>$person['nome'],'own'=>$uid===$viewer,'deltas'=>$deltas];
     }
     return $out;

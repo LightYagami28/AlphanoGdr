@@ -38,17 +38,17 @@ try {
             $db->execute('UPDATE utenti SET lastmove = ? WHERE id = ? AND chat = ?', [time(), $idpg, $chat]);
         }
         $initial = ($_GET['initial'] ?? '') === '1';
-        require_once __DIR__.'/../libs/ai.inc.php';if(!isset($room['private_kind'])){ ai_quest_tick($chat); }
+        require_once __DIR__.'/../libs/ai.inc.php';if(!isset($room['private_kind'])){ aiQuestTick($chat); }
         $result = httpChatHistory($chat, $since, $idpg, $initial, (int)$user['razza']);
         require_once __DIR__.'/../libs/ai.inc.php';
-        $result['typing']=!isset($room['private_kind'])||companionshipRoomNpc($chat,$idpg)?ai_pending_public($chat):[];
+        $result['typing']=!isset($room['private_kind'])||companionshipRoomNpc($chat,$idpg)?aiPendingPublic($chat):[];
         $result['quest']=isset($room['private_kind'])?null:aiQuestPublic($chat,$idpg);
         $revision=$result['quest']?($result['quest']['id'].':'.$result['quest']['version'].':'.$result['quest']['round']):'';
         if($revision!==''&&$revision!==($_GET['questVersion']??'')){require_once __DIR__.'/../libs/chat-presentation.inc.php';$result['characters']=[];foreach($db->query('SELECT kind,actor_id FROM ai_quest_cast WHERE session_id=?',[(int)$result['quest']['id']]) as $c){$sheet=alphanoChatCharacter($c['kind'],(int)$c['actor_id']);if($sheet){ $result['characters'][]=$sheet; }}}
         $result['questVersion']=$revision;
         if(array_key_exists('relationSince',$_GET)){
             $relationSince=filter_var($_GET['relationSince'],FILTER_VALIDATE_INT,['options'=>['min_range'=>0]]);if($relationSince===false){ throw new DomainException('Cursore dei rapporti non valido.',400); }
-            $result['relations']=ai_relation_notices($chat,$idpg,$relationSince,$initial);
+            $result['relations']=aiRelationNotices($chat,$idpg,$relationSince,$initial);
         }
         if (!$initial && !$result['messages'] && !$result['more'] && !$result['typing'] && !$result['quest'] && empty($result['relations']['events']) && empty($result['relations']['more'])) {
             header('X-Chat-Cursor: ' . $result['lastId']);
@@ -109,9 +109,9 @@ try {
       $guard=alphanoSessionGuard($chat);
       if(!(int)$db->query('SELECT GET_LOCK(?,5) acquired',[$guard])[0]['acquired']){ throw new DomainException('Regia occupata, riprova.',409); }
       register_shutdown_function(static function()use($db,$guard){$db->query('SELECT RELEASE_LOCK(?)',[$guard]);});
-      ai_quest_tick($chat);
+      aiQuestTick($chat);
 
-      if(str_starts_with(trim($text),'#')){ $s=alphanoSessionCurrent($chat);if($s&&!alphanoSessionCanManage($idpg,$chat)){ throw new DomainException('La regia di questa sessione appartiene al Master che la dirige.',403); } $q=aiQuestRow($chat);if($q&&$q['mode']==='human'&&((int)$q['conductor_id']!==$idpg||!ai_conductor_can($idpg,$chat))){ throw new DomainException('La regia di questa quest appartiene al Master che l’ha presa in carico.',403); } }
+      if(str_starts_with(trim($text),'#')){ $s=alphanoSessionCurrent($chat);if($s&&!alphanoSessionCanManage($idpg,$chat)){ throw new DomainException('La regia di questa sessione appartiene al Master che la dirige.',403); } $q=aiQuestRow($chat);if($q&&$q['mode']==='human'&&((int)$q['conductor_id']!==$idpg||!aiConductorCan($idpg,$chat))){ throw new DomainException('La regia di questa quest appartiene al Master che l’ha presa in carico.',403); } }
     }
     if($atomicChat){
         if($hasDeclaration&&(isset($room['private_kind'])||preg_match('/^(?:\/\/|[$&#])/u',ltrim($text)))){ throw new DomainException('Seleziona un’abilità soltanto per un’azione pubblica in gioco.',422); }

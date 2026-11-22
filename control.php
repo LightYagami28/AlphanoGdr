@@ -141,20 +141,20 @@ $sorgecala = licanTime()
 
 
       /* 1. Aggiorno meteo / orologio nel frame padre */
-      parent.UpdateMTop(
-        <?= $jsEncode($sorgecala) ?>,
-        <?= abs($meteo['cielo']) ?>,
-        <?= $jsEncode($cielo[$meteo['cielo']]) ?>,
-        <?= abs($meteo['tempo']) ?>,
-        <?= $jsEncode(getDescrTempo($meteo['tempo'], $meteo['temperatura'])) ?>,
-        <?= abs($meteo['vento']) ?>,
-        <?= $jsEncode($vento[$meteo['vento']]) ?>,
-        <?= $jsEncode($meteo['temperatura']) ?>,
-        <?= $jsEncode($luna) ?>,
-        <?= daysToFullMoon() ?>,
-        <?= $leggere ?>,
-        <?= json_encode(alphanoWeatherIcons($meteo,$luna,time()<$alba||time()>=$tramonto),JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) ?>
-      );
+      parent.UpdateMTop({
+        sorgecala: <?= $jsEncode($sorgecala) ?>,
+        cielo: <?= abs($meteo['cielo']) ?>,
+        descrCielo: <?= $jsEncode($cielo[$meteo['cielo']]) ?>,
+        tempoCode: <?= abs($meteo['tempo']) ?>,
+        descrTempo: <?= $jsEncode(getDescrTempo($meteo['tempo'], $meteo['temperatura'])) ?>,
+        ventoCode: <?= abs($meteo['vento']) ?>,
+        descrVento: <?= $jsEncode($vento[$meteo['vento']]) ?>,
+        temperatura: <?= $jsEncode($meteo['temperatura']) ?>,
+        lunaPhase: <?= $jsEncode($luna) ?>,
+        daysToFull: <?= daysToFullMoon() ?>,
+        postaNonLette: <?= $leggere ?>,
+        weatherIcons: <?= json_encode(alphanoWeatherIcons($meteo,$luna,time()<$alba||time()>=$tramonto),JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) ?>
+      });
 
       /* 2. Verifico se devo rigenerare il menu */
       const paramPHP = <?= $jsEncode($param) ?>;

@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 /** Explicit private opt-in for a specific local database; a forged Host cannot enable it. */
-function ai_local_model_config():?array {
+function aiLocalModelConfig():?array {
     if(!alphanoConfig('ai_enabled'))return null;
     $path=(string)alphanoConfig('ai_local_control_file');
     if($path===''||!is_file($path))return null;
@@ -20,20 +20,20 @@ function ai_local_model_config():?array {
 }
 
 /** One immutable model pin per worker job, including template, tokenizer and generation. */
-function ai_local_model_pin(bool $reset=false):?array {
+function aiLocalModelPin(bool $reset=false):?array {
     static $read=false,$pin=null;
     if($reset){$read=false;$pin=null;}
     if($read)return $pin;$read=true;
-    $config=ai_local_model_config();if(!$config||!is_file($config['state_file']))return null;
+    $config=aiLocalModelConfig();if(!$config||!is_file($config['state_file']))return null;
     $value=json_decode((string)file_get_contents($config['state_file']),true);
     if(!is_array($value)||!preg_match('~^http://127\.0\.0\.1:\d{2,5}$~D',$value['url']??'')||!preg_match('/^[a-zA-Z0-9_.-]{1,100}$/D',$value['model']??''))return null;
     return $pin=$value;
 }
-function ai_model_name():string{return (string)(ai_local_model_pin()['model']??alphanoConfig('ai_model'));}
-function ai_model_context():int{return max(1536,min(4096,(int)(ai_local_model_pin()['settings']['context']??alphanoConfig('ai_context'))));}
-function ai_local_model_call(string $method,string $path,?array $body=null):array {
+function aiModelName():string{return (string)(aiLocalModelPin()['model']??alphanoConfig('ai_model'));}
+function aiModelContext():int{return max(1536,min(4096,(int)(aiLocalModelPin()['settings']['context']??alphanoConfig('ai_context'))));}
+function aiLocalModelCall(string $method,string $path,?array $body=null):array {
     if(!alphanoConfig('ai_enabled'))throw new DomainException('Supporto IA disabilitato.',503);
-    $config=ai_local_model_config();if(!$config)throw new DomainException('Cambio modello disponibile soltanto nell’ambiente locale abilitato.',404);
+    $config=aiLocalModelConfig();if(!$config)throw new DomainException('Cambio modello disponibile soltanto nell’ambiente locale abilitato.',404);
     if(!in_array($method,['GET','POST'],true)||!in_array($path,['/status','/switch'],true))throw new LogicException('Operazione locale non prevista.');
     $token=is_readable($config['token_file'])?trim((string)file_get_contents($config['token_file'])):'';
     if($token==='')throw new DomainException('Controllore locale non configurato.',503);

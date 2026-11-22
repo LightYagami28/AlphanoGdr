@@ -13,11 +13,11 @@ try{
     $sid=aiInteger($in,'quest_id',1,PHP_INT_MAX);if($method==='POST'){ $db->beginTransaction(); }
     $s=$db->query('SELECT * FROM sessioni WHERE id=?'.($method==='POST'?' FOR UPDATE':''),[$sid])[0]??null;
     if(!$s||!$s['run']||$s['chat']!==$user['chat']){ throw new DomainException('Raggiungi la chat della quest attiva per gestirne la regia.',403); }
-    $g=ai_game_guidance($sid);
+    $g=aiGameGuidance($sid);
     $inputVersion=(int)$g['version'];
     if($method==='POST'&&aiQuestRow($s['chat'])){
-      $q=aiQuestRow($s['chat'],true);ai_conductor_set($q,$uid,'human');
-      $g=ai_game_guidance($sid);
+      $q=aiQuestRow($s['chat'],true);aiConductorSet($q,$uid,'human');
+      $g=aiGameGuidance($sid);
     }
     if($method==='GET'){
         $cast=[];foreach($db->query('SELECT id,nome FROM utenti WHERE chat=? AND bloccato=0 ORDER BY nome',[$s['chat']]) as $p){ $cast[]=['kind'=>'pg','id'=>(int)$p['id'],'name'=>$p['nome']]; }

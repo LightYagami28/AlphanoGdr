@@ -1,6 +1,5 @@
 <?php
 declare(strict_types=1);
-const REVELATIONS_INC_ASSETS_PLACEHOLDER_SVG = '/assets/placeholder.svg';
 require_once __DIR__.'/kernel.inc.php';
 require_once __DIR__.'/ai-perception.inc.php';
 require_once __DIR__.'/profile-art.inc.php';
@@ -29,15 +28,15 @@ function alphanoRevelationExcerpt(string $evidence):string {
 function alphanoRelationsNpcContext(int $npc,int $player,int $viewer):array {
     if(!alphanoRelationsStaff($viewer)){ throw new DomainException('Consultazione riservata a Master, Accademia e amministratori.',403); }
     require_once __DIR__.'/ai.inc.php';
-    $identity=ai_player_identity($player);if(!$identity){ throw new DomainException('Personaggio non disponibile.',404); }
+    $identity=aiPlayerIdentity($player);if(!$identity){ throw new DomainException('Personaggio non disponibile.',404); }
     $r=aiRelation($npc,$player);$metrics=[];
     foreach(AI_RELATION_METRICS as $key=>$label){ $metrics[$key]=['label'=>$label,'value'=>(int)$r[$key],'min'=>in_array($key,['sympathy','trust','respect','honor'],true)?-100:0]; }
     return ['metrics'=>$metrics,'state'=>$r['state'],'encounters'=>(int)$r['encounters'],'interactions'=>(int)$r['interactions'],'meaningful'=>(int)$r['meaningful'],
-        'development'=>ai_social_development_view($npc,$player,true),
+        'development'=>aiSocialDevelopmentView($npc,$player,true),
         'bond'=>aiRelationSummary($r,in_array($r['state'],['innamoramento','relazione','crisi','riconciliazione'],true)),
         'memories'=>aiDb()->query('SELECT id,category,summary,source,visible,active,created_at FROM ai_personal_memories WHERE npc_id=? AND player_id=? ORDER BY id DESC LIMIT 100',[$npc,$player]),
         'knowledge'=>alphanoRevelationsProfile('npc',$npc,$player),'player'=>['id'=>$player,'name'=>$identity['nome']],
-        'overview'=>ai_personality_overview($npc),'current_context'=>ai_relation_context_current($npc,$player), 'read_only'=>true];
+        'overview'=>aiPersonalityOverview($npc),'current_context'=>aiRelationContextCurrent($npc,$player), 'read_only'=>true];
 }
 function alphanoRevelationsReady():bool {
     static $ready=null;
@@ -115,9 +114,9 @@ function alphanoRevelationsProfile(string $kind,int $id,int $viewer):array {
     foreach($rows as $r){
         $direction=$kind==='npc'||(int)$r['subject_id']===$id?'known_by':'discovered';
         $other=$direction==='known_by'?(int)$r['observer_id']:(int)$r['subject_id'];
-        if($r['observer_kind']==='npc'){$p=json_decode($r['npc_profile'],true)?:[];$name=$r['name'];$portrait=$p['portrait']??REVELATIONS_INC_ASSETS_PLACEHOLDER_SVG;$url='/profili/png.php?Id='.$other;$sex=$p['sex']??'Maschio';}
-        else{$u=$people[$other]??null;if(!$u){ continue; }$name=$u['nome'];$portrait=alphanoProfilePortrait($u)['url'];$url='/profili/?Id='.$other;$sex=$u['sesso'];}
-        $out['items'][]=['direction'=>$direction,'observer_kind'=>$r['observer_kind'],'observer_id'=>(int)$r['observer_id'],'subject_id'=>(int)$r['subject_id'],'name'=>$name,'portrait'=>$portrait?:REVELATIONS_INC_ASSETS_PLACEHOLDER_SVG,'profile_url'=>$url,'sex'=>$sex,'race_icon'=>alphanoRaceIcon(),'race_label'=>aiPerceptionRaceFamily((int)$r['race_id'])===2?'vampiro':'licantropo','first_seen'=>(int)$r['first_seen'],'last_seen'=>(int)$r['last_seen'],'place'=>$r['place']?:$r['chat_key'],'chat_key'=>$r['chat_key'],'evidence'=>alphanoRevelationExcerpt($r['evidence'])];
+        if($r['observer_kind']==='npc'){$p=json_decode($r['npc_profile'],true)?:[];$name=$r['name'];$portrait=$p['portrait']??'/assets/placeholder.svg';$url='/profili/png.php?Id='.$other;$sex=$p['sex']??'Maschio';$race=(int)($p['race_id']??1);}
+        else{$u=$people[$other]??null;if(!$u){ continue; }$name=$u['nome'];$portrait=alphanoProfilePortrait($u)['url'];$url='/profili/?Id='.$other;$sex=$u['sesso'];$race=alphanoVisibleRace($u);}
+        $out['items'][]=['direction'=>$direction,'observer_kind'=>$r['observer_kind'],'observer_id'=>(int)$r['observer_id'],'subject_id'=>(int)$r['subject_id'],'name'=>$name,'portrait'=>$portrait?:'/assets/placeholder.svg','profile_url'=>$url,'sex'=>$sex,'race_icon'=>alphanoRaceIcon(),'race_label'=>aiPerceptionRaceFamily((int)$r['race_id'])===2?'vampiro':'licantropo','first_seen'=>(int)$r['first_seen'],'last_seen'=>(int)$r['last_seen'],'place'=>$r['place']?:$r['chat_key'],'chat_key'=>$r['chat_key'],'evidence'=>alphanoRevelationExcerpt($r['evidence'])];
     }
     $out['allowed']=true;$out['count']=count($out['items']);return $out;
 }
@@ -127,13 +126,13 @@ function alphanoRelationsProfilePg(int $player,int $viewer):array {
     $out=['allowed'=>false,'items'=>[],'player_id'=>$player,'read_only'=>$player!==$viewer];$db=connectDB();
     if($player!==$viewer&&!alphanoRelationsStaff($viewer)){ return $out; }
     require_once __DIR__.'/ai.inc.php';
-    $identity=ai_player_identity($player);
+    $identity=aiPlayerIdentity($player);
     foreach($db->query('SELECT r.*,n.name,n.profile,n.active,nr.settings AS social_rules FROM ai_relationships r JOIN ai_npcs n ON n.id=r.npc_id LEFT JOIN ai_npc_rules nr ON nr.npc_id=n.id WHERE r.player_id=? AND r.interactions>0 ORDER BY r.updated_at DESC LIMIT 60',[$player]) as $r){
         $r['id']=(int)$r['npc_id'];
         $rules=array_replace(aiSocialDefaults(),json_decode($r['social_rules']??'{}',true)?:[]);$p=json_decode($r['profile'],true)?:[];
         $romantic=in_array($r['state'],['innamoramento','relazione','crisi','riconciliazione'],true)&&aiRomanceAllowed($r,$identity,$rules);
         $bond=aiRelationSummary($r,$romantic);
-        $out['items'][]=['id'=>(int)$r['npc_id'],'name'=>$r['name'],'portrait'=>($p['portrait']??'')?:REVELATIONS_INC_ASSETS_PLACEHOLDER_SVG,'interactions'=>(int)$r['interactions'],'encounters'=>(int)$r['encounters'],'bond'=>$bond];
+        $out['items'][]=['id'=>(int)$r['npc_id'],'name'=>$r['name'],'portrait'=>($p['portrait']??'')?:'/assets/placeholder.svg','interactions'=>(int)$r['interactions'],'encounters'=>(int)$r['encounters'],'bond'=>$bond];
     }
     $out['allowed']=true;return $out;
 }

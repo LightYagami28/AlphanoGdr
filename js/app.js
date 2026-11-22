@@ -367,7 +367,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if(!state){return;}
     const visibleRace=state.visible_race_id??state.race;
     if(lycanRace!==null&&lycanRace!==visibleRace){
-      for(const frame of mapBox.querySelectorAll('iframe'))try{frame.contentDocument?.dispatchEvent(new frame.contentWindow.CustomEvent('alphano:lycan-change',{detail:state}));}catch(_){}
+      for(const frame of mapBox.querySelectorAll('iframe')){
+        try{
+          frame.contentDocument?.dispatchEvent(new frame.contentWindow.CustomEvent('alphano:lycan-change',{detail:state}));
+        }catch(error){
+          console.debug('Notifica tra frame non disponibile: '+error.message);
+        }
+      }
     }
     lycanRace=visibleRace;lycanRevision=lycanKey(state);pname.querySelector('.profile-transform')?.remove();
     if(!state.visible){return;}

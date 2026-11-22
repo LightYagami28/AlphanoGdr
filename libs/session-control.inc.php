@@ -1,6 +1,5 @@
 <?php
 declare(strict_types=1);
-const SESSION_CONTROL_INC_CONTROL = ':control:';
 require_once __DIR__.'/ai.inc.php';
 require_once __DIR__.'/operations.inc.php';
 require_once __DIR__.'/session-context.inc.php';
@@ -40,13 +39,13 @@ function alphanoSessionTurnCandidates(string $chat,int $exclude=0):array {
     $out=[];
     foreach(aiDb()->query('SELECT id,nome FROM utenti WHERE chat=? AND bloccato=0 AND puntif>0 ORDER BY nome',[$chat]) as $p)
         { if((int)$p['id']!==$exclude){ $out[]=['kind'=>'pg','id'=>(int)$p['id'],'name'=>$p['nome']]; } }
-    foreach(ai_dialogue_npcs($chat,0) as $n){ if((int)ai_npc_profile($n)['hit_points']>0){ $out[]=['kind'=>'npc','id'=>(int)$n['id'],'name'=>$n['name']]; } }
+    foreach(aiDialogueNpcs($chat,0) as $n){ if((int)aiNpcProfile($n)['hit_points']>0){ $out[]=['kind'=>'npc','id'=>(int)$n['id'],'name'=>$n['name']]; } }
     return $out;
 }
 /** Operational projection only: never serialize policies, prompts, private memories or rules. */
 function alphanoSessionControlState(int $uid,string $chat):array {
     $u=alphanoSessionActor($uid,$chat,false);$s=alphanoSessionCurrent($chat);$q=$s?(aiDb()->query('SELECT status,mode,conductor_id FROM ai_quests WHERE session_id=?',[(int)$s['id']])[0]??null):null;
-    $owner=$s?alphanoSessionOwner($s,$q):0;$g=$s?ai_game_guidance((int)$s['id']):null;$turn=$g?ai_game_turn($g):null;
+    $owner=$s?alphanoSessionOwner($s,$q):0;$g=$s?aiGameGuidance((int)$s['id']):null;$turn=$g?aiGameTurn($g):null;
     $name=$owner?(aiDb()->query('SELECT nome FROM utenti WHERE id=?',[$owner])[0]['nome']??'Master non disponibile'):($s&&$q&&$q['mode']==='auto'?'Master IA':'—');
     $masters=aiDb()->query('SELECT id,nome AS name FROM utenti WHERE chat=? AND bloccato=0 AND (admin=1 OR fatepower=1) AND id<>? AND lastmove>? ORDER BY nome',[$chat,$uid,time()-900]);
     $order=[];foreach($g?json_decode($g['turn_order'],true)?:[]:[] as $entry){ $order[]=[...$entry,'name'=>aiQuestName($entry['kind'],(int)$entry['id'])]; }
@@ -76,9 +75,7 @@ function alphanoSessionValidateTurns(mixed $value,string $chat,int $owner):array
     if(!is_array($value)||!array_is_list($value)||count($value)>60){ throw new DomainException('Puoi ordinare fino a 60 partecipanti.',422); }
     $present=[];foreach(alphanoSessionTurnCandidates($chat,$owner) as $m){ $present[$m['kind'].':'.$m['id']]=true; }
     $seen=[];$out=[];foreach($value as $m){if(!is_array($m)||!in_array($m['kind']??'',['pg','npc'],true)||filter_var($m['id']??0,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]])===false){ throw new DomainException('Partecipante non valido.',422); }
-        $id=(int)$m['id'];$key=$m['kind'].':'.$id;if(isset($seen[$key])||!isset($present[$key])){ throw new DomainException('Un partecipante è duplicato, assente o non può agire.',409); 
-        }$seen[$key]=true;$out[]=['kind'=>$m['kind'],'id'=>$id];
-        }
+        $id=(int)$m['id'];$key=$m['kind'].':'.$id;if(isset($seen[$key])||!isset($present[$key])){ throw new DomainException('Un partecipante è duplicato, assente o non può agire.',409); }$seen[$key]=true;$out[]=['kind'=>$m['kind'],'id'=>$id];}
     return $out;
 }
 function alphanoSessionInvalidateWork(string $chat,int $sid,string $reason):void {
@@ -119,7 +116,7 @@ function alphanoSessionControlAction(int $uid,string $chat,string $action,array 
         }else{
             $sid=(int)$s['id'];$owner=alphanoSessionOwner($s);$q=aiQuestRow($chat,true);$nextVersion=(int)$s['control_version']+1;
             if($action==='chiudi'){
-                if($q){ ai_scene_close($sid,'Sessione conclusa dal Master '.$u['nome'],$uid); }
+                if($q){ aiSceneClose($sid,'Sessione conclusa dal Master '.$u['nome'],$uid); }
                 else{$db->execute('UPDATE sessioni SET run=0,dataout=?,masterout=? WHERE id=?',[time(),$uid,$sid]);aiQuestPublish($sid,'session:'.$sid.':closed','Il Master '.$u['nome'].' conclude la sessione «'.$s['nome'].'». Il resoconto resta nell’archivio.');aiQuestAudit($sid,'human_session_closed',[],$uid);}
                 alphanoSessionInvalidateWork($chat,$sid,'Sessione conclusa dal Master.');
             }elseif(in_array($action,['cambia','dadi'],true)){
@@ -128,23 +125,23 @@ function alphanoSessionControlAction(int $uid,string $chat,string $action,array 
                 $target=filter_var($in['master_id']??0,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);if($target===false||$target===$owner){ throw new DomainException('Seleziona un altro Master presente.',422); }
                 $to=$db->query('SELECT id,nome FROM utenti WHERE id=? AND chat=? AND bloccato=0 AND (admin=1 OR fatepower=1) AND lastmove>? FOR UPDATE',[$target,$chat,time()-900])[0]??null;
                 if(!$to){ throw new DomainException('Il Master destinatario deve essere presente e collegato in questo luogo.',409); }
-                alphanoSessionSetHuman($s,$q,(int)$target,$uid);aiQuestPublish($sid,'session:'.$sid.SESSION_CONTROL_INC_CONTROL.$nextVersion,$u['nome'].' affida la regia a '.$to['nome'].'. La sessione prosegue senza perdere la cronaca.');
+                alphanoSessionSetHuman($s,$q,(int)$target,$uid);aiQuestPublish($sid,'session:'.$sid.':control:'.$nextVersion,$u['nome'].' affida la regia a '.$to['nome'].'. La sessione prosegue senza perdere la cronaca.');
                 aiQuestAudit($sid,'master_transferred',['from'=>$owner,'to'=>(int)$target],$uid);
             }elseif($action==='takeover'){
-                alphanoSessionSetHuman($s,$q,$uid,$uid);aiQuestPublish($sid,'session:'.$sid.SESSION_CONTROL_INC_CONTROL.$nextVersion,$u['nome'].' assume la regia umana della sessione. Gli interventi automatici della scena sono sospesi.');aiQuestAudit($sid,'human_takeover',['from'=>$owner],$uid);
+                alphanoSessionSetHuman($s,$q,$uid,$uid);aiQuestPublish($sid,'session:'.$sid.':control:'.$nextVersion,$u['nome'].' assume la regia umana della sessione. Gli interventi automatici della scena sono sospesi.');aiQuestAudit($sid,'human_takeover',['from'=>$owner],$uid);
             }elseif($action==='ai'){
                 alphanoSessionHandoffAi($s,$q,$uid);
             }elseif($action==='turns'){
                 if($q&&$q['mode']==='auto'){ throw new DomainException('Assumi la regia per modificare l’ordine dei turni.',409); }
-                $g=ai_game_guidance($sid);if(isset($in['guidance_version'])&&(int)$in['guidance_version']!==(int)$g['version']){ throw new DomainException('I turni sono cambiati: ricarica il pannello.',409); }
+                $g=aiGameGuidance($sid);if(isset($in['guidance_version'])&&(int)$in['guidance_version']!==(int)$g['version']){ throw new DomainException('I turni sono cambiati: ricarica il pannello.',409); }
                 if($q&&(int)$g['turn_index']>0){ throw new DomainException('Il giro è già iniziato. Concludilo prima di cambiare l’ordine.',409); }
                 $order=alphanoSessionValidateTurns($in['turn_order']??[],$chat,$owner);alphanoSessionStoreGuidance($sid,$order,$uid,!$q);if($q){ alphanoSessionSyncCast($sid,$order); }alphanoSessionInvalidateWork($chat,$sid,'Ordine dei turni aggiornato dal Master.');
                 aiQuestAudit($sid,'human_turn_order',['order'=>$order],$uid);if($q){ aiQuestSchedule(aiQuestRow($chat,true)); }
             }elseif($action==='next'){
                 if($q&&$q['mode']==='auto'){ throw new DomainException('La turnazione è attualmente affidata all’IA.',409); }
-                $g=ai_game_guidance($sid);$order=json_decode($g['turn_order'],true)?:[];if(!$order){ throw new DomainException('Configura un ordine di gioco prima di passare il turno.',409); }
+                $g=aiGameGuidance($sid);$order=json_decode($g['turn_order'],true)?:[];if(!$order){ throw new DomainException('Configura un ordine di gioco prima di passare il turno.',409); }
                 if($q&&$q['status']==='review'){ throw new DomainException('Il giro è concluso: scrivi l’esito in chat con # per proseguire.',409); }
-                if($q){$current=ai_game_turn($g);if($current){ $db->execute("INSERT IGNORE INTO ai_quest_actions(session_id,round_number,kind,actor_id,content,details,status,created_at) VALUES(?,?,?,?,?,'{}','skipped',?)",[$sid,(int)$g['round_number'],$current['kind'],(int)$current['id'],'Intervento passato dal Master umano',time()]); }aiQuestAdvance($q);}
+                if($q){$current=aiGameTurn($g);if($current){ $db->execute("INSERT IGNORE INTO ai_quest_actions(session_id,round_number,kind,actor_id,content,details,status,created_at) VALUES(?,?,?,?,?,'{}','skipped',?)",[$sid,(int)$g['round_number'],$current['kind'],(int)$current['id'],'Intervento passato dal Master umano',time()]); }aiQuestAdvance($q);}
                 else{$next=((int)$g['turn_index']+1)%count($order);$db->execute('UPDATE ai_session_guidance SET turn_index=?,round_number=round_number+?,turn_started_at=?,version=version+1,updated_by=?,updated_at=? WHERE session_id=?',[$next,$next===0?1:0,time(),$uid,time(),$sid]);}
                 aiQuestAudit($sid,'human_next_turn',[],$uid);
             }
@@ -158,7 +155,7 @@ function alphanoSessionSetHuman(array $s,?array $q,int $owner,int $actor):void {
     $db=aiDb();$sid=(int)$s['id'];$db->execute('UPDATE sessioni SET conductor_id=? WHERE id=?',[$owner,$sid]);
     if($q){
         $status=$q['status'];if($status==='resolving'){ $status='review'; }
-        elseif($status==='attention'){$guidance=ai_game_guidance($sid);$status=(int)$guidance['turn_index']>=count(json_decode($guidance['turn_order'],true)?:[])?'review':'active';}
+        elseif($status==='attention'){$guidance=aiGameGuidance($sid);$status=(int)$guidance['turn_index']>=count(json_decode($guidance['turn_order'],true)?:[])?'review':'active';}
         $db->execute("UPDATE ai_quests SET mode='human',status=?,conductor_id=?,version=version+1 WHERE session_id=?",[$status,$owner,$sid]);$db->execute('UPDATE ai_session_guidance SET paused=0,turn_started_at=?,updated_by=?,updated_at=?,version=version+1 WHERE session_id=?',[time(),$actor,time(),$sid]);
     }
     alphanoSessionInvalidateWork($s['chat'],$sid,'Il Master umano dirige la sessione.');
@@ -172,7 +169,7 @@ function alphanoSessionSyncCast(int $sid,array $order):void {
 function alphanoSessionHandoffAi(array $s,?array $q,int $uid):void {
     $db=aiDb();$sid=(int)$s['id'];$room=aiRoom($s['chat']);
     if(!$room||empty($room['enabled'])){ throw new DomainException('L’amministratore deve prima rendere disponibile l’IA in questo luogo.',409); }
-    $context=alphanoSessionReadContext($s);$owner=alphanoSessionOwner($s,$q);$g=ai_game_guidance($sid);$new=$q===null;
+    $context=alphanoSessionReadContext($s);$owner=alphanoSessionOwner($s,$q);$g=aiGameGuidance($sid);$new=$q===null;
     if($new){
         $policy=['scene_kind'=>'narrazione','encounter'=>'narrative','resolution'=>'narrative_only','initiative'=>'entry'];
         $db->execute("INSERT INTO ai_quests(session_id,chat_key,status,mode,policy,conductor_id,created_at) VALUES(?,?,'active','human',?,?,?)",[$sid,$s['chat'],aiQuestJson($policy),$owner,time()]);
@@ -196,7 +193,7 @@ function alphanoSessionHandoffAi(array $s,?array $q,int $uid):void {
     // Session ownership and the existing engine conductor are changed together.
     $db->execute('UPDATE sessioni SET conductor_id=0 WHERE id=?',[$sid]);
     alphanoSessionInvalidateWork($s['chat'],$sid,'Passaggio della sessione alla regia IA.');
-    ai_conductor_set(aiQuestRow($s['chat'],true),$uid,'auto');
-    aiQuestPublish($sid,'session:'.$sid.SESSION_CONTROL_INC_CONTROL.((int)$s['control_version']+1),aiQuestName('pg',$uid).' affida la regia al Master IA. La cronaca pubblica della stessa sessione è stata riletta; turni, ferite e conseguenze già registrate restano validi.');
+    aiConductorSet(aiQuestRow($s['chat'],true),$uid,'auto');
+    aiQuestPublish($sid,'session:'.$sid.':control:'.((int)$s['control_version']+1),aiQuestName('pg',$uid).' affida la regia al Master IA. La cronaca pubblica della stessa sessione è stata riletta; turni, ferite e conseguenze già registrate restano validi.');
     aiQuestAudit($sid,'ai_handoff',['from'=>$owner,'messages'=>$context['count'],'source_boundary'=>$context['boundary'],'transcript_hash'=>$context['hash'],'new_engine_adapter'=>$new],$uid);
 }

@@ -70,7 +70,7 @@ $valori  = array_values($mp);
             <img
               src="<?= htmlspecialchars($oggetto['immagine'], ENT_QUOTES) ?>"
               alt="Immagine Oggetto"
-              onload="if(this.width>150)this.width=150">
+              style="max-width:150px;height:auto">
           </td>
           <td><?= $desc ?></td>
           <td>
@@ -84,9 +84,9 @@ $valori  = array_values($mp);
               $nome = GetPGFromID($idCreatore);
             ?>
               <strong>Creatore:</strong>
-              <a href="#" onclick="openProfileId('<?= $idCreatore ?>')">
+              <button type="button" onclick="openProfileId('<?= $idCreatore ?>')">
                 <?= htmlspecialchars($nome, ENT_QUOTES) ?>
-              </a><br>
+              </button><br>
             <?php endif; ?>
             <?php if ($lavorazione): ?><strong>Lavorazione:</strong> <?= $lavorazione ?><br><?php endif; ?>
             <?php if (!empty($oggetto['pers'])): ?>

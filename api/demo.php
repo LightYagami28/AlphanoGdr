@@ -8,12 +8,12 @@ try{
     alphanoSession();$method=$_SERVER['REQUEST_METHOD']??'GET';
     if($method==='POST'){
         alphanoRequireCsrf(true);$in=alphanoRequestJson();
-        if(($in['action']??'')==='enter'){ $out=['visitor'=>ai_demo_enter($in)]; }
-        elseif(($in['action']??'')==='send'){$visit=ai_demo_visit();if(!$visit){ throw new DomainException('Entra nella demo per scrivere.',401); }$out=ai_demo_send($visit,$in);}
+        if(($in['action']??'')==='enter'){ $out=['visitor'=>aiDemoEnter($in)]; }
+        elseif(($in['action']??'')==='send'){$visit=aiDemoVisit();if(!$visit){ throw new DomainException('Entra nella demo per scrivere.',401); }$out=aiDemoSend($visit,$in);}
         else { throw new DomainException('Azione non disponibile.',422); }
     }elseif($method==='GET'){
-        $visit=ai_demo_visit();$out=['visitor'=>$visit?['name'=>$visit['name'],'sex'=>$visit['sex']]:null,'turns'=>[]];
-        if(($_GET['poll']??'')!=='1'){ $out['rooms']=ai_demo_rooms(); }
+        $visit=aiDemoVisit();$out=['visitor'=>$visit?['name'=>$visit['name'],'sex'=>$visit['sex']]:null,'turns'=>[]];
+        if(($_GET['poll']??'')!=='1'){ $out['rooms']=aiDemoRooms(); }
         $chat=is_string($_GET['chat']??null)?$_GET['chat']:'';
         if($visit&&$chat!==''){
             $rows=aiDb()->query('SELECT t.id,t.npc_id,t.prompt,t.result,t.created_at,n.name,j.status FROM ai_demo_turns t LEFT JOIN ai_jobs j ON j.id=t.job_id LEFT JOIN ai_npcs n ON n.id=t.npc_id WHERE t.visit_id=? AND t.chat_key=? ORDER BY t.id DESC LIMIT 60',[$visit['id'],$chat]);

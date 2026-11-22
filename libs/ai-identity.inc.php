@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/exceptions.inc.php';
 
 /** A mistaken salutation is observable dialogue, never a rewrite of the addressee. */
 function aiIdentityMisaddress(string $name, string $sex, string $raw): bool
@@ -112,17 +113,17 @@ function aiIdentityValidateText(array $npc, array $job, string $text, ?array $pl
     $reading=aiNarrativeParse($text,['channel'=>'action']);
     $own=$sex==='Maschio'?'uomo|signore|messere':'donna|signora|madama';
     if(aiIdentityMisaddress((string)$npc['name'],$sex,(string)($job['prompt']??'')) && preg_match('/\bnon\s+sono\s+(?:un[ao]?\s+)?(?:'.$own.')\b/iu',$reading['speech'])) {
-        throw new RuntimeException('La correzione nega il sesso effettivo del PNG. Rigenera correggendo soltanto l’appellativo sbagliato del visitatore.');
+        throw new AiQuestRuntimeException('La correzione nega il sesso effettivo del PNG. Rigenera correggendo soltanto l’appellativo sbagliato del visitatore.');
     }
     if (preg_match('/\b'.$name.'\s+(?:è|era|diventa|si\s+scopre)\s+(?:un[ao]?\s+)?'.$wrong.'\b/iu',$reading['action'])
         || preg_match('/(?:^|[.!?]\s*)sono\s+(?:un[ao]?\s+)?'.$wrong.'\b/iu',$reading['speech'])) {
-        throw new RuntimeException('Il PNG contraddice la propria identità registrata. Rigenera distinguendo interlocutore e PNG.');
+        throw new AiQuestRuntimeException('Il PNG contraddice la propria identità registrata. Rigenera distinguendo interlocutore e PNG.');
     }
     $player??=aiIdentityPlayer((int)($job['user_id']??0));
     if ($player && aiIdentityMisaddress('',(string)($player['sesso']??''),$text)) {
         $correct=$sex==='Maschio'?'uomo':'donna';
         $correction=preg_match('/\b(?:sono\s+(?:un[ao]?\s+)?'.$correct.'|mi\s+(?:avete|hai)\s+(?:chiamat\p{L}*|scambiat\p{L}*)|(?:mi|vi|ti)\s+(?:rivolgete|rivolgi)|avete\s+sbagliato)\b/iu',$reading['speech']);
-        if (!$correction) { throw new RuntimeException('Il PNG ha copiato un appellativo sbagliato come saluto al PG. Rigenera una replica propria conservando entrambe le identità.'); }
+        if (!$correction) { throw new AiQuestRuntimeException('Il PNG ha copiato un appellativo sbagliato come saluto al PG. Rigenera una replica propria conservando entrambe le identità.'); }
     }
     return $text;
 }

@@ -8,6 +8,8 @@ use PDOException;
 use PDOStatement;
 use RuntimeException;
 
+require_once dirname(__DIR__).'/libs/exceptions.inc.php';
+
 /**
  * Class PDOMySQLDriver
  *
@@ -51,7 +53,7 @@ class PDOMySQLDriver
         try {
             $this->pdo = new PDO($dsn, $user, $pass, $options);
         } catch (PDOException $e) {
-            throw new RuntimeException('Connection failed: ' . $e->getMessage(), 0, $e);
+            throw new \AlphanoDatabaseException('Connection failed: ' . $e->getMessage(), 0, $e);
         }
     }
 
@@ -169,7 +171,7 @@ class PDOMySQLDriver
         $valid = ['READ UNCOMMITTED', 'READ COMMITTED', 'REPEATABLE READ', 'SERIALIZABLE'];
         $upper = strtoupper($level);
         if (!in_array($upper, $valid, true)) {
-            throw new RuntimeException("Isolation level {$level} non supportato");
+            throw new \AlphanoDatabaseException("Isolation level {$level} non supportato");
         }
         $this->execute("SET SESSION TRANSACTION ISOLATION LEVEL {$upper}");
     }
@@ -185,7 +187,7 @@ class PDOMySQLDriver
     public function replace(string $table, array $data): int
     {
         if (empty($data)) {
-            throw new RuntimeException('replace(): data array vuoto');
+            throw new \AlphanoDatabaseException('replace(): data array vuoto');
         }
 
         $cols    = array_keys($data);
@@ -231,7 +233,7 @@ class PDOMySQLDriver
     private function bindAll(array $params): void
     {
         foreach ($params as $key => $val) {
-            $placeholder = is_int($key) ? $key + 1 : (str_starts_with($key, ':') ? $key : ":{$key}");
+            if (is_int($key)) { $placeholder = $key + 1; } elseif (str_starts_with($key, ':')) { $placeholder = $key; } else { $placeholder = ":{$key}"; }
             $type = match (true) {
                 is_int($val) => PDO::PARAM_INT,
                 is_bool($val) => PDO::PARAM_BOOL,

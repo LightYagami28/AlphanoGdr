@@ -1,5 +1,5 @@
 <?php declare(strict_types=1);
-const ASTRO_INC__LUNA_PIENA = 'Luna Piena';
+const ASTRO_INC_LUNA_PIENA = 'Luna Piena';
 
 /**
  * Restituisce il giorno giuliano (JD) in UT per un timestamp Unix.
@@ -75,7 +75,7 @@ function faseLunare(): string
     return match (true) {
         $f < 7  => 'Luna Nuova',
         $f < 14 => 'Luna Crescente',
-        $f < 22 => ASTRO_INC__LUNA_PIENA,
+        $f < 22 => ASTRO_INC_LUNA_PIENA,
         default => 'Luna Calante'
     };
 }
@@ -85,7 +85,7 @@ function faseLunare(): string
  */
 function daysToFullMoon(): int
 {
-    if (faseLunare() === ASTRO_INC__LUNA_PIENA) {
+    if (faseLunare() === ASTRO_INC_LUNA_PIENA) {
         return 0; // Se siamo in Luna Piena, non mancano giorni.
     }
     $now    = time();
@@ -99,7 +99,7 @@ function daysToFullMoon(): int
  */
 function timeToFullMoon(): array
 {
-    if (faseLunare() === ASTRO_INC__LUNA_PIENA) {
+    if (faseLunare() === ASTRO_INC_LUNA_PIENA) {
         return [
           'days'    => 0,
           'hours'   => 0,
@@ -157,7 +157,7 @@ function fullMoonDuration(): array
  */
 function timeToEndFullMoon(): array
 {
-    if (faseLunare() !== ASTRO_INC__LUNA_PIENA) {
+    if (faseLunare() !== ASTRO_INC_LUNA_PIENA) {
         return ['days' => 0, 'hours' => 0, 'minutes' => 0, 'seconds' => 0];
     }
 

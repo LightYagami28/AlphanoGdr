@@ -152,7 +152,7 @@ with environment() as env:
  check('settings in navigation',any(x['url']=='/admin/settings.php' for x in status_data['menu']))
  # Registration works without innate abilities, artwork or a human race row.
  player=Client(env['base']);registration={'_csrf':player.csrf(),'pgName':'DemoPlayer','mail':'player@example.invalid','passwd':'Player_Test_Password_2026','passwdConfirm':'Player_Test_Password_2026','sesso':'Femmina','adult':'1','terms':'1',**{f'allocation[{k}]':3 if i<4 else 2 for i,k in enumerate(['strength','dexterity','constitution','intelligence','wisdom','charisma','perception','willpower'])}}
- status,body,_=player.request('/adduser.php',registration);print('DEBUG_REG_STATUS',status);print('DEBUG_REG_BODY',body[:1500]);check('player registration succeeds',status==200 and 'personaggio è pronto' in body)
+ status,body,_=player.request('/adduser.php',registration);print('DEBUG_REG_STATUS',status);import re as _re;_txt=_re.sub(r'\s+',' ',_re.sub(r'<[^>]+>',' ',body));print('DEBUG_REG_TEXT',_txt[-2500:]);check('player registration succeeds',status==200 and 'personaggio è pronto' in body)
  check('password stored as modern hash',sql("SELECT password FROM utenti WHERE nome='DemoPlayer'").startswith('$2'))
  files=list((app/'private/mail').glob('*.eml'));check('welcome email is rendered',len(files)==1 and 'Test_Password' not in files[0].read_text())
  msg=email.message_from_bytes(files[0].read_bytes(),policy=email.policy.default);check('welcome uses game name and player',msg['Subject']=='Benvenuto in Alphano Demo' and 'DemoPlayer' in msg.get_body(preferencelist=('plain',)).get_content())

@@ -3,18 +3,18 @@ declare(strict_types=1);
 require_once __DIR__.'/libs/kernel.inc.php';
 require_once __DIR__.'/libs/transformations.inc.php';
 $identity=$_POST['identity']??$_GET['identity']??'';
-if (!is_string($identity)) { alphano_fail('Collegamento non valido.',400); }
+if (!is_string($identity)) { alphanoFail('Collegamento non valido.',400); }
 $valid=preg_match('/^(\d+)@([a-f0-9]{64})$/D',$identity,$match);
 $message='Il link non è valido oppure è scaduto. Usa il link completo ricevuto via email.';
 $backup=null;
 if ($valid) {
-    $db=ConnectDB();
+    $db=connectDB();
     $backup=$db->query('SELECT id,data,query,token_hash FROM recuperopg WHERE id=? AND token_hash=? AND data>?',[(int)$match[1],hash('sha256',$match[2]),time()-7*86400])[0]??null;
     if ($backup) { $message='Puoi ripristinare il personaggio. Le cariche e i privilegi precedenti verranno revocati.'; }
 }
 if ($_SERVER['REQUEST_METHOD']==='POST') {
-    alphano_require_csrf();
-    if (!$backup) { alphano_fail($message,400); }
+    alphanoRequireCsrf();
+    if (!$backup) { alphanoFail($message,400); }
     try {
         $db->beginTransaction();
         $locked=$db->query('SELECT id,query FROM recuperopg WHERE id=? AND token_hash=? FOR UPDATE',[$backup['id'],$backup['token_hash']])[0]??null;
@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             $field=$column['Field'];
             if (str_starts_with($field,'admin') || in_array($field,['fatepower','sindaco','infetto','ancestrale','senziente','vampire_human_form','organizzazione','ramoorganizzazione','caricaorganizzazione','corporazione','ramocorporazione','caricacorporazione','visite','ultimoingresso'],true)) { $reset[]="`$field`=0"; }
         }
-        $db->execute('UPDATE utenti SET '.implode(',',$reset).',araldica=1,razza=?,dataregistrazione=? WHERE id=?',[alphano_human_race_id(),time(),$backup['id']]);
+        $db->execute('UPDATE utenti SET '.implode(',',$reset).',araldica=1,razza=?,dataregistrazione=? WHERE id=?',[alphanoHumanRaceId(),time(),$backup['id']]);
         $db->execute('DELETE FROM recuperopg WHERE id=?',[$backup['id']]);
         $db->commit();$backup=null;
         $message='Personaggio ripristinato. Puoi accedere con la tua password.';
@@ -52,4 +52,4 @@ $recovery = [
     'mode' => $backup ? 'restore' : 'info', 'identity' => $identity,
 ];
 require __DIR__ . '/templates/account/recovery.php';
-ClosePage();
+closePage();

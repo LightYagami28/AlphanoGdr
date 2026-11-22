@@ -12,7 +12,7 @@ const ALPHANO_WORLD_MAP='/private/world-map.json';
 function alphanoInstallRequirements():array
 {
     return [
-        'PHP 8.4 o successivo; rilevato '.PHP_VERSION=>alphano_php_supported(),
+        'PHP 8.4 o successivo; rilevato '.PHP_VERSION=>alphanoPhpSupported(),
         'Pacchetto completo: vendor/autoload.php'=>is_file(dirname(__DIR__).'/vendor/autoload.php'),
         'PDO MySQL'=>extension_loaded('pdo_mysql'),
         'cURL'=>extension_loaded('curl'),
@@ -52,13 +52,13 @@ function alphanoInstallValidate(array $in,string $root):array
             throw new DomainException('Requisito mancante: '.$label);
         }
     }
-    if(alphano_runtime_warning()!==''&&($in['accept_php_risk']??'')!=='1'){
+    if(alphanoRuntimeWarning()!==''&&($in['accept_php_risk']??'')!=='1'){
         throw new DomainException('Per proseguire con questa versione PHP, leggi l’avviso e accetta esplicitamente il rischio. Nessuna tabella è stata creata.');
     }
     if(($in['accept_license']??'')!=='1'||!is_string($in['license_hash']??null)||!hash_equals(hash_file('sha256',$root.'/LICENSE'),$in['license_hash'])){
         throw new DomainException('Leggi e accetta la versione corrente della licenza prima di continuare. Nessuna tabella è stata creata.');
     }
-    $settings=alphano_validate_site($in,true);
+    $settings=alphanoValidateSite($in,true);
     $host=trim((string)($in['db_host']??''));
     $name=trim((string)($in['db_name']??''));
     $user=trim((string)($in['db_user']??''));
@@ -139,10 +139,10 @@ function alphanoInstallSeed(PDO $pdo,string $root,array $context):array
         require_once __DIR__.'/demo-data.php';
         $demoMap=alphano_install_demo_data($pdo,$id,$settings);
         $previousMap=is_file($root.ALPHANO_WORLD_MAP)?file_get_contents($root.ALPHANO_WORLD_MAP):null;
-        alphano_managed_save('world-map',$demoMap,alphano_managed_revision('world-map'));
+        alphanoManagedSave('world-map',$demoMap,alphanoManagedRevision('world-map'));
         $mapWritten=true;
     }
-    alphano_settings_write($settings);
+    alphanoSettingsWrite($settings);
     return ['mapWritten'=>$mapWritten,'previousMap'=>$previousMap];
 }
 
@@ -213,7 +213,7 @@ function alphanoInstall(array $in):void
         $dsn='mysql:'.($socket!==''?'unix_socket='.$socket:'host='.$host.';port='.$port).';dbname='.$name.';charset=utf8mb4';
         $pdo=alphanoInstallConnect($dsn,$user,$pass);
         $lock=$pdo->prepare('SELECT GET_LOCK(?,0)');
-        $lock->execute([alphano_lock_name('install',$name,$name)]);
+        $lock->execute([alphanoLockName('install',$name,$name)]);
         if((int)$lock->fetchColumn()!==1){
             throw new DomainException('Il database è già in uso da un’altra installazione.');
         }
@@ -256,7 +256,7 @@ function alphanoInstall(array $in):void
         }
         if($databaseLock&&$pdo){
             $s=$pdo->prepare('SELECT RELEASE_LOCK(?)');
-            $s->execute([alphano_lock_name('install',$name,$name)]);
+            $s->execute([alphanoLockName('install',$name,$name)]);
         }
         flock($guard,LOCK_UN);
         fclose($guard);

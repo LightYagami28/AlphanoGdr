@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/../libs/session-control.inc.php';
-$uid=alphano_require_login();$u=alphano_user();
+$uid=alphanoRequireLogin();$u=alphanoUser();
 $chat=$_GET['chat']??($u['chat']??'');
 try{
  if(!is_string($chat)){ throw new DomainException('Luogo non valido.',400); }
@@ -12,24 +12,24 @@ try{
   $h=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
   require __DIR__.'/../templates/sessions/location-picker.php';exit;
  }
- $actor=alphano_session_actor($uid,$chat,false);
+ $actor=alphanoSessionActor($uid,$chat,false);
  $method=$_SERVER['REQUEST_METHOD']??'GET';
  if(!in_array($method,['GET','POST'],true)){ throw new DomainException('Metodo non consentito.',405); }
  if($method==='POST'){
-  alphano_require_csrf(true);
-  $input=str_contains($_SERVER['CONTENT_TYPE']??'','application/json')?alphano_request_json():$_POST;
+  alphanoRequireCsrf(true);
+  $input=str_contains($_SERVER['CONTENT_TYPE']??'','application/json')?alphanoRequestJson():$_POST;
   $action=$input['azione']??$input['action']??'';
   if(!is_string($action)){ throw new DomainException('Comando non valido.',422); }
-  $result=alphano_session_control_action($uid,$chat,$action,$input);
+  $result=alphanoSessionControlAction($uid,$chat,$action,$input);
   header('Content-Type: application/json; charset=utf-8');header('Cache-Control: private, no-store');
   echo json_encode($result,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);exit;
  }
- $state=alphano_session_control_state($uid,$chat);
+ $state=alphanoSessionControlState($uid,$chat);
  if(isset($_GET['status'])){
   header('Content-Type: application/json; charset=utf-8');header('Cache-Control: private, no-store');
   echo json_encode($state,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);exit;
  }
- $row=alphano_session_current($chat);$quest=aiQuestRow($chat);$room=aiRoom($chat);
+ $row=alphanoSessionCurrent($chat);$quest=aiQuestRow($chat);$room=aiRoom($chat);
  $posizione=aiDb()->query('SELECT title FROM mappe WHERE chat_key=?',[$chat])[0]['title']??$chat;
  $nomeMaster=$state['conductor']['name'];$h=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
  require __DIR__.'/../templates/sessions/manager.php';
@@ -37,9 +37,9 @@ try{
  $code=(int)$error->getCode();
  $status=($error instanceof DomainException||($error instanceof RuntimeException&&in_array($code,[400,409,422],true)))?$code:($error instanceof JsonException?400:500);
  if(!in_array($status,[400,401,403,404,405,409,422,429,503],true)){ $status=500; }
- if($status===500){error_log('[Session control] '.$error->getMessage());alphano_error_reference($error,'session-control');}
+ if($status===500){error_log('[Session control] '.$error->getMessage());alphanoErrorReference($error,'session-control');}
  if(($_SERVER['REQUEST_METHOD']??'GET')==='POST'||isset($_GET['status'])){
   http_response_code($status);header('Content-Type: application/json; charset=utf-8');header('Cache-Control: private, no-store');
   echo json_encode(['error'=>$status===500?'Operazione non completata. Riprova.':$error->getMessage()],JSON_UNESCAPED_UNICODE);
- }else { alphano_fail($status===500?'Il pannello non è momentaneamente disponibile.':$error->getMessage(),$status); }
+ }else { alphanoFail($status===500?'Il pannello non è momentaneamente disponibile.':$error->getMessage(),$status); }
 }

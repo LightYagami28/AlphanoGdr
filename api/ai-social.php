@@ -5,10 +5,10 @@ require_once __DIR__.'/../libs/revelations.inc.php';
 header('Content-Type: application/json; charset=utf-8');header('Cache-Control: private, no-store');
 $db=aiDb();
 try{
-    $uid=alphano_require_login(true);$viewer=alphano_user();$admin=!empty($viewer['admin']);$method=$_SERVER['REQUEST_METHOD'];
+    $uid=alphanoRequireLogin(true);$viewer=alphanoUser();$admin=!empty($viewer['admin']);$method=$_SERVER['REQUEST_METHOD'];
     if(!in_array($method,['GET','POST'],true)){ throw new DomainException('Metodo non consentito.',405); }
-    $in=$method==='POST'?(str_contains($_SERVER['CONTENT_TYPE']??'','application/json')?alphano_request_json():$_POST):$_GET;
-    if($method==='POST'){ alphano_require_csrf(true); }
+    $in=$method==='POST'?(str_contains($_SERVER['CONTENT_TYPE']??'','application/json')?alphanoRequestJson():$_POST):$_GET;
+    if($method==='POST'){ alphanoRequireCsrf(true); }
     $action=aiField($in,'action',40,true);
     if($action==='preferences'&&$method==='GET'){
         echo json_encode($db->query('SELECT character_age,romance_enabled,intimacy_enabled FROM ai_player_preferences WHERE player_id=?',[$uid])[0]??['character_age'=>0,'romance_enabled'=>0,'intimacy_enabled'=>0]);exit;
@@ -28,16 +28,16 @@ try{
     }
     $nid=aiInteger($in,'npc_id',1,PHP_INT_MAX);
     $npc=$db->query('SELECT * FROM ai_npcs WHERE id=?',[$nid])[0]??null;
-    $inactiveStaffAccess=($action==='staff_context'&&$method==='GET'&&alphano_relations_staff($uid))||($action==='admin_relation'&&$method==='POST'&&alphano_relations_editor($uid));
+    $inactiveStaffAccess=($action==='staff_context'&&$method==='GET'&&alphanoRelationsStaff($uid))||($action==='admin_relation'&&$method==='POST'&&alphanoRelationsEditor($uid));
     if(!$npc||(!$admin&&!(int)$npc['active']&&!$inactiveStaffAccess)){ throw new DomainException('PNG non disponibile.',404); }
     if($action==='profile'&&$method==='GET'){
         // player_id/uid parameters are deliberately ignored: caller sees only their own pair.
-        $profile=aiSocialPrivateView($nid,$uid);$profile['knowledge']=alphano_revelations_profile('npc',$nid,$uid);
+        $profile=aiSocialPrivateView($nid,$uid);$profile['knowledge']=alphanoRevelationsProfile('npc',$nid,$uid);
         echo json_encode($profile,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);exit;
     }
     if($action==='staff_context'&&$method==='GET'){
         $player=aiInteger($in,'player_id',1,PHP_INT_MAX);
-        echo json_encode(alphano_relations_npc_context($nid,$player,$uid),JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);exit;
+        echo json_encode(alphanoRelationsNpcContext($nid,$player,$uid),JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);exit;
     }
     if($action==='admin_load'&&$method==='GET'){
         if(!$admin){ throw new DomainException('Accesso riservato.',403); }
@@ -52,7 +52,7 @@ try{
             'debts'=>$db->query('SELECT d.*,u.nome FROM ai_npc_debts d JOIN utenti u ON u.id=d.player_id WHERE d.npc_id=?',[$nid])],JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);exit;
     }
     if($method!=='POST'){ throw new DomainException('Azione non consentita.',405); }
-    if(str_starts_with($action,'admin_')&&!$admin&&!($action==='admin_relation'&&alphano_relations_editor($uid))){ throw new DomainException('Accesso riservato.',403); }
+    if(str_starts_with($action,'admin_')&&!$admin&&!($action==='admin_relation'&&alphanoRelationsEditor($uid))){ throw new DomainException('Accesso riservato.',403); }
     $db->beginTransaction();$receipt=null;
     if($action==='admin_rules'){
         if(!is_array($in['settings']??null)||array_is_list($in['settings'])){ throw new DomainException('Impostazioni non valide.',422); }

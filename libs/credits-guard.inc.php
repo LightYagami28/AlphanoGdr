@@ -1,35 +1,40 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/alphano-exceptions.inc.php';
+
+const CREDITS_GUARD_INC_JSON = '.json';
+const CREDITS_GUARD_INC_CREDITS = '/credits-';
+const CREDITS_GUARD_INC_CREDITS_RESTORE_PHP = '/credits/restore.php';
 // This hash authenticates repair fragments only. It never locks authored source files.
 const ALPHANO_CREDIT_BUNDLE_HASH = '23cedc0846f8f9a2a84399fbc822ae6eec6708d2b600c0eac68061d1fca35603';
-function alphano_credits_bundle(): array
+function alphanoCreditsBundle(): array
 {
     $file=dirname(__DIR__).'/config/credit-originals.json';
-    if(!is_file($file)||!hash_equals(ALPHANO_CREDIT_BUNDLE_HASH,hash_file('sha256',$file))){ throw new DomainException('La copia di ripristino dei crediti è mancante o alterata: ricarica il pacchetto originale.'); }
+    if(!is_file($file)||!hash_equals(ALPHANO_CREDIT_BUNDLE_HASH,hash_file('sha256',$file))){ throw new AlphanoDomainException('La copia di ripristino dei crediti è mancante o alterata: ricarica il pacchetto originale.'); }
     return json_decode(file_get_contents($file),true,32,JSON_THROW_ON_ERROR)['fragments'];
 }
-function alphano_credit_page(): ?string
+function alphanoCreditPage(): ?string
 {
     return match(parse_url($_SERVER['SCRIPT_NAME']??'',PHP_URL_PATH)){
         '/', '/index.php'=>'home','/equip/equip.php'=>'equipment','/legal/index.php'=>'legal',default=>null
     };
 }
-function alphano_credit_state(string $name): array
+function alphanoCreditState(string $name): array
 {
-    $file=dirname(__DIR__).'/private/credits-'.$name.'.json';
+    $file=dirname(__DIR__).'/private/credits-'.$name.CREDITS_GUARD_INC_JSON;
     $value=is_file($file)?json_decode((string)file_get_contents($file),true):[];
     return is_array($value)?$value:[];
 }
-function alphano_credit_write(string $name,array $data): void
+function alphanoCreditWrite(string $name,array $data): void
 {
     $dir=dirname(__DIR__).'/private';$temp=tempnam($dir,'credits-');
-    try{chmod($temp,0600);if(file_put_contents($temp,json_encode($data,JSON_PRETTY_PRINT|JSON_THROW_ON_ERROR),LOCK_EX)===false||!rename($temp,$dir.'/credits-'.$name.'.json')){ throw new RuntimeException('Impossibile salvare lo stato dei crediti.'); }}
+    try{chmod($temp,0600);if(file_put_contents($temp,json_encode($data,JSON_PRETTY_PRINT|JSON_THROW_ON_ERROR),LOCK_EX)===false||!rename($temp,$dir.CREDITS_GUARD_INC_CREDITS.$name.CREDITS_GUARD_INC_JSON)){ throw new AlphanoStorageException('Impossibile salvare lo stato dei crediti.'); }}
     finally{if(is_file($temp)){ unlink($temp); }}
 }
-function alphano_credits_issues(): array
+function alphanoCreditsIssues(): array
 {
     $root=dirname(__DIR__);$issues=[];
-    foreach(alphano_credit_state('health') as $page=>$entry){
+    foreach(alphanoCreditState('health') as $page=>$entry){
         if(!in_array($page,['home','equipment','legal'],true)||!is_array($entry['dependencies']??null)){ continue; }
         // A source edit invalidates an old observation, instead of being a violation.
         foreach($entry['dependencies'] as $path=>$hash){
@@ -39,25 +44,25 @@ function alphano_credits_issues(): array
     }
     return $issues;
 }
-function alphano_credit_block_html(): string
+function alphanoCreditBlockHtml(): string
 {
     require_once __DIR__.'/status-page.inc.php';
-    return alphano_status_document('Accesso sospeso: ripristina i crediti','Il controllo incluso nel pacchetto non rileva il credito predefinito nella pagina generata. Correggi il credito o usa il ripristino, che conserva le personalizzazioni. Puoi anche modificare o rimuovere questo controllo secondo la AGPL: il blocco tecnico non significa che tu abbia violato la licenza.','/credits/restore.php','Ripristina i crediti');
+    return alphanoStatusDocument('Accesso sospeso: ripristina i crediti','Il controllo incluso nel pacchetto non rileva il credito predefinito nella pagina generata. Correggi il credito o usa il ripristino, che conserva le personalizzazioni. Puoi anche modificare o rimuovere questo controllo secondo la AGPL: il blocco tecnico non significa che tu abbia violato la licenza.',CREDITS_GUARD_INC_CREDITS_RESTORE_PHP,'Ripristina i crediti');
 }
-function alphano_credits_guard(): void
+function alphanoCreditsGuard(): void
 {
     $path=parse_url($_SERVER['SCRIPT_NAME']??'',PHP_URL_PATH);
     // Credit-bearing pages must remain reachable to revalidate a corrected layout.
-    if(alphano_credit_page()!==null||in_array($path,['/credits/restore.php','/checkuser.php'],true)||!alphano_credits_issues()){ return; }
-    if(PHP_SAPI==='cli'){ throw new DomainException('Credito non visibile: visitare la pagina corretta o usare il ripristino.'); }
+    if(alphanoCreditPage()!==null||in_array($path,[CREDITS_GUARD_INC_CREDITS_RESTORE_PHP,'/checkuser.php'],true)||!alphanoCreditsIssues()){ return; }
+    if(PHP_SAPI==='cli'){ throw new AlphanoDomainException('Credito non visibile: visitare la pagina corretta o usare il ripristino.'); }
     http_response_code(503);header('Cache-Control: no-store');
     if(str_starts_with($_SERVER['REQUEST_URI']??'','/api/')||str_contains($_SERVER['HTTP_ACCEPT']??'','application/json')||str_contains($_SERVER['CONTENT_TYPE']??'','application/json')){
-        header('Content-Type: application/json; charset=utf-8');echo json_encode(['error'=>'Credito predefinito non rilevato dal controllo locale. Controllo e link sono modificabili o rimovibili secondo la AGPL; questo non è un accertamento di violazione.','code'=>'credits_integrity','recovery_url'=>'/credits/restore.php'],JSON_UNESCAPED_UNICODE);exit;
+        header('Content-Type: application/json; charset=utf-8');echo json_encode(['error'=>'Credito predefinito non rilevato dal controllo locale. Controllo e link sono modificabili o rimovibili secondo la AGPL; questo non è un accertamento di violazione.','code'=>'credits_integrity','recovery_url'=>CREDITS_GUARD_INC_CREDITS_RESTORE_PHP],JSON_UNESCAPED_UNICODE);exit;
     }
-    echo alphano_credit_block_html();exit;
+    echo alphanoCreditBlockHtml();exit;
 }
 /** Basic authored CSS only: unknown selectors/media rules do not cause a block. */
-function alphano_credit_css(DOMDocument $dom,array &$dependencies): array
+function alphanoCreditCss(DOMDocument $dom,array &$dependencies): array
 {
     $root=dirname(__DIR__);$sources=[];$rules=[];$order=0;
     foreach((new DOMXPath($dom))->query('//style|//link') as $link){
@@ -65,7 +70,7 @@ function alphano_credit_css(DOMDocument $dom,array &$dependencies): array
         if(strtolower($link->getAttribute('rel'))!=='stylesheet'){ continue; }
         $url=parse_url(html_entity_decode($link->getAttribute('href'),ENT_QUOTES|ENT_HTML5,'UTF-8'));
         if(!$url||isset($url['host'])&&strcasecmp($url['host'],parse_url('https://'.($_SERVER['HTTP_HOST']??''),PHP_URL_HOST)??'')){ continue; }
-        $path=$url['path']??'';$files=$path==='/assets/theme.php'&&function_exists('alphano_theme_files')?alphano_theme_files():[$root.$path];
+        $path=$url['path']??'';$files=$path==='/assets/theme.php'&&function_exists('alphanoThemeFiles')?alphanoThemeFiles():[$root.$path];
         foreach($files as $file){$real=realpath($file);if(!$real||!str_starts_with($real,$root.'/')||pathinfo($real,PATHINFO_EXTENSION)!=='css'||filesize($real)>524288){ continue; }
             $dependencies[substr($real,strlen($root)+1)]=hash_file('sha256',$real);$sources[]=file_get_contents($real);
         }
@@ -77,7 +82,7 @@ function alphano_credit_css(DOMDocument $dom,array &$dependencies): array
             for(;$end<strlen($css)&&$depth;$end++){if($css[$end]==='{'){ $depth++; }elseif($css[$end]==='}'){ $depth--; }}
             $body=substr($css,$open+1,$end-$open-2);$offset=$end;
             if($selector===''||str_starts_with($selector,'@')||str_contains($body,'{')){ continue; }
-            $declarations=alphano_credit_declarations($body);if(!$declarations){ continue; }
+            $declarations=alphanoCreditDeclarations($body);if(!$declarations){ continue; }
             foreach(explode(',',$selector) as $part){$part=trim($part);if(!preg_match('/^[a-zA-Z0-9_.#*\s>\-]+$/D',$part)){ continue; }
                 $specificity=100*substr_count($part,'#')+10*substr_count($part,'.')+preg_match_all('/(?:^|\s|>)[a-zA-Z]/',$part);
                 $rules[]=[$part,$declarations,$specificity,++$order];
@@ -86,7 +91,7 @@ function alphano_credit_css(DOMDocument $dom,array &$dependencies): array
     }
     return $rules;
 }
-function alphano_credit_declarations(string $css): array
+function alphanoCreditDeclarations(string $css): array
 {
     $out=[];
     foreach(explode(';',$css) as $part){$pair=explode(':',$part,2);if(count($pair)!==2){ continue; }[$name,$value]=array_map('trim',$pair);$name=strtolower($name);
@@ -97,7 +102,7 @@ function alphano_credit_declarations(string $css): array
     }
     return $out;
 }
-function alphano_credit_selector(DOMElement $node,string $selector): bool
+function alphanoCreditSelector(DOMElement $node,string $selector): bool
 {
     $parts=preg_split('/\s*(>)\s*|\s+/',trim($selector),-1,PREG_SPLIT_DELIM_CAPTURE|PREG_SPLIT_NO_EMPTY);
     $matches=static function(DOMElement $element,string $part):bool{
@@ -114,7 +119,7 @@ function alphano_credit_selector(DOMElement $node,string $selector): bool
     }
     return true;
 }
-function alphano_credit_visible(DOMElement $node,array $rules,array &$cache): bool
+function alphanoCreditVisible(DOMElement $node,array $rules,array &$cache): bool
 {
     $path=$node->getNodePath();if(isset($cache[$path])){ return $cache[$path]; }$ancestors=[];
     for($p=$node;$p instanceof DOMElement;$p=$p->parentNode){ $ancestors[]=$p; }
@@ -124,12 +129,12 @@ function alphano_credit_visible(DOMElement $node,array $rules,array &$cache): bo
         $properties=$cache['_styles'][$p->getNodePath()]??null;
         if($properties===null){
         $properties=[];$rank=[];
-        foreach($rules as [$selector,$declarations,$specificity,$order]){ if(alphano_credit_selector($p,$selector)){ foreach($declarations as $key=>[$value,$important]){
+        foreach($rules as [$selector,$declarations,$specificity,$order]){ if(alphanoCreditSelector($p,$selector)){ foreach($declarations as $key=>[$value,$important]){
             $candidate=[$important?1:0,$specificity,$order];if(!isset($rank[$key])||$candidate>=$rank[$key]){$properties[$key]=$value;$rank[$key]=$candidate;}
         }
         }
         }
-        foreach(alphano_credit_declarations($p->getAttribute('style')) as $key=>[$value,$important]){
+        foreach(alphanoCreditDeclarations($p->getAttribute('style')) as $key=>[$value,$important]){
             $candidate=[$important?1:0,1000,PHP_INT_MAX];if(!isset($rank[$key])||$candidate>=$rank[$key]){ $properties[$key]=$value; }
         }
         $cache['_styles'][$p->getNodePath()]=$properties;
@@ -139,51 +144,51 @@ function alphano_credit_visible(DOMElement $node,array $rules,array &$cache): bo
     }
     return $cache[$path]=!in_array($inherited['visibility']??'',['hidden','collapse'],true)&&!preg_match('/^0(?:\.0+)?(?:px|pt|em|rem|%)?$/',$inherited['font-size']??'')&&($inherited['color']??'')!=='transparent'&&!preg_match('/^#[a-f0-9]{6}00$/',$inherited['color']??'');
 }
-function alphano_credit_html_valid(string $html,string $page,array &$dependencies=[]): bool
+function alphanoCreditHtmlValid(string $html,string $page,array &$dependencies=[]): bool
 {
     $dom=new DOMDocument();$previous=libxml_use_internal_errors(true);
     try{$dom->loadHTML('<?xml encoding="UTF-8">'.$html,LIBXML_NONET|LIBXML_NOERROR|LIBXML_NOWARNING);}finally{libxml_clear_errors();libxml_use_internal_errors($previous);}
-    $rules=alphano_credit_css($dom,$dependencies);$cache=[];
+    $rules=alphanoCreditCss($dom,$dependencies);$cache=[];
     $read=static function(DOMNode $node)use(&$read,&$cache,$rules):string{
-        if($node instanceof DOMText){ return $node->parentNode instanceof DOMElement&&alphano_credit_visible($node->parentNode,$rules,$cache)?$node->textContent:''; }
+        if($node instanceof DOMText){ return $node->parentNode instanceof DOMElement&&alphanoCreditVisible($node->parentNode,$rules,$cache)?$node->textContent:''; }
         $pieces=[];foreach($node->childNodes as $child){ $pieces[]=$read($child); }return implode(' ',$pieces);
     };
     $text=mb_strtolower(trim(preg_replace('/\s+/u',' ',$read($dom))));
     if(!str_contains($text,'alfano gaetano')||($page==='equipment'&&!str_contains($text,'grafica ispirata da'))){ return false; }
     foreach($dom->getElementsByTagName('a') as $a){
         $url=parse_url(trim($a->getAttribute('href')));$label=mb_strtolower(preg_replace('/\s+/u','',$read($a)));
-        if($url&&in_array(strtolower($url['scheme']??''),['http','https'],true)&&in_array(strtolower($url['host']??''),['gothik.it','www.gothik.it'],true)&&in_array($url['path']??'',['','/'],true)&&empty($url['user'])&&empty($url['pass'])&&str_contains($label,'gothik.it')&&alphano_credit_visible($a,$rules,$cache)){ return true; }
+        if($url&&in_array(strtolower($url['scheme']??''),['http','https'],true)&&in_array(strtolower($url['host']??''),['gothik.it','www.gothik.it'],true)&&in_array($url['path']??'',['','/'],true)&&empty($url['user'])&&empty($url['pass'])&&str_contains($label,'gothik.it')&&alphanoCreditVisible($a,$rules,$cache)){ return true; }
     }
     return false;
 }
-function alphano_credit_append(string $html,string $fragment): string
+function alphanoCreditAppend(string $html,string $fragment): string
 {
     $position=strripos($html,'</body>');return $position===false?$html.$fragment:substr_replace($html,$fragment,$position,0);
 }
-function alphano_credits_filter_html(string $html): string
+function alphanoCreditsFilterHtml(string $html): string
 {
-    $page=alphano_credit_page();if($page===null||http_response_code()>=300){ return $html; }
-    $dependencies=[];$valid=alphano_credit_html_valid($html,$page,$dependencies);
-    if(!$valid&&!empty(alphano_credit_state('repairs')[$page])){
-        try{$fragments=alphano_credits_bundle();$html=alphano_credit_append($html,$fragments[$page==='equipment'?'equipment':'home']);$valid=alphano_credit_html_valid($html,$page,$dependencies);}catch(Throwable){/* A damaged repair copy never invalidates an otherwise valid page. */}
+    $page=alphanoCreditPage();if($page===null||http_response_code()>=300){ return $html; }
+    $dependencies=[];$valid=alphanoCreditHtmlValid($html,$page,$dependencies);
+    if(!$valid&&!empty(alphanoCreditState('repairs')[$page])){
+        try{$fragments=alphanoCreditsBundle();$html=alphanoCreditAppend($html,$fragments[$page==='equipment'?'equipment':'home']);$valid=alphanoCreditHtmlValid($html,$page,$dependencies);}catch(Throwable){/* A damaged repair copy never invalidates an otherwise valid page. */}
     }
-    $state=alphano_credit_state('health');
-    if($valid){if(isset($state[$page])){unset($state[$page]);alphano_credit_write('health',$state);}return $html;}
+    $state=alphanoCreditState('health');
+    if($valid){if(isset($state[$page])){unset($state[$page]);alphanoCreditWrite('health',$state);}return $html;}
     $root=dirname(__DIR__);
     foreach(get_included_files() as $file){ if(str_starts_with($file,$root.'/')&&!str_starts_with($file,$root.'/vendor/')&&!str_starts_with($file,$root.'/private/')){ $dependencies[substr($file,strlen($root)+1)]=hash_file('sha256',$file); } }
     foreach(['config/credits.php','libs/credits.inc.php','templates/credits/home.php','templates/credits/equipment.php'] as $file){ $dependencies[$file]=is_file($root.'/'.$file)?hash_file('sha256',$root.'/'.$file):null; }
-    $state[$page]=['at'=>gmdate('c'),'dependencies'=>$dependencies];alphano_credit_write('health',$state);
-    http_response_code(503);header('Cache-Control: no-store');return alphano_credit_block_html();
+    $state[$page]=['at'=>gmdate('c'),'dependencies'=>$dependencies];alphanoCreditWrite('health',$state);
+    http_response_code(503);header('Cache-Control: no-store');return alphanoCreditBlockHtml();
 }
 /** Enable a central response footer; never replace any customized source page. */
-function alphano_credits_restore(): array
+function alphanoCreditsRestore(): array
 {
-    alphano_credits_bundle();$issues=alphano_credits_issues();if(!$issues){ return []; }
-    $root=dirname(__DIR__);$lock=fopen($root.'/private/credits-restore.lock','c');if(!$lock||!flock($lock,LOCK_EX|LOCK_NB)){ throw new DomainException('Ripristino già in corso.'); }
+    alphanoCreditsBundle();$issues=alphanoCreditsIssues();if(!$issues){ return []; }
+    $root=dirname(__DIR__);$lock=fopen($root.'/private/credits-restore.lock','c');if(!$lock||!flock($lock,LOCK_EX|LOCK_NB)){ throw new AlphanoDomainException('Ripristino già in corso.'); }
     try{
-        $backup=$root.'/private/credits-recovery-'.gmdate('Ymd-His').'-'.bin2hex(random_bytes(4));if(!mkdir($backup,0700,true)){ throw new DomainException('Impossibile salvare lo stato precedente.'); }
-        foreach(['health','repairs'] as $name){$path=$root.'/private/credits-'.$name.'.json';if(is_file($path)){if(!copy($path,$backup.'/credits-'.$name.'.json')){ throw new DomainException('Copia privata non riuscita.'); }chmod($backup.'/credits-'.$name.'.json',0600);}}
-        $repairs=alphano_credit_state('repairs');$state=alphano_credit_state('health');foreach($issues as $page){$repairs[$page]=true;unset($state[$page]);}
-        alphano_credit_write('repairs',$repairs);alphano_credit_write('health',$state);return $issues;
+        $backup=$root.'/private/credits-recovery-'.gmdate('Ymd-His').'-'.bin2hex(random_bytes(4));if(!mkdir($backup,0700,true)){ throw new AlphanoDomainException('Impossibile salvare lo stato precedente.'); }
+        foreach(['health','repairs'] as $name){$path=$root.'/private/credits-'.$name.CREDITS_GUARD_INC_JSON;if(is_file($path)){if(!copy($path,$backup.CREDITS_GUARD_INC_CREDITS.$name.CREDITS_GUARD_INC_JSON)){ throw new AlphanoDomainException('Copia privata non riuscita.'); }chmod($backup.CREDITS_GUARD_INC_CREDITS.$name.CREDITS_GUARD_INC_JSON,0600);}}
+        $repairs=alphanoCreditState('repairs');$state=alphanoCreditState('health');foreach($issues as $page){$repairs[$page]=true;unset($state[$page]);}
+        alphanoCreditWrite('repairs',$repairs);alphanoCreditWrite('health',$state);return $issues;
     }finally{flock($lock,LOCK_UN);fclose($lock);}
 }

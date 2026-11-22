@@ -1,12 +1,14 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/alphano-exceptions.inc.php';
+
 
 /* =========================================================================
  *  libchat.inc.php – funzioni condivise per il motore delle chat
  *  Funzioni PHP 8 con PDO.
  * =========================================================================
  *  Dipendenze:
- *    • kernel.inc.php  → costanti, ConnectDB(), htmlroot …
+ *    • kernel.inc.php  → costanti, connectDB(), HTMLROOT …
  *    • libpg.inc.php   → funzioni gestione PG
  * ========================================================================= */
 
@@ -28,15 +30,15 @@ const SECS_KEEP_CHAT = 86400;      // prune dopo 24 h
 if (!function_exists('db')) {
     function db()
     {
-        static $db;
-        return $db ??= ConnectDB();   // ← resta compatibile col vecchio codice
+        static $db = null;
+        return $db ??= connectDB();   // ← resta compatibile col vecchio codice
     }
 }
 
 
 // Catalogo immagini inizialmente vuoto, configurabile dal gestore.
 $GLOBALS['arrimgs'] = [];
-include __DIR__ . '/libchat_imgs.inc.php';
+include_once __DIR__ . '/libchat_imgs.inc.php';
 /** helper retro-compatibile: restituisce l’array completo */
 function getChatImages(): array
 {
@@ -44,9 +46,9 @@ function getChatImages(): array
 }
 
 /* --------------------------------------------------------------------------
- *  InsertIntoChat()
+ *  insertIntoChat()
  * ------------------------------------------------------------------------ */
-function InsertIntoChat(string $chat, string $html, array $metadata=[]): int
+function insertIntoChat(string $chat, string $html, array $metadata=[]): int
 {
     $html = stripslashes($html);
     $db=db();$own=!$db->inTransaction();$handle=null;$locked=false;$originalSize=null;
@@ -73,25 +75,25 @@ function InsertIntoChat(string $chat, string $html, array $metadata=[]): int
 
         // Tutte le query devono riuscire prima di aggiungere testo al file.
         if ($row) {
-            $logFile=rtrim(htmlroot,'/').'/sessione/log/'.$row[0]['id'].'.html';
+            $logFile=rtrim(HTMLROOT,'/').'/sessione/log/'.$row[0]['id'].'.html';
             $handle=@fopen($logFile,'c+b');
-            if ($handle===false) { throw new RuntimeException('Impossibile aprire il registro della sessione'); }
+            if ($handle===false) { throw new AlphanoStorageException('Impossibile aprire il registro della sessione'); }
             $locked=@flock($handle,LOCK_EX);
-            if (!$locked) { throw new RuntimeException('Impossibile bloccare il registro della sessione'); }
+            if (!$locked) { throw new AlphanoStorageException('Impossibile bloccare il registro della sessione'); }
             $stat=@fstat($handle);
-            if (!$stat || (($stat['mode'] & 0170000)!==0100000)) { throw new RuntimeException('Registro della sessione non valido'); }
+            if (!$stat || (($stat['mode'] & 0170000)!==0100000)) { throw new AlphanoStorageException('Registro della sessione non valido'); }
             $originalSize=(int)$stat['size'];
             // Alcuni stream locali non implementano questa opzione: i controlli
             // su scrittura e flush restano obbligatori in entrambi i casi.
             @stream_set_write_buffer($handle,0);
-            if (@fseek($handle,0,SEEK_END)!==0) { throw new RuntimeException('Impossibile aggiornare il registro della sessione'); }
+            if (@fseek($handle,0,SEEK_END)!==0) { throw new AlphanoStorageException('Impossibile aggiornare il registro della sessione'); }
             $content=$html."<br>\n";$offset=0;$length=strlen($content);
             while ($offset<$length) {
                 $written=@fwrite($handle,substr($content,$offset));
-                if ($written===false || $written===0) { throw new RuntimeException('Scrittura del registro della sessione incompleta'); }
+                if ($written===false || $written===0) { throw new AlphanoStorageException('Scrittura del registro della sessione incompleta'); }
                 $offset+=$written;
             }
-            if (!@fflush($handle)) { throw new RuntimeException('Impossibile salvare il registro della sessione'); }
+            if (!@fflush($handle)) { throw new AlphanoStorageException('Impossibile salvare il registro della sessione'); }
         }
         if ($own) { $db->commit(); }
     } catch (Throwable $error) {
@@ -99,7 +101,7 @@ function InsertIntoChat(string $chat, string $html, array $metadata=[]): int
         $restored=true;
         if (is_resource($handle) && $locked && $originalSize!==null) { $restored=@ftruncate($handle,$originalSize) && @fflush($handle); }
         if ($own && $db->inTransaction()) { $db->rollBack(); }
-        if (!$restored) { throw new RuntimeException('Ripristino del registro della sessione non riuscito',0,$error); }
+        if (!$restored) { throw new AlphanoStorageException('Ripristino del registro della sessione non riuscito',0,$error); }
         throw $error;
     } finally {
         if (is_resource($handle)) {
@@ -111,11 +113,11 @@ function InsertIntoChat(string $chat, string $html, array $metadata=[]): int
 }
 
 /* --------------------------------------------------------------------------
- *  ClearChat()
+ *  clearChat()
  * ------------------------------------------------------------------------ */
-function ClearChat(string $chat): void
+function clearChat(string $chat): void
 {
-    $liveFilter=alphano_chat_live_filter();
+    $liveFilter=alphanoChatLiveFilter();
     /* 1) cancella righe troppo vecchie */
     db()->execute(
         "DELETE FROM chat WHERE chat = ? AND ora < ?".$liveFilter,
@@ -172,9 +174,9 @@ function ClearChat(string $chat): void
 }
 
 /* --------------------------------------------------------------------------
- *  DumpChat()
+ *  dumpChat()
  * ------------------------------------------------------------------------ */
-function DumpChat(string $chat): string
+function dumpChat(string $chat): string
 {
     $out = '';
     foreach (db()->query(
@@ -199,9 +201,9 @@ function processAllineamento(string $all): string
 }
 
 /* --------------------------------------------------------------------------
- *  GetAzioniLavoro()
+ *  getAzioniLavoro()
  * ------------------------------------------------------------------------ */
-function GetAzioniLavoro(string $chat): array
+function getAzioniLavoro(string $chat): array
 {
     return db()->query(
         "SELECT MAX(prob) AS prob, res, azione
@@ -214,23 +216,23 @@ function GetAzioniLavoro(string $chat): array
 }
 
 /** Compatibility adapters publish neutral events; configured races use transformations.inc.php. */
-function LicanMetamorphosis(string $chat, string $nome, string $sesso, bool $verso): void
+function licanMetamorphosis(string $chat, string $nome, string $sesso, bool $verso): void
 {
     $name=htmlspecialchars($nome,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
-    InsertIntoChat($chat,'<div class="Fato">'.$name.($verso?' cambia forma.':' ritorna alla forma iniziale.').'</div>');
+    insertIntoChat($chat,'<div class="Fato">'.$name.($verso?' cambia forma.':' ritorna alla forma iniziale.').'</div>');
 }
-function AncestralMetamorphosis(string $chat, string $nome, string $sesso, bool $verso): void
+function ancestralMetamorphosis(string $chat, string $nome, string $sesso, bool $verso): void
 {
-    LicanMetamorphosis($chat,$nome,$sesso,$verso);
+    licanMetamorphosis($chat,$nome,$sesso,$verso);
 }
-function FrasiLican(int $pg): string
+function frasiLican(int $pg): string
 {
     return htmlspecialchars(GetPGFromID($pg),ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8').' non può parlare nella forma attuale.';
 }
-function VampireDamage(string $chat, string $nome, string $sesso, bool $morto): void
+function vampireDamage(string $chat, string $nome, string $sesso, bool $morto): void
 {
     $name=htmlspecialchars($nome,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
-    InsertIntoChat($chat,'<div class="Fato">'.$name.($morto?' non ha più punti ferita.':' subisce danni ambientali.').'</div>');
+    insertIntoChat($chat,'<div class="Fato">'.$name.($morto?' non ha più punti ferita.':' subisce danni ambientali.').'</div>');
 }
 
 /* --------------------------------------------------------------------------
@@ -245,13 +247,3 @@ function showmessaggiotemp(string $chat): string
     return $row ? (string)$row[0]['testo'] : '';
 }
 
-/* --------------------------------------------------------------------------
- *  Alias SetPosizione()  (retro-compatibilità: alcuni script lo chiamano
- *  senza il namespace ed è definito originariamente in libpg.inc.php)
- * ------------------------------------------------------------------------ */
-if (!function_exists('SetPosizione')) {
-    function SetPosizione(string $posizione, int $idpg, string $chat = ''): void
-    {
-        \SetPosizione($posizione, $idpg, $chat);
-    }
-}

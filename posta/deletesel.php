@@ -18,9 +18,9 @@ require_once "$root/libs/libpg.inc.php";
 require_once "$root/libs/libgrafica.inc.php";
 require_once "$root/libs/libposta.inc.php";
 
-$idpg = alphano_require_login();
-if ($_SERVER['REQUEST_METHOD'] === 'POST') { alphano_require_csrf(); }
-$db   = ConnectDB();
+$idpg = alphanoRequireLogin();
+if ($_SERVER['REQUEST_METHOD'] === 'POST') { alphanoRequireCsrf(); }
+$db   = connectDB();
 
 // ———————————————————————————
 // PARAMETRI

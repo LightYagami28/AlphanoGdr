@@ -11,7 +11,7 @@ foreach (array_merge($_GET,$_POST) as $value) {
 
 require_once __DIR__ . '/../libs/kernel.inc.php';
 require_once __DIR__.'/../libs/group-media.inc.php';
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') { alphano_require_csrf(); }
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') { alphanoRequireCsrf(); }
 require_once __DIR__ . '/../libs/libgrafica.inc.php';
 require_once __DIR__ . '/../libs/group-admin.inc.php';
 require_once __DIR__ . '/../libs/libpg.inc.php';
@@ -31,7 +31,7 @@ function renderStatuto(string $raw): void {
     $clean = html_entity_decode($clean, ENT_QUOTES, 'UTF-8');
     // Se vuoi limitare i tag, usa strip_tags() qui:
     // $clean = strip_tags($clean, '<p><a><strong><em><ul><li><h1><h2><h3><h4>');
-    echo alphano_sanitize_html($clean);
+    echo alphanoSanitizeHtml($clean);
 }
 
 // Verifica login
@@ -53,7 +53,7 @@ $corpId    = (int)($_POST['corp'] ?? $_GET['corp'] ?? 0);
 $admincorp = $corpId > 0
            && $corpId === (int)$user['corporazione']
            && (bool)$user['admincorporazione'];
-$hierarchy = alphano_group_hierarchy('corporazioni', $corpId, $user);
+$hierarchy = alphanoGroupHierarchy('corporazioni', $corpId, $user);
 
 if ($admin) {
     EnsureAdmin();
@@ -72,7 +72,7 @@ if (
     && ($admin || $admincorp)
     && isset($_POST['statuto'])
 ) {
-    if (alphano_group_statute_proposal('corporazioni',$corpId,$idpg,$statuto,$_POST['_request_key'] ?? null)) {
+    if (alphanoGroupStatuteProposal('corporazioni',$corpId,$idpg,$statuto,$_POST['_request_key'] ?? null)) {
         $msg = 'Lo statuto è stato inviato all\'accademia.';
     }
 }
@@ -107,7 +107,7 @@ global $quality;
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title><?= htmlentities(GetTitolo($statuto), ENT_QUOTES, 'UTF-8') ?> – <?= TitoloSito ?></title>
+    <title><?= htmlentities(getTitolo($statuto), ENT_QUOTES, 'UTF-8') ?> – <?= TITOLO_SITO ?></title>
     <script src="/js/corporation-dossier.js" defer></script>
 
     <?php if ($modify && ($admin || $admincorp)): ?>
@@ -130,7 +130,7 @@ global $quality;
 </head>
 <?php $h = static fn($value) => htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
 <body class="corporation-dossier">
-<header class="ui-page-heading corporation-dossier-heading" data-page-heading data-header-image="<?=$h(group_header_image('corporazioni',$corpId))?>">
+<header class="ui-page-heading corporation-dossier-heading" data-page-heading data-header-image="<?=$h(groupHeaderImage('corporazioni',$corpId))?>">
     <span data-icon="shield" aria-hidden="true"></span>
     <div><div class="ui-eyebrow">Alphano · Corporazioni</div><h1><?=$h($hierarchy['name'])?></h1><p>La bottega, le sue cariche e i suoi membri.</p></div>
     <nav class="corporation-dossier-nav ui-heading-control" aria-label="Scheda della corporazione">
@@ -171,6 +171,6 @@ global $quality;
         <?php endif; ?>
     <?php endif; ?>
 </main>
-<?php ClosePage(); ?>
+<?php closePage(); ?>
 </body>
 </html>

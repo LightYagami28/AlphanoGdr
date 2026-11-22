@@ -6,7 +6,7 @@ function bg_computer_info(array $m):?array {
  return (int)$m['b']<0&&is_array($c)&&-(int)$m['b']===(int)($c['npc_id']??0)?$c:null;
 }
 function bg_computer_npcs(string $chat):array {
- return array_map(static function($n){$p=rpg_decode($n['profile']);$image=(string)($p['portrait']??'');return ['id'=>(int)$n['id'],'name'=>$n['name'],'portrait'=>str_starts_with($image,'/')&&!str_starts_with($image,'//')?$image:'/assets/placeholder.svg'];},ConnectDB()->query('SELECT id,name,profile FROM ai_npcs WHERE chat_key=? AND active=1 ORDER BY name',[$chat]));
+ return array_map(static function($n){$p=rpg_decode($n['profile']);$image=(string)($p['portrait']??'');return ['id'=>(int)$n['id'],'name'=>$n['name'],'portrait'=>str_starts_with($image,'/')&&!str_starts_with($image,'//')?$image:'/assets/placeholder.svg'];},connectDB()->query('SELECT id,name,profile FROM ai_npcs WHERE chat_key=? AND active=1 ORDER BY name',[$chat]));
 }
 function bg_computer_evaluate(Onspli\Chess\FEN $fen):int {
  $score=0;$values=['p'=>100,'n'=>320,'b'=>330,'r'=>500,'q'=>900,'k'=>0];
@@ -31,7 +31,7 @@ function bg_computer_choose(array $state,int $level=2):string {
  return $best;
 }
 function bg_computer_finish(array &$m,int $winner,string $reason,bool $void):void {
- $d=ConnectDB();if($d->query('SELECT id FROM board_game_escrow WHERE game_id=? LIMIT 1',[$m['id']])){ throw new RuntimeException('Poste non consentite per una partita di allenamento.'); }
+ $d=connectDB();if($d->query('SELECT id FROM board_game_escrow WHERE game_id=? LIMIT 1',[$m['id']])){ throw new RuntimeException('Poste non consentite per una partita di allenamento.'); }
  $now=time();$st=rpg_decode($m['state_json']);$key=$st['turn']===0?'clock_white':'clock_black';$m[$key]=max(0,(int)$m[$key]-max(0,bgNow()-(int)$m['turn_at']));
  $result=['computer'=>true,'winner'=>$winner,'reason'=>$reason,'duration'=>max(0,$now-(int)$m['started_at']),'plies'=>count(rpg_decode($m['moves_json'])),'prizes'=>[],'intelligence'=>[(int)$m['a']=>0],'elo'=>[(int)$m['a']=>0],'rated'=>false,'void'=>$void];
  $m['status']=$void?'cancelled':'finished';$m['winner']=$winner;$m['reason']=$reason;$m['finished_at']=$now;$m['result_json']=rpg_json($result);$m['version']++;
@@ -44,7 +44,7 @@ function bg_computer_reply(array &$m):void {
  $move=bg_computer_choose($state,(int)$c['level']);bgExpire($m);if($m['status']==='active'){ bgCommitMove($m,(int)$m['b'],$move); }
 }
 function bg_computer_start(int $uid,array $in):array {
- $d=ConnectDB();$chat=playerText($in,'chat',100,true);bgActor($uid,$chat);$settings=bgSettings();$room=bgRoom($chat);
+ $d=connectDB();$chat=playerText($in,'chat',100,true);bgActor($uid,$chat);$settings=bgSettings();$room=bgRoom($chat);
  if(!$settings['enabled']||!$settings['scacchi']||!$room['scacchi']){ throw new DomainException('Gli scacchi non sono abilitati in questo luogo.',403); }
  $npcId=rpg_int($in['npc']??0,1,PHP_INT_MAX,'PNG');$npcs=array_column(bg_computer_npcs($chat),null,'id');$npc=$npcs[$npcId]??null;if(!$npc){ throw new DomainException('Scegli un PNG presente in questo luogo.',422); }
  $level=rpg_int($in['level']??2,1,2,'Difficoltà');$color=(string)($in['color']??'white');if(!in_array($color,['white','black','random'],true)){ throw new DomainException('Colore non valido.',422); }

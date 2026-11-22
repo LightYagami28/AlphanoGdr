@@ -3,10 +3,10 @@ declare(strict_types=1);
 require_once __DIR__.'/../libs/ai.inc.php';
 header('Content-Type: application/json; charset=utf-8');header('Cache-Control: private, no-store');$db=aiDb();
 try{
- $uid=alphano_require_login(true);$u=alphano_user();$method=$_SERVER['REQUEST_METHOD'];
+ $uid=alphanoRequireLogin(true);$u=alphanoUser();$method=$_SERVER['REQUEST_METHOD'];
  if(!in_array($method,['GET','POST'],true)){ throw new DomainException('Metodo non consentito.',405); }
- $in=$method==='POST'?alphano_request_json():$_GET;
- if($method==='POST'){ alphano_require_csrf(true); }
+ $in=$method==='POST'?alphanoRequestJson():$_GET;
+ if($method==='POST'){ alphanoRequireCsrf(true); }
  $action=aiField($in,'action',30,true);$admin=!empty($u['admin']);
  // Ordinary Masters use the same scoped controller as the Session Manager.
  // This compatibility bridge never grants access to prompts, policy or raw data.
@@ -17,14 +17,14 @@ try{
   require_once __DIR__.'/../libs/session-control.inc.php';
   $bridge=['session_id'=>aiInteger($in,'quest_id',1,PHP_INT_MAX)];
   foreach(['request_id','request_key'] as $receipt){ if(array_key_exists($receipt,$in)){ $bridge[$receipt]=$in[$receipt]; } }
-  $result=alphano_session_control_action($uid,(string)$u['chat'],$mode==='human'?'takeover':'ai',$bridge);
+  $result=alphanoSessionControlAction($uid,(string)$u['chat'],$mode==='human'?'takeover':'ai',$bridge);
   echo aiQuestJson(['ok'=>true,...$result]);exit;
  }
  $public=($method==='GET'&&$action==='state')||($method==='POST'&&$action==='join');
  if(!$public&&!$admin){ throw new DomainException('Gli strumenti tecnici IA sono riservati agli amministratori. Usa la regia della sessione.',403); }
  $allowed=$method==='GET'?['state','overview','npc','quest']:['join','npc_save','give_item','return_item','slot','knowledge_save','conductor','control','policy','cast_state','skip','approve','reverse','retry'];
  if(!in_array($action,$allowed,true)){ throw new DomainException('Azione non disponibile.',404); }
- if($method==='POST'){$guard=alphano_session_guard($u['chat']);if(!(int)$db->query('SELECT GET_LOCK(?,5) acquired',[$guard])[0]['acquired']){ throw new DomainException('Regia occupata, riprova.',409); }register_shutdown_function(static function()use($db,$guard){$db->query('SELECT RELEASE_LOCK(?)',[$guard]);});}
+ if($method==='POST'){$guard=alphanoSessionGuard($u['chat']);if(!(int)$db->query('SELECT GET_LOCK(?,5) acquired',[$guard])[0]['acquired']){ throw new DomainException('Regia occupata, riprova.',409); }register_shutdown_function(static function()use($db,$guard){$db->query('SELECT RELEASE_LOCK(?)',[$guard]);});}
  if($action==='state'&&$method==='GET'){echo aiQuestJson(['quest'=>aiQuestPublic($u['chat'],$uid)]);exit;}
  if($action==='join'&&$method==='POST'){
   $db->beginTransaction();$db->query('SELECT chat_key FROM ai_rooms WHERE chat_key=? FOR UPDATE',[$u['chat']]);$q=aiQuestRow($u['chat'],true);if(!$q||!in_array($q['mode'],['auto','human'],true)){ throw new DomainException('Nessuna quest IA a cui unirsi.',409); }$sid=(int)$q['session_id'];$g=aiGameGuidance($sid);$old=$db->query('SELECT * FROM ai_quest_cast WHERE session_id=? AND kind=\'pg\' AND actor_id=? FOR UPDATE',[$sid,$uid])[0]??null;
@@ -52,7 +52,7 @@ try{
    if($action==='npc_save'){$old=$db->query('SELECT * FROM aiNpcGame WHERE npc_id=? FOR UPDATE',[$id])[0]??null;if((int)($old['version']??0)!==aiInteger($in,'version',0,PHP_INT_MAX)){ throw new DomainException('PNG modificato altrove: ricarica.',409); }$v=aiNpcGameValidate($in['settings']??[],$id);$db->execute('INSERT INTO aiNpcGame(npc_id,settings,updated_by,updated_at) VALUES(?,?,?,?) ON DUPLICATE KEY UPDATE settings=VALUES(settings),version=version+1,updated_by=VALUES(updated_by),updated_at=VALUES(updated_at)',[$id,aiQuestJson($v),$uid,time()]);aiQuestAudit(0,'npc_configured',['npc'=>$id,'before'=>$old,'after'=>$v,'reason'=>$reason],$uid);
    }elseif($action==='slot'){aiNpcItemSlot($id,aiInteger($in,'instance',1,PHP_INT_MAX),aiField($in,'slot',30));}
    else{
-    $instance=aiInteger($in,'instance',1,PHP_INT_MAX);$key=aiField($in,'request_id',80,true);if(alphano_operation_once('npc-inventory',$uid,$key,[$id,$instance,$action])){$from=$action==='give_item'?$uid:aiNpcOwner($id);$to=$action==='give_item'?aiNpcOwner($id):$uid;$item=$db->query('SELECT * FROM equippg WHERE id=? AND idpg=? FOR UPDATE',[$instance,$from])[0]??null;if(!$item||$db->query('SELECT id FROM equippg WHERE idpadre=?',[$instance])){ throw new DomainException('Oggetto non disponibile o contenitore non vuoto.',422); }$db->execute("UPDATE equippg SET idpg=?,slot='',idpadre=0 WHERE id=?",[$to,$instance]);aiQuestAudit(0,'npc_inventory',['npc'=>$id,'instance'=>$instance,'from'=>$from,'to'=>$to,'reason'=>$reason],$uid);}
+    $instance=aiInteger($in,'instance',1,PHP_INT_MAX);$key=aiField($in,'request_id',80,true);if(alphanoOperationOnce('npc-inventory',$uid,$key,[$id,$instance,$action])){$from=$action==='give_item'?$uid:aiNpcOwner($id);$to=$action==='give_item'?aiNpcOwner($id):$uid;$item=$db->query('SELECT * FROM equippg WHERE id=? AND idpg=? FOR UPDATE',[$instance,$from])[0]??null;if(!$item||$db->query('SELECT id FROM equippg WHERE idpadre=?',[$instance])){ throw new DomainException('Oggetto non disponibile o contenitore non vuoto.',422); }$db->execute("UPDATE equippg SET idpg=?,slot='',idpadre=0 WHERE id=?",[$to,$instance]);aiQuestAudit(0,'npc_inventory',['npc'=>$id,'instance'=>$instance,'from'=>$from,'to'=>$to,'reason'=>$reason],$uid);}
    }
    // Personality/statistics belong to this NPC. Snapshot fences refresh the
    // original pending turns without interrupting the other conversations.

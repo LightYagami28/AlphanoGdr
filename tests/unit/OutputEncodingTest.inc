@@ -30,9 +30,9 @@ final class OutputEncodingTest extends \PHPUnit\Framework\TestCase
      */
     public function testEscapeHtml(): void
     {
-        self::assertSame('&lt;script&gt;&amp;&quot;&#039;', alphano_escape('<script>&"'."'"));
-        self::assertSame('123', alphano_escape(123));
-        self::assertSame('', alphano_escape(null));
+        self::assertSame('&lt;script&gt;&amp;&quot;&#039;', alphanoEscape('<script>&"'."'"));
+        self::assertSame('123', alphanoEscape(123));
+        self::assertSame('', alphanoEscape(null));
     }
 
     /**

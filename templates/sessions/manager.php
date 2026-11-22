@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Conduci la giocata · Alphano</title><script src="/js/ui-dialog.js" defer></script><script src="/js/session-manager.js?v=<?=filemtime(dirname(__DIR__,2).'/js/session-manager.js')?>" defer></script><script src="/js/session-participants.js?v=<?=filemtime(dirname(__DIR__,2).'/js/session-participants.js')?>" defer></script></head>
 <body>
-<main class="session-manager session-control" data-session-manager data-csrf="<?=$h(alphano_csrf_token())?>" data-endpoint="/sessione/sessione.php?chat=<?=rawurlencode($chat)?>">
+<main class="session-manager session-control" data-session-manager data-csrf="<?=$h(alphanoCsrfToken())?>" data-endpoint="/sessione/sessione.php?chat=<?=rawurlencode($chat)?>">
 <header class="ui-page-heading session-control-heading" data-page-heading><div><p class="ui-eyebrow">Alphano · Il tavolo del Master</p><h1>Conduci la giocata</h1><p><?=$h($posizione)?> · Apertura, regia e personaggi della scena.</p></div><nav class="session-control-header-actions" aria-label="Navigazione del pannello"><button type="button" id="session-close-panel" data-icon="back">Torna alla chat</button></nav></header>
 <div class="session-control-content">
 <p id="session-feedback" class="session-control-feedback" role="status" aria-live="polite" hidden></p><p id="session-connection" class="session-control-connection" role="status" hidden></p>
@@ -40,7 +40,7 @@
 </div>
 
 <section class="session-control-people" id="session-people">
-<div class="session-control-people-help"><button type="button" class="session-control-info" data-ui-no-icon data-session-help="session-help-people" aria-controls="session-help-people" aria-expanded="false" aria-label="Come gestire i personaggi presenti">?</button></div><div class="session-control-help" id="session-help-people" hidden><p>Seleziona un personaggio per consultarne salute, ferite, <?=alphano_currency_html()?> e oggetti. Ogni intervento richiede una motivazione e viene registrato; il gioco verifica gli aggiornamenti prima di applicarli.</p></div>
+<div class="session-control-people-help"><button type="button" class="session-control-info" data-ui-no-icon data-session-help="session-help-people" aria-controls="session-help-people" aria-expanded="false" aria-label="Come gestire i personaggi presenti">?</button></div><div class="session-control-help" id="session-help-people" hidden><p>Seleziona un personaggio per consultarne salute, ferite, <?=alphanoCurrencyHtml()?> e oggetti. Ogni intervento richiede una motivazione e viene registrato; il gioco verifica gli aggiornamenti prima di applicarli.</p></div>
 <?php require __DIR__.'/participants.php'; ?>
 </section>
 </div>

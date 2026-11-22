@@ -15,13 +15,13 @@ foreach (array_merge($_GET,$_POST) as $value) {
  */
 
 require_once __DIR__ . '/../libs/kernel.inc.php';
-require_once __DIR__.'/../libs/group-media.inc.php';        // initSession(), ClosePage()
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') { alphano_require_csrf(); }
+require_once __DIR__.'/../libs/group-media.inc.php';        // initSession(), closePage()
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') { alphanoRequireCsrf(); }
 require_once __DIR__ . '/../libs/libgrafica.inc.php';
 require_once __DIR__ . '/../libs/group-admin.inc.php';
 require_once __DIR__ . '/../libs/libpg.inc.php';         // GetIDPG(), EnsureAdmin()
-require_once __DIR__ . '/../libs/libtext.inc.php';       // ProcessText()
-require_once __DIR__ . '/../libs/libaccademia.inc.php';  // salvaStatutoOrg(), getStatutoOrg(), GetTitolo()
+require_once __DIR__ . '/../libs/libtext.inc.php';       // processText()
+require_once __DIR__ . '/../libs/libaccademia.inc.php';  // salvaStatutoOrg(), getStatutoOrg(), getTitolo()
 require_once __DIR__ . '/../libs/libposta.inc.php';      // eventualmente per notifiche
 
 
@@ -47,7 +47,7 @@ if ($org === false || $org === null) {
     exit('Organizzazione non specificata.');
 }
 
-$db = ConnectDB();
+$db = connectDB();
 
 // Controllo permessi
 $user = $db->query(
@@ -66,7 +66,7 @@ if ($admin) {
 
 // Salvataggio statuto
 if ($modify && ($admin || $adminorg) && strlen($stat) > 0) {
-    if (alphano_group_statute_proposal('organizzazioni',$org,$idpg,$stat,$_POST['_request_key'] ?? null)) {
+    if (alphanoGroupStatuteProposal('organizzazioni',$org,$idpg,$stat,$_POST['_request_key'] ?? null)) {
         $msg = 'Statuto inviato all\'accademia';
     }
 }
@@ -79,7 +79,7 @@ $statuto = getStatutoOrg($org, (bool)$modify);
 <html lang="it">
 <head>
   <meta charset="utf-8">
-  <title><?= htmlspecialchars(GetTitolo($statuto), ENT_QUOTES) ?> – <?= TitoloSito ?></title>
+  <title><?= htmlspecialchars(getTitolo($statuto), ENT_QUOTES) ?> – <?= TITOLO_SITO ?></title>
 
 
 <?php if ($modify && ($admin || $adminorg)): ?>
@@ -95,7 +95,7 @@ $statuto = getStatutoOrg($org, (bool)$modify);
   </script>
 <?php endif ?>
 </head>
-<body><header class="ui-page-heading" data-page-heading data-header-image="<?=htmlspecialchars(group_header_image('organizzazioni',(int)$org),ENT_QUOTES)?>"><span data-icon="shield"></span><div><h1><?=htmlspecialchars(GetOrg((int)$org,false),ENT_QUOTES)?></h1><p>Statuto e identità del gruppo.</p></div></header>
+<body><header class="ui-page-heading" data-page-heading data-header-image="<?=htmlspecialchars(groupHeaderImage('organizzazioni',(int)$org),ENT_QUOTES)?>"><span data-icon="shield"></span><div><h1><?=htmlspecialchars(GetOrg((int)$org,false),ENT_QUOTES)?></h1><p>Statuto e identità del gruppo.</p></div></header>
   <?php if ($msg): ?>
     <div class="panel"><?= htmlspecialchars($msg, ENT_QUOTES) ?></div>
   <?php endif ?>
@@ -120,7 +120,7 @@ $statuto = getStatutoOrg($org, (bool)$modify);
       </div>
     </form>
   <?php else: ?>
-    <div class="Valore"><?= ProcessText($statuto) ?></div>
+    <div class="Valore"><?= processText($statuto) ?></div>
     <?php if ($admin || $adminorg): ?>
       <form method="post">
       <input type="hidden" name="_request_key" value="<?=bin2hex(random_bytes(16))?>">
@@ -145,4 +145,4 @@ $statuto = getStatutoOrg($org, (bool)$modify);
 </body>
 </html>
 <?php
-ClosePage();
+closePage();

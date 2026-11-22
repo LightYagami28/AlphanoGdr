@@ -24,7 +24,7 @@ function aiAdultInvitationDecision(int $npc,int $player):array{
  return ['allowed'=>true,'reason'=>'Accetta l’invito grazie alla fiducia e alla confidenza costruite insieme. L’incontro resta libero da aspettative e può essere interrotto in ogni momento.'];
 }
 function aiDialogueNpcs(string $chat,int $player):array{
- if(str_starts_with($chat,'rent_')){$n=companionship_room_npc($chat,$player);return $n?[$n]:[];}
+ if(str_starts_with($chat,'rent_')){$n=companionshipRoomNpc($chat,$player);return $n?[$n]:[];}
  return aiDb()->query('SELECT n.* FROM ai_npcs n WHERE n.chat_key=? AND n.active=1 AND NOT EXISTS(SELECT 1 FROM companion_appointments a WHERE a.active_npc_id=n.id AND a.finished_at=0 AND a.expires_at>?) ORDER BY n.id',[$chat,time()]);
 }
 function aiDialogueNpc(string $chat,int $npc,int $player):?array{
@@ -32,7 +32,7 @@ function aiDialogueNpc(string $chat,int $npc,int $player):?array{
 }
 function aiDialogueRoom(string $chat,int $player):array{
  if(!str_starts_with($chat,'rent_')){ return aiPublicRoom($chat); }
- $npc=companionship_room_npc($chat,$player);if(!$npc){ throw new DomainException('Nessun PNG invitato è disponibile in questa camera.',403); }
+ $npc=companionshipRoomNpc($chat,$player);if(!$npc){ throw new DomainException('Nessun PNG invitato è disponibile in questa camera.',403); }
  return ['chat_key'=>$chat,'title'=>'Camera riservata'];
 }
 function aiAdultSceneContext(array $npc,array $job,bool $compact=false):string{
@@ -42,7 +42,7 @@ function aiAdultSceneContext(array $npc,array $job,bool $compact=false):string{
  if(!$s['sexuality_enabled']){ return $out.' Per questo PNG le relazioni adulte non sono abilitate: mantieni i confini del suo ruolo e della sua storia.'; }
  $partner=aiAdultPartner($nid);if($partner&&$partner!==$uid){ $out.=' Conservi una fedeltà personale già stabilita: puoi essere cortese, ma non offrire una relazione parallela.'; }
  if(!$private){ return $out.' Questo è un luogo pubblico: conserva discrezione, senza intimità o racconti privati davanti ad altri.'; }
- $appointment=companionship_room_npc($job['chat_key'],$uid);if(!$appointment||(int)$appointment['id']!==$nid){ return $out.' Non sei invitata in questa camera: nessuna visita o intimità è autorizzata.'; }
+ $appointment=companionshipRoomNpc($job['chat_key'],$uid);if(!$appointment||(int)$appointment['id']!==$nid){ return $out.' Non sei invitata in questa camera: nessuna visita o intimità è autorizzata.'; }
  $reason=($appointment['appointment_kind']??'')==='service'?'Hai accettato un incontro di compagnia a tempo. La tariffa e la camera sono già state pagate: non chiedere un secondo pagamento né trattare l’ospite come un intruso. Accoglilo secondo il tuo carattere; un interlocutore cortese merita una risposta cordiale, anche senza fiducia o attrazione. Puoi raccontare piccoli fatti pubblici della tua storia senza rivelare segreti; riserbo non significa ostilità gratuita.':aiAdultInvitationDecision($nid,$uid)['reason'];
  return $out.' Sei ospite di una camera privata per un incontro limitato nel tempo. '.$reason.' Ricorda questo interlocutore come lo stesso personaggio incontrato fuori dalla camera; non inventare amore o una relazione perché ha pagato. Puoi interrompere o rifiutare in ogni momento.';
 }
@@ -60,13 +60,13 @@ function aiAdultOutputGuard(array $npc,array $job,string $text):string{
 /** A private visit can enqueue only its assigned NPC; public memories never receive its transcript. */
 function aiPrivateCompanionReply(string $chat,int $source,int $player,string $raw,int $dest,bool $requested,int $selected):array{
  if($dest!==0||str_starts_with(trim($raw),'//')||str_starts_with(trim($raw),'#')){ return []; }
- $npc=companionship_room_npc($chat,$player);if(!$npc){ return []; }
+ $npc=companionshipRoomNpc($chat,$player);if(!$npc){ return []; }
  if(!$requested){ return []; }
  if($selected!==(int)$npc['id']){ return ['ai_notice'=>'In questa camera puoi rivolgerti soltanto al PNG che ha accettato la visita.']; }
  $db=aiDb();$db->beginTransaction();
  try{
   $room=$db->query('SELECT * FROM ai_rooms WHERE chat_key=? FOR UPDATE',[$chat])[0]??null;
-  if(!$room||!$room['enabled']||!companionship_room_npc($chat,$player)){ throw new DomainException('La visita è terminata o il PNG non è più disponibile.',409); }
+  if(!$room||!$room['enabled']||!companionshipRoomNpc($chat,$player)){ throw new DomainException('La visita è terminata o il PNG non è più disponibile.',409); }
   $text=aiTurnText($raw,2500);$speaker=aiPlayerIdentity($player)['nome']??'Ospite';
   $db->execute('INSERT IGNORE INTO ai_events(chat_key,source_id,speaker,content,created_at) VALUES(?,?,?,?,?)',[$chat,$source,$speaker,$text,time()]);
   $job=aiEnqueueLocked($room,$npc,$player,'message:'.$chat.':'.$source,$text,'play',['source'=>$source]);$db->commit();

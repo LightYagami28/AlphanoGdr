@@ -17,16 +17,16 @@ require_once "$root/libs/libgrafica.inc.php";
 require_once "$root/libs/libpg.inc.php";
 require_once "$root/libs/libtext.inc.php";
 require_once "$root/libs/libposta.inc.php";
-require_once "$root/libs/mail-presentation.inc.php";  // per PurgePosta se serve
+require_once "$root/libs/mail-presentation.inc.php";  // per purgePosta se serve
 
 
 
 // ———————————————————————————
 // LOGIN & COLORI
 // ———————————————————————————
-$idpg    = alphano_require_login();
-if ($_SERVER['REQUEST_METHOD'] === 'POST') { alphano_require_csrf(); }
-$db      = ConnectDB();
+$idpg    = alphanoRequireLogin();
+if ($_SERVER['REQUEST_METHOD'] === 'POST') { alphanoRequireCsrf(); }
+$db      = connectDB();
 
 
 // ———————————————————————————
@@ -63,12 +63,12 @@ if ($delId) {
 // ———————————————————————————
 $row = $db->query('SELECT * FROM mail WHERE id = ?', [$msgId])[0] ?? null;
 if (!$row) {
-    alphano_fail('Messaggio non trovato.',404);
+    alphanoFail('Messaggio non trovato.',404);
 }
 $isMitt = ((int)$row['idmittente'] === $idpg);
 $isDest = ((int)$row['iddestinatario']=== $idpg);
 if (!$isMitt && !$isDest) {
-    alphano_fail('Non puoi accedere a questa missiva.',403);
+    alphanoFail('Non puoi accedere a questa missiva.',403);
 }
 
 $tradeId=0;
@@ -94,9 +94,9 @@ if ($isDest) {
 // ———————————————————————————
 $otherId = $isDest ? (int)$row['idmittente'] : (int)$row['iddestinatario'];
 $otherName = $otherId>0?GetPGFromID($otherId):'Alphano · Sistema';
-$mailPeople=alphano_mail_people([(int)$row['idmittente'],(int)$row['iddestinatario']]);
+$mailPeople=alphanoMailPeople([(int)$row['idmittente'],(int)$row['iddestinatario']]);
 $before=max(0,(int)($_POST['before']??0));
-$conversation=alphano_mail_contact_conversation($row,$idpg,$before);
+$conversation=alphanoMailContactConversation($row,$idpg,$before);
 $hasEarlier=count($conversation)>80;if($hasEarlier){ array_shift($conversation); }
 if(!$conversation){ $conversation=[$row]; }
 $readIds=[];foreach($conversation as $letter){ if((int)$letter['iddestinatario']===$idpg&&!(int)$letter['letto']){ $readIds[]=(int)$letter['id']; } }
@@ -107,4 +107,4 @@ $readNoticeId=$readIds[0]??($isDest?$msgId:0);
 $title = $otherId>0 ? "Conversazione con $otherName" : "Avviso di Alphano";
 
 $mailActivePerson=$otherId;require __DIR__.'/../templates/mail/workspace.php';
-ClosePage();
+closePage();

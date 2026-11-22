@@ -1,11 +1,12 @@
 <?php
 declare(strict_types=1);
+const GROUP_ADMIN_INC_UPLOADS_BADGES = '/uploads/badges/';
 require_once __DIR__.'/libeconomia.inc.php';
 require_once __DIR__.'/libpg.inc.php';
 require_once __DIR__.'/libelezioni.inc.php';
 
 /** Only allowlisted group mutations enter this shared transaction and receipt. */
-function alphano_group_admin_action(string $scope, int $group, int $actor, string $action, array $input, array $files = []): ?string
+function alphanoGroupAdminAction(string $scope, int $group, int $actor, string $action, array $input, array $files = []): ?string
 {
     $actions=['admitpg','changecarica','addramo','modifyramo','dropramo','addcarica','modifycarica','dropcarica','setflag','modifypvt','proponi'];
     if (!in_array($scope,['organizzazioni','corporazioni'],true) || !in_array($action,$actions,true)) { return null; }
@@ -24,11 +25,11 @@ function alphano_group_admin_action(string $scope, int $group, int $actor, strin
             economiaVerifica((bool)$groupRow,'Gruppo non valido');
             $payload=$input;$payload['_group']=$group;unset($payload['_csrf'],$payload['csrf_token'],$payload['_request_key']);
             foreach ($files as $key=>$file) { if (is_array($file) && is_uploaded_file($file['tmp_name'] ?? '')) { $payload['upload_'.$key]=hash_file('sha256',$file['tmp_name']); } }
-            if (!alphano_operation_once($prefix.'-admin-'.$action,$actor,$input['_request_key'] ?? null,$payload)) { return 'Operazione già completata'; }
+            if (!alphanoOperationOnce($prefix.'-admin-'.$action,$actor,$input['_request_key'] ?? null,$payload)) { return 'Operazione già completata'; }
             $before=[];$after=[];$section='iscritti';$target=0;$personal=false;$changed=false;
             $title='Amministrazione del gruppo';$detail='';
             $remember=static function(int $rank) use($scope,$group,&$undo): string {
-                $path=htmlroot.'/uploads/badges/'.$scope.'/'.$group.'/'.$rank.'.gif';
+                $path=HTMLROOT.GROUP_ADMIN_INC_UPLOADS_BADGES.$scope.'/'.$group.'/'.$rank.'.gif';
                 $undo[$path]=is_file($path)?file_get_contents($path):null;
                 return $path;
             };
@@ -98,7 +99,7 @@ function alphano_group_admin_action(string $scope, int $group, int $actor, strin
                     economiaVerifica((bool)$before && !$db->query("SELECT id FROM utenti WHERE {$field}=? AND {$rankField}=? FOR UPDATE",[$group,$id]),'La carica è ancora assegnata');
                     $db->execute("DELETE FROM {$table} WHERE id=? AND {$field}=?",[$id,$group]);
                     $title='Carica del gruppo eliminata';$detail="Eliminata la carica {$before['nome']} di {$groupRow['nome']}.";
-                    $path=htmlroot.'/uploads/badges/'.$scope.'/'.$group.'/'.$id.'.gif';if(is_file($path)){ unlink($path); }
+                    $path=HTMLROOT.GROUP_ADMIN_INC_UPLOADS_BADGES.$scope.'/'.$group.'/'.$id.'.gif';if(is_file($path)){ unlink($path); }
                 } else {
                     $name=trim((string)($input['nome'] ?? $input['carica'] ?? ''));$branch=economiaIntero($input['ramo'] ?? '',0);$level=economiaIntero($input['livello'] ?? '',0,2147483647);
                     $description=trim((string)($input['descrizione'] ?? ''));$first=!empty($input['prima']);$file=$files['immagine'] ?? ['error'=>UPLOAD_ERR_NO_FILE];
@@ -119,12 +120,12 @@ function alphano_group_admin_action(string $scope, int $group, int $actor, strin
                         else {$db->execute("UPDATE {$table} SET nome=?,prima=?,ramo=?,livello=?,descrizione=?,stipendio=?,provvigione=? WHERE id=? AND {$field}=?",[$name,$first?1:0,$branch,$level,$description,$salary,$commission,$id,$group]);$result='Carica corporazione aggiornata';}
                         economiaVerifica(in_array($result,['Carica corporazione creata','Carica corporazione aggiornata'],true),$result);
                     }
-                    if ($action==='addcarica') {$id=(int)$db->lastInsertId();$undo[htmlroot.'/uploads/badges/'.$scope.'/'.$group.'/'.$id.'.gif']=null;}
+                    if ($action==='addcarica') {$id=(int)$db->lastInsertId();$undo[HTMLROOT.GROUP_ADMIN_INC_UPLOADS_BADGES.$scope.'/'.$group.'/'.$id.'.gif']=null;}
                     $after=$db->query("SELECT * FROM {$table} WHERE id=? AND {$field}=?",[$id,$group])[0];
                     $title=$action==='addcarica'?'Carica del gruppo creata':'Carica del gruppo aggiornata';$detail="{$groupRow['nome']}: carica {$name}, livello {$level}, ramo #{$branch}.";
                 }
                 $target=$id;
-                $path=htmlroot.'/uploads/badges/'.$scope.'/'.$group.'/'.$id.'.gif';
+                $path=HTMLROOT.GROUP_ADMIN_INC_UPLOADS_BADGES.$scope.'/'.$group.'/'.$id.'.gif';
                 $before['immagine']=isset($undo[$path])?hash('sha256',$undo[$path]):null;
                 $after['immagine']=is_file($path)?hash_file('sha256',$path):null;
                 $changed=$before!==$after;
@@ -139,7 +140,7 @@ function alphano_group_admin_action(string $scope, int $group, int $actor, strin
                 economiaVerifica((bool)$before,'Personaggio non appartenente al gruppo');
                 require_once __DIR__.'/admin-governance.inc.php';
                 $updates=[];foreach($flags as $column=>$key){ $updates[$column]=!empty($input[$key])?1:0; }
-                alphano_governance_apply($actor,$target,$updates,'Delega dal pannello '.$groupRow['nome'],null,$scope,$group);
+                alphanoGovernanceApply($actor,$target,$updates,'Delega dal pannello '.$groupRow['nome'],null,$scope,$group);
                 $after=$db->query("SELECT id,nome,{$columns} FROM utenti WHERE id=?",[$target])[0];
                 $changed=$before!==$after;$personal=true;$title='Privilegi nel gruppo aggiornati';$detail="Aggiornati i privilegi di {$before['nome']} in {$groupRow['nome']}.";
             } elseif ($action==='modifypvt') {
@@ -154,22 +155,22 @@ function alphano_group_admin_action(string $scope, int $group, int $actor, strin
                 $title='Dati e stanza privata aggiornati';$detail="Aggiornati città, sito e impostazioni della stanza privata di {$groupRow['nome']}.";
             } elseif ($action==='proponi') {
                 $section='elezioni';$city=economiaIntero($input['city'] ?? '',1) ?? 0;$target=economiaIntero($input['pg'] ?? '',1) ?? 0;$program=trim((string)($input['programma'] ?? ''));
-                if(alphano_elections_ready()){ throw new DomainException('La candidatura è una scelta personale: ogni cittadino può presentarla dal registro elettorale della propria città.',409); }
+                if(alphanoElectionsReady()){ throw new DomainException('La candidatura è una scelta personale: ogni cittadino può presentarla dal registro elettorale della propria città.',409); }
                 $cityRow=$db->query('SELECT budget,costoelezioni,city FROM city WHERE id=? AND elezioni=1 FOR UPDATE',[$city])[0] ?? null;
                 $member=$db->query('SELECT u.id,u.nome FROM utenti u JOIN araldiche a ON a.id=u.araldica WHERE u.id=? AND u.organizzazione=? AND a.city=? FOR UPDATE',[$target,$group,$city])[0] ?? null;
-                economiaVerifica($cityRow && $member && $program!=='' && ElectionTime($city) && !$db->query('SELECT idpg FROM candidati WHERE idpg=? FOR UPDATE',[$target]),'Candidatura non valida, già presente o candidature chiuse');
+                economiaVerifica($cityRow && $member && $program!=='' && electionTime($city) && !$db->query('SELECT idpg FROM candidati WHERE idpg=? FOR UPDATE',[$target]),'Candidatura non valida, già presente o candidature chiuse');
                 $cost=(int)$cityRow['costoelezioni'];
                 economiaVerifica($cost>=0 && (int)$groupRow['budget']>=$cost && (int)$cityRow['budget']<=2147483647-$cost,'Fondi insufficienti o saldo non valido');
                 $db->execute('INSERT INTO candidati(idpg,organizzazione,city,programma) VALUES(?,?,?,?)',[$target,$group,$city,$program]);
                 $db->execute('UPDATE organizzazioni SET budget=budget-? WHERE id=?',[$cost,$group]);$db->execute('UPDATE city SET budget=budget+? WHERE id=?',[$cost,$city]);
                 $after=['candidato'=>$target,'city'=>$city,'programma'=>mb_substr($program,0,3000),'costo'=>$cost];$changed=true;$personal=true;
-                $title='Candidatura proposta';$detail=alphano_currency_text("{$groupRow['nome']} ha candidato {$member['nome']} alle elezioni di {$cityRow['city']}. Costo: {$cost} Corone.");
+                $title='Candidatura proposta';$detail=alphanoCurrencyText("{$groupRow['nome']} ha candidato {$member['nome']} alle elezioni di {$cityRow['city']}. Costo: {$cost} Corone.");
             }
             if ($changed) {
                 $audiences=[['scope'=>$scope,'id'=>$group,'section'=>$section,'role'=>'admin']];
                 if($personal && $target>0){ $audiences[]=['scope'=>'personale','id'=>$target,'section'=>'profilo','role'=>'member']; }
                 $eventType=$scope==='corporazioni' && $action==='modifycarica'?'corporation-role-updated':$prefix.'-admin-'.$action;
-                alphano_record_activity($eventType,$actor,$audiences,$title,$detail,['gruppo'=>$group,'nome_gruppo'=>$groupRow['nome'],'azione'=>$action,'target'=>$target,'prima'=>$before,'dopo'=>$after]);
+                alphanoRecordActivity($eventType,$actor,$audiences,$title,$detail,['gruppo'=>$group,'nome_gruppo'=>$groupRow['nome'],'azione'=>$action,'target'=>$target,'prima'=>$before,'dopo'=>$after]);
             }
             return $changed?$title:'Nessuna modifica necessaria';
         });
@@ -183,20 +184,20 @@ function alphano_group_admin_action(string $scope, int $group, int $actor, strin
 }
 
 /** A proposal retains its founder and records the actual revision in one commit. */
-function alphano_group_statute_proposal(string $scope, int $group, int $actor, string $statute, ?string $requestKey = null): bool
+function alphanoGroupStatuteProposal(string $scope, int $group, int $actor, string $statute, ?string $requestKey = null): bool
 {
     if (!in_array($scope,['organizzazioni','corporazioni'],true) || trim($statute)==='' || mb_strlen($statute)>50000) { return false; }
     $field=$scope==='organizzazioni'?'organizzazione':'corporazione';$prefix=$scope==='organizzazioni'?'organization':'corporation';
     return economiaAzioneModulo(static fn(): bool => economiaBool(static function() use($scope,$group,$actor,$statute,$requestKey,$field,$prefix): bool {
         $db=getDB();$user=$db->query("SELECT admin,{$field},admin{$field} FROM utenti WHERE id=? FOR UPDATE",[$actor])[0] ?? [];
         economiaVerifica(!empty($user['admin']) || ((int)($user[$field] ?? 0)===$group && !empty($user['admin'.$field])),'Mandato non valido');
-        if(!alphano_operation_once($prefix.'-statute-proposal',$actor,$requestKey,[$group,$statute])){ return true; }
+        if(!alphanoOperationOnce($prefix.'-statute-proposal',$actor,$requestKey,[$group,$statute])){ return true; }
         $before=$db->query("SELECT nome,newstatuto,newidmaster,idmaster FROM {$scope} WHERE id=? AND approvato=1 FOR UPDATE",[$group])[0] ?? null;
         economiaVerifica((bool)$before,'Gruppo non valido');
         $ok=$scope==='organizzazioni'?salvaStatutoOrg($group,$statute):salvaStatutoCorp($group,$statute);
         economiaVerifica($ok,'Impossibile proporre lo statuto');
         if ((string)$before['newstatuto']!==$statute || (int)$before['newidmaster']!==(int)$before['idmaster']) {
-            alphano_record_activity($prefix.'-statute-proposed',$actor,[['scope'=>$scope,'id'=>$group,'section'=>'statuto','role'=>'admin']],
+            alphanoRecordActivity($prefix.'-statute-proposed',$actor,[['scope'=>$scope,'id'=>$group,'section'=>'statuto','role'=>'admin']],
                 'Modifica dello statuto proposta',"Una nuova versione dello statuto di {$before['nome']} è stata inviata all’Accademia.",['gruppo'=>$group,'nome_gruppo'=>$before['nome'],'fondatore'=>(int)$before['idmaster'],'revisione_precedente'=>hash('sha256',(string)$before['newstatuto']),'revisione'=>hash('sha256',$statute)]);
         }
         return true;

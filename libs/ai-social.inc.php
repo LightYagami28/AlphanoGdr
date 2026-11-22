@@ -192,7 +192,7 @@ function aiSocialContext(array $npc,array $job,float $scale): string {
         $out.=$_ternaryValue;
         if($rules['economy_enabled']){
             $debt=aiDb()->query(AI_SOCIAL_DEBT_BALANCES_SQL,[(int)$npc['id'],(int)$player['id']])[0]??[];
-            $out.='Cassa '.aiNpcBalance((int)$npc['id']).'; max proposta '.$rules['max_amount'].', max/giorno '.$rules['daily_limit'].alphano_currency_text(' Corone; debiti PG/PNG ').(int)($debt['player_owes']??0).'/'.(int)($debt['npc_owes']??0).'. '.($rules['allow_loans']?'Prestiti abilitati. ':'Niente prestiti. ').'Solo proposte, mai trasferimenti già avvenuti. ';
+            $out.='Cassa '.aiNpcBalance((int)$npc['id']).'; max proposta '.$rules['max_amount'].', max/giorno '.$rules['daily_limit'].alphanoCurrencyText(' Corone; debiti PG/PNG ').(int)($debt['player_owes']??0).'/'.(int)($debt['npc_owes']??0).'. '.($rules['allow_loans']?'Prestiti abilitati. ':'Niente prestiti. ').'Solo proposte, mai trasferimenti già avvenuti. ';
         }else { $out.='Niente scambi monetari. '; }
         return $out.aiPersonalityContext($npc,$job,$scale,$rel).aiSocialDevelopmentContext($npc,$job,$rules,$scale);
     }
@@ -209,7 +209,7 @@ function aiSocialContext(array $npc,array $job,float $scale): string {
     $out.=aiPersonalityContext($npc,$job,$scale,$rel).aiSocialDevelopmentContext($npc,$job,$rules,$scale);
     if($rules['economy_enabled']){
         $debt=aiDb()->query(AI_SOCIAL_DEBT_BALANCES_SQL,[(int)$npc['id'],(int)$player['id']])[0]??[];
-        $out.=' Cassa effettiva del PNG: '.aiNpcBalance((int)$npc['id']).alphano_currency_text(' Corone; massimo per proposta ').$rules['max_amount'].'. Debito del PG verso di te '.(int)($debt['player_owes']??0).'; tuo debito verso il PG '.(int)($debt['npc_owes']??0).'. Non promettere somme che non possiedi. Formula prezzo, importo e causale chiaramente: il trasferimento avviene solo dopo conferma nel profilo. Non offrire prestiti se non abilitati.';
+        $out.=' Cassa effettiva del PNG: '.aiNpcBalance((int)$npc['id']).alphanoCurrencyText(' Corone; massimo per proposta ').$rules['max_amount'].'. Debito del PG verso di te '.(int)($debt['player_owes']??0).'; tuo debito verso il PG '.(int)($debt['npc_owes']??0).'. Non promettere somme che non possiedi. Formula prezzo, importo e causale chiaramente: il trasferimento avviene solo dopo conferma nel profilo. Non offrire prestiti se non abilitati.';
     }else { $out.=' Questo PNG non esegue scambi monetari: non promettere pagamenti reali.'; }
     $out.="\nDinieghi e tentativi sono solo narrativi: non bloccare accessi, non imporre esiti sui PG. Non dichiarare denaro, cure, oggetti o titoli già trasferiti; una proposta economica richiede conferma del backend. Usa i ricordi spontaneamente, senza elencare i punteggi.";
     return $out;
@@ -271,7 +271,7 @@ function aiSocialRecordQuestScene(array $npc,array $job,array $result,array $act
     foreach(array_slice($actions,0,16) as $action){
         $uid=(int)($action['actor_id']??0);$source=(int)($action['source_id']??0);
         if(($action['kind']??'')!=='pg'||$uid<1||$source<1||isset($seen[$uid])){ continue; }$seen[$uid]=true;
-        $public=$db->query('SELECT pg,chat,dest'.(alphano_chat_has_archive()?',history_only':'').' FROM chat WHERE id=?',[$source])[0]??null;
+        $public=$db->query('SELECT pg,chat,dest'.(alphanoChatHasArchive()?',history_only':'').' FROM chat WHERE id=?',[$source])[0]??null;
         if(!$public||(int)$public['pg']!==$uid||(int)$public['dest']!==0||$public['chat']!==$chat||!empty($public['history_only'])){ continue; }
         $copy=[...$job,'kind'=>'npc-turn','user_id'=>$uid,'source_id'=>$source,'prompt'=>(string)$action['content']];
         if(!aiRelationContextJobCurrent($copy)){ continue; }
@@ -404,14 +404,14 @@ function aiMoneyTransfer(int $npc,int $player,string $kind,int $amount,string $r
     if($kind==='repay_npc'&&$amount>(int)$debt['player_owes']){ throw new AiSocialDomainException('Importo superiore al debito del personaggio.',422); }
     if($kind==='repay_player'&&$amount>(int)$debt['npc_owes']){ throw new AiSocialDomainException('Importo superiore al debito del PNG.',422); }
     $pb=(int)$pg['denari'];$nb=(int)$wallet['balance'];$delta=$toPlayer?$amount:-$amount;
-    if($pb+$delta<0||$nb-$delta<0){ throw new AiSocialDomainException(alphano_currency_text('Corone insufficienti: nessun movimento eseguito.'),409); }
+    if($pb+$delta<0||$nb-$delta<0){ throw new AiSocialDomainException(alphanoCurrencyText('Corone insufficienti: nessun movimento eseguito.'),409); }
     if($pb+$delta>1000000000000||$nb-$delta>1000000000000){ throw new AiSocialDomainException('Saldo massimo superato.',422); }
     $db->execute('UPDATE utenti SET denari=? WHERE id=?',[$pb+$delta,$player]);$db->execute('UPDATE ai_npc_wallets SET balance=?,updated_at=? WHERE npc_id=?',[$nb-$delta,time(),$npc]);
     $po=(int)$debt['player_owes']+($kind==='loan_to_player'?$amount:0)-($kind==='repay_npc'?$amount:0);
     $no=(int)$debt['npc_owes']+($kind==='loan_to_npc'?$amount:0)-($kind==='repay_player'?$amount:0);
     $db->execute('UPDATE ai_npc_debts SET player_owes=?,npc_owes=?,updated_at=? WHERE npc_id=? AND player_id=?',[$po,$no,time(),$npc,$player]);
     $db->execute('INSERT INTO ai_npc_transactions(npc_id,player_id,offer_id,kind,amount,player_delta,npc_before,npc_after,player_before,player_after,reason,request_key,actor_id,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)',[$npc,$player,$offerId,$kind,$amount,$delta,$nb,$nb-$delta,$pb,$pb+$delta,$reason,$key,$actor,time()]);
-    if(!$admin){ $db->execute("INSERT INTO ai_personal_memories(npc_id,player_id,chat_key,category,summary,evidence,source,epistemic,created_at,updated_at) SELECT ?,?,chat_key,'transazione',?,?,'system','verified',?,? FROM ai_npcs WHERE id=?",[$npc,$player,($toPlayer?'Il PNG ha consegnato al personaggio ':'Il personaggio ha consegnato al PNG ').$amount.alphano_currency_text(' Corone. Causale: ').$reason,'Movimento verificato '.$key,time(),time(),$npc]); }
+    if(!$admin){ $db->execute("INSERT INTO ai_personal_memories(npc_id,player_id,chat_key,category,summary,evidence,source,epistemic,created_at,updated_at) SELECT ?,?,chat_key,'transazione',?,?,'system','verified',?,? FROM ai_npcs WHERE id=?",[$npc,$player,($toPlayer?'Il PNG ha consegnato al personaggio ':'Il personaggio ha consegnato al PNG ').$amount.alphanoCurrencyText(' Corone. Causale: ').$reason,'Movimento verificato '.$key,time(),time(),$npc]); }
     // Profile's historical field is a read-through mirror, never a second wallet.
     $row=$db->query('SELECT profile FROM ai_npcs WHERE id=? FOR UPDATE',[$npc])[0];$profile=json_decode($row['profile'],true)?:[];$profile['money']=$nb-$delta;
     $db->execute('UPDATE ai_npcs SET profile=? WHERE id=?',[json_encode($profile,JSON_UNESCAPED_UNICODE),$npc]);

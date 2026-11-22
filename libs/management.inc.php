@@ -1,15 +1,15 @@
 <?php
 declare(strict_types=1);
 /** Presentation-only catalog. Every destination keeps its own authorization checks. */
-function alphano_management_scope(string $path):?string{
+function alphanoManagementScope(string $path):?string{
  if(str_starts_with($path,'/admin/')){ return in_array(basename($path),['master-engine.php','master-ia.php','png-relazioni.php','ferite.php','malus.php','blocco.php','giocata.php','chats.php'],true)?'master':'gestione'; }
  if($path==='/sessione/sessione.php'){ return 'master'; }
  if(in_array($path,['/organizzazioni/admin.php','/corporazioni/admin.php','/corporazioni/oggetti-admin.php','/governo/index.php'],true)){ return 'governo'; }
- if($path==='/regole/index.php'&&(alphano_can('admin')||alphano_can('adminaccademia'))){ return 'regole'; }
- if($path==='/discussioni/index.php'&&in_array($_GET['tipo']??'',['M','A'],true)&&(alphano_can('admin')||alphano_can('fatepower')||alphano_can('adminaccademia'))){ return 'master'; }
+ if($path==='/regole/index.php'&&(alphanoCan('admin')||alphanoCan('adminaccademia'))){ return 'regole'; }
+ if($path==='/discussioni/index.php'&&in_array($_GET['tipo']??'',['M','A'],true)&&(alphanoCan('admin')||alphanoCan('fatepower')||alphanoCan('adminaccademia'))){ return 'master'; }
  return null;
 }
-function alphano_management_catalog(array $user):array{
+function alphanoManagementCatalog(array $user):array{
  $admin=!empty($user['admin']);$allowed=static function(array $flags)use($admin,$user):bool{return $admin||(bool)array_filter($flags,static fn($f)=>!empty($user[$f]));};
  $definitions=[
   'gestione'=>['Gestione del gioco','settings',[
@@ -25,22 +25,23 @@ function alphano_management_catalog(array $user):array{
  ];
  $out=[];
  foreach($definitions as $key=>[$title,$icon,$items]){
-  if($key==='ia'&&!alphano_config('ai_enabled')){ continue; }$entries=[];
+  if($key==='ia'&&!alphanoConfig('ai_enabled')){ continue; }$entries=[];
   foreach($items as [$label,$url,$description,$flags]){ if($allowed($flags)){ $entries[]=['label'=>$label,'url'=>$url,'description'=>$description]; } }
-  if($key==='governo'){ foreach(['organizations_enabled'=>['organizzazioni','organizzazione','adminorganizzazione','Organizzazioni'],'corporations_enabled'=>['corporazioni','corporazione','admincorporazione','Corporazioni']] as $setting=>[$scope,$idKey,$flag,$label]){ if(alphano_config($setting)&&$allowed([$flag])){ $entries[]=['label'=>$label,'url'=>'/governo/?scope='.$scope.(!$admin&&isset($user[$idKey])?'&id='.(int)$user[$idKey]:''),'description'=>'Tesoreria e amministrazione']; } } }
+  if($key==='governo'){ foreach(['organizations_enabled'=>['organizzazioni','organizzazione','adminorganizzazione','Organizzazioni'],'corporations_enabled'=>['corporazioni','corporazione','admincorporazione','Corporazioni']] as $setting=>[$scope,$idKey,$flag,$label]){ if(alphanoConfig($setting)&&$allowed([$flag])){ $entries[]=['label'=>$label,'url'=>'/governo/?scope='.$scope.(!$admin&&isset($user[$idKey])?'&id='.(int)$user[$idKey]:''),'description'=>'Tesoreria e amministrazione']; } } }
   if($entries){ $out[$key]=['title'=>$title,'icon'=>$icon,'items'=>$entries]; }
  }
  return $out;
 }
-function alphano_management_document(string $html):string{
- $path=parse_url($_SERVER['SCRIPT_NAME']??'',PHP_URL_PATH)??'';$scope=alphano_management_scope($path);
+function alphanoManagementDocument(string $html):string{
+ $path=parse_url($_SERVER['SCRIPT_NAME']??'',PHP_URL_PATH)??'';$scope=alphanoManagementScope($path);
  if($scope===null||http_response_code()>=400||str_contains($html,'data-management-shell')){ return $html; }
- $user=alphano_user();if(!$user){ return $html; }$groups=alphano_management_catalog($user);if(!$groups){ return $html; }
+ $user=alphanoUser();if(!$user){ return $html; }$groups=alphanoManagementCatalog($user);if(!$groups){ return $html; }
  $current=static function(string $url)use($path):bool{$parts=parse_url($url);$target=$parts['path'];$normalize=static fn($p)=>rtrim(preg_replace('~/index\.php$~','/',$p),'/');if($normalize($target)!==$normalize($path)){ return false; }parse_str($parts['query']??'',$query);foreach($query as $key=>$v){ if(($_GET[$key]??null)!==$v){ return false; } }return true;};
  $h=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');$rail='<aside class="management-rail" id="management-navigation" aria-label="Navigazione amministrativa"><div class="management-rail-heading"><small>AREA DI LAVORO</small><strong>Strumenti e sezioni</strong></div><label class="management-search">Cerca uno strumento<input type="search" placeholder="Nome o funzione…" data-management-search autocomplete="off"></label><section class="management-local" data-management-local hidden><h2>In questa pagina</h2><div data-management-local-items></div></section><nav aria-label="Pannelli di gestione">';
  foreach($groups as $key=>$group){$open=$key===$scope||($scope==='master'&&$key==='ia'&&str_contains($path,'master-'));$rail.='<details class="management-group" data-default-open="'.($open?'1':'0').'"'.($open?' open':'').'><summary><img src="/assets/default-nav-'.$h($group['icon']).'.svg" alt="" width="26" height="26"><span>'.$h($group['title']).'</span></summary><div>';
  foreach($group['items'] as $item){ $rail.='<a class="management-destination" href="'.$h($item['url']).'"'.($current($item['url'])?' aria-current="page"':'').'><strong>'.$h($item['label']).'</strong><small>'.$h($item['description']).'</small></a>'; }
- $rail.='</div></details>';}
+ $rail.='</div></details>';
+ }
  $rail.='</nav><p class="management-search-empty" data-management-empty hidden>Nessuna sezione corrisponde alla ricerca.</p><a class="management-return" href="/main.php">← Torna al gioco</a></aside>';
  $html=preg_replace('/<body\b/i','<body data-management-shell="'.$h($scope).'"',$html,1);
  $html=preg_replace('/(<body\b[^>]*>)/i','$1<a class="management-skip" href="#management-content">Vai al contenuto</a>'.$rail,$html,1);

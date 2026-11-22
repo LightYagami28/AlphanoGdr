@@ -64,12 +64,12 @@ function aiGamePlayer(int $id): array {
     $db=aiDb();$u=$db->query('SELECT u.id,u.puntif,u.ferite,u.razza,u.senziente,u.infetto,u.ancestrale,u.vampire_human_form,u.chat,u.bloccato,r.nome AS race,r.forza FROM utenti u LEFT JOIN razze r ON r.id=u.razza WHERE u.id=?',[$id])[0]??[];
     if(!$u){ return []; }
     $items=$db->query("SELECT p.id,p.slot,p.nome,p.consumo,e.shortDesc,e.durata,t.nome AS type FROM equippg p JOIN equip e ON e.id=p.uid JOIN tipo t ON t.id=e.tipo WHERE p.idpg=? AND p.idpadre=0 AND p.slot IN ('guanti','elmo','mantello','veste','armasx','armatura','armadx','bracciali','faretra','stivali','scudo','musica','anellosx','collana','anellodx','attrezzi') AND e.visibile=1 AND e.approvato=1 ORDER BY p.slot,p.id",[$id]);
-    $u['visible_race_id']=alphano_visible_race($u);$u['native_race_id']=alphano_native_race($u);$u['stats']=rpg_actor_stats('pg',$id);$u['forza']=$u['stats']['strength'];
+    $u['visible_race_id']=alphanoVisibleRace($u);$u['native_race_id']=alphanoNativeRace($u);$u['stats']=rpg_actor_stats('pg',$id);$u['forza']=$u['stats']['strength'];
     $u['bloodlines']=$db->query('SELECT l.kind,l.origin,l.status,l.creator_id,l.root_id,l.ready_at,p.nome AS creator,r.nome AS founder FROM lineage_members l LEFT JOIN utenti p ON p.id=l.creator_id LEFT JOIN utenti r ON r.id=l.root_id WHERE l.player_id=? ORDER BY l.kind',[$id]);
-    $u['equipment']=$items;$u['weight']=getPesoTotale($id);$u['fatigue']=GetAffaticamento((float)$u['weight'],(int)$u['forza']);
+    $u['equipment']=$items;$u['weight']=getPesoTotale($id);$u['fatigue']=getAffaticamento((float)$u['weight'],(int)$u['forza']);
     $u['profile']=array_map(static fn($v)=>aiPerceptionPlain((string)$v,800),aiPlayerProfile($id));
     $identity=aiPlayerIdentity($id);$u['roles']=array_diff_key($identity,array_flip(['id','nome','sesso','razza','race','ethnicity']));
-    require_once __DIR__.'/revelations.inc.php';$u['known_revelations']=alphano_revelations_master_context((string)$u['chat']);
+    require_once __DIR__.'/revelations.inc.php';$u['known_revelations']=alphanoRevelationsMasterContext((string)$u['chat']);
     return $u;
 }
 /** Only this interlocutor's usable memories and relationship can invalidate their draft. */
@@ -104,7 +104,7 @@ function aiGameSnapshot(array $job,?array $interpretedNpc=null): string {
     $presenceNpc=$nid?aiDb()->query('SELECT * FROM ai_npcs WHERE id=?',[$nid])[0]??[]:[];
     $presence=$presenceNpc?aiSituationView(aiRoom($job['chat_key'])??['chat_key'=>$job['chat_key']],$presenceNpc,$job):[];
     $authored=aiGameNpcContext($interpretedNpc??$presenceNpc);
-    return hash('sha256',json_encode([$u,$npc,$state,$policy,$presence,$authored,aiGamePairContext($job),$nid?aiNpcAuthority($nid,$uid):null,aiSceneContext($job['chat_key']),$nid?aiPerceptionKnownRace($nid,$uid):0,rpg_settings(),rpg_catalog(),rpg_ai_skill_facts(rpg_sheet('pg',$uid,false)),$nid?rpg_ai_skill_facts(rpg_sheet('npc',$nid,false)):null],JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR));
+    return hash('sha256',json_encode([$u,$npc,$state,$policy,$presence,$authored,aiGamePairContext($job),$nid?aiNpcAuthority($nid,$uid):null,aiSceneContext($job['chat_key']),$nid?aiPerceptionKnownRace($nid,$uid):0,rpg_settings(),rpg_catalog(),rpgAiSkillFacts(rpg_sheet('pg',$uid,false)),$nid?rpgAiSkillFacts(rpg_sheet('npc',$nid,false)):null],JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR));
 }
 function aiGameContext(array $room,array $npc,array $job,float $scale): string {
     if((int)$job['user_id']<1){ return ''; }$u=aiGamePlayer((int)$job['user_id']);if(!$u){ return ''; }

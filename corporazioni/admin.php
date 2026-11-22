@@ -31,7 +31,7 @@ function alphanoCorpCaricaMessage(bool $ok, int $car, int $pg): string
     return $car ? 'Modifica carica di '.GetPGFromID($pg).' avvenuta con successo' : 'Espulsione di '.GetPGFromID($pg).' avvenuta con successo';
 }
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
-    alphano_require_csrf();
+    alphanoRequireCsrf();
 }
 require_once __DIR__ . '/../libs/libpg.inc.php';
 require_once __DIR__ . '/../libs/libgrafica.inc.php';
@@ -46,9 +46,9 @@ $pgid = GetIDPG(0);
 
 $quality = QUALITY;
 
-$actor=alphano_user();
+$actor=alphanoUser();
 if(!empty($actor['admin'])&&empty($actor['corporazione'])&&!isset($_GET['corp'])&&!isset($_POST['corp'])&&($_SERVER['REQUEST_METHOD']??'GET')==='GET'){header('Location: /corporazioni/');exit;}
-try{$manageCorp=alphano_corporation_context($actor,$_POST['corp']??$_GET['corp']??null);}catch(DomainException $e){alphano_fail($e->getMessage(),$e->getCode());}
+try{$manageCorp=alphanoCorporationContext($actor,$_POST['corp']??$_GET['corp']??null);}catch(DomainException $e){alphanoFail($e->getMessage(),$e->getCode());}
 // --- Recupera dati utente + corporazione ---
 $userRows = $db->query(<<<'SQL'
   SELECT
@@ -138,7 +138,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
     if (in_array($action,['addcarica','modifycarica'],true) && isset($_POST['nome'],$_POST['ramo']) && !$db->query('SELECT 1 FROM ramicorporazioni WHERE id=? AND corporazione=?',[(int)$_POST['ramo'],$corpId])) {
         http_response_code(403); exit('Ramo non appartenente alla tua corporazione');
     }
-    $groupActionResult=alphano_group_admin_action('corporazioni',$corpId,$pgid,(string)$action,$_POST,$_FILES);
+    $groupActionResult=alphanoGroupAdminAction('corporazioni',$corpId,$pgid,(string)$action,$_POST,$_FILES);
     if ($groupActionResult !== null) {
         $msg = $groupActionResult;
     } else {
@@ -248,7 +248,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
             $pag = economiaIntero($_POST['pagamento'] ?? '',1);
             if ($pid && ($acc || $canc || $pag!==null || ($qta!==null && $int!==null))) {
                 $ok = economiaAzioneModulo(static function() use($pid,$pgid,$acc,$canc,$qta,$int,$pag): bool {
-                    if (!alphano_operation_once('corporation-loan-action',$pgid,$_POST['_request_key'] ?? null,[$pid,$acc,$canc,$qta,$int,$pag])) {
+                    if (!alphanoOperationOnce('corporation-loan-action',$pgid,$_POST['_request_key'] ?? null,[$pid,$acc,$canc,$qta,$int,$pag])) {
                         return true;
                     }
                     $result = true;
@@ -347,7 +347,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
             $first=!empty($_POST['prima']);$description=trim((string)($_POST['descrizione'] ?? ''));
             $file=$_FILES['immagine'] ?? ['error'=>UPLOAD_ERR_NO_FILE];
             $ok=economiaAzioneModulo(static fn(): bool => economiaBool(static function() use($db,$corpId,$pgid,$cid,$name,$salary,$commission,$level,$branch,$first,$description,$file): bool {
-                if (!alphano_operation_once('corporation-role-update',$pgid,$_POST['_request_key'] ?? null,[$corpId,$cid,$name,$salary,$commission,$level,$branch,$first,$description])) {
+                if (!alphanoOperationOnce('corporation-role-update',$pgid,$_POST['_request_key'] ?? null,[$corpId,$cid,$name,$salary,$commission,$level,$branch,$first,$description])) {
                     return true;
                 }
                 $before=$db->query('SELECT * FROM carichecorporazioni WHERE id=? AND corporazione=? FOR UPDATE',[$cid,$corpId])[0];
@@ -359,8 +359,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
                 }
                 $after=$db->query(ALPHANO_CORP_ROLE_QUERY,[$cid,$corpId])[0];
                 if ($before!==$after) {
-                    alphano_record_activity('corporation-role-updated',$pgid,[['scope'=>'corporazioni','id'=>$corpId,'section'=>'iscritti','role'=>'admin']],
-                        'Carica corporativa aggiornata',alphano_currency_text("{$name}: stipendio {$salary} Corone, provvigione {$commission}%."),['corporazione'=>$corpId,'carica'=>$cid,'prima'=>$before,'dopo'=>$after]);
+                    alphanoRecordActivity('corporation-role-updated',$pgid,[['scope'=>'corporazioni','id'=>$corpId,'section'=>'iscritti','role'=>'admin']],
+                        'Carica corporativa aggiornata',alphanoCurrencyText("{$name}: stipendio {$salary} Corone, provvigione {$commission}%."),['corporazione'=>$corpId,'carica'=>$cid,'prima'=>$before,'dopo'=>$after]);
                 }
                 return true;
             }));
@@ -401,13 +401,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'])) {
             $st=!empty($_POST['stipendi'])?1:0;$pv=!empty($_POST['provvigioni'])?1:0;
             if (!$st && !$pv) {$msg='Devi selezionare almeno un metodo di pagamento';break;}
             $ok=economiaAzioneModulo(static fn(): bool => economiaBool(static function() use($db,$corpId,$pgid,$st,$pv): bool {
-                if (!alphano_operation_once('corporation-payment-method',$pgid,$_POST['_request_key'] ?? null,[$corpId,$st,$pv])) {
+                if (!alphanoOperationOnce('corporation-payment-method',$pgid,$_POST['_request_key'] ?? null,[$corpId,$st,$pv])) {
                     return true;
                 }
                 $old=$db->query('SELECT stipendio,provvigione FROM corporazioni WHERE id=? FOR UPDATE',[$corpId])[0];
                 $db->execute('UPDATE corporazioni SET stipendio=?,provvigione=? WHERE id=?',[$st,$pv,$corpId]);
                 if ((int)$old['stipendio']!==$st || (int)$old['provvigione']!==$pv) {
-                    alphano_record_activity('corporation-payment-method-updated',$pgid,[['scope'=>'corporazioni','id'=>$corpId,'section'=>'finanze','role'=>'admin']],
+                    alphanoRecordActivity('corporation-payment-method-updated',$pgid,[['scope'=>'corporazioni','id'=>$corpId,'section'=>'finanze','role'=>'admin']],
                         'Metodi di pagamento aggiornati',($st?'Stipendi attivi. ':'Stipendi disattivati. ').($pv?'Provvigioni attive.':'Provvigioni disattivate.'),['corporazione'=>$corpId,'prima'=>$old,'dopo'=>['stipendio'=>$st,'provvigione'=>$pv]]);
                 }
                 return true;
@@ -474,7 +474,7 @@ $lista2     = listaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Admin <?= $nomeCorp ?> • <?= TitoloSito ?></title>
+  <title>Admin <?= $nomeCorp ?> • <?= TITOLO_SITO ?></title>
 
   <script>
     document.addEventListener('DOMContentLoaded', ()=>{
@@ -579,7 +579,7 @@ $lista2     = listaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
               <?php foreach($richieste as $r): ?>
                 <tr>
                   <td><button type="button" class="u-link-button" onclick="openProfileId('<?= $h((int)$r['idpg']) ?>')"><?= htmlentities(GetPGFromID($r['idpg']), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></button></td>
-                  <td><?= htmlspecialchars(FormatTimestamp($r['data']), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></td>
+                  <td><?= htmlspecialchars(formatTimestamp($r['data']), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></td>
                   <td>
                     <form method="post" class="u-434fc32ec"><input type="hidden" name="corp" value="<?=$corpId?>">
       <input type="hidden" name="_request_key" value="<?=bin2hex(random_bytes(16))?>">
@@ -630,7 +630,7 @@ $lista2     = listaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
                     <?php foreach($gruppo['cariche'] as $idCar=>$car):
                       $flags=[];
                       if ($hasStipendio&&($car['stipendio'] ?? 0)>0) {
-                        $flags[]=($car['stipendio'] ?? 0).alphano_currency_html(" Corone");
+                        $flags[]=($car['stipendio'] ?? 0).alphanoCurrencyHtml(" Corone");
                       }
                       if ($hasProvvigione&&($car['provvigione'] ?? 0)>0) {
                         $flags[]=($car['provvigione'] ?? 0)."%";
@@ -743,7 +743,7 @@ $lista2     = listaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
 
       <!-- FINANZE -->
       <div id="finanze">
-        <h4>Budget attuale: <?= $h((int)$budget) ?> <?=alphano_currency_html()?></h4>
+        <h4>Budget attuale: <?= $h((int)$budget) ?> <?=alphanoCurrencyHtml()?></h4>
         <h5>Metodi di pagamento</h5>
         <form method="post"><input type="hidden" name="corp" value="<?=$corpId?>">
           <input type="hidden" name="action" value="setmetodo">
@@ -761,8 +761,8 @@ $lista2     = listaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
             <table>
               <tr><th>Ultima consegna</th><th>Ammontare</th><th>Azione</th></tr>
               <tr>
-                <td><?= $ultimoStip===0?'Nessuno':htmlspecialchars(FormatTimestamp($ultimoStip), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></td>
-                <td><?= $h((int)$stipendiTot) ?> <?=alphano_currency_html()?></td>
+                <td><?= $ultimoStip===0?'Nessuno':htmlspecialchars(formatTimestamp($ultimoStip), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></td>
+                <td><?= $h((int)$stipendiTot) ?> <?=alphanoCurrencyHtml()?></td>
                 <td><?php if($budget>= $stipendiTot):?><button class="btn">Consegna</button><?php else:?><span class="u-3e06b323c">Fondi insufficienti</span><?php endif;?></td>
               </tr>
             </table>
@@ -777,7 +777,7 @@ $lista2     = listaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
               $rim = (int)$d['stato']===5 ? calcolaInteressi((int)$d['quantita'],(int)$d['interessi'],(int)$d['data'])-(int)$d['restituiti'] : ((int)$d['stato']<5 ? (int)$d['quantita'] : 0);
             ?>
               <tr>
-                <td><?= htmlspecialchars(FormatTimestamp($d['data']), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></td>
+                <td><?= htmlspecialchars(formatTimestamp($d['data']), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></td>
                 <td><?= htmlentities(GetPGFromID($d['pgcorp']), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></td>
                 <td><?= htmlentities(GetOrg($d['org']), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></td>
                 <td><?= $d['pgorg']?htmlentities(GetPGFromID($d['pgorg']), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'):'Nessuno' ?></td>
@@ -795,7 +795,7 @@ $lista2     = listaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
         <?php foreach ($lista2 as $d): $state=(int)$d['stato']; if ($state>=6) { continue; } ?>
           <article class="ui-panel">
             <h6>Prestito #<?=$h((int)$d['id'])?> · <?=htmlspecialchars(GetOrg((int)$d['org']), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')?></h6>
-            <p><?=processStato($state)?> · <?=(int)$d['quantita']?> <?=alphano_currency_html()?> · <?=(int)$d['interessi']?>% al mese</p>
+            <p><?=processStato($state)?> · <?=(int)$d['quantita']?> <?=alphanoCurrencyHtml()?> · <?=(int)$d['interessi']?>% al mese</p>
             <?php if ($state<5): ?>
               <form method="post" class="ui-form"><input type="hidden" name="corp" value="<?=$corpId?>">
                 <input type="hidden" name="action" value="adminprestito">
@@ -814,7 +814,7 @@ $lista2     = listaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
                 <input type="hidden" name="action" value="adminprestito">
                 <input type="hidden" name="prestito" value="<?=(int)$d['id']?>">
                 <input type="hidden" name="_request_key" value="<?=bin2hex(random_bytes(16))?>">
-                <p>Già restituiti: <?=$h((int)$d['restituiti'])?> <?=alphano_currency_html()?>. Debito residuo: <?=$h((int)$residual)?> <?=alphano_currency_html()?>.</p>
+                <p>Già restituiti: <?=$h((int)$d['restituiti'])?> <?=alphanoCurrencyHtml()?>. Debito residuo: <?=$h((int)$residual)?> <?=alphanoCurrencyHtml()?>.</p>
                 <label>Rimborso <input type="number" name="pagamento" min="1" max="<?=min($budget,$residual)?>" step="1" required value="<?=min($budget,$residual)?>"></label>
                 <button class="btn" type="submit" <?=$budget<1?'disabled':''?>>Rimborsa</button>
               </form>
@@ -951,4 +951,4 @@ $lista2     = listaPrestitiPGCorp($pgid, $corpId);  // prestiti in entrata
 </body>
 </html>
 
-<?php ClosePage(); ?>
+<?php closePage(); ?>

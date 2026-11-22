@@ -23,9 +23,9 @@ require_once "$root/libs/libposta.inc.php";
 // ———————————————————————————
 // LOGIN & COLORI
 // ———————————————————————————
-$idpg    = alphano_require_login();
-if ($_SERVER['REQUEST_METHOD'] === 'POST') { alphano_require_csrf(); }
-$db      = ConnectDB();
+$idpg    = alphanoRequireLogin();
+if ($_SERVER['REQUEST_METHOD'] === 'POST') { alphanoRequireCsrf(); }
+$db      = connectDB();
 
 
 // ———————————————————————————
@@ -47,7 +47,7 @@ if (isset($_POST['firma']) && $_POST['firma']) {
 // ———————————————————————————
 $msg = $db->query('SELECT oggetto,messaggio FROM mail WHERE id = ? AND (idmittente=? OR iddestinatario=?)', [$msgId,$idpg,$idpg])[0] ?? null;
 if (!$msg) {
-    alphano_fail('Messaggio da inoltrare non trovato.',404);
+    alphanoFail('Messaggio da inoltrare non trovato.',404);
 }
 $fwdSubject = str_starts_with($msg['oggetto'], 'FWD:')
     ? substr($msg['oggetto'], 4)
@@ -99,7 +99,7 @@ if ($send) {
         } else {
             foreach ($rows as $r) {
                 $toId = (int)$r['id'];
-                $ok = InviaMissiva($subject, $body, $toId, $idpg, $save);
+                $ok = inviaMissiva($subject, $body, $toId, $idpg, $save);
                 if ($ok) {
                     $sent[]   = $r['nome'];
                 } else {
@@ -118,7 +118,7 @@ if ($send) {
 <html lang="it">
 <head>
   <meta charset="UTF-8">
-  <title><?= $send ? 'Risultato Inoltro' : 'Inoltra Missiva' ?> – <?= TitoloSito ?></title>
+  <title><?= $send ? 'Risultato Inoltro' : 'Inoltra Missiva' ?> – <?= TITOLO_SITO ?></title>
 
   <script src="/js/global.js"></script>
 
@@ -223,4 +223,4 @@ if ($send) {
   </div>
 </body>
 </html>
-<?php ClosePage(); ?>
+<?php closePage(); ?>

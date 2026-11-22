@@ -10,7 +10,7 @@ require_once __DIR__ . '/../libs/libequip.inc.php';
 use Alphano\Database\PDOMySQLDriver;
 
 GetIDPG(0);
-$pdo = ConnectDB();
+$pdo = connectDB();
 
 // 1) Carica la mappa dei tipi
 $tipi = array_column($pdo->query('SELECT id, nome FROM tipo'), 'nome', 'id');
@@ -42,7 +42,7 @@ $durata        = (int)($oggetto['durata'] ?? 0);
 $qualityLabel  = htmlspecialchars(getQuality($durata), ENT_QUOTES, 'UTF-8');
 
 // 4) Materie prime
-$mp      = GetMateriePrime($oggetto) ?: [];
+$mp      = getMateriePrime($oggetto) ?: [];
 $materie = array_keys($mp);
 $valori  = array_values($mp);
 
@@ -52,7 +52,7 @@ $valori  = array_values($mp);
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Anteprima Oggetto • <?= TitoloSito ?></title>
+  <title>Anteprima Oggetto • <?= TITOLO_SITO ?></title>
 
 
 </head>
@@ -120,4 +120,4 @@ $valori  = array_values($mp);
 </body>
 </html>
 <?php
-ClosePage();
+closePage();

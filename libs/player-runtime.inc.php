@@ -19,7 +19,7 @@ function playerApi(callable $action): never
         $status = (int)$e->getCode();
         if ($status < 400 || $status > 499) {
             error_log('[player API] ' . $e);
-            $reference=alphano_error_reference($e,'player-api');
+            $reference=alphanoErrorReference($e,'player-api');
             $status = 500;
         }
         http_response_code($status);
@@ -50,7 +50,7 @@ function playerText(array $input, string $field, int $limit = 65535, bool $requi
 function playerMutation(): void
 {
     if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {throw new PlayerRequestRuntimeException('Metodo non consentito', 405);}
-    alphano_require_csrf(true);
+    alphanoRequireCsrf(true);
 }
 
 function playerBoardPermissions($db, int $board, array $user): array
@@ -125,7 +125,7 @@ function playerMediaUrl(mixed $value, int $profile, string $fallback = ''): stri
     if (preg_match('/^[a-z][a-z0-9+.-]*:/i',$value) || str_starts_with($value,'//')) {return $fallback;}
     $path=rawurldecode((string)(parse_url($value,PHP_URL_PATH) ?? ''));
     $relative=str_starts_with($path,'/') ? $path : '/profili/pg/'.$profile.'/'.$path;
-    $real=realpath(htmlroot.$relative);
-    if (!$real || !str_starts_with($real,htmlroot.'/') || !is_file($real)) {return $fallback;}
+    $real=realpath(HTMLROOT.$relative);
+    if (!$real || !str_starts_with($real,HTMLROOT.'/') || !is_file($real)) {return $fallback;}
     return $relative;
 }

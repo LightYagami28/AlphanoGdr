@@ -46,7 +46,7 @@ $isAdmin = (bool)$user['admin'];
 <body>
 
   <!-- 4.1) SALDO -->
-  <h2><?=alphano_currency_html()?> in tuo possesso: <strong id="transfer-balance"><?= $balance ?></strong></h2>
+  <h2><?=alphanoCurrencyHtml()?> in tuo possesso: <strong id="transfer-balance"><?= $balance ?></strong></h2>
 
   <!-- 4.2) NAV TABS -->
   <div class="tabs">

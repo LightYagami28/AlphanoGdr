@@ -3,10 +3,10 @@
     require_once "../libs/kernel.inc.php";
     require_once "../libs/libpg.inc.php";
     require_once "../libs/libgrafica.inc.php";
-    alphano_require_login();
+    alphanoRequireLogin();
 
-    $db=ConnectDB();
-    $timer=GeneratePastTimestamp(30);
+    $db=connectDB();
+    $timer=generatePastTimestamp(30);
     $dati=["num"=>0, "nomeobj"=>"", "avgprz"=>0];
     $objId=(int)($_POST["obj"] ?? 0);
     $verso=(string)($_POST["verso"] ?? "");
@@ -31,7 +31,7 @@
 <!DOCTYPE html>
 <html lang="it">
     <head>
-        <TITLE>Statistiche Oggetto <?=TitoloSito?></TITLE>
+        <TITLE>Statistiche Oggetto <?=TITOLO_SITO?></TITLE>
 
     </head>
     <body>
@@ -55,7 +55,7 @@
             </TR>
             <TR>
                 <TD class="Valore align-center">Prezzo Medio</TD>
-                <TD class="Valore align-center"><?=round($dati["avgprz"])?> <?=alphano_currency_html()?></TD>
+                <TD class="Valore align-center"><?=round($dati["avgprz"])?> <?=alphanoCurrencyHtml()?></TD>
             </TR>
         </table>
 <?PHP
@@ -74,5 +74,5 @@
     </body>
 </html>
 <?PHP
-    ClosePage();
+    closePage();
 ?>

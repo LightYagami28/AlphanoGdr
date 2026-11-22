@@ -9,21 +9,21 @@ require_once __DIR__.'/public-guides.inc.php';
 require_once __DIR__.'/elections.inc.php';
 
 /** Public city data only: proposals, finances and applications remain in their protected controllers. */
-function alphano_city_directory(array $viewer, int $selected = 0): array
+function alphanoCityDirectory(array $viewer, int $selected = 0): array
 {
-    $db = ConnectDB();
+    $db = connectDB();
     $cities = $db->query('SELECT c.id,c.city,c.elezioni,c.statuto,
         (SELECT COUNT(*) FROM utenti u JOIN araldiche a ON a.id=u.araldica WHERE a.city=c.id) AS citizens,
         (SELECT COUNT(*) FROM araldiche a WHERE a.city=c.id) AS offices
         FROM city c ORDER BY c.city,c.id');
     $mayors = $db->query('SELECT u.id,u.nome,u.avatar,u.avatar2,u.razza,u.alternate_form,u.sesso,a.city FROM utenti u JOIN araldiche a ON a.id=u.araldica
         WHERE u.sindaco=1 ORDER BY u.nome,u.id');
-    foreach($mayors as &$mayor) { $mayor['portrait']=alphano_profile_portrait($mayor); }
+    foreach($mayors as &$mayor) { $mayor['portrait']=alphanoProfilePortrait($mayor); }
     unset($mayor);
     $pending=(int)($db->query('SELECT city FROM richieste WHERE idpg=? AND city>0 ORDER BY data,city LIMIT 1',[(int)$viewer['id']])[0]['city']??0);
     $viewerCity = (int)($db->query('SELECT city FROM araldiche WHERE id=?', [(int)($viewer['araldica'] ?? 0)])[0]['city'] ?? 0);
     $chosen = null;
-    $elections=alphano_elections_summaries();$titles=alphano_governance_city_titles();
+    $elections=alphanoElectionsSummaries();$titles=alphanoGovernanceCityTitles();
     foreach ($cities as &$city) {
         $id = (int)$city['id'];
         $city['leader_title']=$titles[$id]??'Governante';
@@ -31,7 +31,7 @@ function alphano_city_directory(array $viewer, int $selected = 0): array
         $city['mayors'] = array_values(array_filter($mayors, static fn(array $mayor): bool => (int)$mayor['city'] === $id));
         $city['can_manage'] = !empty($viewer['admin']) || (!empty($viewer['sindaco']) && $viewerCity === $id);
         $city['is_citizen'] = $viewerCity === $id;
-        $city['artwork']=alphano_city_artwork((string)$city['city']);
+        $city['artwork']=alphanoCityArtwork((string)$city['city']);
         $city['pending_application']=$pending===$id;
         $city['can_apply']=!$city['is_citizen']&&$pending===0;
         if ($id === $selected) { $chosen = $city; }
@@ -52,16 +52,16 @@ function alphano_city_directory(array $viewer, int $selected = 0): array
             LEFT JOIN ramiaraldiche r ON r.id=a.ramo AND r.city=a.city
             LEFT JOIN razze z ON z.id=u.razza WHERE a.city=? ORDER BY u.sindaco DESC,u.nome,u.id', [$selected]);
         foreach ($citizens as &$citizen) {
-            $race = alphano_visible_race($citizen);
-            $citizen['portrait_data']=alphano_hierarchy_member($citizen);
+            $race = alphanoVisibleRace($citizen);
+            $citizen['portrait_data']=alphanoHierarchyMember($citizen);
             $citizen['race_name'] = GetRazza($race)??'';
             $citizen['race_icon'] = alphanoRaceIcon();
         }
         unset($citizen);
         $byOffice=[];foreach($citizens as $citizen){ $byOffice[(int)$citizen['office_id']][]=$citizen['portrait_data']; }
-        foreach($offices as &$office){$office['badge_small']=alphano_hierarchy_small_badge($office['badge']);$office['members']=$byOffice[(int)$office['id']]??[];$office['description_html']=ProcessText((string)$office['descrizione']);}unset($office);
-        $chosen['statute_html'] = ProcessText((string)$chosen['statuto']);
+        foreach($offices as &$office){$office['badge_small']=alphanoHierarchySmallBadge($office['badge']);$office['members']=$byOffice[(int)$office['id']]??[];$office['description_html']=processText((string)$office['descrizione']);}unset($office);
+        $chosen['statute_html'] = processText((string)$chosen['statuto']);
     }
-    $chart=alphano_hierarchy_chart($offices,[],true);
+    $chart=alphanoHierarchyChart($offices,[],true);
     return ['pending_application'=>$pending,'chart'=>$chart,'cities' => $cities, 'selected' => $chosen, 'offices' => $offices, 'citizens' => $citizens];
 }

@@ -10,7 +10,7 @@ foreach (array_merge($_GET,$_POST) as $value) {
 }
 
 require_once __DIR__ . '/../libs/kernel.inc.php';
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') { alphano_require_csrf(); }
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') { alphanoRequireCsrf(); }
 require_once __DIR__ . '/../libs/libaccademia.inc.php';
 require_once __DIR__ . '/../libs/libgrafica.inc.php';
 require_once __DIR__ . '/../libs/libpg.inc.php';
@@ -109,7 +109,7 @@ if ($azione === 'showvoti') {
              WHERE a.obj = ?',
             [(int)$obj]
         );
-        $titolo = GetEquipDesc((int)$obj);
+        $titolo = getEquipDesc((int)$obj);
     } else {
         $rows = getDB()->query(
             'SELECT a.*, u.nome
@@ -193,7 +193,7 @@ if ($academyBefore!==$academyAfter && in_array($azione,['vota','modifyvoto','app
     }
     $titles=['vota'=>'Voto dell’Accademia registrato','modifyvoto'=>'Voto dell’Accademia aggiornato','approva'=>'Proposta approvata','cancella'=>'Proposta respinta','approvamodif'=>'Modifica approvata','cancellamodif'=>'Modifica respinta','setflagorg'=>'Funzioni dell’organizzazione aggiornate'];
     $name=(string)($academyProposal['nome'] ?? $academyProposal['shortDesc'] ?? 'Proposta');
-    alphano_record_activity('academy_'.$azione,$pgId,$audiences,$titles[$azione],$name,
+    alphanoRecordActivity('academy_'.$azione,$pgId,$audiences,$titles[$azione],$name,
         ['kind'=>$academyKind,'target'=>$academyTarget,'before'=>$academyBefore,'after'=>$academyAfter]);
 }
 

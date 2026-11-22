@@ -1,10 +1,10 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/../libs/player-runtime.inc.php';
-$id=alphano_require_login();
+$id=alphanoRequireLogin();
 $embedded=($_GET['welcome']??'')==='1';
 ?>
-<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="csrf-token" content="<?=htmlspecialchars(alphano_csrf_token(),ENT_QUOTES)?>"><title>Ruota della sorte · Alphano</title><script src="/js/vendor/Winwheel.js" defer></script><script src="/js/fortune.js" defer></script></head>
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="csrf-token" content="<?=htmlspecialchars(alphanoCsrfToken(),ENT_QUOTES)?>"><title>Ruota della sorte · Alphano</title><script src="/js/vendor/Winwheel.js" defer></script><script src="/js/fortune.js" defer></script></head>
 <body class="ui-page<?=$embedded?' fortune-embedded':''?>"><main class="fortune-page">
 <header class="ui-page-heading" data-page-heading><span data-icon="dice" aria-hidden="true"></span><div><span class="ui-eyebrow">I doni del viandante</span><h1>Ruota della sorte</h1><p>Due giri, un dono. La fortuna torna ogni sei ore.</p></div><a class="action-btn" href="/equip/equip.php?pgid=<?=$id?>" data-icon="shield" aria-label="Equipaggiamento" title="Equipaggiamento"><span>Equipaggiamento</span></a></header>
 <div class="fortune-layout"><section class="fortune-game" aria-label="Ruota della sorte"><ol class="fortune-steps"><li id="fortune-step-resource">I · La risorsa</li><li id="fortune-step-multiplier">II · La quantità</li></ol><p id="fortune-result" aria-live="polite">La ruota si prepara…</p><button class="action-btn fortune-spin" id="fortune-spin" data-icon="dice" disabled>Caricamento…</button><p id="fortune-countdown"></p><div class="fortune-machine"><span class="fortune-pointer" aria-hidden="true"></span><canvas id="fortune-wheel" width="760" height="760" aria-label="Spicchi delle risorse; probabilità riportate nel catalogo"></canvas><span class="fortune-hub" aria-hidden="true">✦</span></div><p class="fortune-help">Giro gratuito. La risorsa è fissata al primo giro; il secondo assegna da 1 a 4 unità. Puoi riprendere un giro interrotto senza perderlo.</p></section>

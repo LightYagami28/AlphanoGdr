@@ -9,22 +9,22 @@ require_once __DIR__ . '/../libs/libpg.inc.php';
 
 
 
-$pgid    = alphano_require_login();
+$pgid    = alphanoRequireLogin();
 
 // Solo admin può accedere
 if (!IsAdmin($pgid)) {
-    alphano_fail('Permesso negato.',403);
+    alphanoFail('Permesso negato.',403);
 }
 EnsureAdmin();
 
-$db = ConnectDB();
-if ($_SERVER['REQUEST_METHOD'] === 'POST') { alphano_require_csrf(); }
+$db = connectDB();
+if ($_SERVER['REQUEST_METHOD'] === 'POST') { alphanoRequireCsrf(); }
 
 // 1) Elimina sondaggio
 if (!empty($_POST['elimina'])) {
     $toDelete = (int)($_POST['id'] ?? 0);
     if ($toDelete > 0) {
-        DeleteSondaggio($toDelete);
+        deleteSondaggio($toDelete);
     }
 }
 
@@ -33,7 +33,7 @@ if (!empty($_POST['aggiorna'])) {
     $rawIds = $_POST['ids'] ?? '';
     // implode/explode style: "1;2;5;7"
     // la funzione aggiorna internamente i singoli ID
-    AggiornaSondaggi($rawIds, $_POST);
+    aggiornaSondaggi($rawIds, $_POST);
 }
 
 // 3) Inserisci nuovo sondaggio
@@ -41,7 +41,7 @@ if (!empty($_POST['inserisci'])) {
     $tema     = trim((string)($_POST['tema']     ?? ''));
     $risposte = trim((string)($_POST['risposte'] ?? ''));
     if ($tema !== '' && $risposte !== '') {
-        AggiungiSondaggio($tema, $risposte);
+        aggiungiSondaggio($tema, $risposte);
     }
 }
 
@@ -57,7 +57,7 @@ foreach ($db->query("SELECT * FROM sondaggi ORDER BY id DESC") as $row) {
 <html lang="it">
 <head>
     <meta charset="utf-8">
-    <title>Amministrazione Sondaggi &ndash; <?= htmlspecialchars(TitoloSito, ENT_QUOTES) ?></title>
+    <title>Amministrazione Sondaggi &ndash; <?= htmlspecialchars(TITOLO_SITO, ENT_QUOTES) ?></title>
 
     <script src="/js/global.js"></script>
 </head>
@@ -190,4 +190,4 @@ foreach ($db->query("SELECT * FROM sondaggi ORDER BY id DESC") as $row) {
 </body>
 </html>
 <?php
-ClosePage();
+closePage();

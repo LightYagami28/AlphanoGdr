@@ -4,7 +4,7 @@ require_once __DIR__ . '/../libs/kernel.inc.php';
 require_once __DIR__ . '/../libs/libpg.inc.php';
 require_once __DIR__ . '/../libs/libgrafica.inc.php';
 $idpg = GetIDPG(true);
-$user = alphano_user();
+$user = alphanoUser();
 $forum = ['mode'=>'board', 'title'=>'Bacheche', 'apiBaseUrl'=>'/api/bacheche',
-    'currentUserId'=>$idpg, 'isAdmin'=>!empty($user['admin']), 'csrfToken'=>alphano_csrf_token()];
+    'currentUserId'=>$idpg, 'isAdmin'=>!empty($user['admin']), 'csrfToken'=>alphanoCsrfToken()];
 require __DIR__ . '/../templates/forum/index.php';

@@ -3,17 +3,17 @@ declare(strict_types=1);
 
 /** Explicit private opt-in for a specific local database; a forged Host cannot enable it. */
 function aiLocalModelConfig():?array {
-    if(!alphano_config('ai_enabled'))return null;
-    $path=(string)alphano_config('ai_local_control_file');
+    if(!alphanoConfig('ai_enabled'))return null;
+    $path=(string)alphanoConfig('ai_local_control_file');
     if($path===''||!is_file($path))return null;
-    $host=parse_url((string)alphano_config('base_url'),PHP_URL_HOST);
+    $host=parse_url((string)alphanoConfig('base_url'),PHP_URL_HOST);
     if(!in_array($host,['localhost','127.0.0.1','[::1]','::1'],true))return null;
     if(PHP_SAPI!=='cli'){
         if(!in_array($_SERVER['REMOTE_ADDR']??'',['127.0.0.1','::1'],true))return null;
         if(!preg_match('/^(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/D',$_SERVER['HTTP_HOST']??''))return null;
     }
     $all=json_decode((string)file_get_contents($path),true);
-    $value=$all['environments'][(string)alphano_config('db_db')]??null;
+    $value=$all['environments'][(string)alphanoConfig('db_db')]??null;
     if(!is_array($value)||empty($value['enabled'])||!preg_match('~^http://127\.0\.0\.1:\d{2,5}$~D',$value['url']??''))return null;
     foreach(['state_file','token_file'] as $key)if(!is_string($value[$key]??null)||!str_starts_with($value[$key],'/'))return null;
     return $value;
@@ -29,10 +29,10 @@ function aiLocalModelPin(bool $reset=false):?array {
     if(!is_array($value)||!preg_match('~^http://127\.0\.0\.1:\d{2,5}$~D',$value['url']??'')||!preg_match('/^[a-zA-Z0-9_.-]{1,100}$/D',$value['model']??''))return null;
     return $pin=$value;
 }
-function aiModelName():string{return (string)(aiLocalModelPin()['model']??alphano_config('ai_model'));}
-function aiModelContext():int{return max(1536,min(4096,(int)(aiLocalModelPin()['settings']['context']??alphano_config('ai_context'))));}
+function aiModelName():string{return (string)(aiLocalModelPin()['model']??alphanoConfig('ai_model'));}
+function aiModelContext():int{return max(1536,min(4096,(int)(aiLocalModelPin()['settings']['context']??alphanoConfig('ai_context'))));}
 function aiLocalModelCall(string $method,string $path,?array $body=null):array {
-    if(!alphano_config('ai_enabled'))throw new DomainException('Supporto IA disabilitato.',503);
+    if(!alphanoConfig('ai_enabled'))throw new DomainException('Supporto IA disabilitato.',503);
     $config=aiLocalModelConfig();if(!$config)throw new DomainException('Cambio modello disponibile soltanto nell’ambiente locale abilitato.',404);
     if(!in_array($method,['GET','POST'],true)||!in_array($path,['/status','/switch'],true))throw new LogicException('Operazione locale non prevista.');
     $token=is_readable($config['token_file'])?trim((string)file_get_contents($config['token_file'])):'';

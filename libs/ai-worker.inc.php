@@ -38,15 +38,15 @@ function aiSyncLogs(bool $force=false): void {
 /** Non-model maintenance runs once per supervisor, outside consumer transactions. */
 function aiWorkerMaintenance(bool $force=false):void {
     static $last=0;$now=time();if(!$force&&$now-$last<5){ return; }$last=$now;
-    rpg_catalog(true);rpg_settings(true);companionship_release_expired();alphano_lycan_tick();
-    require_once __DIR__.'/lineages.inc.php';lineage_tick(null,true);
+    rpg_catalog(true);rpg_settings(true);companionshipReleaseExpired();alphanoLycanTick();
+    require_once __DIR__.'/lineages.inc.php';lineageTick(null,true);
     aiPerceptionRecoverPending();aiSyncLogs();aiQuestSyncLogs();aiQuestMaintenance();
     static $demoCleaned=0;if($now-$demoCleaned>=300){aiDemoCleanup();$demoCleaned=$now;}
     aiWorkerRecover();
 }
 /** Compatibility entry point: exactly one bounded foreground/reflection job. */
 function aiWorkOnce():bool {
- if(!alphano_config('ai_enabled')){ return false; }
+ if(!alphanoConfig('ai_enabled')){ return false; }
     aiHeartbeat('idle');aiWorkerMaintenance();
     // The one-shot CLI retains its foreground-first contract. The long-running
     // supervisor, which knows its actual lanes, applies the reflection quota.

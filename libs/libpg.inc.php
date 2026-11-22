@@ -16,14 +16,14 @@ class BadgeSaveException extends RuntimeException {}
 require_once __DIR__ . '/kernel.inc.php';
 require_once __DIR__ . '/astro.inc.php';
 require_once __DIR__.'/alignments.inc.php';
-alphano_session();
+alphanoSession();
 /**
  * Inizializza la sessione PHP (una sola volta).
  */
 function initSession(): void
 {
     if (session_status() === PHP_SESSION_NONE) {
-        alphano_session();
+        alphanoSession();
     }
 }
 
@@ -32,9 +32,9 @@ function initSession(): void
  */
 function getDB(): PDOMySQLDriver
 {
-    static $db;
+    static $db = null;
     if (!$db) {
-        $db = ConnectDB();
+        $db = connectDB();
     }
     return $db;
 }
@@ -55,7 +55,7 @@ function doLogin(string $username, string $password): bool
     initSession();
     $db = getDB();
     $rows = $db->query('SELECT id, nome, password FROM utenti WHERE nome = ? LIMIT 1', [$username]);
-    if (count($rows) !== 1 || !alphano_password_verify($password, $rows[0]['password'])) {return false;}
+    if (count($rows) !== 1 || !alphanoPasswordVerify($password, $rows[0]['password'])) {return false;}
     // Migrazione progressiva: gli account esistenti continuano a funzionare.
     if (password_needs_rehash($rows[0]['password'], PASSWORD_DEFAULT)) {
         $column = $db->query("SHOW COLUMNS FROM utenti LIKE 'password'")[0]['Type'] ?? '';
@@ -104,7 +104,7 @@ function getIDPG($requireLogin = true): ?int
     $id = (int)$_SESSION['user_id'];
     if ($id < 1 || !getDB()->query('SELECT 1 FROM utenti WHERE id = ?', [$id])) {
         unset($_SESSION['user_id'], $_SESSION['user_name']);
-        if ($requireLogin) {alphano_fail('Sessione scaduta. Effettua nuovamente il login.', 403);}
+        if ($requireLogin) {alphanoFail('Sessione scaduta. Effettua nuovamente il login.', 403);}
         return null;
     }
     return $id;
@@ -180,7 +180,7 @@ function setPosizione(string $pos, int $idpg, string $chat = ''): void
         );
     }
     require_once __DIR__.'/lycan.inc.php';
-    alphano_lycan_sync($idpg);
+    alphanoLycanSync($idpg);
 }
 
 
@@ -218,7 +218,7 @@ function getAllineamento(int $idpg): ?string
 
 function processAl(string $al): string
 {
-    return alphano_alignment($al)['name']??$al;
+    return alphanoAlignment($al)['name']??$al;
 }
 
 function getRazza(int $r): string
@@ -407,7 +407,7 @@ function alphanoBadgeUrl(string $type, int $id, int $scope = 0): string
     if (!in_array($type, ['cariche','organizzazioni','corporazioni'], true)) {throw new InvalidArgumentException('Tipo stemma non valido');}
     $path = '/uploads/badges/' . $type . '/' . ($scope > 0 ? $scope . '/' : '') . max(0,$id) . '.gif';
     foreach ([$path] as $candidate) {
-        foreach ([htmlroot . $candidate, dirname(__DIR__) . $candidate] as $file) {
+        foreach ([HTMLROOT . $candidate, dirname(__DIR__) . $candidate] as $file) {
             if (!is_file($file)) {continue;}
             // Rank insignia remain editable through the existing GIF upload.
             // Refresh cached art after either a release or an administrator upload.
@@ -601,7 +601,7 @@ function makeRichiestaCity(int $city, int $idpg): void
         [$city]
     );
     foreach ($admins as $ad) {
-        InviaMissiva(
+        inviaMissiva(
             'Notifica Richiesta di Cittadinanza',
             'Hai ricevuto una nuova richiesta di ammissione',
             (int)$ad['id']
@@ -760,7 +760,7 @@ function makeRichiestaOrg(int $org, int $pg): bool
         $db->execute('INSERT INTO richieste(idpg,data,organizzazione) VALUES(?,?,?)',[$pg,time(),$org]);
         $admins=$db->query('SELECT id FROM utenti WHERE organizzazione=? AND adminorganizzazione=1',[$org]);
         require_once __DIR__.'/libposta.inc.php';
-        foreach($admins as $admin) {InviaMissiva('Richiesta di Ammissione','Hai ricevuto una nuova richiesta di ammissione.',(int)$admin['id']);}
+        foreach($admins as $admin) {inviaMissiva('Richiesta di Ammissione','Hai ricevuto una nuova richiesta di ammissione.',(int)$admin['id']);}
         $db->commit();return true;
     } catch(Throwable $e) { if($db->inTransaction()){$db->rollBack();} throw $e; }
 }
@@ -917,7 +917,7 @@ function dropCaricaOrg(int $org, int $id): bool
     $db=getDB();
     if($db->query('SELECT 1 FROM utenti WHERE organizzazione=? AND caricaorganizzazione=? LIMIT 1',[$org,$id])){return false;}
     $deleted=$db->execute('DELETE FROM caricheorganizzazioni WHERE organizzazione=? AND id=?',[$org,$id]);
-    $file=htmlroot.ALPHANO_BADGE_PATH_ORG.$org.'/'.$id.'.gif';
+    $file=HTMLROOT.ALPHANO_BADGE_PATH_ORG.$org.'/'.$id.'.gif';
     if($deleted && is_file($file)){unlink($file);}
     return $deleted>0;
 }
@@ -1022,7 +1022,7 @@ function makeRichiestaCorp(int $corp, int $pg): bool
         $db->execute('INSERT INTO richieste(idpg,data,corporazione) VALUES(?,?,?)',[$pg,time(),$corp]);
         $admins=$db->query('SELECT id FROM utenti WHERE corporazione=? AND admincorporazione=1',[$corp]);
         require_once __DIR__.'/libposta.inc.php';
-        foreach($admins as $admin) {InviaMissiva('Richiesta di Ammissione','Hai ricevuto una nuova richiesta di ammissione.',(int)$admin['id']);}
+        foreach($admins as $admin) {inviaMissiva('Richiesta di Ammissione','Hai ricevuto una nuova richiesta di ammissione.',(int)$admin['id']);}
         $db->commit();return true;
     } catch(Throwable $e) { if($db->inTransaction()){$db->rollBack();} throw $e; }
 }
@@ -1183,7 +1183,7 @@ function dropCaricaCorp(int $corp, int $id): bool
     $db=getDB();
     if($db->query('SELECT 1 FROM utenti WHERE corporazione=? AND caricacorporazione=? LIMIT 1',[$corp,$id])){return false;}
     $deleted=$db->execute('DELETE FROM carichecorporazioni WHERE corporazione=? AND id=?',[$corp,$id]);
-    $file=htmlroot.ALPHANO_BADGE_PATH_CORP.$corp.'/'.$id.'.gif';
+    $file=HTMLROOT.ALPHANO_BADGE_PATH_CORP.$corp.'/'.$id.'.gif';
     if($deleted && is_file($file)){unlink($file);}
     return $deleted>0;
 }
@@ -1371,7 +1371,7 @@ function alphanoBadgeScope(string $type, int $group, int $branch): bool
 
 function alphanoSaveBadge(array $file, string $relative): bool
 {
-    $path = htmlroot . $relative;
+    $path = HTMLROOT . $relative;
     $dir = dirname($path);
     $result = is_dir($dir) || mkdir($dir, 0755, true);
     if ($result && (int)($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {

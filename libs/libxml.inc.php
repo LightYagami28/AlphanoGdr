@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 const ALPHANO_IMPORT_MAX_BYTES = 16777216;
 
-function GetXMLFromArray($array, $area = '')
+function getXMLFromArray($array, $area = '')
 {
     if (!is_array($array)) { return false; }
     $out = '<?xml version="1.0" encoding="UTF-8"?>' . "\n<FIELDSET area=\""
@@ -16,9 +16,9 @@ function GetXMLFromArray($array, $area = '')
     return $out . '</FIELDSET>';
 }
 
-function PrintBZXMLFromArray($array, $area = '')
+function printBZXMLFromArray($array, $area = '')
 {
-    $xml = GetXMLFromArray($array, $area);
+    $xml = getXMLFromArray($array, $area);
     if ($xml === false) { return false; }
     $filename = preg_replace('/[^a-zA-Z0-9_-]/', '_', (string)$area) ?: 'alphano';
     header('Content-Type: application/xml; charset=UTF-8');
@@ -27,17 +27,17 @@ function PrintBZXMLFromArray($array, $area = '')
     exit($xml);
 }
 
-function alphano_import_value_allowed(mixed $value, int $depth = 0): bool
+function alphanoImportValueAllowed(mixed $value, int $depth = 0): bool
 {
     if ($depth > 64 || is_object($value) || is_resource($value)) { return false; }
     if (is_array($value)) {
         if (count($value) > 100000) { return false; }
-        foreach ($value as $child) { if (!alphano_import_value_allowed($child, $depth + 1)) { return false; } }
+        foreach ($value as $child) { if (!alphanoImportValueAllowed($child, $depth + 1)) { return false; } }
     }
     return true;
 }
 
-function GetArrayFromXML($xml, $area = '')
+function getArrayFromXML($xml, $area = '')
 {
     if (!is_string($xml) || strlen($xml) > ALPHANO_IMPORT_MAX_BYTES || preg_match('/<!\s*(DOCTYPE|ENTITY)/i', $xml)) { return false; }
     $previous = libxml_use_internal_errors(true);
@@ -55,16 +55,16 @@ function GetArrayFromXML($xml, $area = '')
         try { $value = unserialize($serialized, ['allowed_classes' => false, 'max_depth' => 64]); }
         catch (Throwable) { restore_error_handler(); return false; }
         restore_error_handler();
-        if (!alphano_import_value_allowed($value)) { return false; }
+        if (!alphanoImportValueAllowed($value)) { return false; }
         $out[$name] = $value;
     }
     return $out;
 }
 
-function GetArrayFromBZXML($xml, $area = '')
+function getArrayFromBZXML($xml, $area = '')
 {
     if (!is_string($xml) || strlen($xml) > ALPHANO_IMPORT_MAX_BYTES) { return false; }
-    if (str_starts_with(ltrim($xml), '<?xml') || str_starts_with(ltrim($xml), '<FIELDSET')) { return GetArrayFromXML($xml, $area); }
+    if (str_starts_with(ltrim($xml), '<?xml') || str_starts_with(ltrim($xml), '<FIELDSET')) { return getArrayFromXML($xml, $area); }
     if (!str_starts_with($xml, 'BZh') || !function_exists('bzopen')) { return false; }
     $path = tempnam(sys_get_temp_dir(), 'alphano-import-');
     if ($path === false) { return false; }
@@ -82,7 +82,7 @@ function GetArrayFromBZXML($xml, $area = '')
             if (strlen($decoded) > ALPHANO_IMPORT_MAX_BYTES) { return false; }
         }
         $decoded = base64_decode($decoded, true);
-        return $decoded === false ? false : GetArrayFromXML($decoded, $area);
+        return $decoded === false ? false : getArrayFromXML($decoded, $area);
     } finally {
         if (is_resource($stream)) { bzclose($stream); }
         unlink($path);

@@ -27,8 +27,8 @@ function h($s): string { return htmlspecialchars((string)$s, ENT_QUOTES); }
 
 /*──────────────────────────────────────────────────────────
   Sessione & permessi                                        */
-alphano_require_login();
-if ($_SERVER['REQUEST_METHOD'] === 'POST') { alphano_require_csrf(); }
+alphanoRequireLogin();
+if ($_SERVER['REQUEST_METHOD'] === 'POST') { alphanoRequireCsrf(); }
 initSession();
 $idpg = GetIDPG(false);
 
@@ -112,7 +112,7 @@ $av   = [];  // avviso stanza
 switch ($act) {
  case 'save_board_games':
   require_once __DIR__.'/../libs/board-games.inc.php';
-  if(!$IS_ADMIN){ alphano_fail('Riservato alla gestione.',403); }
+  if(!$IS_ADMIN){ alphanoFail('Riservato alla gestione.',403); }
   bgSaveRoom($idpg,$st,array_map(static fn($key)=>isset($_POST[$key]),array_combine(['scacchi','dama','coins','items','materials'],['scacchi','dama','coins','items','materials'])));
   $msg='Giochi e poste del luogo aggiornati.';break;
 
@@ -120,7 +120,7 @@ switch ($act) {
   // Svuota intera chat
   case 'svuota_chat':
     if ($st && ($IS_ADMIN || $IS_MASTER)) {
-      $msg = SvuotaChat($idpg, $st)
+      $msg = svuotaChat($idpg, $st)
            ? "✅ Chat “{$st}” svuotata."
            : "❌ Errore nello svuotamento di “{$st}”.";
     } else {
@@ -152,7 +152,7 @@ switch ($act) {
 
   // Work edits have a single permission-checked and audited home.
   case 'show_lavori': case 'add_lavoro': case 'edit_lavoro': case 'save_lavoro': case 'del_lavoro':
-    if(!$IS_ADMIN&&!$IS_ACCADEMIA){ alphano_fail('La gestione dei lavori è riservata ad amministratori e responsabili dell’Accademia.',403); }
+    if(!$IS_ADMIN&&!$IS_ACCADEMIA){ alphanoFail('La gestione dei lavori è riservata ad amministratori e responsabili dell’Accademia.',403); }
     header('Location: /admin/lavori.php?chat='.rawurlencode($st ?: (string)($P['chat']??'')));exit;
 
   // Mostra avviso stanza
@@ -191,7 +191,7 @@ switch ($act) {
 <html lang="it">
 <head>
 <meta charset="utf-8">
-<title>Admin Chat – <?=h(TitoloSito)?></title>
+<title>Admin Chat – <?=h(TITOLO_SITO)?></title>
 
 </head>
 <body>
@@ -210,10 +210,10 @@ DEBUG $_POST:
 
 
 <?php if($IS_ADMIN&&$st!==''):require_once __DIR__.'/../libs/board-games.inc.php';if(bgReady()):$boardRoom=bgRoom($st); ?>
-<section class="bg-stats-card"><h2>Giochi da tavolo del luogo</h2><p>Disponibilità e poste consentite. Le regole generali si configurano nella <a href="/admin/giochi.php">gestione centralizzata dei giochi</a>.</p><form method="post"><input type="hidden" name="action_main" value="save_board_games"><input type="hidden" name="stanza" value="<?=h($st)?>"><?php foreach(['scacchi'=>'Scacchi','dama'=>'Dama italiana','coins'=>alphano_currency_text('Poste in Corone'),'items'=>'Poste in oggetti','materials'=>'Poste in materiali'] as $k=>$label): ?><label class="bg-check"><input type="checkbox" name="<?=$k?>" value="1" <?=!empty($boardRoom[$k])?'checked':''?>><?=htmlspecialchars($label,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8')?></label><?php endforeach; ?><button>Salva giochi del luogo</button></form></section>
+<section class="bg-stats-card"><h2>Giochi da tavolo del luogo</h2><p>Disponibilità e poste consentite. Le regole generali si configurano nella <a href="/admin/giochi.php">gestione centralizzata dei giochi</a>.</p><form method="post"><input type="hidden" name="action_main" value="save_board_games"><input type="hidden" name="stanza" value="<?=h($st)?>"><?php foreach(['scacchi'=>'Scacchi','dama'=>'Dama italiana','coins'=>alphanoCurrencyText('Poste in Corone'),'items'=>'Poste in oggetti','materials'=>'Poste in materiali'] as $k=>$label): ?><label class="bg-check"><input type="checkbox" name="<?=$k?>" value="1" <?=!empty($boardRoom[$k])?'checked':''?>><?=htmlspecialchars($label,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8')?></label><?php endforeach; ?><button>Salva giochi del luogo</button></form></section>
 <?php endif;endif; ?>
 <!-- FORM Principale -->
-<form id="main" method="post"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphano_csrf_token(), ENT_QUOTES) . '">' ?>
+<form id="main" method="post"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphanoCsrfToken(), ENT_QUOTES) . '">' ?>
   <input type="hidden" name="action_main">
   <table>
     <tr><th>Seleziona chat</th><th>Operazioni</th></tr>
@@ -253,7 +253,7 @@ function setMain(a){
         <tr>
           <td><?=h($p['nome'])?></td>
           <td>
-            <form method="post" class="u-434fc32ec"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphano_csrf_token(), ENT_QUOTES) . '">' ?>
+            <form method="post" class="u-434fc32ec"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphanoCsrfToken(), ENT_QUOTES) . '">' ?>
               <input type="hidden" name="action_main" value="rimuovi_pg">
               <input type="hidden" name="stanza" value="<?=h($st)?>">
               <input type="hidden" name="pg_id" value="<?=h($p['id'])?>">
@@ -270,7 +270,7 @@ function setMain(a){
 
 <?php if($av || ($IS_ADMIN && $st && $act==='show_avviso')): ?>
   <h2 data-section="Avviso" <?= $act==='show_avviso' ? 'data-ui-open' : '' ?>>Avviso per “<?=h($st)?>”</h2>
-  <form method="post"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphano_csrf_token(), ENT_QUOTES) . '">' ?>
+  <form method="post"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphanoCsrfToken(), ENT_QUOTES) . '">' ?>
     <input type="hidden" name="action_main" value="save_avviso">
     <input type="hidden" name="chat" value="<?=h($st)?>">
     <table><thead><tr><th scope="col" class="ui-visually-hidden">Dettaglio</th><th scope="col" class="ui-visually-hidden">Valore</th></tr></thead>

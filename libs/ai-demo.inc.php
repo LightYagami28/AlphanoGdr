@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 /** The public trial has its own identities and history, never a real player ID. */
 function aiDemoVisit(): ?array {
-    alphano_session();$id=$_SESSION['aiDemoVisit']??'';
+    alphanoSession();$id=$_SESSION['aiDemoVisit']??'';
     if(!is_string($id)||strlen($id)!==64){ return null; }
     return aiDb()->query('SELECT * FROM ai_demo_visits WHERE id=? AND expires_at>?',[$id,time()])[0]??null;
 }
@@ -31,7 +31,7 @@ function aiDemoLimit(string $scope,int $seconds,int $max): void {
 }
 function aiDemoIp(): string {
     // REMOTE_ADDR is set by the web server, never by a visitor-supplied header.
-    return hash_hmac('sha256',(string)($_SERVER['REMOTE_ADDR']??'unknown'),(string)alphano_config('ai_api_key'));
+    return hash_hmac('sha256',(string)($_SERVER['REMOTE_ADDR']??'unknown'),(string)alphanoConfig('ai_api_key'));
 }
 function aiDemoEnter(array $input): array {
     $name=aiField($input,'name',40,true);$sex=aiField($input,'sex',12,true);

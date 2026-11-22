@@ -18,15 +18,15 @@ use Alphano\Database\PDOMySQLDriver;
 // ────────────────────────────────────────────────────────────────────
 playerApi(function (): array {
 // id del chiamante
-$visitorId = alphano_require_login(true);
+$visitorId = alphanoRequireLogin(true);
 // se nella query string (o POST) è passato uid, lo uso, altrimenti visitor
 $uidParam = $_REQUEST['uid'] ?? null;
 $profileId = $uidParam !== null ? (int)$uidParam : $visitorId;
 
-$db        = ConnectDB();
+$db        = connectDB();
 require_once __DIR__.'/../libs/lineages.inc.php';
-lineage_tick();
-if ($profileId === $visitorId) { alphano_transformation_sync($visitorId); }
+lineageTick();
+if ($profileId === $visitorId) { alphanoTransformationSync($visitorId); }
 
 // ────────────────────────────────────────────────────────────────────
 // 4) Query principale
@@ -55,8 +55,8 @@ if (!$row) {
 // 5) Calcoli e formattazioni
 // ────────────────────────────────────────────────────────────────────
 // Determino quale avatar scegliere
-$visibleRace = alphano_visible_race($row);
-$isAlt     = alphano_profile_uses_alt_art($row);
+$visibleRace = alphanoVisibleRace($row);
+$isAlt     = alphanoProfileUsesAltArt($row);
 $avatarUrl = ($isAlt && !empty($row['avatar2'])) ? $row['avatar2'] : $row['avatar'];
 $mottoKey  = $isAlt ? 'motto2' : 'motto';
 $musicKey  = $isAlt ? 'musica2' : 'musica';
@@ -93,7 +93,7 @@ if (!empty($row['imprigionato'])) {
 }
 
 // Note master
-$notesRaw = (!empty(alphano_user()['admin']) || !empty(alphano_user()['fatepower'])) ? $db->query(
+$notesRaw = (!empty(alphanoUser()['admin']) || !empty(alphanoUser()['fatepower'])) ? $db->query(
     'SELECT data, master, nota FROM notepg WHERE pg = ? ORDER BY id',
     [$profileId]
 ) : [];
@@ -105,16 +105,16 @@ foreach ($notesRaw as $n) {
             'id'   => (int)$n['master'],
             'name' => GetPGFromID((int)$n['master']),
         ],
-        'nota'   => ProcessText($n['nota']),
+        'nota'   => processText($n['nota']),
     ];
 }
 
 // ────────────────────────────────────────────────────────────────────
 // 6) Composizione JSON
 // ────────────────────────────────────────────────────────────────────
-$lineageRace = alphano_profile_lineage_race($row);
+$lineageRace = alphanoProfileLineageRace($row);
 $output = [
-    'sidebar_art_url' => alphano_profile_default_banner($lineageRace, (string)$row['sesso']),
+    'sidebar_art_url' => alphanoProfileDefaultBanner($lineageRace, (string)$row['sesso']),
     'lineage_race_label' => GetRazza($lineageRace),
     'id'           => (int)$row['id'],
     'nome'         => $row['nome'],
@@ -127,12 +127,12 @@ $output = [
     'allineamento' => processAl($row['allineamento']),
     'avatar_url'   => playerMediaUrl($avatarUrl,$profileId,'/assets/avatar.svg'),
     'avatar_default_url' => '/assets/avatar.svg',
-    'motto'        => ProcessText($motto),
+    'motto'        => processText($motto),
     'music_url'    => playerMediaUrl($music,$profileId),
     'visit_count'  => (int)$row['visite'],
     'denari'       => (int)$row['denari'],
     'puntif'       => (int)$row['puntif'],
-    'puntif_max'   => maxpuntif,
+    'puntif_max'   => MAXPUNTIF,
     'ferite'       => $row['ferite'] ?: 'Nessuna',
     'corporazione' => [
         'id'   => (int)$row['corporazione'],
@@ -158,21 +158,21 @@ $output = [
         'descrizione' => $row['descrizione_araldica'],
     ],
     'timestamps'  => [
-        'registrazione'   => FormatTimestamp((int)$row['dataregistrazione']),
-        'ultimo_ingresso' => FormatTimestamp((int)$row['ultimoingresso'], 'Mai'),
+        'registrazione'   => formatTimestamp((int)$row['dataregistrazione']),
+        'ultimo_ingresso' => formatTimestamp((int)$row['ultimoingresso'], 'Mai'),
     ],
     'personal'    => [
-        'animali'       => $row['animali']   ? ProcessText($row['animali'])  : 'Nessuno',
-        'amicizie'      => $row['amicizie']  ? ProcessText($row['amicizie']) : 'Non rivelate',
-        'affetti'       => $row['affetti']   ? ProcessText($row['affetti'])  : 'Non rivelati',
+        'animali'       => $row['animali']   ? processText($row['animali'])  : 'Nessuno',
+        'amicizie'      => $row['amicizie']  ? processText($row['amicizie']) : 'Non rivelate',
+        'affetti'       => $row['affetti']   ? processText($row['affetti'])  : 'Non rivelati',
         'stato_sociale' => $row['statosociale'],
     ],
     'notes'       => $notes,
     'flags'       => $flags,
     // se chiesta via ?uid=<altro>, isOwner=false
     'isOwner'     => $profileId === $visitorId,
-    'metamorphosis' => alphano_metamorphosis($row),
-    'transformation' => $profileId === $visitorId ? alphano_transformation_state($row) : null,
+    'metamorphosis' => alphanoMetamorphosis($row),
+    'transformation' => $profileId === $visitorId ? alphanoTransformationState($row) : null,
 ];
 
 // ────────────────────────────────────────────────────────────────────

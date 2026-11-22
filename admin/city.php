@@ -16,23 +16,23 @@ foreach (array_merge($_GET,$_POST) as $value) {
  ********************************************************/
 
 /* ─────────────────── 1) Bootstrap ─────────────────── */
-require_once __DIR__ . '/../libs/kernel.inc.php';       // initSession(), ClosePage()
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') { alphano_require_csrf(); }
+require_once __DIR__ . '/../libs/kernel.inc.php';       // initSession(), closePage()
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') { alphanoRequireCsrf(); }
 require_once __DIR__ . '/../libs/libpg.inc.php';       // GetIDPG()
 require_once __DIR__ . '/../libs/libgrafica.inc.php';
 require_once __DIR__ . '/../libs/libeconomia.inc.php'; // consegnaStipendiCity()
 require_once __DIR__ . '/../libs/libposta.inc.php';
-require_once __DIR__ . '/../libs/libelezioni.inc.php'; // ElectionTime(), VoteTime()
+require_once __DIR__ . '/../libs/libelezioni.inc.php'; // electionTime(), voteTime()
 require_once __DIR__ . '/../libs/activity.inc.php';
 require_once __DIR__ . '/../libs/admin-governance.inc.php';
-require_once __DIR__ . '/../chat/libs/chat-core.php';  // ConnectDB(), InsertIntoChat()
+require_once __DIR__ . '/../chat/libs/chat-core.php';  // connectDB(), insertIntoChat()
 
 
 
 initSession();
-$idpg = alphano_require_login();
+$idpg = alphanoRequireLogin();
 
-$db = ConnectDB();
+$db = connectDB();
 
 /* ─────────────────── 2) Permessi e dati iniziali ─────────────────── */
 
@@ -68,8 +68,8 @@ $elezioni      = (bool)$cityData['elezioni'];
 $costoelezioni = $elezioni
     ? (int)$cityData['costoelezioni']
     : 1;
-$electiontime  = ElectionTime($pgcity);
-$votetime      = VoteTime($pgcity);
+$electiontime  = electionTime($pgcity);
+$votetime      = voteTime($pgcity);
 
 // Recupera solo le dimore orfane e libera le disponibilità una sola volta.
 $toFree=economiaAtomica(static function() use($db,$pgcity): int {
@@ -107,7 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pg    = (int)($_POST['pg'] ?? 0);
             try {
                 if(!in_array($_POST['admit']??'',['0','1'],true)){ throw new DomainException('Scegli se accettare o respingere la richiesta.',422); }
-                $result=alphano_governance_city_citizenship($idpg,$pg,$pgcity,$_POST['admit']==='1'?'accept':'reject',(string)($_POST['reason']??''));
+                $result=alphanoGovernanceCityCitizenship($idpg,$pg,$pgcity,$_POST['admit']==='1'?'accept':'reject',(string)($_POST['reason']??''));
                 $msg.=$result['message'];
             } catch(DomainException $e){http_response_code($e->getCode());$msg.=$e->getMessage();}
             break;
@@ -116,7 +116,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 $target=(int)GetPGID(trim((string)($_POST['nomepg']??'')));
                 if($target<1){ throw new DomainException('Personaggio non trovato. Inserisci il nome completo.',404); }
-                $result=alphano_governance_city_citizenship($idpg,$target,$pgcity,'grant',(string)($_POST['reason']??''));
+                $result=alphanoGovernanceCityCitizenship($idpg,$target,$pgcity,'grant',(string)($_POST['reason']??''));
                 $msg.=$result['message'];
             } catch(DomainException $e){http_response_code($e->getCode());$msg.=$e->getMessage();}
             break;
@@ -296,13 +296,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             return $state;
         };
-        alphano_record_activity('city_'.$action,$idpg,$audiences,$title,$msg,
+        alphanoRecordActivity('city_'.$action,$idpg,$audiences,$title,$msg,
             ['city'=>$pgcity,'target'=>$id,'before'=>$summarize($activityBefore),'after'=>$summarize($activityAfter)]);
     }
 
     // Messaggio in chat
     if ($msg !== ''&&!in_array($action,['admitpg','grantcitizenship'],true)) {
-        InsertIntoChat(
+        insertIntoChat(
             $chatRoom,
             '<div class="MasterKey">' . htmlspecialchars($msg) . '</div>'
         );
@@ -376,7 +376,7 @@ $statuto         = $newStatuto !== ''
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Amministrazione Città – <?=htmlspecialchars(TitoloSito)?></title>
+  <title>Amministrazione Città – <?=htmlspecialchars(TITOLO_SITO)?></title>
 
 </head>
 <body class="ui-page">
@@ -400,7 +400,7 @@ $statuto         = $newStatuto !== ''
       <form method="post"><input type="hidden" name="_city" value="<?= (int)$pgcity ?>">
         <input type="hidden" name="azione" value="admitpg">
         <input type="hidden" name="pg" value="<?=(int)$r['idpg']?>">
-        <div><?=htmlspecialchars((string)GetPGFromID((int)$r['idpg']))?> – <?=FormatTimestamp($r['data'])?></div>
+        <div><?=htmlspecialchars((string)GetPGFromID((int)$r['idpg']))?> – <?=formatTimestamp($r['data'])?></div>
         <label>Motivazione o risposta <input name="reason" maxlength="500" placeholder="Facoltativa, sarà visibile al richiedente"></label>
         <button name="admit" value="1" data-icon="users">Accetta cittadinanza</button>
         <button name="admit" value="0" data-icon="x">Respingi richiesta</button>
@@ -426,7 +426,7 @@ $statuto         = $newStatuto !== ''
     <?php foreach ($araldiche as $a): ?>
       <div>
         <?=processAraldica((int)$a['id'])?>
-        <?=$a['nome']?>: <?=$a['stipendio']?> <?=alphano_currency_html()?> (<?=$a['tot']?> pg)
+        <?=$a['nome']?>: <?=$a['stipendio']?> <?=alphanoCurrencyHtml()?> (<?=$a['tot']?> pg)
       </div>
     <?php endforeach; ?>
   </form>
@@ -436,14 +436,14 @@ $statuto         = $newStatuto !== ''
     <input type="hidden" name="_request_key" value="<?=bin2hex(random_bytes(16))?>">
     <header>Budget e Stipendi</header>
     <label for="city-budget-attuale">Budget attuale</label>
-    <input id="city-budget-attuale" disabled value="<?=$budget?> <?=alphano_currency_html()?>">
+    <input id="city-budget-attuale" disabled value="<?=$budget?> <?=alphanoCurrencyHtml()?>">
     <label for="city-tot-stipendi">Totale stipendi</label>
-    <input id="city-tot-stipendi" disabled value="<?=$totStipendi?> <?=alphano_currency_html()?>">
+    <input id="city-tot-stipendi" disabled value="<?=$totStipendi?> <?=alphanoCurrencyHtml()?>">
     <label for="city-ultimo-stipendio">Ultimo stipendio</label>
     <input id="city-ultimo-stipendio" disabled
       value="<?=
         ($ultimostipendio ?? 0)
-          ? FormatTimestamp($ultimostipendio)
+          ? formatTimestamp($ultimostipendio)
           : 'Nessuno'
       ?>">
     <?php if ($okStipendi && $budget >= $totStipendi): ?>
@@ -495,7 +495,7 @@ $statuto         = $newStatuto !== ''
     <?php if ($quartieri): foreach ($quartieri as $q): ?>
       <form method="post"><input type="hidden" name="_city" value="<?= (int)$pgcity ?>">
         <input type="hidden" name="id" value="<?=(int)$q['id']?>">
-        <div><?=htmlspecialchars($q['indirizzo'])?> – <?=(int)$q['costo']?> <?=alphano_currency_html()?> – Disp: <?=(int)$q['disp']?> – Cap.: <?=(int)$q['capienza']?></div>
+        <div><?=htmlspecialchars($q['indirizzo'])?> – <?=(int)$q['costo']?> <?=alphanoCurrencyHtml()?> – Disp: <?=(int)$q['disp']?> – Cap.: <?=(int)$q['capienza']?></div>
         <button name="azione" value="modifyquartiere">Modifica</button>
         <button name="azione" value="eliminaquartiere">Elimina</button>
       </form>
@@ -576,5 +576,5 @@ $statuto         = $newStatuto !== ''
 </body>
 </html>
 <?php
-ClosePage();
+closePage();
 

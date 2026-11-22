@@ -1,7 +1,9 @@
 <?php
 declare(strict_types=1);
 
+
 namespace Alphano\Libs;
+require_once __DIR__ . '/alphano-exceptions.inc.php';
 
 use Alphano\Database\PDOMySQLDriver;
 use RuntimeException;
@@ -21,21 +23,21 @@ const APPROVED_IMG = '/assets/placeholder.svg';
  *
  * @throws RuntimeException
  */
-function ResizeImage(string $srcPath, int $newWidth, string $destPath): bool
+function resizeImage(string $srcPath, int $newWidth, string $destPath): bool
 {
     if (!file_exists($srcPath)) {
-        throw new RuntimeException("File non trovato: $srcPath");
+        throw new \AlphanoStorageException("File non trovato: $srcPath");
     }
 
     $info = @getimagesize($srcPath);
     if (!$info || count($info) < 3) {
-        throw new RuntimeException("Formato/size non letto: $srcPath");
+        throw new \AlphanoStorageException("Formato/size non letto: $srcPath");
     }
     list($width, $height, $type) = $info;
 
     $data = @file_get_contents($srcPath);
     if ($data === false) {
-        throw new RuntimeException("Impossibile leggere: $srcPath");
+        throw new \AlphanoStorageException("Impossibile leggere: $srcPath");
     }
 
     $srcImg = @imagecreatefromstring($data);
@@ -43,10 +45,10 @@ function ResizeImage(string $srcPath, int $newWidth, string $destPath): bool
         // fallback: copia diretta
         $dir = dirname($destPath);
         if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
-            throw new RuntimeException("Impossibile creare dir: $dir");
+            throw new \AlphanoStorageException("Impossibile creare dir: $dir");
         }
         if (!@copy($srcPath, $destPath)) {
-            throw new RuntimeException("Copy fallback fallito: $srcPath → $destPath");
+            throw new \AlphanoStorageException("Copy fallback fallito: $srcPath → $destPath");
         }
         return true;
     }
@@ -65,21 +67,21 @@ function ResizeImage(string $srcPath, int $newWidth, string $destPath): bool
     if (!imagecopyresampled($thumb, $srcImg, 0, 0, 0, 0, $tW, $tH, $width, $height)) {
         imagedestroy($srcImg);
         imagedestroy($thumb);
-        throw new RuntimeException("Errore resample: $srcPath");
+        throw new \AlphanoStorageException("Errore resample: $srcPath");
     }
     imagedestroy($srcImg);
 
     $dir = dirname($destPath);
     if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
         imagedestroy($thumb);
-        throw new RuntimeException("Impossibile creare dir: $dir");
+        throw new \AlphanoStorageException("Impossibile creare dir: $dir");
     }
 
-    $ok = WriteImage($type, $thumb, $destPath);
+    $ok = writeImage($type, $thumb, $destPath);
     imagedestroy($thumb);
 
     if (!$ok) {
-        throw new RuntimeException("WriteImage fallito: $destPath");
+        throw new \AlphanoStorageException("writeImage fallito: $destPath");
     }
 
     return true;
@@ -88,7 +90,7 @@ function ResizeImage(string $srcPath, int $newWidth, string $destPath): bool
 /**
  * Scrive un’immagine GD su file, selezionando il formato giusto.
  */
-function WriteImage(int $type, \GdImage $image, string $filename): bool
+function writeImage(int $type, \GdImage $image, string $filename): bool
 {
     if (file_exists($filename)) {
         @unlink($filename);

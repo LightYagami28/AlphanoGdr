@@ -10,11 +10,11 @@ require_once __DIR__ . '/../libs/libgrafica.inc.php';
 
 
 playerApi(function (): array {
-alphano_require_login(true);
+alphanoRequireLogin(true);
 // ────────────────────────────────────────────────────────────────────
 // 3) Connessione DB e parametri GET
 // ────────────────────────────────────────────────────────────────────
-$db = ConnectDB();
+$db = connectDB();
 
 [$sql,$sqlParams] = playerSearchQuery($_GET);
 $rows = $db->query($sql,$sqlParams);
@@ -59,8 +59,8 @@ $mapEtn = array_column(ListaEtnie(),     'nome','id');
 // ────────────────────────────────────────────────────────────────────
 $ricerca = [];
 foreach ($rows as $d) {
-    $portrait=alphano_profile_portrait($d);
-    $visibleRace=alphano_visible_race($d);
+    $portrait=alphanoProfilePortrait($d);
+    $visibleRace=alphanoVisibleRace($d);
     if($visibleRace===ALPHANO_RACE_LEGACY_SPIRIT){ $visibleRace=ALPHANO_RACE_SPIRIT; }
     $item = [
         'portrait'=>$portrait['url'],'portrait_default'=>$portrait['default'],

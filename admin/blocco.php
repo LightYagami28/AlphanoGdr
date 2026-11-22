@@ -18,9 +18,9 @@ use Alphano\Database\PDOMySQLDriver;
 // ———————————————————————————
 // 2) CONNESSIONE
 // ———————————————————————————
-alphano_require_login();
-if ($_SERVER['REQUEST_METHOD'] === 'POST') { alphano_require_csrf(); }
-$db      = ConnectDB();  // PDOMySQLDriver
+alphanoRequireLogin();
+if ($_SERVER['REQUEST_METHOD'] === 'POST') { alphanoRequireCsrf(); }
+$db      = connectDB();  // PDOMySQLDriver
 
 
 // ———————————————————————————
@@ -63,7 +63,7 @@ $listapos = array_column(
 );
 $wantedBoards=[];
 foreach ($db->query('SELECT id,location,nome FROM luoghi ORDER BY location,nome') as $board) {
-    if (playerBoardPermissions($db,(int)$board['id'],alphano_user())['allowed']) { $wantedBoards[]=$board; }
+    if (playerBoardPermissions($db,(int)$board['id'],alphanoUser())['allowed']) { $wantedBoards[]=$board; }
 }
 
 // ———————————————————————————
@@ -87,7 +87,7 @@ switch ($_POST['azione'] ?? '') {
                 (int)$_POST['giorno'],
                 (int)$_POST['anno']
             );
-            $ok = LockUser($target, $fine, $_POST['motivo'], $pgid);
+            $ok = lockUser($target, $fine, $_POST['motivo'], $pgid);
             $msg = $ok
                  ? 'Personaggio bloccato con successo'
                  : 'Impossibile bloccare l\'utente selezionato';
@@ -99,7 +99,7 @@ switch ($_POST['azione'] ?? '') {
     case 'sblocca':
         $toUnlock = (int)($_POST['pg'] ?? 0);
         if ($toUnlock && $toUnlock !== $pgid) {
-            $ok = ForceUnlock($toUnlock, $pgid);
+            $ok = forceUnlock($toUnlock, $pgid);
             $msg = $ok
                  ? 'Personaggio sbloccato con successo'
                  : 'Impossibile sbloccare il personaggio selezionato';
@@ -112,7 +112,7 @@ switch ($_POST['azione'] ?? '') {
         $toJail = GetPGID($_POST['pg'] ?? '');
         $city   = (int)($_POST['city'] ?? 0);
         if ($toJail && $toJail !== $pgid && $city) {
-            $ok = Incarcera($toJail, $city, $pgid);
+            $ok = incarcera($toJail, $city, $pgid);
             $msg = $ok
                  ? 'Personaggio imprigionato con successo'
                  : 'Impossibile imprigionare il personaggio selezionato';
@@ -124,7 +124,7 @@ switch ($_POST['azione'] ?? '') {
     case 'scarcera':
         $toFree = (int)($_POST['pg'] ?? 0);
         if ($toFree && $toFree !== $pgid) {
-            $ok = Scarcera($toFree, $pgid);
+            $ok = scarcera($toFree, $pgid);
             $msg = $ok
                  ? 'Personaggio scarcerato con successo'
                  : 'Impossibile scarcerare il personaggio selezionato';
@@ -137,7 +137,7 @@ switch ($_POST['azione'] ?? '') {
         $wanted = GetPGID($_POST['pg'] ?? '');
         $wantedBoard=(int)($_POST['bacheca'] ?? 0);
         if ($wanted && !empty($_POST['motivo']) && in_array($wantedBoard,array_map(static fn($board)=>(int)$board['id'],$wantedBoards),true)) {
-            $ok = InserisciThread((string)$wantedBoard, $pgid, 'Ricercato: '.GetPGFromID((int)$wanted), (string)$_POST['motivo'], false);
+            $ok = inserisciThread((string)$wantedBoard, $pgid, 'Ricercato: '.GetPGFromID((int)$wanted), (string)$_POST['motivo'], false);
             $msg = $ok
                  ? 'Ricercato inserito correttamente'
                  : 'Errore nell\'inserimento del ricercato';
@@ -196,7 +196,7 @@ foreach ($db->query("SELECT id,nome,imprigionato FROM utenti WHERE imprigionato 
 <html lang="it">
 <head>
   <meta charset="UTF-8">
-  <title>Amministrazione Blocco Utenti <?= TitoloSito ?></title>
+  <title>Amministrazione Blocco Utenti <?= TITOLO_SITO ?></title>
 
 
     <script src="/js/global.js"></script>
@@ -207,7 +207,7 @@ foreach ($db->query("SELECT id,nome,imprigionato FROM utenti WHERE imprigionato 
 <?php foreach($lockedpg as $d): ?>
     lockby[<?=$d['id']?>]         = '<?= addslashes(GetPGFromID($d['lockby'])) ?>';
     motivo[<?=$d['id']?>]         = '<?= addslashes($d['motivo']) ?>';
-    datasblocco[<?=$d['id']?>]    = '<?= FormatTimestamp($d['datasblocco']) ?>';
+    datasblocco[<?=$d['id']?>]    = '<?= formatTimestamp($d['datasblocco']) ?>';
 <?php endforeach; ?>
     function Info(id){
       document.getElementById('lockby').innerText      = lockby[id]      || '';
@@ -224,14 +224,14 @@ foreach ($db->query("SELECT id,nome,imprigionato FROM utenti WHERE imprigionato 
 <?php endif; ?>
     <section data-section="Blocco Utenti"><h2>Blocco Utenti</h2>
 
-      <form method="POST" class="u-5fb9edaa1"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphano_csrf_token(), ENT_QUOTES) . '">' ?>
+      <form method="POST" class="u-5fb9edaa1"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphanoCsrfToken(), ENT_QUOTES) . '">' ?>
         <select aria-label="Posizione" name="posizione" onchange="this.form.submit()">
 <?php foreach($listapos as $p): ?>
           <option value="<?=$p?>"<?= $p===$curpos?' selected':'' ?>><?=$p?></option>
 <?php endforeach; ?>
         </select>
       </form>
-      <form method="POST" name="frmblocco" class="u-9548f4c53"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphano_csrf_token(), ENT_QUOTES) . '">' ?>
+      <form method="POST" name="frmblocco" class="u-9548f4c53"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphanoCsrfToken(), ENT_QUOTES) . '">' ?>
         <input type="hidden" name="azione" value="blocca">
         <select aria-label="Personaggio" name="pospg" onchange="this.form.pg.value=this.value">
           <option></option>
@@ -262,7 +262,7 @@ foreach ($db->query("SELECT id,nome,imprigionato FROM utenti WHERE imprigionato 
     </section><section data-section="Sblocco Utenti"><h2>Sblocco Utenti</h2>
 <?php if(count($lockedpg)): ?>
 
-      <form method="POST" name="frmsblocco"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphano_csrf_token(), ENT_QUOTES) . '">' ?>
+      <form method="POST" name="frmsblocco"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphanoCsrfToken(), ENT_QUOTES) . '">' ?>
         <input type="hidden" name="azione" value="sblocca">
         <select aria-label="Nome personaggio" name="pg" onchange="Info(this.value)">
           <option></option>
@@ -283,7 +283,7 @@ foreach ($db->query("SELECT id,nome,imprigionato FROM utenti WHERE imprigionato 
     <!-- Imprigionamento -->
     </section><section data-section="Imprigiona Utenti"><h2>Imprigiona Utenti</h2>
 
-      <form method="POST" name="frmimprigiona"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphano_csrf_token(), ENT_QUOTES) . '">' ?>
+      <form method="POST" name="frmimprigiona"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphanoCsrfToken(), ENT_QUOTES) . '">' ?>
         <input type="hidden" name="azione" value="imprigiona">
         <select aria-label="Personaggio" name="pospg" onchange="this.form.pg.value=this.value">
           <option></option>
@@ -303,10 +303,10 @@ foreach ($db->query("SELECT id,nome,imprigionato FROM utenti WHERE imprigionato 
 
 
     <!-- Scarceramento -->
-    </section><section data-section="Scarcera Utenti"><h2>Scarcera Utenti</h2>
+    </section><section data-section="scarcera Utenti"><h2>scarcera Utenti</h2>
 <?php if(count($prigione)): ?>
 
-      <form method="POST" name="frmscarcera"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphano_csrf_token(), ENT_QUOTES) . '">' ?>
+      <form method="POST" name="frmscarcera"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphanoCsrfToken(), ENT_QUOTES) . '">' ?>
         <input type="hidden" name="azione" value="scarcera">
         <select aria-label="Nome personaggio" name="pg">
 <?php foreach($prigione as $city=>$group): ?>
@@ -317,7 +317,7 @@ foreach ($db->query("SELECT id,nome,imprigionato FROM utenti WHERE imprigionato 
           </optgroup>
 <?php endforeach; ?>
         </select>
-        <button type="submit">Scarcera</button>
+        <button type="submit">scarcera</button>
       </form>
 
 <?php else: ?>
@@ -327,7 +327,7 @@ foreach ($db->query("SELECT id,nome,imprigionato FROM utenti WHERE imprigionato 
     <!-- Ricercato -->
     </section><section data-section="Inserisci Ricercato"><h2>Inserisci Ricercato</h2>
 
-      <form method="POST" name="frmricercato"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphano_csrf_token(), ENT_QUOTES) . '">' ?>
+      <form method="POST" name="frmricercato"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphanoCsrfToken(), ENT_QUOTES) . '">' ?>
         <input type="hidden" name="azione" value="ricercato">
         <label>Personaggio<input type="text" name="pg" size="20" placeholder="nome PG" required></label>
         <label>Pubblica nella bacheca<select name="bacheca" required><option value="">Scegli la destinazione</option>
@@ -342,4 +342,4 @@ foreach ($db->query("SELECT id,nome,imprigionato FROM utenti WHERE imprigionato 
   </section></div>
 </body>
 </html>
-<?php ClosePage(); ?>
+<?php closePage(); ?>

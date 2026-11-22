@@ -30,7 +30,7 @@ header('Content-Type: application/json; charset=UTF-8');
 try {
     // Connessione + autenticazione
     $db   = getDB();
-    $idpg = alphano_require_login(true);
+    $idpg = alphanoRequireLogin(true);
     if (!$idpg) { throw new \Exception('Non autenticato', 401); }
 
     // Permessi
@@ -68,10 +68,10 @@ try {
     $msg = null;
     if ($act !== '') {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') { throw new Exception('Usa POST',405); }
-        alphano_require_csrf(true);
+        alphanoRequireCsrf(true);
     }
 
-    if(array_key_exists('header_image',$in)){ alphano_board_validate_image((string)$in['header_image']); }
+    if(array_key_exists('header_image',$in)){ alphanoBoardValidateImage((string)$in['header_image']); }
     foreach(['location'=>255,'nome'=>255,'descrizione'=>100000] as $field=>$max){ if(isset($in[$field])&&(!is_string($in[$field])||mb_strlen($in[$field])>$max)){ throw new DomainException('Campo non valido o troppo lungo: '.$field,422); } }
 
     // 3) CRUD
@@ -96,7 +96,7 @@ try {
                 $id   = (int)($in['id'] ?? 0);
                 $loc  = trim((string)($in['location'] ?? ''));
                 $nome = trim((string)($in['nome'] ?? ''));
-                $desc = alphano_sanitize_html(trim((string)($in['descrizione'] ?? '')));
+                $desc = alphanoSanitizeHtml(trim((string)($in['descrizione'] ?? '')));
                 $clr  = !empty($in['clear']) ? 1 : 0;
                 if ($id <= 0 || $loc === '' || $nome === '' || trim(strip_tags($desc)) === '') {
                     throw new \Exception('Parametri mancanti', 400);
@@ -111,7 +111,7 @@ try {
                      WHERE id = ?',
                     [$loc, $nome, $desc, $clr, $id]
                 );
-                if(array_key_exists('header_image',$in)){ $db->execute('UPDATE luoghi SET header_image=? WHERE id=?',[alphano_board_validate_image((string)$in['header_image']),$id]); }
+                if(array_key_exists('header_image',$in)){ $db->execute('UPDATE luoghi SET header_image=? WHERE id=?',[alphanoBoardValidateImage((string)$in['header_image']),$id]); }
                 $msg = 'Bacheca modificata';
                 break;
 
@@ -184,7 +184,7 @@ try {
             case 'aggiungi':
                 $loc  = trim((string)($in['location'] ?? ''));
                 $nome = trim((string)($in['nome'] ?? ''));
-                $desc = alphano_sanitize_html(trim((string)($in['descrizione'] ?? '')));
+                $desc = alphanoSanitizeHtml(trim((string)($in['descrizione'] ?? '')));
                 $clr  = !empty($in['clear']) ? 1 : 0;
                 if ($loc === '' || $nome === '' || trim(strip_tags($desc)) === '') {
                     throw new \Exception('Parametri mancanti', 400);
@@ -198,7 +198,7 @@ try {
                      VALUES (?, ?, ?, ?)',
                     [$loc, $nome, $desc, $clr]
                 );
-                $newBoard=(int)$db->lastInsertId();$cover=isset($in['header_image'])?alphano_board_validate_image((string)$in['header_image']):alphano_board_image(['location'=>$loc,'nome'=>$nome]);$db->execute('UPDATE luoghi SET header_image=? WHERE id=?',[$cover,$newBoard]);
+                $newBoard=(int)$db->lastInsertId();$cover=isset($in['header_image'])?alphanoBoardValidateImage((string)$in['header_image']):alphanoBoardImage(['location'=>$loc,'nome'=>$nome]);$db->execute('UPDATE luoghi SET header_image=? WHERE id=?',[$cover,$newBoard]);
                 $db->execute('INSERT INTO diritti(bacheca,`all`) VALUES(?,1)',[(string)$newBoard]);
                 $db->commit();
                 $msg = 'Bacheca creata';
@@ -233,7 +233,7 @@ try {
             'descrizione' => $r['descrizione'],
             'clear'       => (bool)$r['clear'],
             'diritti'     => array_map('boolval', $rights),
-            'header_image'=>alphano_board_image($r),
+            'header_image'=>alphanoBoardImage($r),
         ];
     }
 
@@ -249,7 +249,7 @@ try {
             'boards' => count($bacheche),
         ],
         'cities'    => $cities,
-        'images' => alphano_board_images(),
+        'images' => alphanoBoardImages(),
         'bacheche'  => $bacheche,
     ], JSON_UNESCAPED_UNICODE);
     exit;
@@ -258,7 +258,7 @@ catch (\Throwable $e) {
     if(isset($db)&&$db->inTransaction()){ $db->rollBack(); }
     $code = (int)$e->getCode();
     if ($code < 400 || $code >= 600) { $code = 500; }
-    if($code===500){error_log('[Board admin] '.$e);$reference=alphano_error_reference($e,'board-admin');}
+    if($code===500){error_log('[Board admin] '.$e);$reference=alphanoErrorReference($e,'board-admin');}
     http_response_code($code);
     ob_clean();
     echo json_encode([

@@ -34,7 +34,7 @@ function aiRecognitionScene(string $chat,int $player,int $source=0,string $raw='
     static $cache=[];$key=$chat.':'.$player.':'.$source.':'.hash('sha256',$raw);
     if($source>0&&isset($cache[$key])){ return $cache[$key]; }
     require_once __DIR__.'/chat-history.inc.php';
-    $rows=aiDb()->query('SELECT id,msg,chat FROM chat WHERE pg=? AND dest=0 AND id<=?'.alphano_chat_live_filter().' ORDER BY id DESC LIMIT 64',[$player,$source>0?$source:PHP_INT_MAX]);
+    $rows=aiDb()->query('SELECT id,msg,chat FROM chat WHERE pg=? AND dest=0 AND id<=?'.alphanoChatLiveFilter().' ORDER BY id DESC LIMIT 64',[$player,$source>0?$source:PHP_INT_MAX]);
     $name=aiDb()->query('SELECT nome FROM utenti WHERE id=?',[$player])[0]['nome']??'';$hidden=false;$start=0;$mask=0;$lastChat='';
     if($rows&&aiRecognitionReady()){$base=aiDb()->query('SELECT source_id,face_hidden FROM ai_identity_observations WHERE player_id=? AND source_id<? ORDER BY source_id DESC LIMIT 1',[$player,(int)end($rows)['id']])[0]??null;if($base){$hidden=(bool)$base['face_hidden'];$mask=$hidden?(int)$base['source_id']:0;}}
     foreach(array_reverse($rows) as $row){

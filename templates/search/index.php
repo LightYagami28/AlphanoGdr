@@ -8,7 +8,7 @@ $filterFields=[
  'al'=>['Allineamento',['LB'=>'Legale Buono','NB'=>'Neutrale Buono','CB'=>'Caotico Buono','LN'=>'Legale Neutrale','NN'=>'Neutrale','CN'=>'Caotico Neutrale','LM'=>'Legale Malvagio','NM'=>'Neutrale Malvagio','CM'=>'Caotico Malvagio']],
  'categoria'=>['Incarico',array_combine(array_keys($categoriaMap),array_keys($categoriaMap))]
 ]; ?>
-<!DOCTYPE html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ricerca dei Personaggi <?=TitoloSito()?></title>
+<!DOCTYPE html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ricerca dei Personaggi <?=TITOLO_SITO()?></title>
 <script src="/js/global.js"></script>
 <script type="application/json" id="search-data"><?=json_encode($ricerca,JSON_UNESCAPED_UNICODE|JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP)?></script><script src="/js/search.js?v=<?=filemtime(dirname(__DIR__,2).'/js/search.js')?>" defer></script></head>
 <body onload="Carica()">
@@ -20,4 +20,4 @@ $filterFields=[
 </form>
 <nav class="search-alphabet" aria-label="Iniziale del nome"><?php foreach(range('a','z') as $letter):$letterQuery=$_GET;$letterQuery['nome']=$letter; ?><a href="/ricerca/?<?=$sh(http_build_query($letterQuery))?>"<?=strtolower($filters['nome'])===$letter?' aria-current="true"':''?>><?=strtoupper($letter)?></a><?php endforeach; ?><a href="/ricerca/">Tutti</a></nav>
 <section id="risultato" class="search-results" aria-label="Risultati della ricerca" aria-live="polite"></section>
-</body></html><?php ClosePage(); ?>
+</body></html><?php closePage(); ?>

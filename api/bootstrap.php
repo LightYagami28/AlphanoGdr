@@ -22,8 +22,8 @@ use Alphano\Database\PDOMySQLDriver;
  */
 function db(): PDOMySQLDriver
 {
-    static $db;
-    return $db ??= ConnectDB();
+    static $db = null;
+    return $db ??= connectDB();
 }
 
 /**

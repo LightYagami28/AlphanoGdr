@@ -8,7 +8,7 @@ function bg_dead(array $board):bool {
 }
 function bg_engine(string $game,array $moves):array {
  if(count($moves)>512){ throw new DomainException('Limite di mosse raggiunto.',409); }
- if($game==='dama'){require_once __DIR__.'/draughts-engine.inc.php';return ad_engine($moves);}
+ if($game==='dama'){require_once __DIR__.'/draughts-engine.inc.php';return adEngine($moves);}
  if($game!=='scacchi'){ throw new DomainException('Gioco non valido.',422); }
  $fen=new Onspli\Chess\FEN();$history=[$fen->exportShort()];foreach($moves as $san){if(!in_array($san,$fen->getLegalMoves(),true)){ throw new DomainException('Mossa non consentita.',422); }$fen->move($san);$history[]=$fen->exportShort();}
  $board=[];for($r=1;$r<=8;$r++){ foreach(range('a','h') as $f){ $board[$f.$r]=$fen->getSquare($f.$r); } }

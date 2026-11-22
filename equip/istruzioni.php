@@ -3,9 +3,9 @@ declare(strict_types=1);
 
 
 
-require_once __DIR__ . '/../libs/kernel.inc.php';      // ConnectDB(), initSession()…
+require_once __DIR__ . '/../libs/kernel.inc.php';      // connectDB(), initSession()…
 require_once __DIR__ . '/../libs/libgrafica.inc.php';
-require_once __DIR__ . '/../libs/libpg.inc.php';       // GetIDPG(), ClosePage(), …
+require_once __DIR__ . '/../libs/libpg.inc.php';       // GetIDPG(), closePage(), …
 
 
 // (opzionale) se vuoi restrizioni d’accesso:
@@ -53,5 +53,5 @@ require_once __DIR__ . '/../libs/libpg.inc.php';       // GetIDPG(), ClosePage()
 </html>
 <?php
 // se vuoi chiudere la sessione o fare altre pulizie:
-// ClosePage();
+// closePage();
 ?>

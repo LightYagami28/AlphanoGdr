@@ -5,9 +5,9 @@ header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store, private');
 header('X-Content-Type-Options: nosniff');
 try{
-    alphano_session();$method=$_SERVER['REQUEST_METHOD']??'GET';
+    alphanoSession();$method=$_SERVER['REQUEST_METHOD']??'GET';
     if($method==='POST'){
-        alphano_require_csrf(true);$in=alphano_request_json();
+        alphanoRequireCsrf(true);$in=alphanoRequestJson();
         if(($in['action']??'')==='enter'){ $out=['visitor'=>aiDemoEnter($in)]; }
         elseif(($in['action']??'')==='send'){$visit=aiDemoVisit();if(!$visit){ throw new DomainException('Entra nella demo per scrivere.',401); }$out=aiDemoSend($visit,$in);}
         else { throw new DomainException('Azione non disponibile.',422); }
@@ -21,5 +21,5 @@ try{
         }
     }else{header('Allow: GET, POST');throw new DomainException('Metodo non disponibile.',405);}
     echo json_encode($out,JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE|JSON_THROW_ON_ERROR);
-}catch(DomainException $e){alphano_fail($e->getMessage(),$e->getCode()>=400?$e->getCode():422,true);}
-catch(Throwable $e){error_log('[Demo] '.$e->getMessage());alphano_fail('La demo è temporaneamente occupata. Riprova tra poco.',503,true);}
+}catch(DomainException $e){alphanoFail($e->getMessage(),$e->getCode()>=400?$e->getCode():422,true);}
+catch(Throwable $e){error_log('[Demo] '.$e->getMessage());alphanoFail('La demo è temporaneamente occupata. Riprova tra poco.',503,true);}

@@ -7,21 +7,21 @@ require_once __DIR__ . '/../libpg.inc.php';
 require_once __DIR__ . '/../libposta.inc.php';
 require_once __DIR__ . '/../libbacheca.inc.php';
 require_once __DIR__ . '/../libtext.inc.php';
-$idpg=alphano_require_login();
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') { alphano_require_csrf(); }
-foreach (array_merge($_GET,$_POST) as $value) { if (!is_scalar($value)) { alphano_fail('Parametri non validi.',400); } }
+$idpg=alphanoRequireLogin();
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') { alphanoRequireCsrf(); }
+foreach (array_merge($_GET,$_POST) as $value) { if (!is_scalar($value)) { alphanoFail('Parametri non validi.',400); } }
 
-function bacheca_legacy_board(): int {
+function bachecaLegacyBoard(): int {
     $board=(int)($_POST['bc'] ?? $_GET['bc'] ?? 0);
-    if ($board<1) { alphano_fail('Bacheca non trovata.',404); }
-    playerRequireBoard(getDB(),$board,alphano_user());
+    if ($board<1) { alphanoFail('Bacheca non trovata.',404); }
+    playerRequireBoard(getDB(),$board,alphanoUser());
     return $board;
 }
 
-function bacheca_legacy_render(int $board=0,int $thread=0,string $location='',string $message=''): void {
-    $user=alphano_user();
+function bachecaLegacyRender(int $board=0,int $thread=0,string $location='',string $message=''): void {
+    $user=alphanoUser();
     $forum=['mode'=>'board','title'=>'Bacheche','apiBaseUrl'=>'/api/bacheche',
-        'currentUserId'=>(int)$user['id'],'isAdmin'=>!empty($user['admin']),'csrfToken'=>alphano_csrf_token(),
+        'currentUserId'=>(int)$user['id'],'isAdmin'=>!empty($user['admin']),'csrfToken'=>alphanoCsrfToken(),
         'initialBoard'=>$board,'initialThread'=>$thread,'initialLocation'=>$location,'message'=>$message];
-    require dirname(__DIR__,2).'/templates/forum/index.php';
+    require_once dirname(__DIR__,2).'/templates/forum/index.php';
 }

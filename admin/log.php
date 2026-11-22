@@ -9,11 +9,11 @@ require_once __DIR__ . '/../libs/libgrafica.inc.php';
 
 use Alphano\Database\PDOMySQLDriver;
 
-alphano_require_login();
-if ($_SERVER['REQUEST_METHOD'] === 'POST') { alphano_require_csrf(); }
+alphanoRequireLogin();
+if ($_SERVER['REQUEST_METHOD'] === 'POST') { alphanoRequireCsrf(); }
 
 $idpg    = GetIDPG(0, 1) ?: die('<h1>Accesso negato</h1>');
-$db      = ConnectDB();
+$db      = connectDB();
 
 // — Privilegi —
 $user = $db->query('SELECT admin, adminaccademia FROM utenti WHERE id = ?', [$idpg])[0] ?? null;
@@ -83,7 +83,7 @@ switch ($_POST['aztartarcontrol'] ?? '') {
 <html lang="it">
 <head>
   <meta charset="UTF-8">
-  <title>Log Viewer – <?= TitoloSito ?></title>
+  <title>Log Viewer – <?= TITOLO_SITO ?></title>
 
 
   <script src="/js/global.js"></script>
@@ -100,7 +100,7 @@ switch ($_POST['aztartarcontrol'] ?? '') {
   <h1 class="Valore">Log Viewer</h1>
 
   <!-- Form nascosto per SHOW FIELDS -->
-  <form id="frmFields" method="POST" class="u-f2892a2e8"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphano_csrf_token(), ENT_QUOTES) . '">' ?>
+  <form id="frmFields" method="POST" class="u-f2892a2e8"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphanoCsrfToken(), ENT_QUOTES) . '">' ?>
     <input type="hidden" name="aztartarcontrol" value="getfields">
     <input type="hidden" name="tabella" value="">
   </form>
@@ -121,7 +121,7 @@ switch ($_POST['aztartarcontrol'] ?? '') {
       <?php if ($tabella): ?>
         <h2 class="Valore">Tabella: <?= htmlspecialchars($tabella) ?></h2>
 
-        <form id="frmFilter" method="POST" class="u-f267e3ca6"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphano_csrf_token(), ENT_QUOTES) . '">' ?>
+        <form id="frmFilter" method="POST" class="u-f267e3ca6"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphanoCsrfToken(), ENT_QUOTES) . '">' ?>
           <input type="hidden" name="aztartarcontrol" value="getdata">
           <input type="hidden" name="tabella" value="<?= htmlspecialchars($tabella) ?>">
 
@@ -209,7 +209,7 @@ function converti(
                  ? "<a href=\"javascript:openProfile(".$jsArg($dato).")\">$label</a>"
                  : $label;
         case 'obj':  return $escape($idobjs[$dato]  ?? (string)$dato);
-        case 'data': return FormatTimestamp((int)$dato);
+        case 'data': return formatTimestamp((int)$dato);
         case 'city': return $escape($idcitys[$dato] ?? (string)$dato);
         case 'org':  return $escape($idorgs[$dato]  ?? (string)$dato);
         default:     return $escape($dato);
@@ -218,7 +218,7 @@ function converti(
 
 // raccoglie tutti i valori distinti in $righe e costruisce le mappe id→label
 function smista(array $righe): array {
-    $db = ConnectDB();
+    $db = connectDB();
     $idpgs=[]; $idobjs=[]; $idcitys=[]; $idorgs=[];
     foreach ($righe as $r) {
         foreach (['esecutore','destinatario','origine','pg'] as $f) {
@@ -250,4 +250,4 @@ function smista(array $righe): array {
     ];
 }
 
-ClosePage();
+closePage();

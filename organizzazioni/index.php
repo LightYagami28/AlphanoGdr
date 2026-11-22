@@ -15,19 +15,19 @@ foreach (array_merge($_GET,$_POST) as $value) {
  ********************************************************/
 
 /* ─────────────────── 1) Bootstrap ─────────────────── */
-require_once __DIR__ . '/../libs/kernel.inc.php';       // initSession(), ClosePage()
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') { alphano_require_csrf(); }
+require_once __DIR__ . '/../libs/kernel.inc.php';       // initSession(), closePage()
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') { alphanoRequireCsrf(); }
 require_once __DIR__ . '/../libs/libaccademia.inc.php'; // MakeRichiestaOrg(), GetRichiesteOrgPG(), getOrgApprovati(), GetOrgMasters()
 require_once __DIR__ . '/../libs/libposta.inc.php';
 require_once __DIR__ . '/../libs/libgrafica.inc.php';
 require_once __DIR__ . '/../libs/libpg.inc.php';       // GetIDPG()
-require_once __DIR__ . '/../chat/libs/chat-core.php';  // ConnectDB()
+require_once __DIR__ . '/../chat/libs/chat-core.php';  // connectDB()
 
 
 
 initSession();
 $pgid = GetIDPG(false, true);
-$db   = ConnectDB();
+$db   = connectDB();
 
 // Recupera organizzazione corrente e permessi admin
 $user = $db->query(
@@ -73,6 +73,6 @@ foreach ($organizzazioni as $group) {
 }
 $groupPage=['title'=>'Organizzazioni','singular'=>'Organizzazione','parameter'=>'org','member'=>(int)$org,'pending'=>(bool)$denied,'catalogue'=>false,'proposal'=>'./neworg.php','message'=>$msg];
 require_once __DIR__.'/../libs/group-listing.inc.php';
-$groups=alphano_group_listing($groups,'organizzazioni');
+$groups=alphanoGroupListing($groups,'organizzazioni');
 require __DIR__.'/../templates/groups/index.php';
-ClosePage();
+closePage();

@@ -17,7 +17,7 @@ function aiWorkerJobBudget(string $kind):int {
     });
 }
 function aiWorkerLock(string $kind,int $id=0):string {
-    return alphano_lock_name('ai-worker',$kind.':'.$id,(string)alphano_config('db_db'));
+    return alphanoLockName('ai-worker',$kind.':'.$id,(string)alphanoConfig('db_db'));
 }
 function aiWorkerTakeLock(string $key):bool {
     return (int)(aiDb()->query('SELECT GET_LOCK(?,0) acquired',[$key])[0]['acquired']??0)===1;
@@ -61,7 +61,7 @@ function aiWorkerRecover(bool $startup=false):void {
 
 /** Fair room/player round-robin is persisted in claims, not process-local state. */
 function aiWorkerClaim():?array {
- if(!alphano_config('ai_enabled')){ return null; }
+ if(!alphanoConfig('ai_enabled')){ return null; }
     $db=aiDb();$now=time();
     if(!aiWorkerSchemaReady()){
         $db->beginTransaction();
@@ -101,7 +101,7 @@ function aiWorkerSocialDue(bool $foreground):bool {
     return !$foreground||((int)$worker['dispatch_counter']-(int)$worker['social_dispatch']>=8)||((int)$task['oldest']<$now-180&&(int)$worker['dispatch_counter']-(int)$worker['social_dispatch']>=3);
 }
 function aiWorkerClaimSocial():?string {
- if(!alphano_config('ai_enabled')){ return null; }
+ if(!alphanoConfig('ai_enabled')){ return null; }
     $db=aiDb();$db->beginTransaction();
     try{
         $row=$db->query('SELECT dispatch_counter,social_token FROM ai_worker WHERE id=1 FOR UPDATE')[0]??[];

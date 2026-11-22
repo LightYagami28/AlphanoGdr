@@ -1,4 +1,5 @@
 <?php declare(strict_types=1);
+const ASTRO_INC__LUNA_PIENA = 'Luna Piena';
 
 /**
  * Restituisce il giorno giuliano (JD) in UT per un timestamp Unix.
@@ -6,45 +7,45 @@
 function julianDayUtc(int $ts): float
 {
     $dt = gmdate('Y-m-d H:i:s', $ts);
-    [$Y, $M, $D, $h, $m, $s] = preg_split('/[ \-:]/', $dt);
-    if ($M <= 2) { $Y--; $M += 12; }
-    $A = floor($Y / 100);
-    $B = 2 - $A + floor($A / 4);
-    $day = $D + ($h / 24) + ($m / 1440) + ($s / 86400);
-    return floor(365.25 * ($Y + 4716)) + floor(30.6001 * ($M + 1)) + $day + $B - 1524.5;
+    [$year, $month, $dayNum, $hour, $minute, $second] = preg_split('/[ \-:]/', $dt);
+    if ($month <= 2) { $year--; $month += 12; }
+    $century = floor($year / 100);
+    $yearShift = 2 - $century + floor($century / 4);
+    $day = $dayNum + ($hour / 24) + ($minute / 1440) + ($second / 86400);
+    return floor(365.25 * ($year + 4716)) + floor(30.6001 * ($month + 1)) + $day + $yearShift - 1524.5;
 }
 
 /**
  * Prossimo plenilunio dopo $ts (Unix UTC) → timestamp Unix UTC.
  */
-function NextFullMoon(int $ts): int
+function nextFullMoon(int $ts): int
 {
-    $JD = julianDayUtc($ts);
+    $julianDay = julianDayUtc($ts);
     // riferimento: 2451550.1 = plenilunio maggio 2000
-    $k   = floor(($JD - 2451550.1) / 29.530588861) + 1;
-    $JDE = 2451550.1 + 29.530588861 * $k;
-    return (int)round(($JDE - 2440587.5) * 86400);
+    $k   = floor(($julianDay - 2451550.1) / 29.530588861) + 1;
+    $julianEphemeris = 2451550.1 + 29.530588861 * $k;
+    return (int)round(($julianEphemeris - 2440587.5) * 86400);
 }
 
 /**
  * Restituisce il timestamp Unix (UTC) dell'ultimo plenilunio prima di $ts.
  */
-function PrevFullMoon(int $ts): int
+function prevFullMoon(int $ts): int
 {
-    $JD  = julianDayUtc($ts);
+    $julianDay  = julianDayUtc($ts);
     $syn = 29.530588861;
-    $k = floor(($JD - 2451550.1) / $syn);
-    $JDE = 2451550.1 + $syn * $k;
-    return (int)round(($JDE - 2440587.5) * 86400);
+    $k = floor(($julianDay - 2451550.1) / $syn);
+    $julianEphemeris = 2451550.1 + $syn * $k;
+    return (int)round(($julianEphemeris - 2440587.5) * 86400);
 }
 
 /**
  * Ritorna il timestamp Unix (UTC) di fine “full-phase” (Luna Piena),
  * definita quando il giorno lunare supera il 21° giorno lunare (Luna Calante).
  */
-function EndFullMoon(int $ts): int
+function endFullMoon(int $ts): int
 {
-    $prev = PrevFullMoon($ts);
+    $prev = prevFullMoon($ts);
     $syn  = 29.530588861;
     // la Luna Piena dura 22 giorni, il giorno di fine full-phase
     $offset = ($syn * (22 / 30)) * 86400;
@@ -54,10 +55,10 @@ function EndFullMoon(int $ts): int
 /**
  * Calcola il giorno lunare (1–30) approssimato.
  */
-function GetFaseLunare(): int
+function getFaseLunare(): int
 {
     $now    = time();
-    $tsNext = NextFullMoon($now);
+    $tsNext = nextFullMoon($now);
     $syn    = 29.530588861;
     // ultimo plenilunio
     $tsPrev = $tsNext - $syn * 86400;
@@ -68,25 +69,25 @@ function GetFaseLunare(): int
 /**
  * Descrizione testuale della fase lunare.
  */
-function FaseLunare(): string
+function faseLunare(): string
 {
-    $f = GetFaseLunare();
+    $f = getFaseLunare();
     if ($f < 7)   { return 'Luna Nuova'; }
     if ($f < 14)  { return 'Luna Crescente'; }
-    if ($f < 22)  { return 'Luna Piena'; }
+    if ($f < 22)  { return ASTRO_INC__LUNA_PIENA; }
     return 'Luna Calante';
 }
 
 /**
  * Giorni interi mancanti al prossimo plenilunio.
  */
-function DaysToFullMoon(): int
+function daysToFullMoon(): int
 {
-    if (FaseLunare() === 'Luna Piena') {
+    if (faseLunare() === ASTRO_INC__LUNA_PIENA) {
         return 0; // Se siamo in Luna Piena, non mancano giorni.
     }
     $now    = time();
-    $tsNext = NextFullMoon($now);
+    $tsNext = nextFullMoon($now);
     $diff   = $tsNext - $now;
     return (int)ceil(max(0, $diff) / 86400);
 }
@@ -94,9 +95,9 @@ function DaysToFullMoon(): int
 /**
  * Restituisce il tempo rimanente fino al prossimo plenilunio come array associativo.
  */
-function TimeToFullMoon(): array
+function timeToFullMoon(): array
 {
-    if (FaseLunare() === 'Luna Piena') {
+    if (faseLunare() === ASTRO_INC__LUNA_PIENA) {
         return [
           'days'    => 0,
           'hours'   => 0,
@@ -106,7 +107,7 @@ function TimeToFullMoon(): array
     }
 
     $now    = time();
-    $tsNext = NextFullMoon($now);
+    $tsNext = nextFullMoon($now);
     $delta  = max(0, $tsNext - $now);
 
     $days    = floor($delta / 86400);
@@ -127,11 +128,11 @@ function TimeToFullMoon(): array
 /**
  * Durata della Luna Piena (da inizio a fine fase piena).
  */
-function FullMoonDuration(): array
+function fullMoonDuration(): array
 {
     $now   = time();
-    $start = PrevFullMoon($now);
-    $end   = EndFullMoon($now);
+    $start = prevFullMoon($now);
+    $end   = endFullMoon($now);
     $dur   = max(0, $end - $start);
 
     $days    = floor($dur / 86400);
@@ -152,14 +153,14 @@ function FullMoonDuration(): array
 /**
  * Tempo rimanente fino alla fine della fase di Luna Piena.
  */
-function TimeToEndFullMoon(): array
+function timeToEndFullMoon(): array
 {
-    if (FaseLunare() !== 'Luna Piena') {
+    if (faseLunare() !== ASTRO_INC__LUNA_PIENA) {
         return ['days' => 0, 'hours' => 0, 'minutes' => 0, 'seconds' => 0];
     }
 
     $now = time();
-    $end = EndFullMoon($now);
+    $end = endFullMoon($now);
     $delta = max(0, $end - $now);
 
     $days    = floor($delta / 86400);

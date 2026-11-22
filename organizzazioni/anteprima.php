@@ -9,8 +9,8 @@
 <!DOCTYPE html>
 <html lang="it">
 	<head>
-		<title>Anteprima <?=htmlspecialchars(GetTitolo($statuto),ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8')?> <?=TitoloSito?></title>
+		<title>Anteprima <?=htmlspecialchars(getTitolo($statuto),ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8')?> <?=TITOLO_SITO?></title>
 
 	</head>
-	<body class="Valore"><?=ProcessText($statuto)?></body>
+	<body class="Valore"><?=processText($statuto)?></body>
 </html>

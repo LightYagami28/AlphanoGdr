@@ -10,7 +10,7 @@ foreach (array_merge($_GET,$_POST) as $value) {
 }
 
 require_once __DIR__ . '/../libs/kernel.inc.php';
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') { alphano_require_csrf(); }
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') { alphanoRequireCsrf(); }
 require_once __DIR__ . '/../libs/libaccademia.inc.php';
 require_once __DIR__ . '/../libs/libposta.inc.php';
 require_once __DIR__ . '/../libs/libgrafica.inc.php';
@@ -58,6 +58,6 @@ foreach ($corporazioni as $group) {
 }
 $groupPage=['title'=>'Corporazioni','singular'=>'Corporazione','parameter'=>'corp','member'=>(int)$corporazione,'pending'=>(bool)$denied,'catalogue'=>true,'proposal'=>'./newcorp.php','message'=>''];
 require_once __DIR__.'/../libs/group-listing.inc.php';
-$groups=alphano_group_listing($groups,'corporazioni');
+$groups=alphanoGroupListing($groups,'corporazioni');
 require __DIR__.'/../templates/groups/index.php';
-ClosePage();
+closePage();

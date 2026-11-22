@@ -1,14 +1,16 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/alphano-exceptions.inc.php';
 
-require_once __DIR__ . '/kernel.inc.php';  // per ConnectDB()
+
+require_once __DIR__ . '/kernel.inc.php';  // per connectDB()
 
 /**
  * Verifica se un PG ha già votato un sondaggio.
  */
-function CanVote(int $pgid, int $sondaggio): bool
+function canVote(int $pgid, int $sondaggio): bool
 {
-    $db = ConnectDB();
+    $db = connectDB();
     if ($pgid <= 0) { return false; }
     return !empty($db->query('SELECT s.id FROM sondaggi s WHERE s.id=? AND s.attivo=1 AND NOT EXISTS (SELECT 1 FROM risondaggi r WHERE r.idpg=? AND r.idsondaggio=s.id)', [$sondaggio,$pgid]));
 }
@@ -16,16 +18,16 @@ function CanVote(int $pgid, int $sondaggio): bool
 /**
  * Registra un voto di un PG per un sondaggio.
  */
-function Vote(int $idrisp, int $sondaggio, int $pgid): void
+function vote(int $idrisp, int $sondaggio, int $pgid): void
 {
-    $db = ConnectDB();
-    if ($pgid <= 0) { throw new RuntimeException('Utente non valido', 400); }
+    $db = connectDB();
+    if ($pgid <= 0) { throw new AlphanoStorageException('Utente non valido', 400); }
     $db->beginTransaction();
     try {
         // Lock the poll itself: the existing schema has no unique vote key.
         $poll = $db->query('SELECT attivo,risposte FROM sondaggi WHERE id=? FOR UPDATE', [$sondaggio])[0] ?? null;
-        if (!$poll || empty($poll['attivo'])) { throw new RuntimeException('Sondaggio non disponibile', 400); }
-        if ($idrisp < 1 || $idrisp > count(explode(';', $poll['risposte']))) { throw new RuntimeException('Risposta non valida', 400); }
+        if (!$poll || empty($poll['attivo'])) { throw new AlphanoStorageException('Sondaggio non disponibile', 400); }
+        if ($idrisp < 1 || $idrisp > count(explode(';', $poll['risposte']))) { throw new AlphanoStorageException('Risposta non valida', 400); }
         if ($db->query('SELECT 1 FROM risondaggi WHERE idsondaggio=? AND idpg=?', [$sondaggio,$pgid])) {
             $db->rollBack();
             return;
@@ -38,12 +40,12 @@ function Vote(int $idrisp, int $sondaggio, int $pgid): void
 /**
  * Aggiunge un nuovo sondaggio attivo.
  */
-function AggiungiSondaggio(string $tema, string $risposte): void
+function aggiungiSondaggio(string $tema, string $risposte): void
 {
     if ($tema === '' || $risposte === '') {
         return;
     }
-    $db = ConnectDB();
+    $db = connectDB();
     $db->execute(
         "INSERT INTO sondaggi (attivo, tema, risposte) VALUES (1, ?, ?)",
         [$tema, $risposte]
@@ -56,9 +58,9 @@ function AggiungiSondaggio(string $tema, string $risposte): void
  * @param string $ids  stringa di ID separati da ';'
  * @param array  $arr  array POST con chiavi "tema:ID:", "risposte:ID:", "attivo:ID:"
  */
-function AggiornaSondaggi(string $ids, array $arr): void
+function aggiornaSondaggi(string $ids, array $arr): void
 {
-    $db = ConnectDB();
+    $db = connectDB();
     foreach (explode(';', $ids) as $id) {
         $tid = trim($id);
         if ($tid === '') {
@@ -87,9 +89,9 @@ function AggiornaSondaggi(string $ids, array $arr): void
 /**
  * Elimina un sondaggio e tutti i suoi voti.
  */
-function DeleteSondaggio(int $id): void
+function deleteSondaggio(int $id): void
 {
-    $db = ConnectDB();
+    $db = connectDB();
     $db->execute(
         "DELETE FROM sondaggi WHERE id = ?",
         [$id]
@@ -119,9 +121,9 @@ function DeleteSondaggio(int $id): void
  *   …
  * ]
  */
-function GetLastSondaggi(): array
+function getLastSondaggi(): array
 {
-    $db  = ConnectDB();
+    $db  = connectDB();
     $out = [];
 
     // Prelevo tutti i sondaggi attivi
@@ -183,7 +185,7 @@ function GetLastSondaggi(): array
  * Ritorna la descrizione "Positivo", "Negativo" o "Neutrale"
  * in base al valore numerico passato.
  */
-function ProcessParere(int|float $parere): string
+function processParere(int|float $parere): string
 {
     if ($parere < 0) {
         return 'Negativo';

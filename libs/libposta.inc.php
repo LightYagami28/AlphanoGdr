@@ -13,9 +13,9 @@ use Alphano\Database\PDOMySQLDriver;
  * @param int     $salva      flag storico, mantenuto per compatibilità; le missive personali conservano sempre la copia inviata
  * @return bool
  */
-function InviaMissiva(string $oggetto, string $messaggio, int $destinatario, int $mittente = 0, int $salva = 0): bool
+function inviaMissiva(string $oggetto, string $messaggio, int $destinatario, int $mittente = 0, int $salva = 0): bool
 {
-    $db = $GLOBALS['db'] ?? ConnectDB();
+    $db = $GLOBALS['db'] ?? connectDB();
     // A conversation must retain both directions. Hiding a sent copy is now an
     // explicit mailbox action, never an accidental side effect of sending it.
     if ($mittente > 0) { $salva = 0; }
@@ -42,14 +42,14 @@ SQL;
 
 /**
  * Pulisce la casella del destinatario:
- * - Mantiene massimo maxmissive messaggi letti non nel baule
+ * - Mantiene massimo MAXMISSIVE messaggi letti non nel baule
  * - Cancella i messaggi più vecchi di 14 giorni
  *
  * @param int $idpg
  */
-function PurgePosta(int $idpg): void
+function purgePosta(int $idpg): void
 {
-    $db = $GLOBALS['db'] ?? ConnectDB();
+    $db = $GLOBALS['db'] ?? connectDB();
 
     // 2) Cancello i messaggi più vecchi di 14 giorni (no baule),
     //    o quelli contrassegnati cancellati da entrambe le parti
@@ -64,8 +64,8 @@ DELETE FROM mail
 SQL;
     $db->execute($sqlDel);
 
-    // Retain the newest maxmissive read messages with one cutoff and one update.
-    $cutoff=$db->query('SELECT id FROM mail WHERE iddestinatario=? AND deldest=0 AND letto=1 AND baule=0 ORDER BY id DESC LIMIT '.(int)maxmissive.',1',[$idpg])[0]['id'] ?? null;
+    // Retain the newest MAXMISSIVE read messages with one cutoff and one update.
+    $cutoff=$db->query('SELECT id FROM mail WHERE iddestinatario=? AND deldest=0 AND letto=1 AND baule=0 ORDER BY id DESC LIMIT '.(int)MAXMISSIVE.',1',[$idpg])[0]['id'] ?? null;
     if ($cutoff!==null) { $db->execute('UPDATE mail SET deldest=1 WHERE iddestinatario=? AND deldest=0 AND letto=1 AND baule=0 AND id<=?',[$idpg,(int)$cutoff]); }
 
 

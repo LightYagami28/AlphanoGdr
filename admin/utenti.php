@@ -10,8 +10,8 @@ require_once __DIR__.'/../libs/libgrafica.inc.php';
 
 
 
-alphano_require_login();
-if (!alphano_can('adminstatosociale')) { http_response_code(403); exit('Accesso negato'); }
+alphanoRequireLogin();
+if (!alphanoCan('adminstatosociale')) { http_response_code(403); exit('Accesso negato'); }
 // Identificazione utente e tema
 $idpg    = GetIDPG(true);
 
@@ -20,10 +20,10 @@ $idpg    = GetIDPG(true);
 
 
 // Recupera nome del PG
-$db       = ConnectDB();
+$db       = connectDB();
 $row      = $db->query("SELECT nome FROM utenti WHERE id = :id", ['id' => $idpg])[0] ?? [];
 $username = $row['nome'] ?? "Utente #{$idpg}";
-$canManageUsers = alphano_can('admin');
+$canManageUsers = alphanoCan('admin');
 $userActions = [
     'incarichi'=>'Incarichi, cittadinanza e poteri',
     'resetpos'=>'Metti offline tutti', 'resetcount'=>'Azzera visite profili',
@@ -40,7 +40,7 @@ if (!$canManageUsers) { $userActions = array_intersect_key($userActions, array_f
 <html lang="it">
 <head>
   <meta charset="utf-8">
-  <title>Admin Utenti — <?= TitoloSito ?></title>
+  <title>Admin Utenti — <?= TITOLO_SITO ?></title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
 
   <!-- Carica il CSS “game-responsive.css” -->
@@ -50,7 +50,7 @@ if (!$canManageUsers) { $userActions = array_intersect_key($userActions, array_f
 
 
   <!-- Definisco l’URL dell’API per il JS esterno -->
-  <script>window.apiUrl = '/api/admin/utenti.php'; window.csrfToken = <?=json_encode(alphano_csrf_token())?>; window.canManageUsers = <?=json_encode($canManageUsers)?>;</script>
+  <script>window.apiUrl = '/api/admin/utenti.php'; window.csrfToken = <?=json_encode(alphanoCsrfToken())?>; window.canManageUsers = <?=json_encode($canManageUsers)?>;</script>
   <script src="/js/admin/utenti.js" defer></script>
   <?php if($canManageUsers): ?><script src="/js/admin/incarichi.js?v=<?=filemtime(__DIR__.'/../js/admin/incarichi.js')?>" defer></script><?php endif; ?>
 </head>

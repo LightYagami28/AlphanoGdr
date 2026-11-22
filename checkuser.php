@@ -3,8 +3,8 @@ declare(strict_types=1);
 
 
 // 1) Dipendenze
-require __DIR__ . '/libs/kernel.inc.php';   // ConnectDB(), ClosePage(), TitoloSito, maxpuntif
-require __DIR__ . '/libs/libpg.inc.php';    // doLogin(), GetIDPG(), SetPosizione()
+require __DIR__ . '/libs/kernel.inc.php';   // connectDB(), closePage(), TITOLO_SITO, MAXPUNTIF
+require __DIR__ . '/libs/libpg.inc.php';    // doLogin(), GetIDPG(), setPosizione()
 
 use Alphano\Database\PDOMySQLDriver;
 
@@ -16,22 +16,22 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 // I browser inviano Origin nei POST: rifiuta accessi avviati da altri siti.
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-$expectedOrigin = alphano_canonical_origin((string)alphano_config('base_url'));
+$expectedOrigin = alphanoCanonicalOrigin((string)alphanoConfig('base_url'));
 if (($origin !== '' && strcasecmp($origin, $expectedOrigin) !== 0) || ($_SERVER['HTTP_SEC_FETCH_SITE'] ?? '') === 'cross-site') {
-    alphano_fail('Accesso da un altro sito non consentito.',403);
+    alphanoFail('Accesso da un altro sito non consentito.',403);
 }
 
 // 3) Preleva input dal form header
-if (!is_string($_POST['username'] ?? '') || !is_string($_POST['password'] ?? '')) { alphano_fail('Credenziali non valide.', 400); }
+if (!is_string($_POST['username'] ?? '') || !is_string($_POST['password'] ?? '')) { alphanoFail('Credenziali non valide.', 400); }
 $username = trim($_POST['username'] ?? '');
 $password = (string)($_POST['password'] ?? '');
 
 // Controllo tentativi falliti consecutivi per prevenire attacchi a forza bruta
-alphano_session();
+alphanoSession();
 $failedAttempts = (int)($_SESSION['alphano_login_fails'] ?? 0);
 $lastFailTime   = (int)($_SESSION['alphano_login_fail_time'] ?? 0);
 if ($failedAttempts >= 5 && (time() - $lastFailTime) < 60) {
-    alphano_fail('Troppi tentativi di accesso non riusciti. Attendi un minuto prima di riprovare.', 429);
+    alphanoFail('Troppi tentativi di accesso non riusciti. Attendi un minuto prima di riprovare.', 429);
 }
 
 // 4) Tenta il login
@@ -58,7 +58,7 @@ unset($_SESSION['fortune_welcome_seen']);
 
 // 6) Recupera dati essenziali e calcola PF
 /** @var PDOMySQLDriver $db */
-$db  = ConnectDB();
+$db  = connectDB();
 $now = time();
 $row = $db->query(
     'SELECT razza, infetto, ancestrale, puntif, ferite, ultimoingresso
@@ -68,27 +68,27 @@ $row = $db->query(
 
 $days   = (int) floor(($now - (int)$row['ultimoingresso']) / 86400);
 $puntif = (int)$row['puntif'];
-if ($days > 0 && $puntif < maxpuntif) {
+if ($days > 0 && $puntif < MAXPUNTIF) {
     if ((int)$row['infetto'] || (int)$row['ancestrale']) {
-        $puntif += $days * (int)(maxpuntif / 20);
+        $puntif += $days * (int)(MAXPUNTIF / 20);
     } else {
         switch ((int)$row['razza']) {
             case 1:
-                $puntif += $days * (int)(maxpuntif / 40);
+                $puntif += $days * (int)(MAXPUNTIF / 40);
                 break;
             case 2:
-                $puntif += $days * (int)(maxpuntif / 20);
+                $puntif += $days * (int)(MAXPUNTIF / 20);
                 break;
             case 4: case 7: case 8:
-                $puntif = maxpuntif;
+                $puntif = MAXPUNTIF;
                 break;
             case 5:
-                $puntif += $days * (int)(maxpuntif / (1000/75));
+                $puntif += $days * (int)(MAXPUNTIF / (1000/75));
                 break;
         }
     }
-    $puntif = min($puntif, maxpuntif);
-    if ($puntif >= maxpuntif) {
+    $puntif = min($puntif, MAXPUNTIF);
+    if ($puntif >= MAXPUNTIF) {
         $row['ferite'] = '';
     }
 }
@@ -116,10 +116,10 @@ $db->execute(
 );
 
 // 8) Imposta posizione server
-SetPosizione('online', $idpg, '');
+setPosizione('online', $idpg, '');
 
 // 9) Apri il gioco nella finestra corrente, anche dal form in iframe.
-$siteTitle = TitoloSito;
+$siteTitle = TITOLO_SITO;
 echo <<<HTML
 <!DOCTYPE html>
 <html lang="it"><head><meta charset="UTF-8"><title>Login riuscito – {$siteTitle}</title>
@@ -141,4 +141,4 @@ echo <<<HTML
 </html>
 HTML;
 
-ClosePage();
+closePage();

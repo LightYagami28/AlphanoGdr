@@ -2,6 +2,7 @@
 // libs/libmeteo.inc.php
 
 declare(strict_types=1);
+const LIBMETEO_INC_TEMPO_STAZIONARIO = 'Tempo Stazionario';
 
 use Alphano\Database\PDOMySQLDriver;
 
@@ -41,8 +42,8 @@ $GLOBALS['temperature'] = [
 ];
 
 // Descrizioni di tempo, cielo e vento
-$GLOBALS['tempo'] = [-2=>"Pioggia",-1=>"Tempo Stazionario",0=>"Tempo Stazionario",1=>"Tempo Stazionario",2=>"Pioggia"];
-$GLOBALS['cold'] = [-2=>"Neve",-1=>"Tempo Stazionario",0=>"Tempo Stazionario",1=>"Tempo Stazionario",2=>"Neve"];
+$GLOBALS['tempo'] = [-2=>"Pioggia",-1=>LIBMETEO_INC_TEMPO_STAZIONARIO,0=>LIBMETEO_INC_TEMPO_STAZIONARIO,1=>LIBMETEO_INC_TEMPO_STAZIONARIO,2=>"Pioggia"];
+$GLOBALS['cold'] = [-2=>"Neve",-1=>LIBMETEO_INC_TEMPO_STAZIONARIO,0=>LIBMETEO_INC_TEMPO_STAZIONARIO,1=>LIBMETEO_INC_TEMPO_STAZIONARIO,2=>"Neve"];
 $GLOBALS['cielo'] = [-2=>"Tuoni e Fulmini",-1=>"Cielo Nuvoloso",0=>"Cielo Sgombro",1=>"Cielo Nuvoloso",2=>"Tuoni e Fulmini"];
 $GLOBALS['vento'] = [
     -4=>"Vento Forte",-3=>"Vento",-2=>"Brezza Leggera",-1=>"Vento Assente",
@@ -52,24 +53,23 @@ $GLOBALS['vento'] = [
 /**
  * Applica un piccolo “drift” casuale allo stato meteo corrente.
  */
-function GetNewMeteo(array $dati): array
+function getNewMeteo(array $dati): array
 {
     global $temperature;
-    $stagione = GetStagione();
-    $notte    = LicanTime();
+    $stagione = getStagione();
 
     // drift temperatura
     $t = $dati["temperatura"] > 0 ? 1 : -1;
     $minAdd  = $temperature[$stagione][$t]["less"];
     $maxAdd  = $temperature[$stagione][$t]["add"];
-    $dati["temperatura"] += rand($minAdd, $maxAdd);
+    $dati["temperatura"] += random_int($minAdd, $maxAdd);
     $dati["temperatura"] = max($dati["temperatura"], $temperature[$stagione]["min"]);
     $dati["temperatura"] = min($dati["temperatura"], $temperature[$stagione]["max"]);
 
     // drift tempo, cielo, vento
-    $dati["tempo"]  = max(-2, min(2, $dati["tempo"]  + rand(-1,1)));
-    $dati["cielo"]  = max(-2, min(2, $dati["cielo"]  + rand(-1,1)));
-    $dati["vento"]  = max(-4, min(4, $dati["vento"]  + rand(-1,1)));
+    $dati["tempo"]  = max(-2, min(2, $dati["tempo"]  + random_int(-1,1)));
+    $dati["cielo"]  = max(-2, min(2, $dati["cielo"]  + random_int(-1,1)));
+    $dati["vento"]  = max(-4, min(4, $dati["vento"]  + random_int(-1,1)));
 
     return $dati;
 }
@@ -77,17 +77,17 @@ function GetNewMeteo(array $dati): array
 /**
  * Restituisce l’attuale riga di meteo, aggiornandola ogni ora.
  */
-function GetMeteo(): array
+function getMeteo(): array
 {
     global $db, $cielo, $vento, $temperature;
     if (!isset($db)) {
         /** @var PDOMySQLDriver $db */
-        $db = ConnectDB();
+        $db = connectDB();
     }
 
     $ora      = (int) date("H");
     $now      = time();
-    $stagione = GetStagione();
+    $stagione = getStagione();
 
     // carico tutte le righe
     $rows = $db->query("SELECT * FROM meteo");
@@ -97,7 +97,7 @@ function GetMeteo(): array
         // riga unica: drift ogni ora
         $dati = $rows[0];
         if ($ora !== (int)$dati["ora"]) {
-            $dati = GetNewMeteo($dati);
+            $dati = getNewMeteo($dati);
             $db->execute(
                 "UPDATE meteo
                  SET ora = ?, temperatura = ?, tempo = ?, cielo = ?, vento = ?
@@ -112,10 +112,10 @@ function GetMeteo(): array
     } elseif ($count === 0) {
         // tabella vuota: inserisco un nuovo record
         $dati = [
-            "temperatura" => rand($temperature[$stagione]["min"], $temperature[$stagione]["max"]),
-            "tempo"       => rand(-2,2),
-            "cielo"       => rand(-2,2),
-            "vento"       => rand(-3,3),
+            "temperatura" => random_int($temperature[$stagione]["min"], $temperature[$stagione]["max"]),
+            "tempo"       => random_int(-2,2),
+            "cielo"       => random_int(-2,2),
+            "vento"       => random_int(-3,3),
             "ora"         => $ora
         ];
         $db->execute(
@@ -131,7 +131,7 @@ function GetMeteo(): array
         // troppi record: resetto a uno solo
         $dati = $rows[0];
         $db->execute("DELETE FROM meteo");
-        $dati = GetNewMeteo($dati);
+        $dati = getNewMeteo($dati);
         $db->execute(
             "INSERT INTO meteo (ora, temperatura, tempo, cielo, vento)
              VALUES (?, ?, ?, ?, ?)",
@@ -150,7 +150,7 @@ function GetMeteo(): array
 /**
  * Ritorna la stagione corrente (0=inverno,1=primavera,2=estate,3=autunno).
  */
-function GetStagione(): int
+function getStagione(): int
 {
     switch ((int)date("n")) {
         case 12:
@@ -169,9 +169,8 @@ function GetStagione(): int
 /**
  * Descrive il tempo in base a temperatura e indice meteo.
  */
-function GetDescrTempo(int $meteo, int $temperatura): string
+function getDescrTempo(int $meteo, int $temperatura): string
 {
     global $tempo, $cold;
     return ($temperatura > 0) ? $tempo[$meteo] : $cold[$meteo];
 }
-?>

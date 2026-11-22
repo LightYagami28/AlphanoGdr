@@ -6,12 +6,12 @@ require_once __DIR__.'/../libs/ai.inc.php';
 require_once __DIR__.'/../libs/ai-adult-admin.inc.php';
 require_once __DIR__.'/../libs/ai-admin-controls.inc.php';
 try {
-    $user=alphano_require_login(true);$admin=!empty(alphano_user()['admin']);
+    $user=alphanoRequireLogin(true);$admin=!empty(alphanoUser()['admin']);
     $method=$_SERVER['REQUEST_METHOD'];
     if (!in_array($method,['GET','POST'],true)) { throw new DomainException('Metodo non consentito.',405); }
     $multipart=$method==='POST' && str_contains($_SERVER['CONTENT_TYPE']??'','multipart/form-data');
-    $in=$method==='POST'?($multipart?$_POST:alphano_request_json()):$_GET;
-    if ($method==='POST') { alphano_require_csrf(true); }
+    $in=$method==='POST'?($multipart?$_POST:alphanoRequestJson()):$_GET;
+    if ($method==='POST') { alphanoRequireCsrf(true); }
     $action=aiField($in,'action',30,true);$db=aiDb();
     if ($action==='portrait' && $method==='GET') {
         $name=aiField($in,'file',40,true);
@@ -27,7 +27,7 @@ try {
         if (!$job || (!$admin && ((int)$job['user_id']!==$user || $job['kind']==='preview'))) { throw new DomainException('Richiesta non disponibile.',404); }
         if (!$admin) {
             aiDialogueRoom($job['chat_key'],$user);
-            if ((alphano_user()['chat']??'')!==$job['chat_key']) { throw new DomainException('Rientra nel luogo della richiesta.',403); }
+            if ((alphanoUser()['chat']??'')!==$job['chat_key']) { throw new DomainException('Rientra nel luogo della richiesta.',403); }
         }
         echo json_encode(['job'=>['id'=>(int)$job['id'],'status'=>$job['status'],'result'=>$job['result']?json_decode($job['result'],true):null,'error'=>$job['error']]],JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);exit;
     }
@@ -93,7 +93,7 @@ try {
         if(aiField($in,'confirmation',20,true)!=='RETTIFICA'){ throw new DomainException('Conferma esplicitamente la rettifica della registrazione amministrativa.',422); }
         $npc=aiInteger($in,'npc_id',1,PHP_INT_MAX);
         if(!$db->query('SELECT id FROM ai_npcs WHERE id=? AND chat_key=?',[$npc,$chat])){ throw new DomainException('PNG non disponibile in questo luogo.',404); }
-        $receipt=alphano_npc_correct_admin_death($npc,aiInteger($in,'death_id',1,PHP_INT_MAX),$user,aiInteger($in,'hit_points',1,maxpuntif),aiField($in,'reason',1000,true));
+        $receipt=alphanoNpcCorrectAdminDeath($npc,aiInteger($in,'death_id',1,PHP_INT_MAX),$user,aiInteger($in,'hit_points',1,maxpuntif),aiField($in,'reason',1000,true));
         if(!$receipt['replayed']){ $db->execute('UPDATE ai_rooms SET version=version+1 WHERE chat_key=?',[$chat]); }
     }
     elseif ($action==='save_npc') {
@@ -107,19 +107,19 @@ try {
         if (isset($in['profile']) && (!is_array($in['profile']) || ($in['profile']!==[] && array_is_list($in['profile'])))) { throw new DomainException('Profilo non valido.',422); }
         $profile=aiValidateProfile($in['profile']??[],aiNpcProfile($previous));
         require_once __DIR__.'/../libs/npc-mortality.inc.php';
-        if($id){ alphano_npc_assert_profile_edit($id,$profile,(int)$values[1]); }
+        if($id){ alphanoNpcAssertProfileEdit($id,$profile,(int)$values[1]); }
         if((int)$profile['hit_points']<=0){ $values[1]=0; }
         // The room row above serializes competing activations. Archived profiles
         // retain their history without consuming one of the two public places.
         if((int)$values[1]===1&&(int)$db->query('SELECT COUNT(*) total FROM ai_npcs WHERE chat_key=? AND active=1 AND id<>?',[$chat,$id])[0]['total']>=AI_MAX_ACTIVE_NPCS){ throw new DomainException('Massimo '.AI_MAX_ACTIVE_NPCS.' PNG attivi per luogo. Disattiva prima un altro personaggio.',422); }
         if(isset($in['adult'])&&(!is_array($in['adult'])||($in['adult']!==[]&&array_is_list($in['adult'])))){ throw new DomainException('Configurazione adulta del PNG non valida.',422); }
         $adult=aiAdultAdminValidate($in['adult']??aiAdultAdminSettings($id),$profile,$chat);
-        if((int)$profile['money']!==($id?aiNpcBalance($id):0)){ throw new DomainException(alphano_currency_text('Le Corone si trasferiscono dalla sezione Cassa del PNG, con un movimento registrato.'),422); }
+        if((int)$profile['money']!==($id?aiNpcBalance($id):0)){ throw new DomainException(alphanoCurrencyText('Le Corone si trasferiscono dalla sezione Cassa del PNG, con un movimento registrato.'),422); }
         if ($id) { $db->execute('UPDATE ai_npcs SET name=?,active=?,character_text=?,personality=?,history=?,knowledge=?,behavior=? WHERE id=? AND chat_key=?',[...$values,$id,$chat]); }
         else { $db->execute('INSERT INTO ai_npcs(name,active,character_text,personality,history,knowledge,behavior,chat_key) VALUES(?,?,?,?,?,?,?,?)',[...$values,$chat]); }
         $savedId=$id?:((int)$db->lastInsertId());
         $db->execute('UPDATE ai_npcs SET profile=? WHERE id=? AND chat_key=?',[json_encode($profile,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR),$savedId,$chat]);
-        if((int)$profile['hit_points']<=0){ alphano_npc_record_admin_death($savedId,$user); }
+        if((int)$profile['hit_points']<=0){ alphanoNpcRecordAdminDeath($savedId,$user); }
         aiAdultAdminSave($savedId,$adult);
         // Keep the saved player turn: active profile edits are re-read before
         // generation and fenced again before publication, including previews.

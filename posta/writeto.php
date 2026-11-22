@@ -27,9 +27,9 @@ require_once "$root/libs/mail-presentation.inc.php";
 // ———————————————————————————
 // LOGIN & COLORI
 // ———————————————————————————
-$idpg      = alphano_require_login();
-if ($_SERVER['REQUEST_METHOD'] === 'POST') { alphano_require_csrf(); }
-$db        = ConnectDB();
+$idpg      = alphanoRequireLogin();
+if ($_SERVER['REQUEST_METHOD'] === 'POST') { alphanoRequireCsrf(); }
+$db        = connectDB();
 
 
 
@@ -71,7 +71,7 @@ if ($oldid) {
     }
 }
 
-if(!$send && $destId>0){unset($row);require __DIR__.'/../templates/mail/workspace.php';ClosePage();exit;}
+if(!$send && $destId>0){unset($row);require __DIR__.'/../templates/mail/workspace.php';closePage();exit;}
 
 // ———————————————————————————
 // COSTRUZIONE QUERY DESTINATARI
@@ -149,8 +149,8 @@ $destRows = $db->query($sql, $params);
 // INVIO MISSIVA
 // ———————————————————————————
 if ($send) {
-    if ($pgName === '' && count($conditions) === 1) { alphano_fail('Specifica almeno un destinatario.',400); }
-    if ($messaggio === '') { alphano_fail('Inserisci un messaggio.',400); }
+    if ($pgName === '' && count($conditions) === 1) { alphanoFail('Specifica almeno un destinatario.',400); }
+    if ($messaggio === '') { alphanoFail('Inserisci un messaggio.',400); }
     if ($oggetto === '') {
         echo "<!DOCTYPE html><html lang='it'><head><meta charset='UTF-8'><title>Oggetto Mancante</title></head>"
            . "<body class='message-page'>"
@@ -160,10 +160,10 @@ if ($send) {
         exit;
     }
     // Render each part independently: GML reply, signature, then the authorized quote.
-    $messaggio = ProcessText($messaggio);
-    if (!empty($_POST['firma'])) { $messaggio .= alphano_mail_signature($idpg); }
+    $messaggio = processText($messaggio);
+    if (!empty($_POST['firma'])) { $messaggio .= alphanoMailSignature($idpg); }
     if (!empty($_POST['include_previous']) && $oldmessaggio !== '') {
-        $messaggio .= '<div class="mail-quoted-history"><p class="mail-history-heading">Conversazione precedente</p><blockquote>'.alphano_mail_render($oldmessaggio).'</blockquote></div>';
+        $messaggio .= '<div class="mail-quoted-history"><p class="mail-history-heading">Conversazione precedente</p><blockquote>'.alphanoMailRender($oldmessaggio).'</blockquote></div>';
     }
     $pass = $failed = [];
     foreach ($destRows as $row) {
@@ -172,20 +172,20 @@ if ($send) {
         if ($replySource && in_array($toId,[(int)$replySource['idmittente'],(int)$replySource['iddestinatario']],true)) {
             $deliveryBody = '<span class="mail-parent-reference" id="mail-parent-'.(int)$replySource['id'].'"></span>'.$deliveryBody;
         }
-        if (InviaMissiva($oggetto, $deliveryBody, $toId, $idpg, $salva)) {
+        if (inviaMissiva($oggetto, $deliveryBody, $toId, $idpg, $salva)) {
             $pass[] = $row['nome'];
         } else {
             $failed[] = $row['nome'];
         }
     }
     require __DIR__.'/../templates/mail/result.php';
-    ClosePage();
+    closePage();
     exit;
 }
 
 // ———————————————————————————
 // FORM DI COMPOSIZIONE
 // ———————————————————————————
-$composePeople=count($destRows)===1?alphano_mail_people([$idpg,(int)$destRows[0]['id']]):[];
+$composePeople=count($destRows)===1?alphanoMailPeople([$idpg,(int)$destRows[0]['id']]):[];
 require __DIR__.'/../templates/mail/compose.php';
-ClosePage();
+closePage();

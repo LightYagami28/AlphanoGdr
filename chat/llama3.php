@@ -6,9 +6,9 @@ header('Cache-Control: private, no-store');
 require_once __DIR__.'/../libs/ai.inc.php';
 try {
     if ($_SERVER['REQUEST_METHOD']!=='POST') { throw new DomainException('Metodo non consentito',405); }
-    alphano_require_login(true);
-    $in=alphano_request_json();
-    alphano_require_csrf(true);
+    alphanoRequireLogin(true);
+    $in=alphanoRequestJson();
+    alphanoRequireCsrf(true);
     $chat=aiField($in,'chat_key',100,true);
     $prompt=aiField($in,'prompt',1200,true);
     $room=aiRoom($chat);

@@ -46,7 +46,7 @@ return [
         'regole' => ['title'=>'Biblioteca', 'icon'=>'book', 'description'=>'Regole e ambientazione delle terre di Alphano.'],
         'sessione' => ['title'=>'Sessioni', 'icon'=>'scroll', 'description'=>'Conduzione, resoconti e memoria delle giocate.'],
         'statistiche' => ['title'=>'Statistiche', 'icon'=>'chart', 'description'=>'Consulta i dati e l’attività del mondo di gioco.'],
-        'trasferimenti' => ['title'=>'Inventario e scambi', 'icon'=>'coins', 'description'=>alphano_currency_text('Oggetti, Corone e trasferimenti tra personaggi.')],
+        'trasferimenti' => ['title'=>'Inventario e scambi', 'icon'=>'coins', 'description'=>alphanoCurrencyText('Oggetti, Corone e trasferimenti tra personaggi.')],
         'ricerca' => ['title'=>'Ricerca personaggi', 'icon'=>'search', 'description'=>'Trova i personaggi e consulta le loro schede.'],
         'sondaggi' => ['title'=>'Sondaggi', 'icon'=>'check', 'description'=>'Proposte, votazioni e risultati.'],
         'vari' => ['title'=>'Strumenti', 'icon'=>'compass', 'description'=>'Utilità e risorse del gioco.'],

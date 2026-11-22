@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-function aiSceneRules():array {return rpg_combat_settings();}
+function aiSceneRules():array {return rpgCombatSettings();}
 function aiConductorCan(int $uid,string $chat):bool{
  $u=aiDb()->query('SELECT admin,fatepower,chat,bloccato FROM utenti WHERE id=?',[$uid])[0]??[];
  return $u&&!$u['bloccato']&&$u['chat']===$chat&&($u['admin']||$u['fatepower']);

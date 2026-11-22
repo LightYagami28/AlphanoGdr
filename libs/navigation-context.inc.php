@@ -2,13 +2,13 @@
 declare(strict_types=1);
 
 /** Remember only a scene already authorized by the chat controller, per player. */
-function alphano_navigation_remember_scene(int $player, string $chat): void
+function alphanoNavigationRememberScene(int $player, string $chat): void
 {
     $_SESSION['navigation_scene'] = ['player_id'=>$player, 'chat'=>$chat];
 }
 
 /** The shortcut is personal. Room grants and session state are checked afresh. */
-function alphano_navigation_recent_scene(array $user): ?array
+function alphanoNavigationRecentScene(array $user): ?array
 {
     $player = (int)$user['id'];
     $memory = $_SESSION['navigation_scene'] ?? [];
@@ -16,11 +16,11 @@ function alphano_navigation_recent_scene(array $user): ?array
         ? (string)($memory['chat'] ?? '') : (string)($user['chat'] ?? '');
     if ($chat === '') { return null; }
 
-    $db = ConnectDB();
+    $db = connectDB();
     $room = $db->query('SELECT chat_key,title,position FROM mappe WHERE chat_key=? AND chat=1', [$chat])[0] ?? null;
     if (!$room) {
         require_once __DIR__.'/pvt/private-core.inc.php';
-        try { $room = alphano_private_room($chat, $player); }
+        try { $room = alphanoPrivateRoom($chat, $player); }
         catch (DomainException) { $room = null; }
     }
     if (!$room) { return null; }
@@ -29,7 +29,7 @@ function alphano_navigation_recent_scene(array $user): ?array
     require_once __DIR__.'/ai.inc.php';
     $territory = aiAuthorityPlace((string)($room['rental_host'] ?? $chat));
     $city = (string)$territory['city'];
-    if ($city === '' && isset($room['private_slug'])) { $city = alphano_private_city($room['private_slug'])['city']; }
+    if ($city === '' && isset($room['private_slug'])) { $city = alphanoPrivateCity($room['private_slug'])['city']; }
     $title = trim((string)$room['title']);
     if ($city !== '') {
         $name = preg_quote($city, '/');

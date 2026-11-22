@@ -36,7 +36,7 @@ if (!function_exists(__NAMESPACE__ . '\nl2br')) {
 try {
     // 3. CONNECT DB
     /** @var PDOMySQLDriver $db */
-    $db = ConnectDB();
+    $db = connectDB();
 
     // 4. DATA GATEWAYS
 
@@ -162,7 +162,7 @@ try {
         )[0]['n'];
 
         // 4.4.b Utenti ultimi 7 giorni
-        $since = GeneratePastTimestamp(7);
+        $since = generatePastTimestamp(7);
         $stats['lastweek'] = (int)$db->query(
             "SELECT COUNT(*) AS n
                FROM utenti

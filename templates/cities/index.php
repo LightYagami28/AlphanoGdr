@@ -8,7 +8,7 @@ $title = $city === null ? 'Città' : (string)$city['city'];
 <html lang="it">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?=$h($title)?></title><script src="/js/registry.js?v=<?=filemtime(dirname(__DIR__,2).'/js/registry.js')?>" defer></script><script src="/js/city/election-status.js?v=<?=filemtime(dirname(__DIR__,2).'/js/city/election-status.js')?>" defer></script></head>
 <body class="ui-page">
-<header class="ui-page-heading" data-page-heading<?php if($city): $cityArt=alphano_city_artwork((string)$city['city']); ?> data-header-image="<?=$h($cityArt)?>"<?php endif; ?>>
+<header class="ui-page-heading" data-page-heading<?php if($city): $cityArt=alphanoCityArtwork((string)$city['city']); ?> data-header-image="<?=$h($cityArt)?>"<?php endif; ?>>
  <span data-icon="city" aria-hidden="true"></span>
  <div><div class="ui-eyebrow">Alphano · Città</div><h1><?=$h($title)?></h1><p><?=$city === null ? 'Comunità, cariche e vita cittadina.' : 'Statuto, araldiche e cittadini della comunità.'?></p></div>
 </header>

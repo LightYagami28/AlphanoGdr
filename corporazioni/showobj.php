@@ -67,7 +67,7 @@ if (!$object && !$newObject) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Dettagli Oggetto – <?= TitoloSito ?></title>
+    <title>Dettagli Oggetto – <?= TITOLO_SITO ?></title>
 
 
 </head>
@@ -81,7 +81,7 @@ if (!$object && !$newObject) {
             <h2>Originale</h2>
             <p class="field label"><?= htmlentities($object['shortDesc']) ?></p>
             <img src="<?= htmlentities($object['immagine']) ?>" alt="Immagine">
-            <div class="field"><?= ProcessText($object['desc']) ?></div>
+            <div class="field"><?= processText($object['desc']) ?></div>
             <div class="field"><span class="label">Tipo:</span> <?= htmlentities($object['tipo']) ?></div>
             <div class="field"><span class="label">Taglia:</span> <?= htmlentities(getSize((int)$object['taglia'])) ?></div>
             <?php if (!empty($object['peso'])): ?>
@@ -119,15 +119,15 @@ if (!$object && !$newObject) {
             <div class="field"><span class="label">Durata:</span> <?= (int)$object['durata'] ?></div>
             <?php if ((int)$object['datacreazione']): ?>
             <div class="field"><span class="label">Creato il:</span>
-                <?= FormatTimestamp((int)$object['datacreazione']) ?></div>
+                <?= formatTimestamp((int)$object['datacreazione']) ?></div>
             <?php endif; ?>
             <?php if ((int)$object['datamodifica']): ?>
             <div class="field"><span class="label">Modificato il:</span>
-                <?= FormatTimestamp((int)$object['datamodifica']) ?></div>
+                <?= formatTimestamp((int)$object['datamodifica']) ?></div>
             <?php endif; ?>
 
             <?php
-            $primes = GetMateriePrime($object);
+            $primes = getMateriePrime($object);
             $items = [];
             foreach ($primes as $k => $v) {
                 if (!is_numeric($k) && (int)$v > 0) {
@@ -153,7 +153,7 @@ if (!$object && !$newObject) {
             <h2>Modificato</h2>
             <p class="field label"><?= htmlentities($newObject['shortDesc']) ?></p>
             <img src="<?= htmlentities($newObject['immagine']) ?>" alt="Immagine">
-            <div class="field"><?= ProcessText($newObject['desc']) ?></div>
+            <div class="field"><?= processText($newObject['desc']) ?></div>
             <div class="field"><span class="label">Tipo:</span> <?= htmlentities($newObject['tipo']) ?></div>
             <div class="field"><span class="label">Taglia:</span> <?= htmlentities(getSize((int)$newObject['taglia'])) ?></div>
             <?php if (!empty($newObject['peso'])): ?>
@@ -189,15 +189,15 @@ if (!$object && !$newObject) {
             <div class="field"><span class="label">Durata:</span> <?= (int)$newObject['durata'] ?></div>
             <?php if ((int)$newObject['datacreazione']): ?>
             <div class="field"><span class="label">Creato il:</span>
-                <?= FormatTimestamp((int)$newObject['datacreazione']) ?></div>
+                <?= formatTimestamp((int)$newObject['datacreazione']) ?></div>
             <?php endif; ?>
             <?php if ((int)$newObject['datamodifica']): ?>
             <div class="field"><span class="label">Modificato il:</span>
-                <?= FormatTimestamp((int)$newObject['datamodifica']) ?></div>
+                <?= formatTimestamp((int)$newObject['datamodifica']) ?></div>
             <?php endif; ?>
 
             <?php
-            $primesNew = GetMateriePrime($newObject);
+            $primesNew = getMateriePrime($newObject);
             $itemsNew = [];
             foreach ($primesNew as $k => $v) {
                 if (!is_numeric($k) && (int)$v > 0) {
@@ -249,4 +249,4 @@ if (!$object && !$newObject) {
         </form>
     </div>
 </div>
-<?php ClosePage(); ?>
+<?php closePage(); ?>

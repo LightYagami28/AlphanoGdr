@@ -3,11 +3,11 @@ declare(strict_types=1);
 require_once __DIR__.'/../libs/ai.inc.php';
 header('Content-Type: application/json; charset=utf-8');header('Cache-Control: private, no-store');$db=aiDb();
 try{
-    $uid=alphano_require_login(true);$user=alphano_user();
+    $uid=alphanoRequireLogin(true);$user=alphanoUser();
     if(empty($user['admin'])){ throw new DomainException('Il pannello tecnico IA è riservato agli amministratori. Usa la regia della sessione.',403); }
     $method=$_SERVER['REQUEST_METHOD'];if(!in_array($method,['GET','POST'],true)){ throw new DomainException('Metodo non consentito.',405); }
-    $in=$method==='POST'?alphano_request_json():$_GET;if($method==='POST'){
-        alphano_require_csrf(true);
+    $in=$method==='POST'?alphanoRequestJson():$_GET;if($method==='POST'){
+        alphanoRequireCsrf(true);
         if(!in_array(aiField($in,'action',20,true),['save','advance'],true)){ throw new DomainException('Azione non riconosciuta.',422); }
     }
     $sid=aiInteger($in,'quest_id',1,PHP_INT_MAX);if($method==='POST'){ $db->beginTransaction(); }

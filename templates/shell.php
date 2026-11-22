@@ -15,10 +15,10 @@
     <main class="game-content">
       <section class="main-col" aria-label="Luogo e attività">
         <?php if(alphanoCan('admin')&&connectDB()->query("SELECT step_key FROM engine_setup_steps WHERE status<>'completed' LIMIT 1")):?><aside class="setup-reminder"><a href="/admin/setup.php">Configurazione del gioco da completare · Apri il riepilogo del gestore</a></aside><?php endif;?>
-        <?php require __DIR__.'/partials/header.php'; ?>
+        <?php require_once __DIR__.'/partials/header.php'; ?>
         <div id="map" class="map-area panel"><p>Caricamento mappa…</p></div>
       </section>
-      <?php require __DIR__.'/partials/sidebar.php'; ?>
+      <?php require_once __DIR__.'/partials/sidebar.php'; ?>
     </main>
   </div>
 </body>

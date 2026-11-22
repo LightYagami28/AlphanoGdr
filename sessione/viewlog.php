@@ -55,7 +55,7 @@ switch ($azione) {
     case 'cancellazioni':
         if(!$isSessionAdmin){ alphanoFail('Registro riservato agli amministratori.',403); }
         $deletions=$db->query('SELECT * FROM session_archive_deletions ORDER BY deleted_at DESC,session_id DESC');
-        require __DIR__.'/../templates/sessions/deletions.php';exit;
+        require_once __DIR__.'/../templates/sessions/deletions.php';exit;
     case 'aprilog':
         if ($id === '') {
             exit('Sessione non specificata');
@@ -72,7 +72,7 @@ switch ($azione) {
         if (is_array($tmp)) { $chat = $tmp[0]['chat'] ?? ''; } elseif ($tmp instanceof PDOStatement) { $chat = (string)$tmp->fetchColumn(); } else { $chat = ''; }
 
         $replay=alphanoSessionReplay(file_get_contents($file),$session);
-        require __DIR__.'/../templates/sessions/log.php';
+        require_once __DIR__.'/../templates/sessions/log.php';
         exit;
 
     case 'aggiungiparere':
@@ -88,6 +88,6 @@ switch ($azione) {
 
         foreach($rows as &$row){$image=(string)($row['scene_thumbnail']??'');$row['location_thumbnail']=$image!==''&&alphanoMediaFile($image)?$image:'';}unset($row);
         $archiveNotice=$_SESSION['session_archive_notice']??null;unset($_SESSION['session_archive_notice']);
-        require __DIR__.'/../templates/sessions/index.php';
+        require_once __DIR__.'/../templates/sessions/index.php';
         exit;
 }

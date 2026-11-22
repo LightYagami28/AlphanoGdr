@@ -1,6 +1,6 @@
 <!doctype html><html lang="it"><head><meta charset="utf-8"><title>Cronaca e notifiche</title><script type="module" src="/js/commerce-thread.js"></script><script src="/js/inbox.js" defer></script></head><body>
 <main class="notification-inbox">
-  <?php require dirname(__DIR__).'/partials/push-controls.php'; ?>
+  <?php require_once dirname(__DIR__).'/partials/push-controls.php'; ?>
   <div class="ui-toolbar inbox-toolbar">
     <label>Sezione<select id="inbox-group"><option value="">Tutte le sezioni</option><option value="gioco">Personaggio e scambi</option><option value="organizzazioni">Organizzazioni</option><option value="corporazioni">Corporazioni</option><option value="citta">Città</option><option value="accademia">Accademia</option><option value="bacheche">Bacheche</option><option value="master">Master</option><option value="gestione">Gestione</option></select></label>
     <label>Registro<select id="inbox-view"><option value="unread">Da leggere</option><option value="history">Storico delle operazioni</option></select></label>

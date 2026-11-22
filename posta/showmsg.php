@@ -106,5 +106,5 @@ $replyToId=(int)$conversation[count($conversation)-1]['id'];
 $readNoticeId=$readIds[0]??($isDest?$msgId:0);
 $title = $otherId>0 ? "Conversazione con $otherName" : "Avviso di Alphano";
 
-$mailActivePerson=$otherId;require __DIR__.'/../templates/mail/workspace.php';
+$mailActivePerson=$otherId;require_once __DIR__.'/../templates/mail/workspace.php';
 closePage();

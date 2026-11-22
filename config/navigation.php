@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 /** Tassonomia unica: le autorizzazioni delle singole voci restano nel backend. */
-return [
+return $GLOBALS['ALPHANO_CONFIG_CACHE'][__FILE__] = [
  'gioco'=>['image'=>'/assets/default-nav-compass.svg','title'=>'Gioco','icon'=>'compass','items'=>['Mappa','Profilo','Equipaggiamento','Trasformazione','Ruota della sorte','Trasferimenti','Presenti','Manuali','Ricerca','Sessioni']],
  'razze'=>['image'=>'/assets/default-nav-users.svg','title'=>'Razze','icon'=>'users','items'=>['Razze']],
  'classifica'=>['image'=>'/assets/default-nav-crown.svg','title'=>'Classifica','icon'=>'crown','items'=>['Classifica']],

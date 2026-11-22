@@ -3,7 +3,7 @@ declare(strict_types=1);
 require_once dirname(__DIR__).'/libs/app.inc.php';
 require_once dirname(__DIR__).'/libs/privacy-policy.inc.php';
 $privacy=(string)alphanoConfig('privacy_text');if($privacy==='Inserire qui l’informativa del proprio gioco e i contatti del titolare.'){ $privacy='Informazioni sul trattamento dei dati di questa installazione e sui contatti del gestore.'; }$terms=(string)alphanoConfig('terms_text');
-return ['engine_version'=>trim(file_get_contents(dirname(__DIR__).'/VERSION')),'version'=>substr(hash('sha256',$privacy.$terms.alphanoManagedRevision('privacy-policy').hash_file('sha256',dirname(__DIR__).'/LICENSE')),0,16),'owner'=>alphanoConfig('owner_name'),'email'=>alphanoConfig('support_email'),'minimum_age'=>18,
+return $GLOBALS['ALPHANO_CONFIG_CACHE'][__FILE__] = ['engine_version'=>trim(file_get_contents(dirname(__DIR__).'/VERSION')),'version'=>substr(hash('sha256',$privacy.$terms.alphanoManagedRevision('privacy-policy').hash_file('sha256',dirname(__DIR__).'/LICENSE')),0,16),'owner'=>alphanoConfig('owner_name'),'email'=>alphanoConfig('support_email'),'minimum_age'=>18,
  'privacy'=>['title'=>'Informativa privacy','intro'=>$privacy,'sections'=>alphanoPolicySections()],
  'cookies'=>['title'=>'Cookie e strumenti del browser','intro'=>'Come questa installazione gestisce sessione, preferenze e contenuti esterni.','sections'=>alphanoCookieSections()],
  'terms'=>['title'=>'Condizioni di partecipazione','intro'=>$terms,'sections'=>[]],

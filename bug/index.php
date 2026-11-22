@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
-require __DIR__ . '/../libs/kernel.inc.php';
-require __DIR__ . '/../libs/libpg.inc.php';
-require __DIR__ . '/../libs/sendmail.inc.php';
+require_once __DIR__ . '/../libs/kernel.inc.php';
+require_once __DIR__ . '/../libs/libpg.inc.php';
+require_once __DIR__ . '/../libs/sendmail.inc.php';
 
 use Alphano\Database\PDOMySQLDriver;
 

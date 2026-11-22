@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-return [
+return $GLOBALS['ALPHANO_CONFIG_CACHE'][__FILE__] = [
     'admin-welcome'=>'document',
     'admin-vampiri'=>'document','razze-stirpi'=>'document',
     'gruppi-identita'=>'document','corporazioni-oggetti-admin'=>'document',

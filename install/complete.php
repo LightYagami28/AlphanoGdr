@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once dirname(__DIR__).'/libs/config-loader.inc.php';
 $root=dirname(__DIR__);
 if(!is_file($root.'/config/local.php')){header('Location: /install/',true,303);exit;}
 require_once $root.'/libs/setup.inc.php';
@@ -9,7 +10,7 @@ if(empty($user['admin'])){ alphanoFail('Riepilogo riservato al gestore del gioco
 if(($_SERVER['REQUEST_METHOD']??'GET')!=='GET'){header('Allow: GET');alphanoFail('Apri il riepilogo senza inviare nuovamente il modulo.',405);}
 header('Cache-Control: no-store, private');
 header('Referrer-Policy: no-referrer');
-$settings=require $root.'/config/app.php';
+$settings=alphanoLoadConfig($root.'/config/app.php');
 $steps=alphanoSetupStatus();
 $pending=count(array_filter($steps,static fn($status)=>$status==='pending'));
 if($pending===1){ $nextText='Resta una sezione facoltativa da configurare. Puoi completarla, saltarla o riprenderla quando vuoi dal pannello del gestore.'; }elseif($pending>1){ $nextText='Restano '.$pending.' sezioni facoltative da configurare. Puoi completarle, saltarle o riprenderle quando vuoi dal pannello del gestore.'; }else{ $nextText='Puoi modificare le impostazioni e consultare il riepilogo dal pannello del gestore.'; }

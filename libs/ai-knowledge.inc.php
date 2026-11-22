@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-function ai_knowledge_validate(array $in):array{
+function aiKnowledgeValidate(array $in):array{
  $v=[];foreach(['title'=>160,'topic'=>80,'origin'=>20,'source'=>512,'summary'=>6000] as $k=>$max){ $v[$k]=aiField($in,$k,$max,in_array($k,['title','topic','origin','summary'],true)); }
  if(!in_array($v['origin'],['official','general'],true)){ throw new DomainException('Origine non valida.',422); }
  if($v['source']!==''&&!preg_match('~^(https://|manuale:)[^\s<>]+$~D',$v['source'])){ throw new DomainException('Usa un collegamento HTTPS o manuale:ID.',422); }
@@ -14,12 +14,12 @@ function ai_knowledge_validate(array $in):array{
  return $v;
 }
 /** General lore is quoted as data only and never becomes a rule by retrieval. */
-function ai_knowledge_retrieve(string $question,int $limit=3):array{
+function aiKnowledgeRetrieve(string $question,int $limit=3):array{
  $terms=array_unique(preg_split('/[^\p{L}\p{N}]+/u',mb_strtolower($question),-1,PREG_SPLIT_NO_EMPTY));$out=[];
  foreach(aiDb()->query('SELECT * FROM ai_master_knowledge WHERE active=1 ORDER BY origin,id') as $r){$score=0;$text=mb_strtolower($r['topic'].' '.$r['title'].' '.$r['summary']);foreach($terms as $t){ if(mb_strlen($t)>3&&mb_strpos($text,$t)!==false){ $score++; } }if($score){$r['score']=$score+($r['origin']==='official'?100:0);$out[]=$r;}}
  usort($out,static fn($a,$b)=>$b['score']<=>$a['score']);return array_slice($out,0,$limit);
 }
-function ai_knowledge_policy(int $id):array{
+function aiKnowledgePolicy(int $id):array{
  if(!$id){ return ['resolution'=>'review','initiative'=>'entry']; }
  $r=aiDb()->query("SELECT * FROM ai_master_knowledge WHERE id=? AND origin='official' AND active=1",[$id])[0]??null;
  if(!$r){ throw new DomainException('La regola tecnica selezionata non è ufficiale o attiva.',422); }

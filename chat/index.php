@@ -5,7 +5,7 @@ require_once __DIR__.'/../libs/ai.inc.php';
 require_once __DIR__.'/../libs/chat-presentation.inc.php';
 require_once __DIR__.'/../libs/chat-controls.inc.php';
 $aiScene=$isChat&&!$privateChat?aiRoom($chat):null;
-$sceneNpcs=$isChat?ai_dialogue_npcs($chat,$idpg):[];
+$sceneNpcs=$isChat?aiDialogueNpcs($chat,$idpg):[];
 ?><!DOCTYPE html>
 <html lang="it">
 <head>
@@ -93,9 +93,9 @@ $sceneNpcs=$isChat?ai_dialogue_npcs($chat,$idpg):[];
     <?php endif; ?>
     <?php if ($sceneNpcs): ?>
       <section class="scene-cast descr-content"><h2>Personaggi del luogo</h2>
-      <?php foreach ($sceneNpcs as $npc): $profile=ai_npc_profile($npc); ?>
+      <?php foreach ($sceneNpcs as $npc): $profile=aiNpcProfile($npc); ?>
         <article class="scene-person"><a href="/profili/png.php?Id=<?=(int)$npc['id']?>" data-npc-profile="<?=(int)$npc['id']?>"><img class="npc-portrait" src="<?=htmlspecialchars($profile['portrait']?:'/assets/placeholder.svg',ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8')?>" alt="Ritratto di <?=htmlspecialchars($npc['name'],ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8')?>"></a>
-          <div><h3><?=ai_profile_link($npc)?></h3><p><?=htmlspecialchars($profile['occupation'],ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8')?></p><p><?=nl2br(htmlspecialchars($profile['appearance'],ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8'))?></p><p><?=nl2br(htmlspecialchars($profile['biography'],ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8'))?></p><a href="/profili/png.php?Id=<?=(int)$npc['id']?>" data-npc-profile="<?=(int)$npc['id']?>">Leggi il profilo completo</a></div>
+          <div><h3><?=aiProfileLink($npc)?></h3><p><?=htmlspecialchars($profile['occupation'],ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8')?></p><p><?=nl2br(htmlspecialchars($profile['appearance'],ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8'))?></p><p><?=nl2br(htmlspecialchars($profile['biography'],ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8'))?></p><a href="/profili/png.php?Id=<?=(int)$npc['id']?>" data-npc-profile="<?=(int)$npc['id']?>">Leggi il profilo completo</a></div>
         </article>
       <?php endforeach; ?></section>
     <?php endif; ?>

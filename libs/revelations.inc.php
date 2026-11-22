@@ -28,15 +28,15 @@ function alphano_revelation_excerpt(string $evidence):string {
 function alphano_relations_npc_context(int $npc,int $player,int $viewer):array {
     if(!alphano_relations_staff($viewer)){ throw new DomainException('Consultazione riservata a Master, Accademia e amministratori.',403); }
     require_once __DIR__.'/ai.inc.php';
-    $identity=ai_player_identity($player);if(!$identity){ throw new DomainException('Personaggio non disponibile.',404); }
+    $identity=aiPlayerIdentity($player);if(!$identity){ throw new DomainException('Personaggio non disponibile.',404); }
     $r=aiRelation($npc,$player);$metrics=[];
     foreach(AI_RELATION_METRICS as $key=>$label){ $metrics[$key]=['label'=>$label,'value'=>(int)$r[$key],'min'=>in_array($key,['sympathy','trust','respect','honor'],true)?-100:0]; }
     return ['metrics'=>$metrics,'state'=>$r['state'],'encounters'=>(int)$r['encounters'],'interactions'=>(int)$r['interactions'],'meaningful'=>(int)$r['meaningful'],
-        'development'=>ai_social_development_view($npc,$player,true),
+        'development'=>aiSocialDevelopmentView($npc,$player,true),
         'bond'=>aiRelationSummary($r,in_array($r['state'],['innamoramento','relazione','crisi','riconciliazione'],true)),
         'memories'=>aiDb()->query('SELECT id,category,summary,source,visible,active,created_at FROM ai_personal_memories WHERE npc_id=? AND player_id=? ORDER BY id DESC LIMIT 100',[$npc,$player]),
         'knowledge'=>alphano_revelations_profile('npc',$npc,$player),'player'=>['id'=>$player,'name'=>$identity['nome']],
-        'overview'=>ai_personality_overview($npc),'current_context'=>ai_relation_context_current($npc,$player), 'read_only'=>true];
+        'overview'=>aiPersonalityOverview($npc),'current_context'=>aiRelationContextCurrent($npc,$player), 'read_only'=>true];
 }
 function alphano_revelations_ready():bool {
     static $ready=null;
@@ -126,7 +126,7 @@ function alphano_relations_profile_pg(int $player,int $viewer):array {
     $out=['allowed'=>false,'items'=>[],'player_id'=>$player,'read_only'=>$player!==$viewer];$db=ConnectDB();
     if($player!==$viewer&&!alphano_relations_staff($viewer)){ return $out; }
     require_once __DIR__.'/ai.inc.php';
-    $identity=ai_player_identity($player);
+    $identity=aiPlayerIdentity($player);
     foreach($db->query('SELECT r.*,n.name,n.profile,n.active,nr.settings AS social_rules FROM ai_relationships r JOIN ai_npcs n ON n.id=r.npc_id LEFT JOIN ai_npc_rules nr ON nr.npc_id=n.id WHERE r.player_id=? AND r.interactions>0 ORDER BY r.updated_at DESC LIMIT 60',[$player]) as $r){
         $r['id']=(int)$r['npc_id'];
         $rules=array_replace(aiSocialDefaults(),json_decode($r['social_rules']??'{}',true)?:[]);$p=json_decode($r['profile'],true)?:[];

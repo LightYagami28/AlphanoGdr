@@ -70,7 +70,7 @@ function alphano_close_open_sessions():int {
    if(!$session||(int)$session['run']!==1){$db->commit();continue;}
    $sid=(int)$session['id'];$reason='Sessione «'.$session['nome'].'» chiusa dall’amministratore '.$admin['nome'].'.';
    $quest=$db->query('SELECT status FROM ai_quests WHERE session_id=?',[$sid])[0]??null;
-   if($quest&&$quest['status']!=='closed'){ ai_scene_close($sid,$reason,(int)$admin['id']); }
+   if($quest&&$quest['status']!=='closed'){ aiSceneClose($sid,$reason,(int)$admin['id']); }
    else{
     $db->execute('UPDATE sessioni SET run=0,dataout=?,masterout=? WHERE id=?',[time(),(int)$admin['id'],$sid]);
     aiQuestPublish($sid,'session:'.$sid.':admin-closed',$reason.' La giocata è conclusa; il resoconto resta consultabile.');

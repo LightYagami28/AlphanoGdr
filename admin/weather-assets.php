@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-require_once __DIR__.'/libs/config-loader.inc.php';
+require_once __DIR__.'/../libs/config-loader.inc.php';
 require_once __DIR__.'/../libs/media-assets.inc.php';
 $admin=alphanoRequireLogin();if(!alphanoCan('admin')){ alphanoFail('Accesso riservato agli amministratori.',403); }
 $db=connectDB();$known=alphanoLoadConfig(__DIR__.'/../config/weather-assets.php');$error='';$notice='';

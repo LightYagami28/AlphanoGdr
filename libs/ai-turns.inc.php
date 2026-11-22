@@ -26,12 +26,14 @@ function aiQuestTurnQueues(array $quest,array $guidance,array $order):array {
     return [$queue,$remaining,$next];
 }
 function aiQuestTurnLabel(bool $paused,string $status,array $quest,?string $turn):string {
-    if($paused){ return 'Regia sospesa dal Master'; }
-    if($status==='review'){ return $quest['mode']==='human'?'Giro completato · esito al Master umano':'Giro completato · in attesa di convalida del Master'; }
-    if($status==='resolving'){ return 'Giro completato · il Master IA sta preparando il verdetto'; }
-    if($status==='attention'){ return 'Intervento del Master richiesto'; }
-    if($status==='closed'){ return 'Quest conclusa'; }
-    return $turn?'Tocca a '.$turn:'In attesa del prossimo turno';
+ return match(true){
+  $paused=>'Regia sospesa dal Master',
+  $status==='review'=>$quest['mode']==='human'?'Giro completato · esito al Master umano':'Giro completato · in attesa di convalida del Master',
+  $status==='resolving'=>'Giro completato · il Master IA sta preparando il verdetto',
+  $status==='attention'=>'Intervento del Master richiesto',
+  $status==='closed'=>'Quest conclusa',
+  default=>$turn?'Tocca a '.$turn:'In attesa del prossimo turno'
+ };
 }
 /** One authoritative description for chat status and rejected actions. No model decides the queue. */
 function aiQuestTurnState(array $quest, ?array $guidance=null): array {

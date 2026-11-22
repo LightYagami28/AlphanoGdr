@@ -5,14 +5,14 @@ declare(strict_types=1);
 function ai_perception_revelation_event(array $event,int $npc):?array {
     if(($event['kind']??'')==='transformation'){ return in_array((int)($event['native_race_id']??0),[2,3,5,6],true)&&(int)($event['actor_id']??0)>0?$event:null; }
     if(!in_array($event['kind']??'',['human_master','system_master'],true)){ return null; }
-    $proof=ConnectDB()->query('SELECT player_id,race_id FROM ai_nature_observations WHERE npc_id=? AND source_id=? ORDER BY id LIMIT 1',[$npc,(int)($event['source_id']??0)])[0]??null;
+    $proof=connectDB()->query('SELECT player_id,race_id FROM ai_nature_observations WHERE npc_id=? AND source_id=? ORDER BY id LIMIT 1',[$npc,(int)($event['source_id']??0)])[0]??null;
     return $proof?[...$event,'actor_id'=>(int)$proof['player_id'],'native_race_id'=>(int)$proof['race_id'],'visible_race_id'=>(int)$proof['race_id'],'form'=>'native']:null;
 }
 /** The reaction's source must still be a live, public fact witnessed by this exact NPC. */
 function ai_perception_reaction_event(array $job):?array {
     if(!aiPerceptionReady()){ return null; }
     require_once __DIR__.'/chat-history.inc.php';
-    $event=ConnectDB()->query('SELECT e.* FROM ai_scene_events e JOIN ai_scene_witnesses w ON w.event_id=e.id JOIN chat c ON c.id=e.source_id AND BINARY c.chat=BINARY e.chat_key WHERE e.source_id=? AND w.npc_id=? AND BINARY e.chat_key=BINARY ? AND c.dest=0'.(alphano_chat_has_archive()?' AND c.history_only=0':''),[(int)($job['source_id']??0),(int)($job['npc_id']??0),(string)($job['chat_key']??'')])[0]??null;
+    $event=connectDB()->query('SELECT e.* FROM ai_scene_events e JOIN ai_scene_witnesses w ON w.event_id=e.id JOIN chat c ON c.id=e.source_id AND BINARY c.chat=BINARY e.chat_key WHERE e.source_id=? AND w.npc_id=? AND BINARY e.chat_key=BINARY ? AND c.dest=0'.(alphanoChatHasArchive()?' AND c.history_only=0':''),[(int)($job['source_id']??0),(int)($job['npc_id']??0),(string)($job['chat_key']??'')])[0]??null;
     return $event?ai_perception_revelation_event($event,(int)$job['npc_id']):null;
 }
 /** Temporary physical posture lives on the already durable publication receipt. */
@@ -24,7 +24,7 @@ function ai_perception_posture(int $npc,int $player=0,int $before=0):array {
     if($player>0){$sql.=' AND user_id=?';$params[]=$player;}
     if($before>0){$sql.=' AND '.$immediate.'<?';$params[]=$before;}
     $sql.=' ORDER BY '.$immediate.' DESC,id DESC LIMIT 8';
-    foreach(ConnectDB()->query($sql,$params) as $row){
+    foreach(connectDB()->query($sql,$params) as $row){
         $present=ai_relation_context_current($npc,(int)$row['user_id']);
         if($present&&(int)$row['source_id']<=$present['chat_id']){ continue; }
         $receipt=json_decode((string)$row['result'],true)['scene_reaction']??[];
@@ -127,12 +127,12 @@ function ai_perception_sync_prefaces():void {
 /** Recover an interrupted capture without inventing witnesses or reviving old scenes. */
 function ai_perception_recover_pending():void {
     if(!aiPerceptionReady()){ return; }
-    $db=ConnectDB();
+    $db=connectDB();
     foreach($db->query("SELECT DISTINCT e.id FROM ai_scene_events e JOIN ai_scene_witnesses w ON w.event_id=e.id JOIN ai_rooms r ON r.chat_key=e.chat_key AND r.enabled=1 WHERE e.created_at>=? AND (e.kind='transformation' OR EXISTS(SELECT 1 FROM ai_nature_observations o WHERE o.source_id=e.source_id AND o.npc_id=w.npc_id)) AND (NOT EXISTS(SELECT 1 FROM ai_jobs j WHERE j.request_key=CONCAT('scene-reaction:',e.id,':',w.npc_id)) OR EXISTS(SELECT 1 FROM ai_jobs j WHERE j.request_key=CONCAT('scene-reaction:',e.id,':',w.npc_id) AND j.status='queued' AND j.message_id=0)) ORDER BY e.id LIMIT 30",[time()-300]) as $event){ ai_perception_enqueue_event((int)$event['id']); }
 }
 /** Validate again immediately before publication; a new scene can invalidate inference. */
 function ai_perception_reaction_state(array $job):array {
-    $db=ConnectDB();$room=aiRoom((string)$job['chat_key']);
+    $db=connectDB();$room=aiRoom((string)$job['chat_key']);
     $npc=ai_dialogue_npc((string)$job['chat_key'],(int)$job['npc_id'],(int)$job['user_id']);
     $event=ai_perception_reaction_event($job);$session=ai_game_session((string)$job['chat_key']);
     if(!$room||!$room['enabled']||(int)$room['version']!==(int)$job['room_version']||!$npc||(int)ai_npc_profile($npc)['hit_points']<=0||!$event||time()-(int)$event['created_at']>300||($session&&!empty($session['guidance']['paused']))){ throw new DomainException('Reazione superata: scena, testimone o regia sono cambiati.'); }

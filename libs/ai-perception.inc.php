@@ -13,7 +13,7 @@ require_once __DIR__.'/ai-relation-context.inc.php';
 /** The ledger contains confirmed public events, never a player's claim of success. */
 function aiPerceptionReady():bool {
     static $ready=null;
-    return $ready??=(bool)ConnectDB()->query("SHOW TABLES LIKE 'ai_nature_knowledge'");
+    return $ready??=(bool)connectDB()->query("SHOW TABLES LIKE 'ai_nature_knowledge'");
 }
 function aiPerceptionPlain(string $html,int $limit=1500):string {
     $html=preg_replace('~<(script|style)\b[^>]*>.*?</\1>~is','',$html)??'';
@@ -23,7 +23,7 @@ function aiPerceptionPlain(string $html,int $limit=1500):string {
 /** Active, living public cast at the instant of publication; no future arrivals. */
 function aiPerceptionWitnesses(string $chat):array {
     $out=[];
-    foreach(ConnectDB()->query('SELECT n.id,n.profile FROM ai_npcs n WHERE n.chat_key=? AND n.active=1 AND NOT EXISTS(SELECT 1 FROM companion_appointments a WHERE a.active_npc_id=n.id AND a.finished_at=0 AND a.expires_at>?)',[$chat,time()]) as $n){
+    foreach(connectDB()->query('SELECT n.id,n.profile FROM ai_npcs n WHERE n.chat_key=? AND n.active=1 AND NOT EXISTS(SELECT 1 FROM companion_appointments a WHERE a.active_npc_id=n.id AND a.finished_at=0 AND a.expires_at>?)',[$chat,time()]) as $n){
         $p=json_decode($n['profile'],true)?:[];
         if((int)($p['hit_points']??1000)<=0){ continue; }
         $out[]=(int)$n['id'];
@@ -36,12 +36,12 @@ function aiPerceptionWitnesses(string $chat):array {
  */
 function aiPerceptionMasterRevelations(string $chat,string $content):array {
     if(!preg_match('/\b(?:licantrop\p{L}*|lupin\p{L}*|vampir\p{L}*)\b/iu',$content)){ return []; }
-    if(!function_exists('alphano_native_race')){ require_once __DIR__.AI_PERCEPTION_TRANSFORMATIONS_FILE; }
-    $found=[];$users=ConnectDB()->query('SELECT id,nome,razza,infetto,ancestrale FROM utenti WHERE BINARY chat=BINARY ? AND puntif>0 AND bloccato=0',[$chat]);
+    if(!function_exists('alphanoNativeRace')){ require_once __DIR__.AI_PERCEPTION_TRANSFORMATIONS_FILE; }
+    $found=[];$users=connectDB()->query('SELECT id,nome,razza,infetto,ancestrale FROM utenti WHERE BINARY chat=BINARY ? AND puntif>0 AND bloccato=0',[$chat]);
     $names=array_count_values(array_map(static fn($u)=>mb_strtolower($u['nome']),$users));
     foreach($users as $u){
         if(($names[mb_strtolower($u['nome'])]??0)!==1){ continue; }
-        $race=alphano_native_race($u);if(!in_array($race,[2,3,5,6],true)){ continue; }
+        $race=alphanoNativeRace($u);if(!in_array($race,[2,3,5,6],true)){ continue; }
         $family=in_array($race,[2,5],true)?'vampir\p{L}*':'(?:licantrop\p{L}*|lupin\p{L}*)';
         $name=preg_quote((string)$u['nome'],'/');
         foreach(preg_split('/[.!?\n]+/u',$content,-1,PREG_SPLIT_NO_EMPTY)?:[] as $sentence){
@@ -56,10 +56,10 @@ function aiPerceptionMasterRevelations(string $chat,string $content):array {
 /** Only server-authored Master output or an authenticated # turn reaches here. */
 function aiSceneCaptureSystem(string $chat,int $source,string $html,array $metadata=[],int $humanMaster=0):void {
     if(!aiPerceptionReady()||$source<1||!preg_match('/\b(?:MasterKey|DescrKey)\b/',$html)){ return; }
-    $db=ConnectDB();
+    $db=connectDB();
     if(!$db->query('SELECT chat_key FROM mappe WHERE chat_key=? AND chat=1',[$chat])){ return; }
     require_once __DIR__.AI_PERCEPTION_CHAT_HISTORY_FILE;
-    $row=$db->query('SELECT c.pg,c.dest,c.ora,c.msg,u.admin,u.fatepower FROM chat c LEFT JOIN utenti u ON u.id=c.pg WHERE c.id=? AND BINARY c.chat=BINARY ?'.(alphano_chat_has_archive()?AI_PERCEPTION_HISTORY_FILTER:''),[$source,$chat])[0]??null;
+    $row=$db->query('SELECT c.pg,c.dest,c.ora,c.msg,u.admin,u.fatepower FROM chat c LEFT JOIN utenti u ON u.id=c.pg WHERE c.id=? AND BINARY c.chat=BINARY ?'.(alphanoChatHasArchive()?AI_PERCEPTION_HISTORY_FILTER:''),[$source,$chat])[0]??null;
     // The stored public message, not caller-supplied replacement prose, is the proof.
     if(!$row||(int)$row['dest']!==0||(string)$row['msg']!==$html){ return; }
     if($humanMaster>0){if((int)$row['pg']!==$humanMaster||(!(int)$row['admin']&&!(int)$row['fatepower'])){ return; }}
@@ -87,7 +87,7 @@ function aiSceneCaptureSystem(string $chat,int $source,string $html,array $metad
                 foreach($revealed as $revelation){ aiPerceptionRemember($nid,$revelation['player'],$revelation['race'],$source,$chat,$revelation['evidence'],(int)$row['ora']); }
             }
             require_once __DIR__.'/revelations.inc.php';
-            alphano_revelations_capture(['id'=>$event,'source_id'=>$source,'chat_key'=>$chat,'kind'=>$kind,'actor_id'=>$actor,'native_race_id'=>$native,'content'=>$content,'created_at'=>(int)$row['ora']],$revealed);
+            alphanoRevelationsCapture(['id'=>$event,'source_id'=>$source,'chat_key'=>$chat,'kind'=>$kind,'actor_id'=>$actor,'native_race_id'=>$native,'content'=>$content,'created_at'=>(int)$row['ora']],$revealed);
             // Publication, witness receipt, revelation and reaction queue are atomic.
             // This hook never calls the model and never creates another Master event.
             ai_perception_enqueue_event($event);
@@ -98,27 +98,27 @@ function aiSceneCaptureSystem(string $chat,int $source,string $html,array $metad
 function aiPerceptionRemember(int $npc,int $player,int $race,int $source,string $chat,string $evidence,int $time):void {
     if(!in_array($race,[2,3,5,6],true)){ return; }
     if(function_exists('ai_recognition_view')&&!ai_recognition_view($npc,$player,['chat_key'=>$chat,'source_id'=>$source])['identified']){ return; }
-    ConnectDB()->execute('INSERT IGNORE INTO ai_nature_observations(npc_id,player_id,race_id,source_id,chat_key,evidence,created_at) VALUES(?,?,?,?,?,?,?)',[$npc,$player,$race,$source,$chat,mb_substr($evidence,0,500),$time]);
-    ConnectDB()->execute('INSERT INTO ai_nature_knowledge(npc_id,player_id,race_id,source_id,chat_key,evidence,first_seen,last_seen) VALUES(?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE race_id=VALUES(race_id),source_id=VALUES(source_id),chat_key=VALUES(chat_key),evidence=VALUES(evidence),last_seen=VALUES(last_seen)',[$npc,$player,$race,$source,$chat,mb_substr($evidence,0,500),$time,$time]);
+    connectDB()->execute('INSERT IGNORE INTO ai_nature_observations(npc_id,player_id,race_id,source_id,chat_key,evidence,created_at) VALUES(?,?,?,?,?,?,?)',[$npc,$player,$race,$source,$chat,mb_substr($evidence,0,500),$time]);
+    connectDB()->execute('INSERT INTO ai_nature_knowledge(npc_id,player_id,race_id,source_id,chat_key,evidence,first_seen,last_seen) VALUES(?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE race_id=VALUES(race_id),source_id=VALUES(source_id),chat_key=VALUES(chat_key),evidence=VALUES(evidence),last_seen=VALUES(last_seen)',[$npc,$player,$race,$source,$chat,mb_substr($evidence,0,500),$time,$time]);
 }
 /** A currently visible supernatural body is evidence; native race in disguise is not. */
 function aiPerceptionObservePlayer(int $npc,int $player,int $source=0):void {
     if(!aiPerceptionReady()){ return; }
-    $db=ConnectDB();$u=$db->query('SELECT id,chat,razza,infetto,ancestrale,vampire_human_form FROM utenti WHERE id=? AND bloccato=0 AND puntif>0',[$player])[0]??null;
+    $db=connectDB();$u=$db->query('SELECT id,chat,razza,infetto,ancestrale,vampire_human_form FROM utenti WHERE id=? AND bloccato=0 AND puntif>0',[$player])[0]??null;
     $n=$db->query('SELECT id,chat_key,profile FROM ai_npcs WHERE id=? AND active=1',[$npc])[0]??null;
     if(!$u||!$n||$u['chat']!==$n['chat_key']||!in_array($npc,aiPerceptionWitnesses($u['chat']),true)){ return; }
     if(!$db->query('SELECT chat_key FROM mappe WHERE chat_key=? AND chat=1',[$u['chat']])){ return; }
     require_once __DIR__.AI_PERCEPTION_CHAT_HISTORY_FILE;
-    if($source>0&&!$db->query('SELECT id FROM chat WHERE id=? AND pg=? AND BINARY chat=BINARY ? AND dest=0'.alphano_chat_live_filter(),[$source,$player,$u['chat']])){ return; }
-    if(!function_exists('alphano_visible_race')){ require_once __DIR__.AI_PERCEPTION_TRANSFORMATIONS_FILE; }
-    $visible=alphano_visible_race($u);$native=alphano_native_race($u);
+    if($source>0&&!$db->query('SELECT id FROM chat WHERE id=? AND pg=? AND BINARY chat=BINARY ? AND dest=0'.alphanoChatLiveFilter(),[$source,$player,$u['chat']])){ return; }
+    if(!function_exists('alphanoVisibleRace')){ require_once __DIR__.AI_PERCEPTION_TRANSFORMATIONS_FILE; }
+    $visible=alphanoVisibleRace($u);$native=alphanoNativeRace($u);
     if($visible===$native&&in_array($native,[2,3,5,6],true)&&aiPerceptionKnownRace($npc,$player)!==$native){ aiPerceptionRemember($npc,$player,$native,$source,$u['chat'],'Aspetto soprannaturale manifestato e osservato direttamente nella scena.',time()); }
 }
 function aiPerceptionKnownRace(int $npc,int $player,int $before=0):int {
     if(function_exists('ai_recognition_view')&&!ai_recognition_view($npc,$player,['source_id'=>$before])['identified']){ return 0; }
     if(!aiPerceptionReady()){ return 0; }
-    if($before>0){ return (int)(ConnectDB()->query('SELECT race_id FROM ai_nature_observations WHERE npc_id=? AND player_id=? AND source_id<=? ORDER BY source_id DESC,id DESC LIMIT 1',[$npc,$player,$before])[0]['race_id']??0); }
-    $row=ConnectDB()->query('SELECT race_id,source_id FROM ai_nature_knowledge WHERE npc_id=? AND player_id=?',[$npc,$player])[0]??[];
+    if($before>0){ return (int)(connectDB()->query('SELECT race_id FROM ai_nature_observations WHERE npc_id=? AND player_id=? AND source_id<=? ORDER BY source_id DESC,id DESC LIMIT 1',[$npc,$player,$before])[0]['race_id']??0); }
+    $row=connectDB()->query('SELECT race_id,source_id FROM ai_nature_knowledge WHERE npc_id=? AND player_id=?',[$npc,$player])[0]??[];
     return (int)($row['race_id']??0);
 }
 function aiPerceptionRaceFamily(int $race):int {return match($race){5=>2,6=>3,default=>$race};}
@@ -136,16 +136,16 @@ function aiSceneContext(string $chat,int $npc=0,int $before=0):array {
     require_once __DIR__.AI_PERCEPTION_CHAT_HISTORY_FILE;
     $sql='SELECT e.source_id,e.kind,e.actor_id,e.native_race_id,e.visible_race_id,e.form,e.content,e.created_at FROM ai_scene_events e';$params=[];
     if($npc>0){$sql.=' JOIN ai_scene_witnesses w ON w.event_id=e.id AND w.npc_id=?';$params[]=$npc;}
-    $session=ConnectDB()->query('SELECT datain FROM sessioni WHERE BINARY chat=BINARY ? AND run=1 ORDER BY id DESC LIMIT 1',[$chat])[0]??[];
+    $session=connectDB()->query('SELECT datain FROM sessioni WHERE BINARY chat=BINARY ? AND run=1 ORDER BY id DESC LIMIT 1',[$chat])[0]??[];
     $since=min(time()-7200,(int)($session['datain']??time()));
-    $sql.=' JOIN chat c ON c.id=e.source_id AND BINARY c.chat=BINARY e.chat_key WHERE c.dest=0'.(alphano_chat_has_archive()?AI_PERCEPTION_HISTORY_FILTER:'')." AND NOT EXISTS(SELECT 1 FROM ai_quest_outbox control WHERE control.chat_id=e.source_id AND control.event_key NOT LIKE 'verdict:%:published')".' AND e.chat_key=? AND BINARY e.chat_key=BINARY ? AND e.created_at>=?';$params[]=$chat;$params[]=$chat;$params[]=$since;
+    $sql.=' JOIN chat c ON c.id=e.source_id AND BINARY c.chat=BINARY e.chat_key WHERE c.dest=0'.(alphanoChatHasArchive()?AI_PERCEPTION_HISTORY_FILTER:'')." AND NOT EXISTS(SELECT 1 FROM ai_quest_outbox control WHERE control.chat_id=e.source_id AND control.event_key NOT LIKE 'verdict:%:published')".' AND e.chat_key=? AND BINARY e.chat_key=BINARY ? AND e.created_at>=?';$params[]=$chat;$params[]=$chat;$params[]=$since;
     if($before>0){$sql.=' AND e.source_id<?';$params[]=$before;}
-    $events=ConnectDB()->query($sql.' ORDER BY e.source_id DESC,e.id DESC LIMIT 4',$params);
-    $anchors=ConnectDB()->query($sql." AND e.kind='transformation' AND NOT EXISTS(SELECT 1 FROM ai_scene_events newer WHERE newer.chat_key=e.chat_key AND BINARY newer.chat_key=BINARY e.chat_key AND newer.kind='transformation' AND newer.actor_id=e.actor_id AND newer.source_id>e.source_id".($before>0?' AND newer.source_id<?':'').') ORDER BY e.source_id DESC,e.id DESC LIMIT 4',[...$params,...($before>0?[$before]:[])]);
+    $events=connectDB()->query($sql.' ORDER BY e.source_id DESC,e.id DESC LIMIT 4',$params);
+    $anchors=connectDB()->query($sql." AND e.kind='transformation' AND NOT EXISTS(SELECT 1 FROM ai_scene_events newer WHERE newer.chat_key=e.chat_key AND BINARY newer.chat_key=BINARY e.chat_key AND newer.kind='transformation' AND newer.actor_id=e.actor_id AND newer.source_id>e.source_id".($before>0?' AND newer.source_id<?':'').') ORDER BY e.source_id DESC,e.id DESC LIMIT 4',[...$params,...($before>0?[$before]:[])]);
     $unique=[];foreach([...$events,...$anchors] as $event){ $unique[(int)$event['source_id']]=$event; }
     ksort($unique,SORT_NUMERIC);$events=array_values($unique);
     if($npc>0&&function_exists('ai_recognition_view')){ foreach($events as &$event){$actor=(int)$event['actor_id'];if($actor>0&&!ai_recognition_view($npc,$actor,['chat_key'=>$chat,'source_id'=>(int)$event['source_id']])['identified']){
-        $name=ConnectDB()->query('SELECT nome FROM utenti WHERE id=?',[$actor])[0]['nome']??'';
+        $name=connectDB()->query('SELECT nome FROM utenti WHERE id=?',[$actor])[0]['nome']??'';
         if($name!==''){ $event['content']=preg_replace('/(?<!\\p{L})'.preg_quote($name,'/').'(?!\\p{L})/iu','figura dal volto coperto',$event['content'])??$event['content']; }
     }
     }
@@ -165,16 +165,16 @@ function aiPerceptionSceneState(array $npc,array $job):array {
     $present=in_array($nid,aiPerceptionWitnesses($chat),true);
     // An invited companion keeps the public home chat on its sheet. Only the
     // actual, active appointment can make it a witness of this private room.
-    if(!$present&&preg_match('/^rent_[a-f0-9]{40}$/D',$chat)){ $present=(bool)ConnectDB()->query('SELECT a.id FROM companion_appointments a JOIN chat_rentals r ON r.id=a.rental_id AND r.owner_id=a.player_id JOIN chat_rental_members m ON m.rental_id=r.id AND m.player_id=a.player_id JOIN ai_npcs n ON n.id=a.npc_id WHERE a.npc_id=? AND r.chat_key=? AND a.player_id=? AND a.finished_at=0 AND r.closed_at=0 AND a.expires_at>? AND r.expires_at>? AND n.active=1 LIMIT 1',[$nid,$chat,(int)($job['user_id']??0),time(),time()]); }
+    if(!$present&&preg_match('/^rent_[a-f0-9]{40}$/D',$chat)){ $present=(bool)connectDB()->query('SELECT a.id FROM companion_appointments a JOIN chat_rentals r ON r.id=a.rental_id AND r.owner_id=a.player_id JOIN chat_rental_members m ON m.rental_id=r.id AND m.player_id=a.player_id JOIN ai_npcs n ON n.id=a.npc_id WHERE a.npc_id=? AND r.chat_key=? AND a.player_id=? AND a.finished_at=0 AND r.closed_at=0 AND a.expires_at>? AND r.expires_at>? AND n.active=1 LIMIT 1',[$nid,$chat,(int)($job['user_id']??0),time(),time()]); }
     if(!$present){ return $out; }
-    $db=ConnectDB();$profile=ai_npc_profile($npc);$human=in_array((int)$profile['race_id'],[1,alphano_human_race_id()],true);
-    if(!function_exists('alphano_visible_race')){ require_once __DIR__.AI_PERCEPTION_TRANSFORMATIONS_FILE; }
+    $db=connectDB();$profile=ai_npc_profile($npc);$human=in_array((int)$profile['race_id'],[1,alphanoHumanRaceId()],true);
+    if(!function_exists('alphanoVisibleRace')){ require_once __DIR__.AI_PERCEPTION_TRANSFORMATIONS_FILE; }
     foreach($db->query('SELECT id,nome,razza,infetto,ancestrale,vampire_human_form,puntif,ferite FROM utenti WHERE BINARY chat=BINARY ? AND bloccato=0 AND puntif>0 ORDER BY id LIMIT 16',[$chat]) as $player){
         $pid=(int)$player['id'];$latest=$db->query("SELECT source_id,visible_race_id,form,created_at FROM ai_scene_events WHERE chat_key=? AND BINARY chat_key=BINARY ? AND kind='transformation' AND actor_id=? ORDER BY source_id DESC LIMIT 1",[$chat,$chat,$pid])[0]??[];
         if($before>0&&(int)($latest['source_id']??0)>$before){ continue; }
         $identified=!function_exists('ai_recognition_view')||ai_recognition_view($nid,$pid,['chat_key'=>$chat,'source_id'=>$before])['identified'];
         $label=$identified?(string)$player['nome']:'una figura non identificata';
-        $visible=alphano_visible_race($player);
+        $visible=alphanoVisibleRace($player);
         if(in_array($visible,[2,3,5,6],true)){
             $game=ai_npc_game($nid);$trained=!empty($game['super']['enabled'])&&ai_npc_super_capability($nid,$visible)['can_confront'];
             $relation=$identified?aiRelation($nid,$pid):[];$fear=(int)($relation['fear']??0);$trust=(int)($relation['trust']??0);
@@ -189,7 +189,7 @@ function aiPerceptionSceneState(array $npc,array $job):array {
     if($session){
         $sid=(int)$session['session']['id'];$round=(int)$session['guidance']['round_number'];
         foreach($db->query('SELECT state FROM ai_quest_cast WHERE session_id=? AND active=1',[$sid]) as $cast){ if(ai_tactical_restrained(json_decode((string)$cast['state'],true)?:[],$round)){$out['confirmed_hold']=true;break;} }
-        $sql="SELECT a.actor_id,a.content,a.source_id,a.details FROM ai_quest_actions a JOIN chat c ON c.id=a.source_id AND BINARY c.chat=BINARY ? WHERE a.session_id=? AND a.kind='pg' AND a.round_number>=? AND a.status<>'skipped' AND c.dest=0".(alphano_chat_has_archive()?AI_PERCEPTION_HISTORY_FILTER:'');$args=[$chat,$sid,max(1,$round-1)];
+        $sql="SELECT a.actor_id,a.content,a.source_id,a.details FROM ai_quest_actions a JOIN chat c ON c.id=a.source_id AND BINARY c.chat=BINARY ? WHERE a.session_id=? AND a.kind='pg' AND a.round_number>=? AND a.status<>'skipped' AND c.dest=0".(alphanoChatHasArchive()?AI_PERCEPTION_HISTORY_FILTER:'');$args=[$chat,$sid,max(1,$round-1)];
         if($before>0){$sql.=' AND a.source_id<=?';$args[]=$before;}
         foreach($db->query($sql.' ORDER BY a.id DESC LIMIT 8',$args) as $action){
             $details=json_decode((string)$action['details'],true)?:[];
@@ -264,7 +264,7 @@ function aiPerceptionQuestFallback(array $npc,array $job,string $safe):string {
 }
 /** Restricted profile projection: excludes account data, permissions and private correspondence. */
 function aiPlayerProfile(int $player):array {
-    return ConnectDB()->query('SELECT sesso,statosociale,note,psicologia,storiapg,amicizie,affetti,animali,ferite FROM utenti WHERE id=?',[$player])[0]??[];
+    return connectDB()->query('SELECT sesso,statosociale,note,psicologia,storiapg,amicizie,affetti,animali,ferite FROM utenti WHERE id=?',[$player])[0]??[];
 }
 /** Personal context for the technical Master; never copied into an NPC's knowledge. */
 function aiMasterProfileSummary(array $sheet):string {
@@ -302,17 +302,17 @@ function aiPerceptionReaction(array $npc,array $job):array {
     }elseif(!$recent&&$known&&$source>0){
         // First sight of an already manifested body may be shocking. An observation
         // from an older greeting is a memory, not another sudden metamorphosis.
-        $seen=ConnectDB()->query('SELECT * FROM ai_nature_observations WHERE npc_id=? AND player_id=? AND race_id=? AND source_id=? ORDER BY id DESC LIMIT 1',[$nid,$pid,$known,$source])[0]??[];
+        $seen=connectDB()->query('SELECT * FROM ai_nature_observations WHERE npc_id=? AND player_id=? AND race_id=? AND source_id=? ORDER BY id DESC LIMIT 1',[$nid,$pid,$known,$source])[0]??[];
         $present=ai_relation_context_current($nid,$pid);
         if((!$present||$source>$present['chat_id'])&&$seen&&time()-(int)$seen['created_at']<=300){ $recent=['source_id'=>$source,'actor_id'=>$pid,'native_race_id'=>$known,'visible_race_id'=>$known,'created_at'=>(int)$seen['created_at'],'content'=>$seen['evidence'],'form'=>'native']; }
     }
     $noticed=false;
     if($recent){
-        $noticed=(bool)ConnectDB()->query("SELECT id FROM ai_jobs WHERE npc_id=? AND BINARY chat_key=BINARY ? AND status='done' AND kind IN('play','npc-turn','reaction') AND source_id>=? AND id<>? AND finished_at>=? LIMIT 1",[$nid,$chat,(int)$recent['source_id'],(int)($job['id']??0),(int)$recent['created_at']]);
+        $noticed=(bool)connectDB()->query("SELECT id FROM ai_jobs WHERE npc_id=? AND BINARY chat_key=BINARY ? AND status='done' AND kind IN('play','npc-turn','reaction') AND source_id>=? AND id<>? AND finished_at>=? LIMIT 1",[$nid,$chat,(int)$recent['source_id'],(int)($job['id']??0),(int)$recent['created_at']]);
         $actor=(int)$recent['actor_id'];
         if(($recent['form']??'')==='human'&&$actor>0&&aiPerceptionKnownRace($nid,$actor,max(1,(int)$recent['source_id']-1))>0){ $noticed=true; }
     }
-    $human=in_array((int)($p['race_id']??1),[1,alphano_human_race_id()],true);
+    $human=in_array((int)($p['race_id']??1),[1,alphanoHumanRaceId()],true);
     $capability=$recent&&!empty($game['super']['enabled'])&&function_exists('ai_npc_super_capability')?ai_npc_super_capability($nid,(int)$recent['native_race_id']):[];
     $trained=!empty($capability['can_confront']);
     $traits=$game['traits']??[];$courage=(int)($traits['courage']??50);$control=(int)($traits['self_control']??50);$survival=(int)($traits['survival_instinct']??50);

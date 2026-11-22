@@ -8,8 +8,8 @@
 ?>
 <html>
 	<head>
-		<title>Anteprima <?=htmlspecialchars(GetTitolo($statuto),ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8')?> <?=TitoloSito?></title>
+		<title>Anteprima <?=htmlspecialchars(getTitolo($statuto),ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8')?> <?=TitoloSito?></title>
 
 	</head>
-	<body class="Valore"><?=ProcessText($statuto)?></body>
+	<body class="Valore"><?=processText($statuto)?></body>
 </html>

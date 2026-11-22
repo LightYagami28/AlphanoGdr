@@ -1,4 +1,4 @@
-<?php $h=static fn($value)=>htmlspecialchars((string)$value,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');$csrf=alphano_csrf_token(); ?>
+<?php $h=static fn($value)=>htmlspecialchars((string)$value,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');$csrf=alphanoCsrfToken(); ?>
 <!doctype html><html lang="it"><head><meta charset="utf-8"><title>Sondaggi – <?=$h(TitoloSito)?></title><script src="/js/polls.js" defer></script></head><body>
 <section class="poll-workspace" aria-label="Sondaggi della comunità">
 <?php if($message): ?><p class="flash" role="status"><?=$h($message)?></p><?php endif; ?>

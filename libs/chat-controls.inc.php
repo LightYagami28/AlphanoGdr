@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 /** One illustrated control catalogue for desktop chat and its mobile panels. */
-function alphano_chat_control_art(string $key):string {
+function alphanoChatControlArt(string $key):string {
  static $icons=null;
  if($icons===null){$catalog=json_decode(file_get_contents(__DIR__.'/../config/chat-controls.json'),true,32,JSON_THROW_ON_ERROR);$icons=array_column($catalog['assets'],'path','key');}
  if(!isset($icons[$key])){ throw new InvalidArgumentException('Unknown chat control: '.$key); }

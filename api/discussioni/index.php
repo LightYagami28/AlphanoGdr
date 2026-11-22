@@ -3,12 +3,12 @@ declare(strict_types=1);
 require_once __DIR__ . '/../../libs/player-runtime.inc.php';
 
 playerApi(function (): array {
-    $idpg=alphano_require_login(true); $user=alphano_user(); $db=getDB(); $in=playerInput();
+    $idpg=alphanoRequireLogin(true); $user=alphanoUser(); $db=getDB(); $in=playerInput();
     $type=playerText($in,'tipo',50,true); $moderator=playerDiscussionAccess($type,$user);
     $action=playerText($in,'action',30) ?: 'list_open';
     if (!in_array($action,['list_open','list_closed','show'],true)) { playerMutation(); }
     $format = function (array $post) use ($idpg,$moderator): array {
-        return ['id'=>(int)$post['id'],'oggetto'=>$post['oggetto'],'messaggio'=>ProcessText($post['messaggio']),
+        return ['id'=>(int)$post['id'],'oggetto'=>$post['oggetto'],'messaggio'=>processText($post['messaggio']),
             'message_raw'=>$post['messaggio'],'data'=>(int)$post['data'],'author_id'=>(int)$post['idpg'],'author'=>$post['author'] ?? 'Sistema',
             'unread'=>!empty($post['unread']),'chiusa'=>!empty($post['chiusa']),'ontop'=>!empty($post['ontop']),
             'can_edit'=>$moderator || (int)$post['idpg']===$idpg,'can_moderate'=>$moderator,'numrisp'=>(int)($post['numrisp'] ?? 0)];

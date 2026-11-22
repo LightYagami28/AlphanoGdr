@@ -18,7 +18,7 @@
 <body class="mail-workspace">
   <div class="header"><?= $oldid ? "Risposta a ".h($pgName) : "Componi Missiva" ?></div>
   <div class="mail-compose">
-    <?php if($composePeople): ?><?=alphano_mail_people_html(alphano_mail_person($idpg,$composePeople),alphano_mail_person((int)$destRows[0]['id'],$composePeople))?><?php endif; ?>
+    <?php if($composePeople): ?><?=alphanoMailPeopleHtml(alphanoMailPerson($idpg,$composePeople),alphanoMailPerson((int)$destRows[0]['id'],$composePeople))?><?php endif; ?>
     <form name="frm" method="POST" class="ui-form mail-compose-form" data-ui-fields="true">
       <input type="hidden" name="send"  value="1">
       <input type="hidden" name="oldid" value="<?= h($oldid) ?>">
@@ -46,10 +46,10 @@
         <header><div><small>IL FILO DELLA CORRISPONDENZA</small><h2>Conversazione precedente</h2></div></header>
         <p>Scrivi la tua risposta sopra. Qui puoi rileggere la missiva ricevuta, senza modificarla.</p>
         <label class="mail-check"><input type="checkbox" name="include_previous" value="1" checked> Allega questa conversazione alla risposta</label>
-        <details><summary>Leggi la conversazione · <?=h($oldoggetto)?></summary><div class="mail-parchment mail-history-content"><?=alphano_mail_render($oldmessaggio)?></div></details>
+        <details><summary>Leggi la conversazione · <?=h($oldoggetto)?></summary><div class="mail-parchment mail-history-content"><?=alphanoMailRender($oldmessaggio)?></div></details>
       </section>
       <?php endif; ?>
-      <section class="mail-signature-panel"><label class="mail-check"><input type="checkbox" name="firma" checked> Inserisci la mia firma</label><div class="mail-parchment"><?=alphano_mail_signature($idpg)?></div></section>
+      <section class="mail-signature-panel"><label class="mail-check"><input type="checkbox" name="firma" checked> Inserisci la mia firma</label><div class="mail-parchment"><?=alphanoMailSignature($idpg)?></div></section>
       <p class="mail-saved-note">Una copia della risposta resta nella tua conversazione.</p>
       <div class="ui-row-actions mail-compose-actions">
         <button type="submit">Invia missiva</button>

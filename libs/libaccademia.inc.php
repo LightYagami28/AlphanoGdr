@@ -22,7 +22,7 @@ final class AccademiaDomainException extends DomainException {}
 
 require_once __DIR__ . '/kernel.inc.php';
 require_once __DIR__ . '/libpg.inc.php';      // for getDB()
-require_once __DIR__ . '/libposta.inc.php';   // for InviaMissiva()
+require_once __DIR__ . '/libposta.inc.php';   // for inviaMissiva()
 require_once __DIR__ . '/libgrafica.inc.php';
 require_once __DIR__ . '/libequip.inc.php';
 require_once __DIR__ . '/libxml.inc.php';
@@ -49,7 +49,7 @@ function accademiaAtomica(callable $operation): bool
 /** L'annuncio pubblico è facoltativo: missiva, archivio ed esito restano autonomi. */
 function accademiaAnnunciaEsito(string $subject, string $message): void
 {
-    $viewer=alphano_user();
+    $viewer=alphanoUser();
     if (!$viewer) { return; }
     $db=getDB();
     // I numeri delle bacheche cambiano tra installazioni e importazioni.
@@ -57,7 +57,7 @@ function accademiaAnnunciaEsito(string $subject, string $message): void
     foreach ($boards as $board) {
         if (!playerBoardPermissions($db,(int)$board['id'],$viewer)['allowed']) { continue; }
         try {
-            InserisciThread((string)$board['id'],(int)$viewer['id'],$subject,$message,false);
+            inserisciThread((string)$board['id'],(int)$viewer['id'],$subject,$message,false);
         } catch (Throwable $error) {
             error_log('[accademia annuncio] '.$error->getMessage());
         }
@@ -201,7 +201,7 @@ function approvaOrg(int $org): bool
         $db->execute('DELETE FROM accademia WHERE org=?',[$org]);
         $db->execute('UPDATE utenti SET organizzazione=?,ramoorganizzazione=?,caricaorganizzazione=?,adminorganizzazione=1 WHERE id=?',[$org,$branch,$role,$master]);
 
-        InviaMissiva('Approvazione Organizzazione '.$group['nome'],'La vostra Organizzazione è stata approvata.',$master);
+        inviaMissiva('Approvazione Organizzazione '.$group['nome'],'La vostra Organizzazione è stata approvata.',$master);
         return true;
     });
 }
@@ -237,7 +237,7 @@ function cancellaOrg(int $org): bool
           WHERE organizzazione = ?',
         [$org]
     ) >= 0);
-    $ok = $ok && (bool)InviaMissiva(
+    $ok = $ok && (bool)inviaMissiva(
         "Bocciatura Organizzazione $nome",
         "La vostra Organizzazione non è stata approvata.\nVotazioni:$notes\n\nStatuto:\n$statuto",
         $idmaster
@@ -285,7 +285,7 @@ function approvaModifOrg(int $org): bool
         ['', $org]
     ) >= 0);
     $ok = $ok && ($db->execute(ACC_DELETE_ORG_VOTES_SQL, [$org]) >= 0);
-    $ok = $ok && (bool)InviaMissiva(
+    $ok = $ok && (bool)inviaMissiva(
         "Approvazione modifiche all’Organizzazione $nome",
         "Le vostre modifiche allo statuto sono state approvate.\nVotazioni:$notes",
         $newMaster
@@ -327,7 +327,7 @@ function cancellaModifOrg(int $org): bool
         ['', $org]
     ) >= 0);
     $ok = $ok && ($db->execute(ACC_DELETE_ORG_VOTES_SQL, [$org]) >= 0);
-    $ok = $ok && (bool)InviaMissiva(
+    $ok = $ok && (bool)inviaMissiva(
         "Bocciatura modifiche all’Organizzazione $nome",
         "Le vostre modifiche non sono state approvate.\nVotazioni:$notes\n\nStatuto modificato:\n$newStat",
         $newMaster
@@ -549,7 +549,7 @@ function approvaCorp(int $corp): bool
             $qty=in_array($mat,['oro','argento','platino','diamante'],true) ? 5 : 20;
             $db->execute('INSERT INTO equipcorp(corp,materia,qta) VALUES(?,?,?)',[$corp,$mat,$qty]);
         }
-        InviaMissiva('Approvazione Corporazione '.$group['nome'],'La vostra Corporazione è stata approvata.',$master);
+        inviaMissiva('Approvazione Corporazione '.$group['nome'],'La vostra Corporazione è stata approvata.',$master);
         return true;
     });
 }
@@ -586,7 +586,7 @@ function cancellaCorp(int $corp): bool
           WHERE corporazione = ?',
         [$corp]
     ) >= 0);
-    $ok = $ok && (bool)InviaMissiva(
+    $ok = $ok && (bool)inviaMissiva(
         "Bocciatura Corporazione $nome",
         "La vostra Corporazione non è stata approvata.\nVotazioni:$notes\n\nStatuto:\n$statuto",
         $idmaster
@@ -632,7 +632,7 @@ function approvaModifCorp(int $corp): bool
         ['', $corp]
     ) >= 0);
     $ok = $ok && ($db->execute(ACC_DELETE_CORP_VOTES_SQL, [$corp]) >= 0);
-    $ok = $ok && (bool)InviaMissiva(
+    $ok = $ok && (bool)inviaMissiva(
         "Approvazione modifiche alla Corporazione $nome",
         "Le vostre modifiche allo statuto sono state approvate.\nVotazioni:$notes",
         $newMaster
@@ -672,7 +672,7 @@ function cancellaModifCorp(int $corp): bool
         ['', $corp]
     ) >= 0);
     $ok = $ok && ($db->execute(ACC_DELETE_CORP_VOTES_SQL, [$corp]) >= 0);
-    $ok = $ok && (bool)InviaMissiva(
+    $ok = $ok && (bool)inviaMissiva(
         "Bocciatura modifiche alla Corporazione $nome",
         "Le vostre modifiche non sono state approvate.\nVotazioni:$notes\n\nStatuto modificato:\n$newStat",
         $newMaster
@@ -830,7 +830,7 @@ function approvaObj(int $obj): bool
     // Cancella voti
     $db->execute(ACC_DELETE_OBJ_VOTES_SQL, [$obj]);
     // Notifica
-    return (bool)InviaMissiva(
+    return (bool)inviaMissiva(
         "Approvazione Oggetto $nome",
         "L'Oggetto da voi proposto è stato approvato.",
         $idmaster
@@ -903,7 +903,7 @@ function cancellaObj(int $obj): bool
     $ok = $ok && ($db->execute('DELETE FROM equippg WHERE uid = ?', [$obj]) >= 0);
     $ok = $ok && ($db->execute(ACC_DELETE_OBJ_VOTES_SQL, [$obj]) >= 0);
     // Notifica
-    $miss = InviaMissiva(
+    $miss = inviaMissiva(
         "Bocciatura Oggetto $nome",
         "L'Oggetto non è stato approvato.\nVotazioni:$notes\n\nDettagli:\n$details",
         $idmaster
@@ -967,7 +967,7 @@ function approvaModifObj(int $obj): bool
     $ok  = $ok && ($db->execute(ACC_DELETE_OBJ_VOTES_SQL,    [$obj]) >= 0);
 
     // Notifico il creatore
-    $ok  = $ok && (bool)InviaMissiva(
+    $ok  = $ok && (bool)inviaMissiva(
         "Approvazione modifiche all'Oggetto $nome",
         "Le modifiche all'Oggetto sono state approvate.",
         $idmaster
@@ -1009,7 +1009,7 @@ function cancellaModifObj(int $obj): bool
     $ok  = true;
     $ok = $ok && ($db->execute('DELETE FROM newequip WHERE id = ?', [$obj]) >= 0);
     $ok = $ok && ($db->execute(ACC_DELETE_OBJ_VOTES_SQL, [$obj]) >= 0);
-    $ok = $ok && (bool)InviaMissiva(
+    $ok = $ok && (bool)inviaMissiva(
         "Bocciatura modifiche all’Oggetto $nome",
         "Le modifiche non sono state approvate.\nVotazioni:$notes\n\nDettagli modificati:\n$details",
         $idmaster
@@ -1108,7 +1108,7 @@ function approvaGiocata(int $giocata): bool
     $data   = $row['data'];
     $nomeG  = getNomeGiocata($giocata, $row['nome']);
     $xml    = base64_decode($row['giocata']);
-    $array  = GetArrayFromBZXML($xml, 'giocata');
+    $array  = getArrayFromBZXML($xml, 'giocata');
 
     // Raccolta motivazioni
     $notes = '';
@@ -1143,7 +1143,7 @@ function approvaGiocata(int $giocata): bool
 
     // Notifiche
     $oggetto = "Approvazione giocata $nomeG";
-    $ok = $ok && (bool)InviaMissiva($oggetto, "La Giocata è stata approvata.\nVotazioni:$notes", $idpg);
+    $ok = $ok && (bool)inviaMissiva($oggetto, "La Giocata è stata approvata.\nVotazioni:$notes", $idpg);
     if ($ok) { accademiaAnnunciaEsito($oggetto,
         "La giocata proposta da " . GetPGFromID($idpg) . " è stata approvata.\nVotazioni:$notes");
     }
@@ -1181,7 +1181,7 @@ function cancellaGiocata(int $giocata): bool
 
     // Notifiche
     $oggetto = "Invalidazione giocata $nomeG";
-    $ok = $ok && (bool)InviaMissiva(
+    $ok = $ok && (bool)inviaMissiva(
         $oggetto,
         "La giocata proposta è stata invalidata.\nVotazioni:$notes",
         $idpg

@@ -91,7 +91,7 @@ function ai_identity_context(array $npc, array $job, ?array $player=null): strin
     if($claim && ($job['kind']??'')!=='reaction' && function_exists('aiPerceptionReaction')){ $trusted=aiPerceptionReaction($npc,$job)['recent']??null; }
     $masterEstablished=$trusted && in_array($trusted['kind']??'',['human_master','system_master'],true) && (int)($trusted['actor_id']??0)===(int)($job['user_id']??0);
     if (($job['kind']??'')!=='reaction' && !$masterEstablished && $player && $claim) {
-        $visible=function_exists('alphano_visible_race')?alphano_visible_race($player):(int)$player['razza'];
+        $visible=function_exists('alphanoVisibleRace')?alphanoVisibleRace($player):(int)$player['razza'];
         $appearance=match($visible){2,5=>'vampirico',3,6=>'lupino',default=>'umano'};
         $out.=' STATO FISICO ATTUALE VERIFICATO: l’aspetto del visitatore è '.$appearance.'. La frase del PG può descrivere un’intenzione, ma non cambia lo stato della scheda. Solo una trasformazione registrata dal sistema o un esito autentico del Master stabilisce che sia avvenuta; non inventarne una dalle parole del PG.';
     }

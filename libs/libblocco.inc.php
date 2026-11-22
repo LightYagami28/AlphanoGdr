@@ -3,9 +3,9 @@
 require_once __DIR__ . '/kernel.inc.php';
 require_once __DIR__ . '/libchat.inc.php';
 
-function AlphanoModerate(int $id, int $executor, string $action, string $sql, array $params, string $description = '', string $chat = ''): bool
+function alphanoModerate(int $id, int $executor, string $action, string $sql, array $params, string $description = '', string $chat = ''): bool
 {
-    $db = ConnectDB();
+    $db = connectDB();
     if ($id && !$db->query('SELECT id FROM utenti WHERE id=?', [$id])) { return false; }
     $own=!$db->inTransaction();if($own){ $db->beginTransaction(); }
     try {
@@ -19,42 +19,42 @@ function AlphanoModerate(int $id, int $executor, string $action, string $sql, ar
         throw $e;
     }
 }
-function LockUser($idpg, $data, $motivo, $idesecutore): bool
+function lockUser($idpg, $data, $motivo, $idesecutore): bool
 {
     $idpg = (int)$idpg;
     $motivo = trim((string)$motivo);
     if (!$idpg || $motivo === '' || (int)$data <= time()) { return false; }
-    $row = ConnectDB()->query('SELECT chat FROM utenti WHERE id=?', [$idpg])[0] ?? null;
+    $row = connectDB()->query('SELECT chat FROM utenti WHERE id=?', [$idpg])[0] ?? null;
     if (!$row) { return false; }
-    $dump = $row['chat'] !== '' ? DumpChat($row['chat']) : '';
-    return AlphanoModerate($idpg,(int)$idesecutore,'Blocco',
+    $dump = $row['chat'] !== '' ? dumpChat($row['chat']) : '';
+    return alphanoModerate($idpg,(int)$idesecutore,'Blocco',
         'UPDATE utenti SET bloccato=1,datasblocco=?,motivo=?,lockby=? WHERE id=?',
         [(int)$data,$motivo,(int)$idesecutore,$idpg],$motivo,(string)$dump);
 }
-function UnLockUser($idpg)
+function unLockUser($idpg)
 {
-    return ConnectDB()->execute("UPDATE utenti SET bloccato=0,datasblocco=0,motivo='',lockby=0 WHERE id=? AND datasblocco>0 AND datasblocco<=?", [(int)$idpg,time()]);
+    return connectDB()->execute("UPDATE utenti SET bloccato=0,datasblocco=0,motivo='',lockby=0 WHERE id=? AND datasblocco>0 AND datasblocco<=?", [(int)$idpg,time()]);
 }
-function ForceUnlock($iddest, $esecutore): bool
+function forceUnlock($iddest, $esecutore): bool
 {
-    return AlphanoModerate((int)$iddest,(int)$esecutore,'Sblocca',
+    return alphanoModerate((int)$iddest,(int)$esecutore,'Sblocca',
         "UPDATE utenti SET bloccato=0,datasblocco=0,motivo='',lockby=0 WHERE id=?", [(int)$iddest]);
 }
-function Incarcera($iddest,$city,$esecutore): bool
+function incarcera($iddest,$city,$esecutore): bool
 {
-    if (!ConnectDB()->query('SELECT id FROM city WHERE id=?', [(int)$city])) { return false; }
-    return AlphanoModerate((int)$iddest,(int)$esecutore,'Incarcera',
+    if (!connectDB()->query('SELECT id FROM city WHERE id=?', [(int)$city])) { return false; }
+    return alphanoModerate((int)$iddest,(int)$esecutore,'incarcera',
         'UPDATE utenti SET imprigionato=? WHERE id=?', [(int)$city,(int)$iddest],(string)(int)$city);
 }
-function Scarcera($iddest,$esecutore): bool
+function scarcera($iddest,$esecutore): bool
 {
-    return AlphanoModerate((int)$iddest,(int)$esecutore,'Scarcera',
+    return alphanoModerate((int)$iddest,(int)$esecutore,'scarcera',
         'UPDATE utenti SET imprigionato=0 WHERE id=?', [(int)$iddest]);
 }
-function SvuotaChat($esecutore,$chat): bool
+function svuotaChat($esecutore,$chat): bool
 {
     $chat = (string)$chat;
     if ($chat === '') { return false; }
-    return AlphanoModerate(0,(int)$esecutore,"Svuota($chat)",
-        'DELETE FROM chat WHERE chat=?', [$chat],'',(string)DumpChat($chat));
+    return alphanoModerate(0,(int)$esecutore,"Svuota($chat)",
+        'DELETE FROM chat WHERE chat=?', [$chat],'',(string)dumpChat($chat));
 }

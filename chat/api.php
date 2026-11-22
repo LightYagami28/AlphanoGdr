@@ -7,5 +7,5 @@ if (in_array($action, ['chat', 'addlchat', 'sendMessage'], true)) {
 } elseif ($action === 'control') {
     require __DIR__ . '/recordings.php';
 } else {
-    alphano_fail('Azione chat non valida.', 400, true);
+    alphanoFail('Azione chat non valida.', 400, true);
 }

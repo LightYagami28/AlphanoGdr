@@ -17,8 +17,8 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // identificazione utente
-$idpg = alphano_require_login(true);
-$db   = ConnectDB();
+$idpg = alphanoRequireLogin(true);
+$db   = connectDB();
 
 // permessi
 $user = $db->query(
@@ -52,7 +52,7 @@ $razze = $admin ? $db->query('SELECT id,nome FROM razze') : [];
 // lettura input JSON/form
 $data = $_SERVER['REQUEST_METHOD'] === 'POST' ? $_POST : $_GET;
 if (str_contains($_SERVER['CONTENT_TYPE'] ?? '', 'application/json')) {
-    try { $data = alphano_request_json(); }
+    try { $data = alphanoRequestJson(); }
     catch (Throwable) { http_response_code(400); echo json_encode(['success'=>false,'message'=>'JSON non valido']); exit; }
 }
 foreach($data as $key=>$value){ if($key!=='changes'&&(is_array($value)||is_object($value))){http_response_code(422);echo json_encode(['success'=>false,'message'=>'Parametro non valido']);exit;} }
@@ -64,7 +64,7 @@ if (!$admin && !in_array($action, ['none','statosociale','mostrastatosociale'], 
 }
 if (!in_array($action, $readonly, true)) {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') { http_response_code(405); exit; }
-    alphano_require_csrf(true);
+    alphanoRequireCsrf(true);
 }
 
 
@@ -80,17 +80,17 @@ try {
         case 'incarichi':
             require_once __DIR__.'/../../libs/admin-governance.inc.php';
             $name=$data['nome']??'';if(!is_string($name)||mb_strlen($name)>100){ throw new DomainException('Nome non valido.',422); }
-            $result=['catalog'=>alphano_governance_catalog()];
-            if($name!==''){$target=$db->query(ALPHANO_MSG_SELECT_FROM_UTENTI_WHERE_NOME_2BCE,[$name])[0]??null;if(!$target){ throw new DomainException('Personaggio non trovato.',404); }$result['person']=['id'=>(int)$target['id'],'name'=>$target['nome'],'values'=>alphano_governance_state($target),'revision'=>alphano_governance_revision($target)];}
-            $result['history']=alphano_governance_history((int)($target['id']??0));
+            $result=['catalog'=>alphanoGovernanceCatalog()];
+            if($name!==''){$target=$db->query(ALPHANO_MSG_SELECT_FROM_UTENTI_WHERE_NOME_2BCE,[$name])[0]??null;if(!$target){ throw new DomainException('Personaggio non trovato.',404); }$result['person']=['id'=>(int)$target['id'],'name'=>$target['nome'],'values'=>alphanoGovernanceState($target),'revision'=>alphanoGovernanceRevision($target)];}
+            $result['history']=alphanoGovernanceHistory((int)($target['id']??0));
             $response=['success'=>true,'data'=>$result];
             break;
         case 'salvaincarichi':
             require_once __DIR__.'/../../libs/admin-governance.inc.php';
             $target=filter_var($data['id']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
             if(!$target||!is_array($data['changes']??null)||!is_string($data['revision']??null)||!is_string($data['reason']??null)){ throw new DomainException('Dati degli incarichi incompleti.',422); }
-            $result=alphano_governance_apply($idpg,$target,$data['changes'],$data['reason'],$data['revision']);
-            $response=['success'=>true,'data'=>['person'=>$result,'history'=>alphano_governance_history($target),'issues'=>alphano_governance_issues()],'message'=>'Incarichi e permessi salvati e registrati.'];
+            $result=alphanoGovernanceApply($idpg,$target,$data['changes'],$data['reason'],$data['revision']);
+            $response=['success'=>true,'data'=>['person'=>$result,'history'=>alphanoGovernanceHistory($target),'issues'=>alphanoGovernanceIssues()],'message'=>'Incarichi e permessi salvati e registrati.'];
             break;
 
         case 'stirpe':
@@ -98,7 +98,7 @@ try {
             if(!is_string($name)||!in_array($race,[2,3,5,6],true)){ throw new DomainException('Personaggio o razza non validi.',422); }
             $target=$db->query(ALPHANO_MSG_SELECT_FROM_UTENTI_WHERE_NOME_2BCE,[$name])[0]??null;
             if(!$target){ throw new DomainException('Personaggio non trovato.',404); }
-            $response=['success'=>true,'plan'=>lineage_admin_plan($target,$race)];
+            $response=['success'=>true,'plan'=>lineageAdminPlan($target,$race)];
             break;
 
         // il frontend prima carica lookup: etnie+razze
@@ -120,7 +120,7 @@ try {
             break;
 
         case 'ottimizza':
-            $msg = OptimizeAll();
+            $msg = optimizeAll();
             $response = ['success'=>true,'message'=>$msg];
             break;
 
@@ -128,7 +128,7 @@ try {
             $db->execute("INSERT INTO logs_adminpg(data,esecutore,destinatario,azione,descr,chat) VALUES(?,?,0,'admin-utenti','Esportazione database richiesta','')",[time(),$idpg]);
             header('Content-Type: application/sql; charset=utf-8');
             header('Content-Disposition: attachment; filename="alphano-' . date('Ymd-His') . '.sql"');
-            echo AlphanoDatabaseDump();
+            echo alphanoDatabaseDump();
             exit;
 
         case 'manutenzione':
@@ -136,7 +136,7 @@ try {
     //
     // 1) utenti mai entrati (>7 giorni)
     //
-    $timer = GeneratePastTimestamp(7);
+    $timer = generatePastTimestamp(7);
     $rows  = $db->query(
         "SELECT nome,email
            FROM utenti
@@ -164,8 +164,8 @@ try {
     //
     // 2) utenti inattivi (>60 giorni) con backup
     //
-    $timer1 = GeneratePastTimestamp(60);
-    $timer2 = GeneratePastTimestamp(90);
+    $timer1 = generatePastTimestamp(60);
+    $timer2 = generatePastTimestamp(90);
     $rows   = $db->query(
         "SELECT *
            FROM utenti
@@ -180,10 +180,10 @@ try {
         $emailAdv[] = ['id' => $uid, 'nome' => $r['nome'], 'email' => $r['email'], 'ultimoingresso' => $r['ultimoingresso']];
 
         // Dump e recupero condividono la stessa serializzazione SQL senza perdere NULL.
-        $backup = [AlphanoRowInsert('utenti',$r)];
+        $backup = [alphanoRowInsert('utenti',$r)];
         foreach (['equippg','armadio'] as $table) {
             foreach ($db->query("SELECT * FROM $table WHERE idpg=?",[$uid]) as $item) {
-                $backup[] = AlphanoRowInsert($table,$item);
+                $backup[] = alphanoRowInsert($table,$item);
             }
         }
         // salvo in recuperopg
@@ -207,7 +207,7 @@ try {
     //
     // 3) pulisco backup >7 giorni
     //
-    $timer = GeneratePastTimestamp(7);
+    $timer = generatePastTimestamp(7);
     $c     = $db->execute("DELETE FROM recuperopg WHERE data <= :tm", ['tm' => $timer]);
     if ($c > 0) {
         $maintenance[] = "Sono stati eliminati {$c} backup di PG cancellati";
@@ -216,7 +216,7 @@ try {
     //
     // 4) svuoto la posta di utenti inattivi >30 giorni
     //
-    $timer = GeneratePastTimestamp(30);
+    $timer = generatePastTimestamp(30);
     $rows  = $db->query(
         "SELECT id
            FROM utenti
@@ -438,7 +438,7 @@ try {
     //
     // 14) cancellazione log >60 giorni, statistiche >2 giorni, visite <oggi
     //
-    $timerL = GeneratePastTimestamp(60);
+    $timerL = generatePastTimestamp(60);
     $logs   = [
         'logs_adminpg','logs_deletemail','logs_deleteuser','logs_dimore',
         'logs_equip','logs_flag','logs_ingressi','logs_meteo',
@@ -448,8 +448,8 @@ try {
     foreach ($logs as $tbl) {
         $cntLog += $db->execute("DELETE FROM {$tbl} WHERE data < ?", [$timerL]);
     }
-    $cntLog += $db->execute("DELETE FROM logs_statistica WHERE data < ?", [GeneratePastTimestamp(2)]);
-    $cntLog += $db->execute("DELETE FROM logs_visite WHERE data < ?", [GeneratePastTimestamp(0)]);
+    $cntLog += $db->execute("DELETE FROM logs_statistica WHERE data < ?", [generatePastTimestamp(2)]);
+    $cntLog += $db->execute("DELETE FROM logs_visite WHERE data < ?", [generatePastTimestamp(0)]);
     if ($cntLog > 0) {
         $maintenance[] = "Sono state cancellate {$cntLog} righe di log considerate obsolete";
     }
@@ -457,7 +457,7 @@ try {
     //
     // 15) transazioni nascoste >30 giorni
     //
-    $ti = GeneratePastTimestamp(30);
+    $ti = generatePastTimestamp(30);
     $c  = $db->execute(
         "DELETE FROM trasferimenti
           WHERE data < ?
@@ -473,7 +473,7 @@ try {
     // 16) richieste ammissione >14 giorni
     //
 
-    $requestsBefore = GeneratePastTimestamp(14);
+    $requestsBefore = generatePastTimestamp(14);
     $c  = $db->execute("DELETE FROM richieste WHERE data < ?", [$requestsBefore]);
     if ($c > 0) {
         $maintenance[] = "Sono state cancellate {$c} richieste di ammissione più vecchie di 14 giorni";
@@ -487,12 +487,12 @@ try {
         case 'profile':
             $creatorRaw=$data['creator_id']??null;$creator=null;
             if($creatorRaw!==null&&$creatorRaw!==''){$creator=filter_var($creatorRaw,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);if($creator===false){ throw new DomainException('Creatore non valido.',422); }}
-            if(alphano_config('lineages_enabled')&&in_array((string)($data['razza']??''),['2','3'],true)){
-                lineage_policy_lock((string)$data['razza']==='2'?'vampire':'lycan');
+            if(alphanoConfig('lineages_enabled')&&in_array((string)($data['razza']??''),['2','3'],true)){
+                lineagePolicyLock((string)$data['razza']==='2'?'vampire':'lycan');
                 $target=$db->query(ALPHANO_MSG_SELECT_FROM_UTENTI_WHERE_NOME_2BCE,[(string)($data['nome']??'')])[0];
-                if(lineage_admin_plan($target,(int)$data['razza'])['requires_creator']&&$creator===null){ throw new DomainException('Chi lo sta generando? Seleziona un creatore.',422); }
+                if(lineageAdminPlan($target,(int)$data['razza'])['requires_creator']&&$creator===null){ throw new DomainException('Chi lo sta generando? Seleziona un creatore.',422); }
             }
-            $msg = SetProfile(
+            $msg = setProfile(
                 $idpg,
                 (string) ($data['nome']           ?? ''),
                 (string) ($data['sesso']          ?? ''),
@@ -506,7 +506,7 @@ try {
 
         // — cambio password
         case 'cambiapass':
-            $msg = SetPass(
+            $msg = setPass(
                 $idpg,
                 (string)($data['nome'] ?? ''),
                 (string)($data['pass'] ?? '')
@@ -518,7 +518,7 @@ try {
         case 'cancella':
             $response = [
                 'success'=>true,
-                'message'=>DelUser(
+                'message'=>delUser(
                     $idpg,
                     (string)($data['nome'] ?? ''),
                     !empty($data['profilo']),
@@ -533,7 +533,7 @@ try {
         case 'cancellaposta':
             $response = [
                 'success'=>true,
-                'message'=>DelPosta(
+                'message'=>delPosta(
                     $idpg,
                     (string)($data['nome'] ?? ''),
                     (string)($data['invio'] ?? 'ric'),
@@ -550,7 +550,7 @@ try {
 
             // 1) rinomina su DB
             $msg = (strtoupper($old)===strtoupper($new) || ! GetPGID($new))
-                ? AdminSetNome($idpg, $old, $new)
+                ? adminSetNome($idpg, $old, $new)
                 : "Il nome {$new} è già in uso";
 
             // 2) se ho appena rinominato me stesso, aggiorno la sessione
@@ -578,22 +578,24 @@ try {
         // — setflag
         case 'setflag':
             $f = $data;
-            $msg = SetFlag(
+            $msg = setFlag(
                 $idpg,
                 (string)($f['nome'] ?? ''),
-                (int)!empty($f['master']),
-                (int)!empty($f['guaritore']),
-                (int)!empty($f['resurrettore']),
-                (int)!empty($f['statosociale']),
-                (int)!empty($f['bloccato']),
-                (int)!empty($f['accademia']),
-                (int)!empty($f['adminorg']),
-                (int)!empty($f['admincorp']),
-                (int)!empty($f['catalogo']),
-                (int)!empty($f['admintrasfcorp']),
-                (int)!empty($f['sindaco']),
-                (int)!empty($f['upload']),
-                (int)!empty($f['vacanza'])
+                [
+                    'fmaster' => (int)!empty($f['master']),
+                    'fguaritore' => (int)!empty($f['guaritore']),
+                    'fresurrettore' => (int)!empty($f['resurrettore']),
+                    'fstatosociale' => (int)!empty($f['statosociale']),
+                    'flock' => (int)!empty($f['bloccato']),
+                    'accademia' => (int)!empty($f['accademia']),
+                    'fadminorg' => (int)!empty($f['adminorg']),
+                    'fadmincorp' => (int)!empty($f['admincorp']),
+                    'fcatalogo' => (int)!empty($f['catalogo']),
+                    'fordini' => (int)!empty($f['admintrasfcorp']),
+                    'fsindaco' => (int)!empty($f['sindaco']),
+                    'fupload' => (int)!empty($f['upload']),
+                    'fvacanza' => (int)!empty($f['vacanza']),
+                ]
             );
 
             $response = ['success'=>true,'message'=>$msg];

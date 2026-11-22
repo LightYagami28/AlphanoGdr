@@ -2,7 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__.'/../libs/kernel.inc.php';
 require_once __DIR__.'/../libs/libpg.inc.php';
-alphano_require_login();
+alphanoRequireLogin();
 $root=realpath(__DIR__.'/galleria');
 $requested=(string)($_POST['dir'] ?? $_GET['dir'] ?? './galleria');
 if (str_starts_with($requested,'./galleria')) { $requested=substr($requested,10); }

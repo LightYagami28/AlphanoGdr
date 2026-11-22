@@ -24,7 +24,7 @@ $db   = db();
 // ------------------------------------------------------------------
 if (isset($_GET['action']) && $_GET['action'] === 'reset') {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') { error('Metodo non consentito',405); }
-    alphano_require_csrf(true);
+    alphanoRequireCsrf(true);
     $now = time();
     $db->execute(
       'UPDATE utenti SET ultimauscita = ? WHERE id = ?',
@@ -96,7 +96,7 @@ $rows = $db->query(
       WHERE ultimamodifica > ?',
     [$since]
 );
-$tmp = array_column(array_filter($rows,static fn($rule)=>alphano_manual_can_read($rule,$row)), 'oggetto');
+$tmp = array_column(array_filter($rows,static fn($rule)=>alphanoManualCanRead($rule,$row)), 'oggetto');
 if ($tmp) {
     $append(count($tmp) > 1
         ? 'Sono state modificate le seguenti sezioni delle Regole di Alphano:'

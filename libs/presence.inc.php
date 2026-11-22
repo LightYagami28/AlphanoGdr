@@ -10,13 +10,13 @@ require_once __DIR__.'/transformations.inc.php';
 
 require_once __DIR__.'/online-presence.inc.php';
 /** Presenze pubbliche: un solo contratto per sidebar e directory. Nessun dato privato dei PNG. */
-function alphano_presence(): array
+function alphanoPresence(): array
 {
-    $db=ConnectDB();
+    $db=connectDB();
     $races=array_column($db->query('SELECT id,nome FROM razze'),'nome','id');
     $groups=[];
     $sessions=array_column($db->query('SELECT chat,MAX(id) AS id FROM sessioni WHERE run=1 GROUP BY chat'),'id','chat');
-    $viewer=alphano_user();$myTurn=null;
+    $viewer=alphanoUser();$myTurn=null;
     if(!in_array((string)$viewer['posizione'],['','off','online'],true)&&isset($sessions[$viewer['chat']])){
       $sid=(int)$sessions[$viewer['chat']];
       $g=$db->query('SELECT g.*,q.status AS quest_status,q.conductor_id FROM ai_session_guidance g JOIN ai_quests q ON q.session_id=g.session_id WHERE g.session_id=?',[$sid])[0]??null;
@@ -24,7 +24,7 @@ function alphano_presence(): array
     }
     foreach ($db->query("SELECT chat_key,title,scene_thumbnail FROM mappe WHERE chat=1 AND chat_key<>'' ORDER BY title") as $room) {
         $groups[$room['chat_key']]=['key'=>$room['chat_key'],'title'=>$room['title'],'url'=>'/chat/index.php?chat='.rawurlencode($room['chat_key']),
-            'image'=>alphano_media_file($room['scene_thumbnail']??'')?$room['scene_thumbnail']:null,'session_active'=>isset($sessions[$room['chat_key']]),'my_turn'=>$room['chat_key']===($viewer['chat']??'')?$myTurn:null,'players'=>0,'npcs'=>0,'members'=>[]];
+            'image'=>alphanoMediaFile($room['scene_thumbnail']??'')?$room['scene_thumbnail']:null,'session_active'=>isset($sessions[$room['chat_key']]),'my_turn'=>$room['chat_key']===($viewer['chat']??'')?$myTurn:null,'players'=>0,'npcs'=>0,'members'=>[]];
     }
     $person=static function(string $kind,int $id,string $name,int $race,string $sex) use ($races): array {
         if ($race===ALPHANO_RACE_LEGACY_SPIRIT) { $race=ALPHANO_RACE_SPIRIT; }
@@ -33,10 +33,10 @@ function alphano_presence(): array
     };
     $players=0;$npcs=0;
     foreach ($db->query("SELECT id,nome,razza,vampire_human_form,sesso,posizione,chat,lastmove,bloccato FROM utenti WHERE posizione<>'off' ORDER BY nome") as $user) {
-        if(!alphano_player_online($user)){ continue; }
+        if(!alphanoPlayerOnline($user)){ continue; }
         $key=$user['posizione']==='online'?'@parked':(isset($groups[$user['chat']])?$user['chat']:'@other');
         if (!isset($groups[$key])) { $groups[$key]=['key'=>$key,'title'=>$key==='@parked'?'Fuori scena':'Altri luoghi e stanze riservate','url'=>null,'image'=>null,'session_active'=>false,'players'=>0,'npcs'=>0,'members'=>[]]; }
-        $member=$person('player',(int)$user['id'],$user['nome'],alphano_visible_race($user),$user['sesso']);$member['game_invite_visible']=(int)$user['id']!==(int)$viewer['id'];$member['can_invite']=alphano_player_online($user)&&(int)$user['id']!==(int)$viewer['id'];$groups[$key]['members'][]=$member;
+        $member=$person('player',(int)$user['id'],$user['nome'],alphanoVisibleRace($user),$user['sesso']);$member['game_invite_visible']=(int)$user['id']!==(int)$viewer['id'];$member['can_invite']=alphanoPlayerOnline($user)&&(int)$user['id']!==(int)$viewer['id'];$groups[$key]['members'][]=$member;
         $groups[$key]['players']++;$players++;
     }
     foreach ($db->query('SELECT n.id,n.name,n.chat_key,n.profile FROM ai_npcs n JOIN mappe m ON m.chat_key=n.chat_key COLLATE utf8mb4_unicode_ci WHERE n.active=1 AND m.chat=1 AND NOT EXISTS(SELECT 1 FROM companion_appointments a WHERE a.active_npc_id=n.id AND a.finished_at=0 AND a.expires_at>?) ORDER BY n.name',[time()]) as $npc) {
@@ -50,7 +50,7 @@ function alphano_presence(): array
 }
 
 /** The server-rendered directory uses the same public location metadata as the sidebar. */
-function alphano_presence_heading_html(array $place): string
+function alphanoPresenceHeadingHtml(array $place): string
 {
     $h=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
     $image=$place['image']?'<img class="presence-place-image" src="'.$h($place['image']).'" alt="" width="40" height="30" loading="lazy">':'';
@@ -59,7 +59,7 @@ function alphano_presence_heading_html(array $place): string
 }
 
 /** An inactive invitation icon explains stale presence without permitting an invite. */
-function alphano_presence_game_html(array $member):string {
+function alphanoPresenceGameHtml(array $member):string {
  if(empty($member['game_invite_visible'])||$member['kind']!=='player'){ return ''; }
  $h=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');$label=!empty($member['can_invite'])?'Invita '.$member['name'].' a Scacchi o Dama':'Invito non disponibile: '.$member['name'].' non ha una connessione attiva';
  $art='<img src="/assets/placeholder.svg" alt="" width="36" height="36">';

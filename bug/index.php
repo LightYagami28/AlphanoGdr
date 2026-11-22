@@ -8,11 +8,11 @@ use Alphano\Database\PDOMySQLDriver;
 
 initSession();
 $idpg = GetIDPG(false);
-$db   = ConnectDB();
+$db   = connectDB();
 
 // Controllo permessi admin
 $res     = $db->query("SELECT adminaccademia FROM utenti WHERE id = ?", [$idpg]);
-$isAdmin = $idpg && alphano_can('adminaccademia');
+$isAdmin = $idpg && alphanoCan('adminaccademia');
 
 // Pulisce le segnalazioni chiuse da >30gg
 $db->query("DELETE FROM bug WHERE data < ? AND stato IN (2,3)", [time() - 30*86400]);
@@ -41,16 +41,16 @@ if (!empty($_GET['id']) && str_contains($_GET['id'],'@')) {
 
 // Gestione POST
 if ($_SERVER['REQUEST_METHOD']==='POST') {
-    alphano_require_csrf();
+    alphanoRequireCsrf();
     $action = $_POST['action'] ?? '';
     if ($action === 'admin') {
-        if (!$isAdmin) { alphano_fail('Permesso negato.',403); }
+        if (!$isAdmin) { alphanoFail('Permesso negato.',403); }
         $bugId=(int)($_POST['id'] ?? 0);
         $subaction=(string)($_POST['subaction'] ?? '');
         if ($subaction === 'prendiincarico') {
             $db->execute('UPDATE bug SET stato=1,admin=? WHERE id=? AND attivato=1 AND stato=0',[$idpg,$bugId]);
             $msg='Segnalazione presa in carico.';
-        } else { alphano_fail('Azione non valida.',400); }
+        } else { alphanoFail('Azione non valida.',400); }
     }
     if ($action==='search') {
         // where dinamico

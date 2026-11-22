@@ -47,7 +47,7 @@ require_once __DIR__.'/../../libs/item-engine.inc.php';
 require_once __DIR__ . '/../../libs/sql-builder.inc.php';
 
 
-use function Alphano\Libs\ResizeImage;
+use function Alphano\Libs\resizeImage;
 
 try {
 
@@ -57,10 +57,10 @@ try {
         exit;
     }
     function buildJsArray(iterable $rows): array {
-        $out = [];$stocks=array_column(ConnectDB()->query('SELECT model_id,available FROM equipment_breeding'),'available','model_id');
+        $out = [];$stocks=array_column(connectDB()->query('SELECT model_id,available FROM equipment_breeding'),'available','model_id');
         foreach ($rows as $i => $row) {
-            $materie = function_exists('GetMateriePrime')
-                     ? GetMateriePrime($row)
+            $materie = function_exists('getMateriePrime')
+                     ? getMateriePrime($row)
                      : (isset($row['materie']) && is_array($row['materie']) ? $row['materie'] : []);
             $out[] = [
                 'pos'          => $i,
@@ -69,7 +69,7 @@ try {
                 'immagine'     => (string) ($row['immagine']     ?? $row['tipo_immagine'] ?? ''),
                 'desc'         => trim((string)($row['desc']      ?? $row['descrizione']  ?? '')),
                 'tipo'         => (string) ($row['tipo']         ?? ''),
-                'available'=>(int)($stocks[$row['id']]??0),'department'=>(string)($row['department']??''),'rules'=>item_spec($row['game_rules']??'{}'),
+                'available'=>(int)($stocks[$row['id']]??0),'department'=>(string)($row['department']??''),'rules'=>itemSpec($row['game_rules']??'{}'),
                 'production' => (int)($row['production_id']??0),
                 'tipoId'       => (int)($row['tipo_id'] ?? 0),
                 'tagliaId'     => (int)($row['taglia'] ?? 0),
@@ -107,7 +107,7 @@ try {
     }
 
     // ─── AUTENTICAZIONE ─────────────────────────────────────────────────────────
-    $idpg = alphano_require_login(true);
+    $idpg = alphanoRequireLogin(true);
     if ($idpg === null) {
         respond(['error'=>'Non autenticato']);
     }
@@ -159,7 +159,7 @@ try {
     $admincatalogo=$isGlobalAdmin || ($sameCorp && $admincatalogo);
     $admincorp=$isGlobalAdmin || ($sameCorp && $admincorp);
     $count=(int)$db->query('SELECT COUNT(*) AS n FROM equip WHERE approvato=0 AND idcreatore=?',[$idpg])[0]['n']+(int)$db->query('SELECT COUNT(*) AS n FROM newequip WHERE idcreatore=?',[$idpg])[0]['n'];
-    if (($_SERVER['REQUEST_METHOD'] ?? 'GET')==='POST') { alphano_require_csrf(true); }
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET')==='POST') { alphanoRequireCsrf(true); }
     // ─── CARICA TIPI (per <select>) ─────────────────────────────────────────────
     $tipiRaw = $admincatalogo
         ? $db->query(
@@ -237,7 +237,7 @@ try {
                 // immagine
                 if (!empty($_FILES['immagine']['tmp_name']) && is_uploaded_file($_FILES['immagine']['tmp_name'])) {
                     $path = htmlroot . "/uploads/equipment-pending/{$id}";
-                    ResizeImage($_FILES['immagine']['tmp_name'],150,$path);
+                    resizeImage($_FILES['immagine']['tmp_name'],150,$path);
                     $imgField = "/uploads/equipment-pending/{$id}";
                 } else {
                     $imgField = trim((string)($_POST['imgurl'] ?? ''));
@@ -285,7 +285,7 @@ try {
                 $message = "L'utente {$user['nome']} ha proposto modifiche all'oggetto ID {$id} ({$shortDesc}).\nDescrizione aggiornata: {$desc}";
                 $accs = $db->query('SELECT id FROM utenti WHERE adminaccademia = ?', [1]);
                 foreach ($accs as $a) {
-                    InviaMissiva($subject, $message, (int)$a['id']);
+                    inviaMissiva($subject, $message, (int)$a['id']);
                 }
 
                 respond(['success'=>true,'msg'=>'Oggetto modificato correttamente']);
@@ -339,7 +339,7 @@ try {
                 $newId = (int)$db->lastInsertID();
                 if (isset($tempImg) && $newId > 0) {
                     $path = htmlroot . "/uploads/equipment-pending/{$newId}";
-                    ResizeImage($tempImg,150,$path);
+                    resizeImage($tempImg,150,$path);
                     $db->execute('UPDATE equip SET immagine = ? WHERE id = ?', ["/uploads/equipment-pending/{$newId}", $newId]);
                 }
 
@@ -348,7 +348,7 @@ try {
                 $message = "L'utente {$user['nome']} ha proposto un nuovo oggetto (ID {$newId}):\n{$desc}";
                 $accs = $db->query('SELECT id FROM utenti WHERE adminaccademia = ?', [1]);
                 foreach ($accs as $a) {
-                    InviaMissiva($subject, $message, (int)$a['id']);
+                    inviaMissiva($subject, $message, (int)$a['id']);
                 }
 
                 respond(['success'=>true,'msg'=>'Oggetto creato correttamente']);
@@ -369,7 +369,7 @@ try {
                     $db->execute('DELETE FROM equip WHERE id = ?',[$id]);
                 }
                 foreach (($refs>0 ? [] : ["/uploads/equipment/{$id}","/uploads/equipment-pending/{$id}"]) as $f) {
-                    $file = alphano_canonical_inside(rtrim(htmlroot,'/').'/uploads', htmlroot . $f);
+                    $file = alphanoCanonicalInside(rtrim(htmlroot,'/').'/uploads', htmlroot . $f);
                     if ($file !== null && is_file($file)) { @unlink($file); }
                 }
                 $db->execute('DELETE FROM newequip WHERE id = ?',[$id]);

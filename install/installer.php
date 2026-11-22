@@ -6,7 +6,7 @@ require_once dirname(__DIR__).'/libs/http-context.inc.php';
 require_once dirname(__DIR__).'/libs/database-lock.inc.php';
 require_once dirname(__DIR__).'/libs/managed-config.inc.php';
 function alphano_install_requirements():array{
- $checks=['PHP 8.4 o successivo; rilevato '.PHP_VERSION=>alphano_php_supported(),'Pacchetto completo: vendor/autoload.php'=>is_file(dirname(__DIR__).'/vendor/autoload.php'),'PDO MySQL'=>extension_loaded('pdo_mysql'),'cURL'=>extension_loaded('curl'),'DOM/XML per i PDF'=>extension_loaded('dom')&&extension_loaded('xml'),'iconv'=>extension_loaded('iconv'),'mbstring'=>extension_loaded('mbstring'),'fileinfo'=>extension_loaded('fileinfo'),'OpenSSL'=>extension_loaded('openssl'),'Sessioni'=>extension_loaded('session'),'config/ scrivibile'=>is_writable(dirname(__DIR__).'/config'),'private/ scrivibile'=>is_writable(dirname(__DIR__).'/private'),'uploads/ scrivibile'=>is_writable(dirname(__DIR__).'/uploads')];return $checks;
+ $checks=['PHP 8.4 o successivo; rilevato '.PHP_VERSION=>alphanoPhpSupported(),'Pacchetto completo: vendor/autoload.php'=>is_file(dirname(__DIR__).'/vendor/autoload.php'),'PDO MySQL'=>extension_loaded('pdo_mysql'),'cURL'=>extension_loaded('curl'),'DOM/XML per i PDF'=>extension_loaded('dom')&&extension_loaded('xml'),'iconv'=>extension_loaded('iconv'),'mbstring'=>extension_loaded('mbstring'),'fileinfo'=>extension_loaded('fileinfo'),'OpenSSL'=>extension_loaded('openssl'),'Sessioni'=>extension_loaded('session'),'config/ scrivibile'=>is_writable(dirname(__DIR__).'/config'),'private/ scrivibile'=>is_writable(dirname(__DIR__).'/private'),'uploads/ scrivibile'=>is_writable(dirname(__DIR__).'/uploads')];return $checks;
 }
 function alphano_seed_insert(PDO $pdo,string $table,array $values):int{
  // Trusted internal table names only. Fill required legacy columns for strict MySQL.
@@ -19,9 +19,9 @@ function alphano_install(array $in):void{
  try{
   if(is_file($root.'/config/local.php')||is_file($root.'/private/installed.lock'))throw new DomainException('Installazione già completata.');
   foreach(alphano_install_requirements() as $label=>$ok)if(!$ok)throw new DomainException('Requisito mancante: '.$label);
-  if(alphano_runtime_warning()!==''&&($in['accept_php_risk']??'')!=='1')throw new DomainException('Per proseguire con questa versione PHP, leggi l’avviso e accetta esplicitamente il rischio. Nessuna tabella è stata creata.');
+  if(alphanoRuntimeWarning()!==''&&($in['accept_php_risk']??'')!=='1')throw new DomainException('Per proseguire con questa versione PHP, leggi l’avviso e accetta esplicitamente il rischio. Nessuna tabella è stata creata.');
   if(($in['accept_license']??'')!=='1'||!is_string($in['license_hash']??null)||!hash_equals(hash_file('sha256',$root.'/LICENSE'),$in['license_hash']))throw new DomainException('Leggi e accetta la versione corrente della licenza prima di continuare. Nessuna tabella è stata creata.');
-  $settings=alphano_validate_site($in,true);
+  $settings=alphanoValidateSite($in,true);
   $host=trim((string)($in['db_host']??''));$name=trim((string)($in['db_name']??''));$user=trim((string)($in['db_user']??''));$pass=(string)($in['db_pass']??'');$socket=(string)($in['db_socket']??'');
   $port=filter_var($in['db_port']??3306,FILTER_VALIDATE_INT,['options'=>['min_range'=>1,'max_range'=>65535]]);
   if(!preg_match('/^[a-zA-Z0-9_.:-]+$/D',$host)||!preg_match('/^[a-zA-Z0-9_-]{1,64}$/D',$name)||$user===''||strlen($user)>100||$port===false||preg_match('/[;\r\n\x00]/',$socket)||($socket!==''&&!str_starts_with($socket,'/')))throw new DomainException('Parametri del database non validi.');
@@ -29,7 +29,7 @@ function alphano_install(array $in):void{
   if(!preg_match('/^[A-Za-z]\w{2,19}$/D',$admin)||strlen($password)<12||strlen($password)>72||$password!==($in['admin_password_confirm']??''))throw new DomainException('Nome amministratore: 3–20 caratteri. Password: 12–72 caratteri, con conferma uguale.');
   $dsn='mysql:'.($socket!==''?'unix_socket='.$socket:'host='.$host.';port='.$port).';dbname='.$name.';charset=utf8mb4';
   try{$pdo=new PDO($dsn,$user,$pass,[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_EMULATE_PREPARES=>false,\Pdo\Mysql::ATTR_MULTI_STATEMENTS=>false]);}catch(Throwable){throw new DomainException('Connessione MySQL non riuscita. Verificare host, porta, database, utente e password.');}
-  $lock=$pdo->prepare('SELECT GET_LOCK(?,0)');$lock->execute([alphano_lock_name('install',$name,$name)]);if((int)$lock->fetchColumn()!==1)throw new DomainException('Il database è già in uso da un’altra installazione.');$databaseLock=true;
+  $lock=$pdo->prepare('SELECT GET_LOCK(?,0)');$lock->execute([alphanoLockName('install',$name,$name)]);if((int)$lock->fetchColumn()!==1)throw new DomainException('Il database è già in uso da un’altra installazione.');$databaseLock=true;
   if($pdo->query('SHOW TABLES')->fetchColumn()!==false)throw new DomainException('Il database deve essere completamente vuoto. Nessuna tabella esistente è stata modificata.');
   $config=['db_host'=>$host,'db_port'=>$port,'db_socket'=>$socket,'db_db'=>$name,'db_user'=>$user,'db_pass'=>$pass,'base_url'=>$settings['base_url']];
   $tempConfig=tempnam($root.'/config','setup-');chmod($tempConfig,0600);if(file_put_contents($tempConfig,"<?php\nreturn ".var_export($config,true).";\n",LOCK_EX)===false)throw new RuntimeException('Scrittura della configurazione non riuscita.');
@@ -51,8 +51,8 @@ function alphano_install(array $in):void{
   $insert('regole',['sezione'=>1,'pos'=>1,'oggetto'=>'Cominciare a giocare','manual_key'=>'getting-started','spiegazione'=>'<h2>Benvenuto</h2><p>Apri la mappa, scegli una città e una chat. Scrivi le azioni del tuo personaggio e rispetta gli altri partecipanti. Lo staff può personalizzare questa guida dalla gestione dei manuali.</p>','summary'=>'Prima guida dimostrativa.','ultimamodifica'=>$now]);
   $settings['registration_enabled']=false;$settings['initial_race']=0;$settings['ethnicities_enabled']=false;$settings['organizations_enabled']=false;$settings['corporations_enabled']=false;
   foreach(['general','chats','races','ethnicities','cities','organizations','corporations','appearance','rules','review'] as $step)$insert('engine_setup_steps',['step_key'=>$step,'status'=>$step==='general'?'completed':'pending','updated_by'=>$id,'updated_at'=>$now]);
-  if(($in['sample_data']??'')==='1'){require_once __DIR__.'/demo-data.php';$demoMap=alphano_install_demo_data($pdo,$id,$settings);$previousMap=is_file($root.'/private/world-map.json')?file_get_contents($root.'/private/world-map.json'):null;alphano_managed_save('world-map',$demoMap,alphano_managed_revision('world-map'));$mapWritten=true;}
-  alphano_settings_write($settings);
+  if(($in['sample_data']??'')==='1'){require_once __DIR__.'/demo-data.php';$demoMap=alphano_install_demo_data($pdo,$id,$settings);$previousMap=is_file($root.'/private/world-map.json')?file_get_contents($root.'/private/world-map.json'):null;alphanoManagedSave('world-map',$demoMap,alphanoManagedRevision('world-map'));$mapWritten=true;}
+  alphanoSettingsWrite($settings);
   $acceptance=json_encode(['license_id'=>'AGPL-3.0-only','sha256'=>$in['license_hash'],'accepted_at'=>gmdate('c'),'accepted_by'=>$admin],JSON_THROW_ON_ERROR|JSON_PRETTY_PRINT);
   if(file_put_contents($root.'/private/license-acceptance.json',$acceptance,LOCK_EX)!==strlen($acceptance))throw new DomainException('Registrazione del consenso non riuscita.');chmod($root.'/private/license-acceptance.json',0600);
   foreach(['mail','sessions','temp'] as $dir)if(!is_dir($root.'/private/'.$dir))mkdir($root.'/private/'.$dir,0700,true);
@@ -67,7 +67,7 @@ function alphano_install(array $in):void{
   if($e instanceof DomainException)throw $e;error_log('[Alphano setup] '.$e->getMessage());throw new DomainException('Installazione non completata. Le nuove tabelle sono state rimosse; consultare il log PHP e riprovare.');
  }finally{
   if($tempConfig&&is_file($tempConfig))unlink($tempConfig);
-  if($databaseLock&&$pdo){$s=$pdo->prepare('SELECT RELEASE_LOCK(?)');$s->execute([alphano_lock_name('install',$name,$name)]);}
+  if($databaseLock&&$pdo){$s=$pdo->prepare('SELECT RELEASE_LOCK(?)');$s->execute([alphanoLockName('install',$name,$name)]);}
   flock($guard,LOCK_UN);fclose($guard);
  }
 }

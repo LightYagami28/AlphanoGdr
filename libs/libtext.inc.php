@@ -108,7 +108,7 @@ class GML
     }
 
     /* ---------- tag personalizzati ---------- */
-    private function tag_tc(array $m): void
+    private function tagTc(array $m): void
     {
         $this->testo = str_replace(
             $m[0],
@@ -117,7 +117,7 @@ class GML
         );
     }
 
-    private function tag_i(array $m): void
+    private function tagI(array $m): void
     {
         // estrai in sicurezza le dimensioni "LxA"
         $parts = explode('x', trim($m[1]));
@@ -140,7 +140,7 @@ class GML
     }
 
 
-    private function tag_lnk(array $m): void
+    private function tagLnk(array $m): void
     {
         if (!trim($m[1])) { $m[1] = $m[2]; }
         $this->testo = str_replace(
@@ -150,7 +150,7 @@ class GML
         );
     }
 
-    private function tag_bgc(array $m): void
+    private function tagBgc(array $m): void
     {
         $this->testo = str_replace(
             $m[0],
@@ -159,7 +159,7 @@ class GML
         );
     }
 
-    private function tag_bgi(array $m): void
+    private function tagBgi(array $m): void
     {
         $this->testo = str_replace(
             $m[0],
@@ -168,7 +168,7 @@ class GML
         );
     }
 
-    private function tag_cl(array $m): void
+    private function tagCl(array $m): void
     {
         $this->testo = str_replace(
             $m[0],
@@ -181,7 +181,7 @@ class GML
         );
     }
 
-    private function tag_tbl(array $m): void
+    private function tagTbl(array $m): void
     {
         [$w,$h] = explode('x', trim($m[1]));
         $this->testo = str_replace(
@@ -191,7 +191,7 @@ class GML
         );
     }
 
-    private function tag_q(array $m): void
+    private function tagQ(array $m): void
     {
         $this->testo = str_replace(
             $m[0],
@@ -206,18 +206,18 @@ class GML
  * =================================================================*/
 
 /** ritorna il testo GML convertito in HTML */
-function ProcessText(string $testo): string
+function processText(string $testo): string
 {
     if (preg_match('/<\/?[a-z][^>]*>/i', $testo)) {
-        return alphano_sanitize_html($testo);
+        return alphanoSanitizeHtml($testo);
     }
     $gml = new GML($testo);
     $gml->processText();
-    return alphano_sanitize_html($gml->getText());
+    return alphanoSanitizeHtml($gml->getText());
 }
 
 /** HTML di editor e GML: conserva la formattazione, elimina codice e URL eseguibili. */
-function alphano_sanitize_html(string $html): string
+function alphanoSanitizeHtml(string $html): string
 {
     $document = new DOMDocument('1.0', 'UTF-8');
     $previous = libxml_use_internal_errors(true);
@@ -293,7 +293,7 @@ function alphano_sanitize_html(string $html): string
 /**
  * Estrae il contenuto del tag [t]…[/t] (titolo).
  */
-function GetTitolo(string $testo): string
+function getTitolo(string $testo): string
 {
     $gml = new GML($testo);
     return $gml->getTag('t');

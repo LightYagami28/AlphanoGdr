@@ -12,8 +12,8 @@ foreach (array_merge($_GET,$_POST) as $value) {
 use Alphano\Database\PDOMySQLDriver;
 
 
-require_once __DIR__ . '/../libs/kernel.inc.php';     // initSession(), ConnectDB()
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') { alphano_require_csrf(); }
+require_once __DIR__ . '/../libs/kernel.inc.php';     // initSession(), connectDB()
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') { alphanoRequireCsrf(); }
 require_once __DIR__ . '/../libs/libgrafica.inc.php';
 require_once __DIR__ . '/../libs/libeconomia.inc.php';
 require_once __DIR__ . '/../libs/libpg.inc.php';      // GetIDPG(), GetRazza(), ProcessRazza(), ProcessAl()
@@ -28,7 +28,7 @@ if (!$idpg) {
     exit;
 }
 
-$db = ConnectDB();
+$db = connectDB();
 
 // 1) Identifico il PG da visualizzare
 $embedded=($_GET['embedded']??$_POST['embedded']??'')==='1';
@@ -131,7 +131,7 @@ $razzaLabel   = GetRazza($idRazza);
 $sesso        = $user['sesso'] ?? '';
 $allineamento = $user['allineamento'] ?? '';
 
-$forzaRazza = alphano_profile_strength('pg',$pgid,$idRazza);
+$forzaRazza = alphanoProfileStrength('pg',$pgid,$idRazza);
 $pesotot    = getPesoTotale($pgid);
 
 $equip        = getSlottedEquip($pgid);

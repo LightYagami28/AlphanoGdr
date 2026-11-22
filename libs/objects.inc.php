@@ -22,21 +22,21 @@ class AlphanoBase {
         if (is_string($where) && preg_match('/^([a-zA-Z_]\w*)\s*=\s*(\d+)$/D', trim($where), $m)) {return [$this->identifier($m[1]).' = ?',[(int)$m[2]]];}
         throw new InvalidArgumentException('Usare criteri di ricerca espliciti');
     }
-    public function load($id,$key=null) { $rows=ConnectDB()->query('SELECT * FROM '.$this->identifier($this->table).SQL_WHERE.$this->identifier($key??$this->key).' = ? LIMIT 1',[$id]);$this->setArray($rows[0]??[]);return (bool)$rows; }
+    public function load($id,$key=null) { $rows=connectDB()->query('SELECT * FROM '.$this->identifier($this->table).SQL_WHERE.$this->identifier($key??$this->key).' = ? LIMIT 1',[$id]);$this->setArray($rows[0]??[]);return (bool)$rows; }
     public function loadList($ids) { $out=[];foreach ((array)$ids as $id) { $item=new $this->className($id);if($item->dati){$out[]=$item;} }return $out; }
-    public function getKeyList() { return array_column(ConnectDB()->query('SELECT '.$this->identifier($this->key).' FROM '.$this->identifier($this->table)),$this->key); }
-    public function search($where) { [$sql,$params]=$this->condition($where);$out=[];foreach(ConnectDB()->query('SELECT * FROM '.$this->identifier($this->table).SQL_WHERE.$sql,$params) as $row){$item=new $this->className();$item->setArray($row);$out[]=$item;}return $out; }
-    public function create($data=null) { $data=$data??$this->dati;if(!$data){return false;}$keys=array_map([$this,'identifier'],array_keys($data));ConnectDB()->execute('INSERT INTO '.$this->identifier($this->table).' ('.implode(',',$keys).') VALUES ('.implode(',',array_fill(0,count($data),'?')).')',array_values($data));$data[$this->key]=$data[$this->key]??(int)ConnectDB()->lastInsertId();$this->setArray($data);return true; }
-    public function delete($id=null) { return ConnectDB()->execute('DELETE FROM '.$this->identifier($this->table).SQL_WHERE.$this->identifier($this->key).' = ?',[$id??$this->getKey()])>0; }
-    public function deleteQuery($where) { [$sql,$params]=$this->condition($where);return ConnectDB()->execute('DELETE FROM '.$this->identifier($this->table).SQL_WHERE.$sql,$params); }
+    public function getKeyList() { return array_column(connectDB()->query('SELECT '.$this->identifier($this->key).' FROM '.$this->identifier($this->table)),$this->key); }
+    public function search($where) { [$sql,$params]=$this->condition($where);$out=[];foreach(connectDB()->query('SELECT * FROM '.$this->identifier($this->table).SQL_WHERE.$sql,$params) as $row){$item=new $this->className();$item->setArray($row);$out[]=$item;}return $out; }
+    public function create($data=null) { $data=$data??$this->dati;if(!$data){return false;}$keys=array_map([$this,'identifier'],array_keys($data));connectDB()->execute('INSERT INTO '.$this->identifier($this->table).' ('.implode(',',$keys).') VALUES ('.implode(',',array_fill(0,count($data),'?')).')',array_values($data));$data[$this->key]=$data[$this->key]??(int)connectDB()->lastInsertId();$this->setArray($data);return true; }
+    public function delete($id=null) { return connectDB()->execute('DELETE FROM '.$this->identifier($this->table).SQL_WHERE.$this->identifier($this->key).' = ?',[$id??$this->getKey()])>0; }
+    public function deleteQuery($where) { [$sql,$params]=$this->condition($where);return connectDB()->execute('DELETE FROM '.$this->identifier($this->table).SQL_WHERE.$sql,$params); }
     public function update($id=null) { return $this->updateQuery($this->dati,[$this->key=>$id??$this->getKey()]); }
-    public function updateQuery($values,$where=null) { if(!$values){return 0;}[$sql,$params]=$this->condition($where);$set=[];foreach($values as $key=>$value){$set[]=$this->identifier($key).' = ?';}return ConnectDB()->execute('UPDATE '.$this->identifier($this->table).' SET '.implode(',',$set).SQL_WHERE.$sql,[...array_values($values),...$params]); }
+    public function updateQuery($values,$where=null) { if(!$values){return 0;}[$sql,$params]=$this->condition($where);$set=[];foreach($values as $key=>$value){$set[]=$this->identifier($key).' = ?';}return connectDB()->execute('UPDATE '.$this->identifier($this->table).' SET '.implode(',',$set).SQL_WHERE.$sql,[...array_values($values),...$params]); }
     public function get($key) { return $this->dati[$key]??null; }
     public function getKey() { return $this->get($this->key); }
     public function getArray() { return $this->dati; }
     public function set($key,$value) { $this->identifier($key);$this->dati[$key]=$value; }
     public function setArray($values) { $this->dati=is_array($values)?$values:[]; }
-    public function getQuery() { $keys=array_map([$this,'identifier'],array_keys($this->dati));$values=array_map(fn($v)=>$v===null?'NULL':ConnectDB()->quote((string)$v),array_values($this->dati));return 'INSERT INTO '.$this->identifier($this->table).' ('.implode(',',$keys).') VALUES ('.implode(',',$values).')'; }
+    public function getQuery() { $keys=array_map([$this,'identifier'],array_keys($this->dati));$values=array_map(fn($v)=>$v===null?'NULL':connectDB()->quote((string)$v),array_values($this->dati));return 'INSERT INTO '.$this->identifier($this->table).' ('.implode(',',$keys).') VALUES ('.implode(',',$values).')'; }
 }
     class Accademia extends AlphanoBase {
         public $className="Accademia";
@@ -93,7 +93,7 @@ class AlphanoBase {
 
         public function threadsInfo($id=null) {
             $id = $id ?: $this->get('bacheca');
-            $rows = ConnectDB()->query('SELECT replyid, MAX(data) AS lastreply FROM bacheche WHERE replyid>0 AND bacheca=? GROUP BY replyid', [(int)$id]);
+            $rows = connectDB()->query('SELECT replyid, MAX(data) AS lastreply FROM bacheche WHERE replyid>0 AND bacheca=? GROUP BY replyid', [(int)$id]);
             return array_column($rows, 'lastreply', 'replyid');
         }
 

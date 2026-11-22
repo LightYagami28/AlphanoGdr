@@ -1,6 +1,6 @@
 <?php /** Existing actions use the authoritative equipment controller. */ ?>
         <div class="equipment-detail">
-          <img src="<?=htmlspecialchars(alphano_equipment_image((string)$o['immagine'],strtolower((string)$o['tipoG'])),ENT_QUOTES)?>" alt="Ritratto dell’oggetto">
+          <img src="<?=htmlspecialchars(alphanoEquipmentImage((string)$o['immagine'],strtolower((string)$o['tipoG'])),ENT_QUOTES)?>" alt="Ritratto dell’oggetto">
           <div><?=nl2br(htmlspecialchars($o['descrizione'],ENT_QUOTES))?></div>
         </div>
         <ul class="equipment-properties">
@@ -128,4 +128,4 @@
 
         </div>
 
-<?php if($isSame): require_once __DIR__.'/../../libs/item-engine.inc.php';if(item_engine_ready()&&item_instance($detail_id,$pgid)['rules']):?><section class="ui-form" data-item-console="<?=$detail_id?>"><h3>Uso e manutenzione</h3></section><script src="/js/item-engine.js" defer></script><?php endif;endif;?>
+<?php if($isSame): require_once __DIR__.'/../../libs/item-engine.inc.php';if(itemEngineReady()&&itemInstance($detail_id,$pgid)['rules']):?><section class="ui-form" data-item-console="<?=$detail_id?>"><h3>Uso e manutenzione</h3></section><script src="/js/item-engine.js" defer></script><?php endif;endif;?>

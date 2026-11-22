@@ -7,10 +7,10 @@ declare(strict_types=1);
  ********************************************************/
 
 /* ─────────────────── 1) Bootstrap ─────────────────── */
-require_once __DIR__ . '/../libs/kernel.inc.php';       // initSession(), ClosePage()
+require_once __DIR__ . '/../libs/kernel.inc.php';       // initSession(), closePage()
 require_once __DIR__ . '/../libs/libgrafica.inc.php';
 require_once __DIR__ . '/../libs/libpg.inc.php';       // GetIDPG()
-require_once __DIR__ . '/../libs/libtext.inc.php';     // ProcessText()
+require_once __DIR__ . '/../libs/libtext.inc.php';     // processText()
 require_once __DIR__ . '/../libs/libaccademia.inc.php';// EnsureAdmin(), …
 require_once __DIR__ . '/../libs/libposta.inc.php';    // (se serve)
 
@@ -23,7 +23,7 @@ if (!$idpg) {
     exit;
 }
 
-$db      = ConnectDB();
+$db      = connectDB();
 
 
 /* ─────────────────── 2) Recupera ID organ­i­zazione ─────────────────── */
@@ -81,8 +81,8 @@ if (!$orgData) {
       <th class="Valore column-width-50">Nuovo statuto</th>
     </tr>
     <tr>
-      <td class="Valore"><?=ProcessText((string)$orgData['statuto'])?></td>
-      <td class="Valore"><?=ProcessText((string)$orgData['newstatuto'])?></td>
+      <td class="Valore"><?=processText((string)$orgData['statuto'])?></td>
+      <td class="Valore"><?=processText((string)$orgData['newstatuto'])?></td>
     </tr>
     <tr>
       <td colspan="2">
@@ -97,4 +97,4 @@ if (!$orgData) {
 </body>
 </html>
 <?php
-ClosePage();
+closePage();

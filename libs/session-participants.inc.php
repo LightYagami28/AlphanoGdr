@@ -10,23 +10,23 @@ require_once __DIR__.'/session-control.inc.php';
 /** A Master may inspect the current public cast, never a remote/private room. */
 function alphanoParticipantsActor(int $actor,string $chat):array {
     if($chat===''||strlen($chat)>100){throw new ParticipantsDomainException('Luogo non valido.',422);}
-    $user=ConnectDB()->query('SELECT id,nome,chat,admin,fatepower,bloccato FROM utenti WHERE id=?',[$actor])[0]??null;
+    $user=connectDB()->query('SELECT id,nome,chat,admin,fatepower,bloccato FROM utenti WHERE id=?',[$actor])[0]??null;
     if(!$user||!empty($user['bloccato'])||(empty($user['admin'])&&empty($user['fatepower']))){throw new ParticipantsDomainException('Accesso riservato ai Master.',403);}
     if($user['chat']!==$chat){throw new ParticipantsDomainException('Entra nella chat prima di gestirne i personaggi.',403);}
     return $user;
 }
 function alphanoParticipantsState(int $actor,string $chat):array {
-    $user=alphanoParticipantsActor($actor,$chat);$db=ConnectDB();
+    $user=alphanoParticipantsActor($actor,$chat);$db=connectDB();
     $session=$db->query('SELECT id,nome,partecipanti FROM sessioni WHERE BINARY chat=BINARY ? AND run=1 ORDER BY id DESC LIMIT 1',[$chat])[0]??null;
     $members=$session?array_map('intval',array_filter(explode(';',(string)$session['partecipanti']))):[];
     $people=[];
     foreach($db->query("SELECT id,nome,puntif,ferite,denari,sesso,razza,vampire_human_form,avatar,avatar2 FROM utenti WHERE BINARY chat=BINARY ? AND bloccato=0 AND posizione<>'off' ORDER BY nome,id",[$chat]) as $row){
-        $portrait=alphano_profile_portrait($row);
+        $portrait=alphanoProfilePortrait($row);
         $people[]=['kind'=>'pg','id'=>(int)$row['id'],'name'=>$row['nome'],'portrait'=>$portrait['url'],'fallback'=>$portrait['default'],
             'hp'=>(int)$row['puntif'],'max_hp'=>maxpuntif,'wounds'=>$row['ferite'],'crowns'=>(int)$row['denari'],
             'member'=>in_array((int)$row['id'],$members,true),'alive'=>(int)$row['puntif']>0,'self'=>(int)$row['id']===$actor];
     }
-    $manage=!empty($user['admin'])||alphano_session_can_manage($actor,$chat);
+    $manage=!empty($user['admin'])||alphanoSessionCanManage($actor,$chat);
     return ['chat'=>$chat,'actor'=>$actor,'can_manage'=>$manage,'session'=>$session?['id'=>(int)$session['id'],'name'=>$session['nome'],'participants'=>$members]:null,
         'participants'=>$people,'max_targets'=>20,'max_quantity'=>100,'server_time'=>time(),
         'notice'=>$manage?'Gli interventi modificano le schede e lasciano una ricevuta nel registro.':'Puoi consultare i presenti. Apri o assumi la regia della sessione per intervenire.'];
@@ -38,16 +38,16 @@ function alphanoParticipantsCatalog(int $actor,string $chat,array $input):array 
     $where=['e.approvato=1','e.corp=0'];$parameters=[];
     if($query!==''){$where[]='e.shortDesc LIKE ?';$parameters[]='%'.$query.'%';}
     if($type!==''){$where[]='LOWER(e.materiaprima) '.($type==='materials'?'IN':'NOT IN').' ('.implode(',',array_fill(0,count(MATERIE_PRIME),'?')).')';array_push($parameters,...MATERIE_PRIME);}
-    $condition=implode(' AND ',$where);$db=ConnectDB();$total=(int)$db->query('SELECT COUNT(*) n FROM equip e WHERE '.$condition,$parameters)[0]['n'];
+    $condition=implode(' AND ',$where);$db=connectDB();$total=(int)$db->query('SELECT COUNT(*) n FROM equip e WHERE '.$condition,$parameters)[0]['n'];
     $items=[];foreach($db->query('SELECT e.id,e.shortDesc,e.immagine,e.materiaprima,e.durata FROM equip e WHERE '.$condition.' ORDER BY e.shortDesc,e.id LIMIT 24 OFFSET '.(int)$offset,$parameters) as $item)
-        {$items[]=['id'=>(int)$item['id'],'name'=>$item['shortDesc'],'image'=>alphano_equipment_image($item['immagine']),'material'=>in_array(mb_strtolower($item['materiaprima']),MATERIE_PRIME,true),'durability'=>(int)$item['durata']];}
+        {$items[]=['id'=>(int)$item['id'],'name'=>$item['shortDesc'],'image'=>alphanoEquipmentImage($item['immagine']),'material'=>in_array(mb_strtolower($item['materiaprima']),MATERIE_PRIME,true),'durability'=>(int)$item['durata']];}
     return ['items'=>$items,'total'=>$total,'offset'=>(int)$offset,'next'=>$offset+count($items)<$total?$offset+24:null];
 }
 function alphanoParticipantsInventory(int $actor,string $chat,int $target):array {
-    alphanoParticipantsActor($actor,$chat);$db=ConnectDB();
+    alphanoParticipantsActor($actor,$chat);$db=connectDB();
     if(!$db->query("SELECT id FROM utenti WHERE id=? AND BINARY chat=BINARY ? AND posizione<>'off' AND bloccato=0",[$target,$chat])){throw new ParticipantsDomainException('Il personaggio non è più presente.',409);}
     $items=[];foreach($db->query('SELECT p.id,p.uid,p.nome,p.slot,p.idpadre,p.consumo,e.shortDesc,e.immagine,e.durata,e.materiaprima FROM equippg p JOIN equip e ON e.id=p.uid WHERE p.idpg=? ORDER BY e.shortDesc,p.id',[$target]) as $item)
-        {$items[]=['id'=>(int)$item['id'],'model'=>(int)$item['uid'],'name'=>$item['nome']?:$item['shortDesc'],'image'=>alphano_equipment_image($item['immagine']),
+        {$items[]=['id'=>(int)$item['id'],'model'=>(int)$item['uid'],'name'=>$item['nome']?:$item['shortDesc'],'image'=>alphanoEquipmentImage($item['immagine']),
             'slot'=>$item['slot'],'container'=>(int)$item['idpadre'],'used'=>(int)$item['consumo'],'durability'=>(int)$item['durata'],'remaining'=>max(0,(int)$item['durata']-(int)$item['consumo']),
             'broken'=>(int)$item['consumo']>=(int)$item['durata'],'material'=>in_array(mb_strtolower($item['materiaprima']),MATERIE_PRIME,true)];
     }
@@ -76,16 +76,16 @@ function alphanoParticipantsMutate(int $actor,string $chat,array $input):array {
     elseif($action==='crowns'){$values['amount']=alphanoParticipantsInt($input,'amount',1,1000000000);}
     elseif($action==='item'){$values['item_id']=alphanoParticipantsInt($input,'item_id',1,PHP_INT_MAX);$values['quantity']=alphanoParticipantsInt($input,'quantity',1,100);}
     else{if(count($ids)!==1){throw new ParticipantsDomainException('Gli oggetti si gestiscono per un personaggio alla volta.',422);}$values['instance']=alphanoParticipantsInt($input,'instance',1,PHP_INT_MAX);if($action==='consume'){$values['quantity']=alphanoParticipantsInt($input,'quantity',1,2147483647);}}
-    $db=ConnectDB();$guard=alphano_session_guard($chat);
+    $db=connectDB();$guard=alphanoSessionGuard($chat);
     if(!(int)($db->query('SELECT GET_LOCK(?,5) locked',[$guard])[0]['locked']??0)){throw new ParticipantsDomainException('La regia sta aggiornando la scena. Riprova.',409);}
     $db->beginTransaction();
     try{
         $db->query('SELECT chat_key FROM ai_rooms WHERE chat_key=? FOR UPDATE',[$chat]);
-        alphano_session_current($chat,true);
-        if(!alphano_operation_once('master-participants',$actor,$key,[$chat,$expectedSession,$action,$ids,$reason,$values])){
+        alphanoSessionCurrent($chat,true);
+        if(!alphanoOperationOnce('master-participants',$actor,$key,[$chat,$expectedSession,$action,$ids,$reason,$values])){
             $db->commit();return ['success'=>true,'replayed'=>true,'message'=>'Intervento già registrato: nessun effetto ripetuto.','state'=>alphanoParticipantsState($actor,$chat)];
         }
-        $session=alphano_session_require_manager($actor,$chat);
+        $session=alphanoSessionRequireManager($actor,$chat);
         if((int)($session['id']??0)!==$expectedSession){throw new ParticipantsDomainException('La sessione è cambiata. Ricarica il pannello.',409);}
         $members=array_map('intval',array_filter(explode(';',(string)($session['partecipanti']??''))));
         $lockIds=array_values(array_unique([...$ids,$actor]));sort($lockIds);
@@ -99,12 +99,12 @@ function alphanoParticipantsMutate(int $actor,string $chat,array $input):array {
         foreach($ids as $id){
             $subKey='participants:'.substr(hash('sha256',$key.':'.$id),0,64);$replayed=false;
             $ok=match($action){
-                'health'=>SetFerite($id,$values['hp'],$values['wounds'],$actor,$chat,$subKey,$replayed,$reason,true),
-                'note'=>NotaMaster($id,$actor,$chat,$values['note'],$subKey,$replayed,$reason,true),
-                'crowns'=>Ricompensa($id,$values['amount'],$actor,$chat,$subKey,$replayed,$reason,true),
-                'item'=>DaiOggetto($id,$values['item_id'],$actor,$chat,$subKey,$replayed,$values['quantity'],$reason,true),
-                'remove'=>RimuoviOggettoMaster($id,$values['instance'],$actor,$chat,$subKey,$replayed,$reason,true),
-                'break'=>RompiOggettoMaster($id,$values['instance'],$actor,$chat,$subKey,$replayed,$reason,true),
+                'health'=>setFerite($id,$values['hp'],$values['wounds'],$actor,$chat,$subKey,$replayed,$reason,true),
+                'note'=>notaMaster($id,$actor,$chat,$values['note'],$subKey,$replayed,$reason,true),
+                'crowns'=>ricompensa($id,$values['amount'],$actor,$chat,$subKey,$replayed,$reason,true),
+                'item'=>daiOggetto($id,$values['item_id'],$actor,$chat,$subKey,$replayed,$values['quantity'],$reason,true),
+                'remove'=>rimuoviOggettoMaster($id,$values['instance'],$actor,$chat,$subKey,$replayed,$reason,true),
+                'break'=>rompiOggettoMaster($id,$values['instance'],$actor,$chat,$subKey,$replayed,$reason,true),
                 'consume'=>alphanoParticipantsConsume($id,$actor,$chat,$values,$subKey,$reason),
             };
             if(!$ok){throw new ParticipantsDomainException('L’intervento non è applicabile alla scheda selezionata.',422);}
@@ -114,9 +114,9 @@ function alphanoParticipantsMutate(int $actor,string $chat,array $input):array {
     finally{$db->query('SELECT RELEASE_LOCK(?)',[$guard]);}
 }
 function alphanoParticipantsConsume(int $target,int $actor,string $chat,array $values,string $key,string $reason):bool {
-    $item=ConnectDB()->query('SELECT p.consumo,e.durata FROM equippg p JOIN equip e ON e.id=p.uid WHERE p.id=? AND p.idpg=? FOR UPDATE',[$values['instance'],$target])[0]??null;
+    $item=connectDB()->query('SELECT p.consumo,e.durata FROM equippg p JOIN equip e ON e.id=p.uid WHERE p.id=? AND p.idpg=? FOR UPDATE',[$values['instance'],$target])[0]??null;
     if(!$item){throw new ParticipantsDomainException('L’oggetto non appartiene più al personaggio selezionato.',409);}
     $remaining=max(0,(int)$item['durata']-(int)$item['consumo']);$quantity=$values['quantity'];
     if($quantity>$remaining){throw new ParticipantsDomainException('Il consumo supera la durata residua dell’oggetto.',422);}
-    $replayed=false;return ConsumaMaster($target,$values['instance'],$quantity,$actor,$chat,$key,$replayed,$reason,true);
+    $replayed=false;return consumaMaster($target,$values['instance'],$quantity,$actor,$chat,$key,$replayed,$reason,true);
 }

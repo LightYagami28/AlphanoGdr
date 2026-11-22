@@ -6,7 +6,7 @@ declare(strict_types=1);
  *  Funzioni PHP 8 con PDO.
  * =========================================================================
  *  Dipendenze:
- *    • kernel.inc.php  → costanti, ConnectDB(), htmlroot …
+ *    • kernel.inc.php  → costanti, connectDB(), htmlroot …
  *    • libpg.inc.php   → funzioni gestione PG
  * ========================================================================= */
 
@@ -29,7 +29,7 @@ if (!function_exists('db')) {
     function db()
     {
         static $db;
-        return $db ??= ConnectDB();   // ← resta compatibile col vecchio codice
+        return $db ??= connectDB();   // ← resta compatibile col vecchio codice
     }
 }
 
@@ -44,9 +44,9 @@ function getChatImages(): array
 }
 
 /* --------------------------------------------------------------------------
- *  InsertIntoChat()
+ *  insertIntoChat()
  * ------------------------------------------------------------------------ */
-function InsertIntoChat(string $chat, string $html, array $metadata=[]): int
+function insertIntoChat(string $chat, string $html, array $metadata=[]): int
 {
     $html = stripslashes($html);
     $db=db();$own=!$db->inTransaction();$handle=null;$locked=false;$originalSize=null;
@@ -111,11 +111,11 @@ function InsertIntoChat(string $chat, string $html, array $metadata=[]): int
 }
 
 /* --------------------------------------------------------------------------
- *  ClearChat()
+ *  clearChat()
  * ------------------------------------------------------------------------ */
-function ClearChat(string $chat): void
+function clearChat(string $chat): void
 {
-    $liveFilter=alphano_chat_live_filter();
+    $liveFilter=alphanoChatLiveFilter();
     /* 1) cancella righe troppo vecchie */
     db()->execute(
         "DELETE FROM chat WHERE chat = ? AND ora < ?".$liveFilter,
@@ -172,9 +172,9 @@ function ClearChat(string $chat): void
 }
 
 /* --------------------------------------------------------------------------
- *  DumpChat()
+ *  dumpChat()
  * ------------------------------------------------------------------------ */
-function DumpChat(string $chat): string
+function dumpChat(string $chat): string
 {
     $out = '';
     foreach (db()->query(
@@ -199,9 +199,9 @@ function processAllineamento(string $all): string
 }
 
 /* --------------------------------------------------------------------------
- *  GetAzioniLavoro()
+ *  getAzioniLavoro()
  * ------------------------------------------------------------------------ */
-function GetAzioniLavoro(string $chat): array
+function getAzioniLavoro(string $chat): array
 {
     return db()->query(
         "SELECT MAX(prob) AS prob, res, azione
@@ -214,23 +214,23 @@ function GetAzioniLavoro(string $chat): array
 }
 
 /** Compatibility adapters publish neutral events; configured races use transformations.inc.php. */
-function LicanMetamorphosis(string $chat, string $nome, string $sesso, bool $verso): void
+function licanMetamorphosis(string $chat, string $nome, string $sesso, bool $verso): void
 {
     $name=htmlspecialchars($nome,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
-    InsertIntoChat($chat,'<div class="Fato">'.$name.($verso?' cambia forma.':' ritorna alla forma iniziale.').'</div>');
+    insertIntoChat($chat,'<div class="Fato">'.$name.($verso?' cambia forma.':' ritorna alla forma iniziale.').'</div>');
 }
-function AncestralMetamorphosis(string $chat, string $nome, string $sesso, bool $verso): void
+function ancestralMetamorphosis(string $chat, string $nome, string $sesso, bool $verso): void
 {
-    LicanMetamorphosis($chat,$nome,$sesso,$verso);
+    licanMetamorphosis($chat,$nome,$sesso,$verso);
 }
-function FrasiLican(int $pg): string
+function frasiLican(int $pg): string
 {
     return htmlspecialchars(GetPGFromID($pg),ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8').' non può parlare nella forma attuale.';
 }
-function VampireDamage(string $chat, string $nome, string $sesso, bool $morto): void
+function vampireDamage(string $chat, string $nome, string $sesso, bool $morto): void
 {
     $name=htmlspecialchars($nome,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
-    InsertIntoChat($chat,'<div class="Fato">'.$name.($morto?' non ha più punti ferita.':' subisce danni ambientali.').'</div>');
+    insertIntoChat($chat,'<div class="Fato">'.$name.($morto?' non ha più punti ferita.':' subisce danni ambientali.').'</div>');
 }
 
 /* --------------------------------------------------------------------------
@@ -246,12 +246,12 @@ function showmessaggiotemp(string $chat): string
 }
 
 /* --------------------------------------------------------------------------
- *  Alias SetPosizione()  (retro-compatibilità: alcuni script lo chiamano
+ *  Alias setChatPosizione()  (retro-compatibilità: alcuni script lo chiamano
  *  senza il namespace ed è definito originariamente in libpg.inc.php)
  * ------------------------------------------------------------------------ */
-if (!function_exists('SetPosizione')) {
-    function SetPosizione(string $posizione, int $idpg, string $chat = ''): void
+if (!function_exists('setChatPosizione')) {
+    function setChatPosizione(string $posizione, int $idpg, string $chat = ''): void
     {
-        \SetPosizione($posizione, $idpg, $chat);
+        \setPosizione($posizione, $idpg, $chat);
     }
 }

@@ -73,7 +73,7 @@ function h(string $s): string { return htmlentities($s, ENT_QUOTES, 'UTF-8'); }
       </div>
       <div class="card-content">
         <h2><?= h($oggetto['shortDesc']) ?></h2>
-        <p><?= ProcessText($oggetto['desc']) ?></p>
+        <p><?= processText($oggetto['desc']) ?></p>
 
         <ul>
           <li><strong>Tipo:</strong> <?= h($oggetto['tipo']) ?></li>
@@ -117,7 +117,7 @@ function h(string $s): string { return htmlentities($s, ENT_QUOTES, 'UTF-8'); }
     </div>
 
     <h3>Materie Prime</h3>
-    <?php $mp = GetMateriePrime($oggetto); ?>
+    <?php $mp = getMateriePrime($oggetto); ?>
     <?php if ($mp): ?>
       <div class="grid">
         <?php foreach ($mp as $mat => $qty): ?>
@@ -137,4 +137,4 @@ function h(string $s): string { return htmlentities($s, ENT_QUOTES, 'UTF-8'); }
   </div>
 </body>
 </html>
-<?php ClosePage(); ?>
+<?php closePage(); ?>

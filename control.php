@@ -36,7 +36,7 @@ $paramGet = isset($_GET['param']) && is_string($_GET['param']) ? $_GET['param'] 
 $pgid = GetIDPG(true);
 
 /** @var PDOMySQLDriver $db */
-$db = ConnectDB();
+$db = connectDB();
 
 /* --- logging silenzioso degli accessi ---------------------------------*/
 try {
@@ -74,19 +74,19 @@ $tot     = (int)$db->query(
 /* -----------------------------------------------------------------
  *  3) Dati PG + Meteo
  * ----------------------------------------------------------------*/
-$meteo = GetMeteo();
+$meteo = getMeteo();
 $user  = $db->query('SELECT * FROM utenti WHERE id=?', [$pgid])[0];
 
 /* --- unlock automatico -------------------------------------------*/
 if ($user['bloccato']) {
-    UnLockUser($pgid);
+    unLockUser($pgid);
 }
 
 /* -----------------------------------------------------------------
  *  4) Luna & Lycan
  * ----------------------------------------------------------------*/
-$luna   = FaseLunare();
-$lican  = (LicanTime() && $luna === 'Luna Piena') ? 1 : 0;
+$luna   = faseLunare();
+$lican  = (licanTime() && $luna === 'Luna Piena') ? 1 : 0;
 
 /* -----------------------------------------------------------------
  *  5) Costruisco la chiave “param” – serve a capire se cambiare menu
@@ -112,8 +112,8 @@ $param = implode(';', [
     $user['ancestrale'],      // 17
 ]);
 
-[$alba, $tramonto] = SorgeCala();
-$sorgecala = LicanTime()
+[$alba, $tramonto] = sorgeCala();
+$sorgecala = licanTime()
     ? 'Il sole sorge alle '.date('H:i', $alba)
     : 'Il sole tramonta alle '.date('H:i', $tramonto);
 
@@ -146,14 +146,14 @@ $sorgecala = LicanTime()
         <?= abs($meteo['cielo']) ?>,
         <?= $jsEncode($cielo[$meteo['cielo']]) ?>,
         <?= abs($meteo['tempo']) ?>,
-        <?= $jsEncode(GetDescrTempo($meteo['tempo'], $meteo['temperatura'])) ?>,
+        <?= $jsEncode(getDescrTempo($meteo['tempo'], $meteo['temperatura'])) ?>,
         <?= abs($meteo['vento']) ?>,
         <?= $jsEncode($vento[$meteo['vento']]) ?>,
         <?= $jsEncode($meteo['temperatura']) ?>,
         <?= $jsEncode($luna) ?>,
-        <?= DaysToFullMoon() ?>,
+        <?= daysToFullMoon() ?>,
         <?= $leggere ?>,
-        <?= json_encode(alphano_weather_icons($meteo,$luna,time()<$alba||time()>=$tramonto),JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) ?>
+        <?= json_encode(alphanoWeatherIcons($meteo,$luna,time()<$alba||time()>=$tramonto),JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) ?>
       );
 
       /* 2. Verifico se devo rigenerare il menu */
@@ -174,8 +174,8 @@ $sorgecala = LicanTime()
             <?= $jsEncode(
                   ($user['sesso']==='Maschio' ? 'Sei stato bloccato' : 'Sei stata bloccata')
                   . ($user['lockby'] ? ' da '.htmlentities(GetPGFromID($user['lockby'])) : '')
-                  . ' fino al ' . FormatTimestamp($user['datasblocco'])
-                  . '<br>' . ProcessText($user['motivo'])
+                  . ' fino al ' . formatTimestamp($user['datasblocco'])
+                  . '<br>' . processText($user['motivo'])
               ) ?>;
         <?php else: ?>
           /*----------------------------------------------------------
@@ -290,4 +290,4 @@ $sorgecala = LicanTime()
   <!-- frame quasi vuoto: tutto è gestito via JS -->
 </body>
 </html>
-<?php ClosePage();
+<?php closePage();

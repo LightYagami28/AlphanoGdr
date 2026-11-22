@@ -52,11 +52,11 @@ $GLOBALS['vento'] = [
 /**
  * Applica un piccolo “drift” casuale allo stato meteo corrente.
  */
-function GetNewMeteo(array $dati): array
+function getNewMeteo(array $dati): array
 {
     global $temperature;
-    $stagione = GetStagione();
-    $notte    = LicanTime();
+    $stagione = getStagione();
+    $notte    = licanTime();
 
     // drift temperatura
     $t = $dati["temperatura"] > 0 ? 1 : -1;
@@ -77,17 +77,17 @@ function GetNewMeteo(array $dati): array
 /**
  * Restituisce l’attuale riga di meteo, aggiornandola ogni ora.
  */
-function GetMeteo(): array
+function getMeteo(): array
 {
     global $db, $cielo, $vento, $temperature;
     if (!isset($db)) {
         /** @var PDOMySQLDriver $db */
-        $db = ConnectDB();
+        $db = connectDB();
     }
 
     $ora      = (int) date("H");
     $now      = time();
-    $stagione = GetStagione();
+    $stagione = getStagione();
 
     // carico tutte le righe
     $rows = $db->query("SELECT * FROM meteo");
@@ -97,7 +97,7 @@ function GetMeteo(): array
         // riga unica: drift ogni ora
         $dati = $rows[0];
         if ($ora !== (int)$dati["ora"]) {
-            $dati = GetNewMeteo($dati);
+            $dati = getNewMeteo($dati);
             $db->execute(
                 "UPDATE meteo
                  SET ora = ?, temperatura = ?, tempo = ?, cielo = ?, vento = ?
@@ -131,7 +131,7 @@ function GetMeteo(): array
         // troppi record: resetto a uno solo
         $dati = $rows[0];
         $db->execute("DELETE FROM meteo");
-        $dati = GetNewMeteo($dati);
+        $dati = getNewMeteo($dati);
         $db->execute(
             "INSERT INTO meteo (ora, temperatura, tempo, cielo, vento)
              VALUES (?, ?, ?, ?, ?)",
@@ -150,7 +150,7 @@ function GetMeteo(): array
 /**
  * Ritorna la stagione corrente (0=inverno,1=primavera,2=estate,3=autunno).
  */
-function GetStagione(): int
+function getStagione(): int
 {
     switch ((int)date("n")) {
         case 12:
@@ -169,7 +169,7 @@ function GetStagione(): int
 /**
  * Descrive il tempo in base a temperatura e indice meteo.
  */
-function GetDescrTempo(int $meteo, int $temperatura): string
+function getDescrTempo(int $meteo, int $temperatura): string
 {
     global $tempo, $cold;
     return ($temperatura > 0) ? $tempo[$meteo] : $cold[$meteo];

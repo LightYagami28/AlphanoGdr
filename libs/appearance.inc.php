@@ -4,18 +4,18 @@ require_once __DIR__.'/engine-settings.inc.php';
 require_once __DIR__.'/default-art.inc.php';
 
 /** Presentation settings contain no credentials and never change module permissions. */
-function alphano_appearance(): array {
+function alphanoAppearance(): array {
     static $settings;
     if ($settings !== null) { return $settings; }
     $file=dirname(__DIR__).'/private/appearance.json';
     $settings=is_file($file)?json_decode(file_get_contents($file),true,32,JSON_THROW_ON_ERROR):[];
     return $settings;
 }
-function alphano_appearance_revision(): string {
+function alphanoAppearanceRevision(): string {
     $file=dirname(__DIR__).'/private/appearance.json';
     return is_file($file)?hash_file('sha256',$file):hash('sha256','');
 }
-function alphano_appearance_page_key(string $url): string {
+function alphanoAppearancePageKey(string $url): string {
     $parts=parse_url($url);$path=$parts['path']??'/';
     $path=match($path){'/api/mappa.php'=>'/mappa.php','/profili/modifyprofile.php'=>'/profili/modifyuser.php',default=>$path};
     $path=preg_replace('~/index\.php$~','/',$path);
@@ -29,18 +29,18 @@ function alphano_appearance_page_key(string $url): string {
     foreach(['chat'=>['chat'],'mappa'=>['area'],'razze'=>['id'],'citta'=>['id']] as $module=>$fields){ if($key===$module){ foreach($fields as $field){ if(isset($q[$field])&&is_string($q[$field])&&preg_match('~^[a-zA-Z0-9_-]{1,80}$~D',$q[$field])){ $key.='-'.$q[$field]; } } } }
     return $key;
 }
-function alphano_appearance_item_key(string $label,string $group): string {
+function alphanoAppearanceItemKey(string $label,string $group): string {
     return $group.'-'.substr(hash('sha256',$label),0,16);
 }
-function alphano_appearance_image(mixed $url): string {
+function alphanoAppearanceImage(mixed $url): string {
     if(!is_string($url)||strlen($url)>300){ throw new DomainException('Immagine non valida.'); }
     $url=trim($url);if($url===''){ return ''; }
     if($url==='/assets/alphanogdr-logo.png'){ return $url; }
-    if(alphano_is_default_art($url)&&is_file(dirname(__DIR__).$url)){ return $url; }
+    if(alphanoIsDefaultArt($url)&&is_file(dirname(__DIR__).$url)){ return $url; }
     if(!preg_match('~^/(?:uploads/[a-zA-Z0-9_/-]+\.(?:png|jpe?g|webp)|assets/[a-zA-Z0-9_-]+\.svg)$~D',$url)||str_contains($url,'..')||!is_file(dirname(__DIR__).$url)){ throw new DomainException('Carica un’immagine oppure indica il percorso di un’immagine già presente in uploads.'); }
     return $url;
 }
-function alphano_appearance_upload(array $file): string {
+function alphanoAppearanceUpload(array $file): string {
     if(($file['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_OK||!is_uploaded_file($file['tmp_name']??'')){ throw new DomainException('Caricamento non riuscito.'); }
     if(($file['size']??0)>5*1024*1024){ throw new DomainException('Ogni immagine può occupare al massimo 5 MB.'); }
     $info=@getimagesize($file['tmp_name']);$types=[IMAGETYPE_PNG=>'png',IMAGETYPE_JPEG=>'jpg',IMAGETYPE_WEBP=>'webp'];
@@ -53,60 +53,60 @@ function alphano_appearance_upload(array $file): string {
     if(!move_uploaded_file($file['tmp_name'],dirname(__DIR__).$path)){ throw new RuntimeException('Impossibile salvare l’immagine.'); }
     chmod(dirname(__DIR__).$path,0644);return $path;
 }
-function alphano_appearance_public_manuals(): array {
+function alphanoAppearancePublicManuals(): array {
     require_once __DIR__.'/manuals.inc.php';
-    return array_values(array_filter(ConnectDB()->query('SELECT id,oggetto,summary,manual_key,audience FROM regole ORDER BY sezione,pos,id'),static fn($r)=>alphano_manual_can_read($r,alphano_manual_guest())));
+    return array_values(array_filter(connectDB()->query('SELECT id,oggetto,summary,manual_key,audience FROM regole ORDER BY sezione,pos,id'),static fn($r)=>alphanoManualCanRead($r,alphanoManualGuest())));
 }
-function alphano_appearance_catalog(): array {
+function alphanoAppearanceCatalog(): array {
     $catalog=json_decode(file_get_contents(dirname(__DIR__).'/config/appearance-pages.json'),true,32,JSON_THROW_ON_ERROR);
     $out=[];foreach($catalog as [$group,$label,$url,$menu]){
-        $key=alphano_appearance_page_key($url);
-        $out[$key]=['key'=>$key,'group'=>$group,'label'=>$label,'url'=>$url,'menu'=>$menu,'item_key'=>alphano_appearance_item_key($menu?:$label,$group)];
+        $key=alphanoAppearancePageKey($url);
+        $out[$key]=['key'=>$key,'group'=>$group,'label'=>$label,'url'=>$url,'menu'=>$menu,'item_key'=>alphanoAppearanceItemKey($menu?:$label,$group)];
     }
-    foreach(ConnectDB()->query('SELECT id,nome FROM razze ORDER BY id') as $r){$key='razze-'.$r['id'];$out[$key]=['key'=>$key,'group'=>'razze','label'=>$r['nome'],'url'=>'/razze/?id='.$r['id'],'menu'=>$r['nome'],'item_key'=>'race-'.$r['id']];}
-    foreach(ConnectDB()->query('SELECT id,city FROM city ORDER BY id') as $r){$key='citta-'.$r['id'];$out[$key]=['key'=>$key,'group'=>'citta','label'=>$r['city'],'url'=>'/citta/?id='.$r['id'],'menu'=>$r['city'],'item_key'=>'city-'.$r['id']];}
-    foreach(ConnectDB()->query('SELECT id,title FROM world_areas ORDER BY id') as $r){$url='/mappa.php?area='.$r['id'];$key=alphano_appearance_page_key($url);$out[$key]=['key'=>$key,'group'=>'citta','label'=>'Mappa · '.$r['title'],'url'=>$url,'menu'=>'','item_key'=>''];}
-    foreach(ConnectDB()->query('SELECT chat_key,title FROM mappe ORDER BY id') as $r){$url='/chat/index.php?chat='.$r['chat_key'];$key=alphano_appearance_page_key($url);$out[$key]=['key'=>$key,'group'=>'chat','label'=>'Chat · '.$r['title'],'url'=>$url,'menu'=>'','item_key'=>''];}
+    foreach(connectDB()->query('SELECT id,nome FROM razze ORDER BY id') as $r){$key='razze-'.$r['id'];$out[$key]=['key'=>$key,'group'=>'razze','label'=>$r['nome'],'url'=>'/razze/?id='.$r['id'],'menu'=>$r['nome'],'item_key'=>'race-'.$r['id']];}
+    foreach(connectDB()->query('SELECT id,city FROM city ORDER BY id') as $r){$key='citta-'.$r['id'];$out[$key]=['key'=>$key,'group'=>'citta','label'=>$r['city'],'url'=>'/citta/?id='.$r['id'],'menu'=>$r['city'],'item_key'=>'city-'.$r['id']];}
+    foreach(connectDB()->query('SELECT id,title FROM world_areas ORDER BY id') as $r){$url='/mappa.php?area='.$r['id'];$key=alphanoAppearancePageKey($url);$out[$key]=['key'=>$key,'group'=>'citta','label'=>'Mappa · '.$r['title'],'url'=>$url,'menu'=>'','item_key'=>''];}
+    foreach(connectDB()->query('SELECT chat_key,title FROM mappe ORDER BY id') as $r){$url='/chat/index.php?chat='.$r['chat_key'];$key=alphanoAppearancePageKey($url);$out[$key]=['key'=>$key,'group'=>'chat','label'=>'Chat · '.$r['title'],'url'=>$url,'menu'=>'','item_key'=>''];}
     return $out;
 }
-function alphano_appearance_menu_catalog(): array {
+function alphanoAppearanceMenuCatalog(): array {
     $out=[];$raw=json_decode(file_get_contents(dirname(__DIR__).'/config/appearance-pages.json'),true,32,JSON_THROW_ON_ERROR);
-    foreach($raw as [$group,$label,$url,$menu]){ if($menu!==''){$key=alphano_appearance_item_key($menu,$group);$out[$key]=['key'=>$key,'group'=>$group,'label'=>$label,'url'=>$url];} }
-    foreach(alphano_appearance_catalog() as $page){ if(str_starts_with($page['item_key'],'race-')||str_starts_with($page['item_key'],'city-')){ $out[$page['item_key']]=['key'=>$page['item_key']]+$page; } }
+    foreach($raw as [$group,$label,$url,$menu]){ if($menu!==''){$key=alphanoAppearanceItemKey($menu,$group);$out[$key]=['key'=>$key,'group'=>$group,'label'=>$label,'url'=>$url];} }
+    foreach(alphanoAppearanceCatalog() as $page){ if(str_starts_with($page['item_key'],'race-')||str_starts_with($page['item_key'],'city-')){ $out[$page['item_key']]=['key'=>$page['item_key']]+$page; } }
     return $out;
 }
-function alphano_appearance_page(?string $url=null): array {
-    $url=$url??($_SERVER['REQUEST_URI']??'/');$key=alphano_appearance_page_key($url);
-    $base=alphano_appearance_page_key(parse_url($url,PHP_URL_PATH)?:'/');$a=alphano_appearance();
-    $page=array_replace(['background'=>'','header'=>alphano_default_header($url)],array_filter($a['defaults']??[]),array_filter($a['pages'][$base]??[]),array_filter($a['pages'][$key]??[]));
+function alphanoAppearancePage(?string $url=null): array {
+    $url=$url??($_SERVER['REQUEST_URI']??'/');$key=alphanoAppearancePageKey($url);
+    $base=alphanoAppearancePageKey(parse_url($url,PHP_URL_PATH)?:'/');$a=alphanoAppearance();
+    $page=array_replace(['background'=>'','header'=>alphanoDefaultHeader($url)],array_filter($a['defaults']??[]),array_filter($a['pages'][$base]??[]),array_filter($a['pages'][$key]??[]));
     if($key==='homepage'&&!empty($a['home']['background'])){ $page['background']=$a['home']['background']; }
     return $page;
 }
-function alphano_appearance_save(array $input,array $files): void {
+function alphanoAppearanceSave(array $input,array $files): void {
     $dir=dirname(__DIR__).'/private';$lock=fopen($dir.'/appearance.lock','c');
     if(!$lock||!flock($lock,LOCK_EX)){ throw new RuntimeException('Impossibile acquisire la configurazione.'); }
     $newFiles=[];
     try{
-        if(!hash_equals(alphano_appearance_revision(),(string)($input['revision']??''))){ throw new DomainException('Le impostazioni sono cambiate in un’altra pagina. Ricarica prima di salvare.'); }
+        if(!hash_equals(alphanoAppearanceRevision(),(string)($input['revision']??''))){ throw new DomainException('Le impostazioni sono cambiate in un’altra pagina. Ricarica prima di salvare.'); }
         $file=$dir.'/appearance.json';$a=is_file($file)?json_decode(file_get_contents($file),true,32,JSON_THROW_ON_ERROR):[];
-        $section=$input['section']??'';$target=$input['target']??'';$catalog=alphano_appearance_catalog();$groups=require dirname(__DIR__).'/config/navigation.php';
+        $section=$input['section']??'';$target=$input['target']??'';$catalog=alphanoAppearanceCatalog();$groups=require dirname(__DIR__).'/config/navigation.php';
         if(!is_string($target)){ throw new DomainException('Voce non valida.'); }
-        $valid=match($section){'defaults','home'=>$target==='','groups'=>isset($groups[$target]),'items'=>isset(alphano_appearance_menu_catalog()[$target]),'pages'=>isset($catalog[$target]),default=>false};
+        $valid=match($section){'defaults','home'=>$target==='','groups'=>isset($groups[$target]),'items'=>isset(alphanoAppearanceMenuCatalog()[$target]),'pages'=>isset($catalog[$target]),default=>false};
         if(!$valid){ throw new DomainException('Seleziona una voce del catalogo.'); }
         $fields=match($section){'home'=>['background','banner','logo','scene_library'],'groups','items'=>['image'],default=>['background','header']};
         $values=[];
         foreach($fields as $field){
             $preset=$input['preset_'.$field]??'';
-            if(!is_string($preset)||($preset!==''&&!alphano_is_default_art($preset))){ throw new DomainException('Immagine predefinita non valida.'); }
-            if(isset($files[$field])&&($files[$field]['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_NO_FILE){$values[$field]=alphano_appearance_upload($files[$field]);$newFiles[]=$values[$field];}
-            else { $values[$field]=!empty($input['remove_'.$field])?'':alphano_appearance_image($preset!==''?$preset:($input[$field]??'')); }
+            if(!is_string($preset)||($preset!==''&&!alphanoIsDefaultArt($preset))){ throw new DomainException('Immagine predefinita non valida.'); }
+            if(isset($files[$field])&&($files[$field]['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_NO_FILE){$values[$field]=alphanoAppearanceUpload($files[$field]);$newFiles[]=$values[$field];}
+            else { $values[$field]=!empty($input['remove_'.$field])?'':alphanoAppearanceImage($preset!==''?$preset:($input[$field]??'')); }
         }
         if($section==='home'){
             $headline=$input['headline']??'';$intro=$input['intro']??'';
             if(!is_string($headline)||!is_string($intro)||mb_strlen($headline)>160||mb_strlen($intro)>2000){ throw new DomainException('Titolo o presentazione troppo lunghi.'); }
             $values+=['headline'=>trim($headline),'intro'=>trim($intro)];
             $ids=$input['manuals']??[];if(!is_array($ids)||count($ids)>20){ throw new DomainException('Puoi fissare fino a 20 manuali.'); }
-            $public=array_column(alphano_appearance_public_manuals(),'id');$values['manuals']=[];
+            $public=array_column(alphanoAppearancePublicManuals(),'id');$values['manuals']=[];
             foreach($ids as $id){if(!is_scalar($id)||!ctype_digit((string)$id)||!in_array((int)$id,array_map('intval',$public),true)){ throw new DomainException('Puoi fissare soltanto manuali pubblici.'); }$values['manuals'][]=(int)$id;}
             $values['manuals']=array_values(array_unique($values['manuals']));
         }
@@ -117,10 +117,10 @@ function alphano_appearance_save(array $input,array $files): void {
 }
 
 /** Shared brand for the public portal and every management page. */
-function alphano_brand_logo():string{
- return (alphano_appearance()['home']['logo']??'')?:'/assets/alphanogdr-logo.png';
+function alphanoBrandLogo():string{
+ return (alphanoAppearance()['home']['logo']??'')?:'/assets/alphanogdr-logo.png';
 }
-function alphano_management_brand(string $html):string{
+function alphanoManagementBrand(string $html):string{
  // The administrative workspace intentionally has no logo/quick-links top bar.
  return $html;
 }

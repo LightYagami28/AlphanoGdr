@@ -14,24 +14,24 @@ foreach (array_merge($_GET,$_POST) as $value) {
  * Backend: inizializza sessione, carica dati, gestisce POST
  ********************************************************/
 
-require_once __DIR__ . '/../libs/kernel.inc.php';       // initSession(), ClosePage()
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') { alphano_require_csrf(); }
+require_once __DIR__ . '/../libs/kernel.inc.php';       // initSession(), closePage()
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') { alphanoRequireCsrf(); }
 require_once __DIR__ . '/../libs/libpg.inc.php';       // GetIDPG()
 require_once __DIR__ . '/../libs/libgrafica.inc.php';
 require_once __DIR__ . '/../libs/libeconomia.inc.php';
 require_once __DIR__ . '/../libs/group-admin.inc.php'; // funzioni economiche
 require_once __DIR__ . '/../libs/libposta.inc.php';    // funzioni posta
-require_once __DIR__ . '/../libs/libelezioni.inc.php'; // ElectionTime(), VoteTime()
-require_once __DIR__ . '/../libs/libtext.inc.php';     // ProcessText()
+require_once __DIR__ . '/../libs/libelezioni.inc.php'; // electionTime(), voteTime()
+require_once __DIR__ . '/../libs/libtext.inc.php';     // processText()
 require_once __DIR__ . '/../libs/libaccademia.inc.php';// funzioni accademia
-require_once __DIR__ . '/../chat/libs/chat-core.php';  // ConnectDB(), InsertIntoChat()
+require_once __DIR__ . '/../chat/libs/chat-core.php';  // connectDB(), insertIntoChat()
 
 
 
 initSession();
-$idpg = alphano_require_login();
+$idpg = alphanoRequireLogin();
 
-$db      = ConnectDB();
+$db      = connectDB();
 
 $msg     = '';
 
@@ -85,7 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // General administrators select context without changing their own membership.
-$actor=alphano_user();$requested=$_POST['org']??$_GET['org']??null;
+$actor=alphanoUser();$requested=$_POST['org']??$_GET['org']??null;
 if($requested===null&&!empty($actor['admin'])&&empty($actor['organizzazione'])&&($_SERVER['REQUEST_METHOD']??'GET')==='GET'){header('Location: /organizzazioni/');exit;}
 $selectedOrg=$requested===null?(int)$actor['organizzazione']:filter_var($requested,FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
 if(!$selectedOrg|| (empty($actor['admin'])&&($selectedOrg!==(int)$actor['organizzazione']||empty($actor['adminorganizzazione'])))){http_response_code(403);exit('Seleziona un’organizzazione che puoi amministrare.');}
@@ -144,8 +144,8 @@ $electiontime = false;
 $votetime     = false;
 $pgcity       = [];
 foreach ($listacity as $cid => $cdata) {
-    $inElection = ElectionTime($cid);
-    $inVoting   = VoteTime($cid);
+    $inElection = electionTime($cid);
+    $inVoting   = voteTime($cid);
     if ($cdata['elezioni'] && ($inElection || $inVoting)) {
         if ($inElection) { $electiontime = true; }
         if ($inVoting)   { $votetime     = true; }
@@ -191,7 +191,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (in_array($action,['addcarica','modifycarica'],true) && !$db->query('SELECT 1 FROM ramiorganizzazioni WHERE id=? AND organizzazione=?',[(int)($_POST['ramo'] ?? 0),$org])) {
         http_response_code(403); exit('Ramo non appartenente alla tua organizzazione');
     }
-    $groupActionResult=alphano_group_admin_action('organizzazioni',$org,$idpg,(string)$action,$_POST,$_FILES);
+    $groupActionResult=alphanoGroupAdminAction('organizzazioni',$org,$idpg,(string)$action,$_POST,$_FILES);
     if ($groupActionResult!==null) { $msg=$groupActionResult; }
     else { switch ($action) {
         case 'admitpg':
@@ -384,9 +384,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $cid = (int)($_POST['city'] ?? 0);
             $pid = (int)($_POST['pg'] ?? 0);
             $prg = trim($_POST['programma'] ?? '');
-            if ($cid && $pid && $prg && isset($pgcity[$cid][$pid]) && ElectionTime($cid)) {
+            if ($cid && $pid && $prg && isset($pgcity[$cid][$pid]) && electionTime($cid)) {
                 $costo = (int)$listacity[$cid]['costoelezioni'];
-                $res   = InserisciCandidato($budget, $costo, $pid, $cid, $prg, $org);
+                $res   = inserisciCandidato($budget, $costo, $pid, $cid, $prg, $org);
                 $msg   = $res === true
                     ? 'Candidato correttamente inserito'
                     : (string)$res;

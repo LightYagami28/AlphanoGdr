@@ -20,7 +20,7 @@ function ai_verdict_receipts(int $vid):array {
   }
   if(in_array($e['effect_type'],['note','condition'],true)){ $parts[]='Annotazione del Master registrata'; }
   if(!$changes&&$parts){ $add('note','Registrazione',implode(' · ',$parts)); }
-  if($e['effect_type']==='money'){$m0=$before['money']['player_balance']??null;$m1=$after['money']['player_balance']??null;if($m0!==null&&$m1!==null){$d=(int)$m1-(int)$m0;$parts[]=alphano_currency_text('Corone: ').($d>0?'+':'').$d;$add('money',alphano_currency_text('Corone'),($d>0?'+':'').$d,$d);}}
+  if($e['effect_type']==='money'){$m0=$before['money']['player_balance']??null;$m1=$after['money']['player_balance']??null;if($m0!==null&&$m1!==null){$d=(int)$m1-(int)$m0;$parts[]=alphanoCurrencyText('Corone: ').($d>0?'+':'').$d;$add('money',alphanoCurrencyText('Corone'),($d>0?'+':'').$d,$d);}}
   if($e['effect_type']==='disarm'){$value='Disarmato: '.aiText((string)($before['item']['nome']??'Arma'),140);$parts[]=$value;$add('item','Equipaggiamento',$value,0);}
   if($e['effect_type']==='item'){
    $item=$after['item']??$before['item']??[];$catalog=(int)($item['uid']??0);$name=trim((string)($item['nome']??''));
@@ -67,8 +67,8 @@ function ai_npc_continuity(int $sid,int $nid):array {
   }
   // MasterKey in a player's prose is not an outcome. Classify the actual
   // public HTML body, and only then retain the latest two human directions.
-  foreach($db->query('SELECT c.id,c.pg,c.dest,c.msg,c.ora FROM chat c JOIN utenti u ON u.id=c.pg WHERE '.implode(' AND ',$where).alphano_chat_live_filter().' ORDER BY c.id DESC',$params) as $r){
-   $entry=alphano_session_context_entry($r);if(($entry['kind']??'')!=='master'){ continue; }
+  foreach($db->query('SELECT c.id,c.pg,c.dest,c.msg,c.ora FROM chat c JOIN utenti u ON u.id=c.pg WHERE '.implode(' AND ',$where).alphanoChatLiveFilter().' ORDER BY c.id DESC',$params) as $r){
+   $entry=alphanoSessionContextEntry($r);if(($entry['kind']??'')!=='master'){ continue; }
    $directions[]=aiText($entry['text'],600);if(count($directions)===2){ break; }
   }
  }
@@ -96,7 +96,7 @@ function ai_npc_last_actions(array $v):void {
   $key='verdict:'.$v['id'].':last-action:'.$nid;if($db->query('SELECT id FROM ai_quest_outbox WHERE event_key=?',[$key])){ continue; }
   $name=$n['name'];$p=ai_npc_profile($n);$injury=aiText(preg_replace('/;?\s*Esito fatale.*$/u','',$p['wounds']),300);
   $text=$name.' non riesce più a sostenersi. '.($injury!==''?'Le ferite — '.$injury.' — accompagnano gli ultimi istanti. ':'').'Il respiro si spezza; le dita si allentano, il corpo si abbandona al suolo. L’ultimo sguardo resta rivolto al luogo della sua ultima scena, poi si spegne. '.$name.' muore.';
-  $html='<div class="ai-narration scene-note" data-npc-id="'.$nid.'" data-message-type="action"><div class="chat-character-header"><time>'.date('H:i').'</time> '.ai_profile_link($n).'</div><div class="chat-character-text">'.alphano_chat_text($text,$p['sex'],true).'</div></div>';
+  $html='<div class="ai-narration scene-note" data-npc-id="'.$nid.'" data-message-type="action"><div class="chat-character-header"><time>'.date('H:i').'</time> '.ai_profile_link($n).'</div><div class="chat-character-text">'.alphanoChatText($text,$p['sex'],true).'</div></div>';
   aiQuestPublish($sid,$key,'',$html);
   $db->execute("UPDATE ai_quest_cast SET active=0,state=JSON_SET(state,'$.dead',true) WHERE session_id=? AND kind='npc' AND actor_id=?",[$sid,$nid]);
   aiAppendMemory($n['chat_key'],0,$text);aiQuestAudit($sid,'npc_last_action',['npc'=>$nid,'verdict'=>(int)$v['id']]);

@@ -69,7 +69,7 @@ function renderStatuto(?string $raw): void {
     $clean = html_entity_decode($clean, ENT_QUOTES, 'UTF-8');
     // 3) (Opzionale) Se vuoi consentire solo alcuni tag:
     //    $clean = strip_tags($clean, '<p><a><strong><em><ul><li><h1><h2><h3><h4>');
-    echo alphano_sanitize_html($clean);
+    echo alphanoSanitizeHtml($clean);
 }
 ?>
 <!DOCTYPE html>
@@ -103,6 +103,6 @@ function renderStatuto(?string $raw): void {
     </div>
 </div>
 
-<?php ClosePage(); ?>
+<?php closePage(); ?>
 </body>
 </html>

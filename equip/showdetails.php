@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 use Alphano\Database\PDOMySQLDriver;
 
-require_once __DIR__ . '/../libs/kernel.inc.php';      // ConnectDB(), initSession()
+require_once __DIR__ . '/../libs/kernel.inc.php';      // connectDB(), initSession()
 require_once __DIR__ . '/../libs/libgrafica.inc.php';
 require_once __DIR__ . '/../libs/libpg.inc.php';       // GetIDPG(), GetPGID(), EnsureAdmin(), ProcessRazza(), ProcessAl()
 require_once __DIR__ . '/../libs/libequip.inc.php';    // getInformation(), checkSlot(), ecc.

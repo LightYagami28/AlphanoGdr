@@ -16,9 +16,9 @@ require_once __DIR__.'/../libs/profile-symbols.inc.php';
 
 
 function h(mixed $value): string { return htmlspecialchars((string)($value ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
-$idpg = alphano_require_login();
+$idpg = alphanoRequireLogin();
 $db = getDB();
-$row = alphano_user();
+$row = alphanoUser();
 // One mapping shared by direct saves and the historical JSON backup format.
 $profileFields = [
     'avatar'=>'urlavatar', 'avatar2'=>'urlavatar2', 'banner'=>'urlbanner', 'banner2'=>'urlbanner2', 'musica'=>'urlmusica', 'musica2'=>'urlmusica2',
@@ -27,24 +27,24 @@ $profileFields = [
     'storiapg'=>'txtstoria', 'contatti'=>'txtcontatti', 'provincia'=>'provincia', 'telegram'=>'telegram', 'discord'=>'discord',
 ];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    alphano_require_csrf();
+    alphanoRequireCsrf();
     $input = $_POST;
-    if (isset($input['azione']) && !is_string($input['azione'])) { alphano_fail('Azione non valida.', 400); }
+    if (isset($input['azione']) && !is_string($input['azione'])) { alphanoFail('Azione non valida.', 400); }
     $action = $input['azione'] ?? '';
     if ($action === 'cancel') {
         header('Location: ./?Id=' . $idpg);
         exit;
     }
-    foreach (['txtpass', 'current_password'] as $passwordField) { if (isset($input[$passwordField]) && !is_string($input[$passwordField])) { alphano_fail('Password non valida.', 400); } }
+    foreach (['txtpass', 'current_password'] as $passwordField) { if (isset($input[$passwordField]) && !is_string($input[$passwordField])) { alphanoFail('Password non valida.', 400); } }
     if ($action === 'loadfile') {
         $upload = $_FILES['fileprofilo'] ?? [];
         if (($upload['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK || ($upload['size'] ?? 0) > min(MaxUploadFileSize, 1048576)
             || !is_uploaded_file($upload['tmp_name'] ?? '') || strtolower(pathinfo($upload['name'] ?? '', PATHINFO_EXTENSION)) !== 'json') {
-            alphano_fail('Carica un file JSON valido (massimo 1 MB).', 400);
+            alphanoFail('Carica un file JSON valido (massimo 1 MB).', 400);
         }
         try { $decoded=json_decode(ltrim(file_get_contents($upload['tmp_name']), "\xEF\xBB\xBF"), true, 64, JSON_THROW_ON_ERROR); }
-        catch (JsonException $e) { alphano_fail('Il backup JSON non è valido.',400); }
-        if (!isset($decoded['profilo']) || !is_array($decoded['profilo'])) { alphano_fail('Il backup non contiene un profilo.',400); }
+        catch (JsonException $e) { alphanoFail('Il backup JSON non è valido.',400); }
+        if (!isset($decoded['profilo']) || !is_array($decoded['profilo'])) { alphanoFail('Il backup non contiene un profilo.',400); }
         $input = $decoded['profilo'];
         // Backups from the old controller used txtamicizie/txtstoriapg/txtprovincia.
         foreach (['txtamicizie'=>'txtamici','txtstoriapg'=>'txtstoria','txtprovincia'=>'provincia'] as $old=>$new) {
@@ -54,9 +54,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'savefile') {
         $export=[];
         foreach ($profileFields as $field=>$key) {
-            if (isset($input[$key]) && !is_scalar($input[$key])) { alphano_fail('Valore non valido per '.$key,400); }
+            if (isset($input[$key]) && !is_scalar($input[$key])) { alphanoFail('Valore non valido per '.$key,400); }
             $export[$key]=(string)($input[$key] ?? $row[$field] ?? '');
-            if(in_array($field,['telegram','discord'],true)){try{$export[$key]=alphano_profile_contact_value($field,$export[$key]);}catch(DomainException $e){alphano_fail($e->getMessage(),400);}}
+            if(in_array($field,['telegram','discord'],true)){try{$export[$key]=alphanoProfileContactValue($field,$export[$key]);}catch(DomainException $e){alphanoFail($e->getMessage(),400);}}
         }
         header('Content-Type: application/json; charset=utf-8');
         header('Content-Disposition: attachment; filename="profilo_'.$idpg.'.json"');
@@ -66,40 +66,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $sets=[]; $params=[];
     foreach ($profileFields as $field=>$key) {
         if (!array_key_exists($key,$input)) { continue; }
-        if (!is_scalar($input[$key])) { alphano_fail('Valore non valido per '.$key,400); }
+        if (!is_scalar($input[$key])) { alphanoFail('Valore non valido per '.$key,400); }
         $value=(string)$input[$key];
         if(in_array($field,['telegram','discord'],true)){
-            if(!alphano_profile_contacts_ready()){ alphano_fail('Contatti temporaneamente non disponibili.',503); }
-            try{$value=alphano_profile_contact_value($field,$value);}catch(DomainException $e){alphano_fail($e->getMessage(),400);}
+            if(!alphanoProfileContactsReady()){ alphanoFail('Contatti temporaneamente non disponibili.',503); }
+            try{$value=alphanoProfileContactValue($field,$value);}catch(DomainException $e){alphanoFail($e->getMessage(),400);}
         }
-        if (strlen($value)>100000) { alphano_fail('Testo troppo lungo.',400); }
+        if (strlen($value)>100000) { alphanoFail('Testo troppo lungo.',400); }
         if (in_array($field,['avatar','avatar2','banner','banner2','musica','musica2'],true)) {
             $value=trim($value);
             if (strlen($value)>255 || ($value!=='' && preg_match('/[\x00-\x20<>"\x27]/',$value))
-                || ($value!=='' && preg_match('/^[a-z][a-z0-9+.-]*:/i',$value) && !preg_match('#^https?://#i',$value))) { alphano_fail('Indirizzo immagine o audio non valido.',400); }
+                || ($value!=='' && preg_match('/^[a-z][a-z0-9+.-]*:/i',$value) && !preg_match('#^https?://#i',$value))) { alphanoFail('Indirizzo immagine o audio non valido.',400); }
         }
-        if (in_array($field,['provincia','contatti'],true) && strlen($value)>($field==='provincia'?50:255)) { alphano_fail('Campo troppo lungo: '.$key,400); }
+        if (in_array($field,['provincia','contatti'],true) && strlen($value)>($field==='provincia'?50:255)) { alphanoFail('Campo troppo lungo: '.$key,400); }
         $sets[]='`'.$field.'`=?'; $params[]=$value;
     }
     if (!empty($input['txtpass']) && $action !== 'loadfile') {
         $password=(string)$input['txtpass'];
-        if (strlen($password)<8 || strlen($password)>200) { alphano_fail('La password deve contenere almeno 8 caratteri.',400); }
-        if (!alphano_password_verify((string)($input['current_password'] ?? ''), $row['password'])) { alphano_fail('La password attuale non è corretta.',400); }
+        if (strlen($password)<8 || strlen($password)>200) { alphanoFail('La password deve contenere almeno 8 caratteri.',400); }
+        if (!alphanoPasswordVerify((string)($input['current_password'] ?? ''), $row['password'])) { alphanoFail('La password attuale non è corretta.',400); }
         $sets[]='password=?'; $params[]=password_hash($password,PASSWORD_DEFAULT);
     }
     if (empty($row['upload'])) {
-        foreach (['filemusica','filemusica2'] as $key) { if (($_FILES[$key]['error'] ?? UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_NO_FILE) { alphano_fail('Caricamento file non abilitato per questo profilo.',403); } }
+        foreach (['filemusica','filemusica2'] as $key) { if (($_FILES[$key]['error'] ?? UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_NO_FILE) { alphanoFail('Caricamento file non abilitato per questo profilo.',403); } }
     }
     {
         foreach (['avatar'=>'fileavatar','avatar2'=>'fileavatar2','banner'=>'filebanner','banner2'=>'filebanner2','musica'=>'filemusica','musica2'=>'filemusica2'] as $field=>$key) {
             if(str_starts_with($field,'musica')&&empty($row['upload'])){ continue; }
             $file=$_FILES[$key] ?? [];
             if (($file['error'] ?? UPLOAD_ERR_NO_FILE)===UPLOAD_ERR_NO_FILE) { continue; }
-            if (($file['error'] ?? -1)!==UPLOAD_ERR_OK || ($file['size'] ?? 0)>MaxUploadFileSize || !is_uploaded_file($file['tmp_name'] ?? '')) { alphano_fail('Caricamento non riuscito o file troppo grande.',400); }
+            if (($file['error'] ?? -1)!==UPLOAD_ERR_OK || ($file['size'] ?? 0)>MaxUploadFileSize || !is_uploaded_file($file['tmp_name'] ?? '')) { alphanoFail('Caricamento non riuscito o file troppo grande.',400); }
             $mime=(new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']);
             $types=(str_starts_with($field,'avatar')||str_starts_with($field,'banner')) ? ['image/jpeg'=>'jpg','image/png'=>'png','image/gif'=>'gif','image/webp'=>'webp'] : ['audio/mpeg'=>'mp3','audio/ogg'=>'ogg','application/ogg'=>'ogg','audio/wav'=>'wav','audio/x-wav'=>'wav'];
-            if (!isset($types[$mime])) { alphano_fail('Formato file non consentito.',400); }
-            if(str_starts_with($mime,'image/')){$dimensions=@getimagesize($file['tmp_name']);if(!$dimensions||$dimensions[0]*$dimensions[1]>36000000){ alphano_fail('Immagine non valida o troppo grande (massimo 36 megapixel).',400); }}
+            if (!isset($types[$mime])) { alphanoFail('Formato file non consentito.',400); }
+            if(str_starts_with($mime,'image/')){$dimensions=@getimagesize($file['tmp_name']);if(!$dimensions||$dimensions[0]*$dimensions[1]>36000000){ alphanoFail('Immagine non valida o troppo grande (massimo 36 megapixel).',400); }}
             $directory=htmlroot.'/profili/pg/'.$idpg;
             if (!is_dir($directory) && !mkdir($directory,0755,true)) { throw new RuntimeException('Impossibile creare la cartella del profilo'); }
             $filename=$field.'-'.bin2hex(random_bytes(8)).'.'.$types[$mime];
@@ -113,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (isset($input['experience_present'])) {
             $patch=[];
             foreach (['map_effects','map_lighting','ambient_sound','notification_sound'] as $key) {
-                if (isset($input[$key]) && $input[$key] !== '1') { alphano_fail('Preferenza non valida.',400); }
+                if (isset($input[$key]) && $input[$key] !== '1') { alphanoFail('Preferenza non valida.',400); }
                 $patch[$key]=isset($input[$key]);
             }
             foreach (['ambient_volume','notification_volume'] as $key) {
@@ -124,15 +124,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $patch['sound_theme']=$input['sound_theme']??'';
             if(isset($input['relationship_effects'])){ $patch['relationship_effects']=$input['relationship_effects']; }
             if(isset($input['chess_skin'])){ $patch['chess_skin']=$input['chess_skin']; }
-            foreach(alphano_email_categories() as $key=>$_){ $patch['email_'.$key]=isset($input['email_'.$key]); }
-            alphano_experience_save($idpg,$patch);
+            foreach(alphanoEmailCategories() as $key=>$_){ $patch['email_'.$key]=isset($input['email_'.$key]); }
+            alphanoExperienceSave($idpg,$patch);
         }
         $db->commit();
-    } catch (Throwable $e) { if($db->inTransaction()){ $db->rollBack(); } if($e instanceof DomainException){ alphano_fail($e->getMessage(),400); }throw $e; }
+    } catch (Throwable $e) { if($db->inTransaction()){ $db->rollBack(); } if($e instanceof DomainException){ alphanoFail($e->getMessage(),400); }throw $e; }
     header('Location: ./?Id='.$idpg);
     exit;
 }
-$experienceSettings=alphano_experience_settings($idpg);
+$experienceSettings=alphanoExperienceSettings($idpg);
 $dati=$row;
 $doppiRaw=TrovaDoppi($idpg) ?: []; $doppi=[];
 if ($doppiRaw) { foreach ($db->query('SELECT id,nome FROM utenti WHERE id IN ('.implode(',',array_fill(0,count($doppiRaw),'?')).')',$doppiRaw) as $r) { $doppi[(int)$r['id']]=$r['nome']; } }
@@ -159,12 +159,12 @@ $province = [
   "Varese (VA)","Venezia (VE)","Verbania (VB)","Vercelli (VC)","Verona (VR)",
   "Vibo Valentia (VV)","Vicenza (VI)","Viterbo (VT)"
 ];
-$editorArt=alphano_profile_banner(array_replace($dati,['vampire_human_form'=>0]));
-$editorTransformation=alphano_transformation_state($dati);
+$editorArt=alphanoProfileBanner(array_replace($dati,['vampire_human_form'=>0]));
+$editorTransformation=alphanoTransformationState($dati);
 $editorHasAltForm=in_array($editorTransformation['kind'],['lycan','vampire'],true);
 $editorAltForm=$editorTransformation['kind']==='vampire'?'Forma umana':'Forma licantropo';
-$editorPortrait = alphano_profile_portrait($dati)['url'];
-$editorVisibleRace=alphano_visible_race($dati);
+$editorPortrait = alphanoProfilePortrait($dati)['url'];
+$editorVisibleRace=alphanoVisibleRace($dati);
 $editorIdentity = ProcessRazza($editorVisibleRace, (string)$dati['sesso']) . ' ' . h(implode(' · ', array_filter([GetRazza($editorVisibleRace), GetEtnia((int)$dati['etnia']), ProcessAl((string)$dati['allineamento'])])));
 $editorMemberships = [
     'Organizzazione' => h(GetOrg((int)$dati['organizzazione'])),
@@ -173,4 +173,4 @@ $editorMemberships = [
     'Carica di corporazione' => GetCaricaCorp((int)$dati['corporazione'], (int)$dati['caricacorporazione']),
 ];
 require __DIR__ . '/../templates/profiles/edit.php';
-ClosePage();
+closePage();

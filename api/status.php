@@ -12,7 +12,7 @@ require_once __DIR__.'/../libs/revelations.inc.php';
 require_once __DIR__.'/../libs/elections.inc.php';
 require_once __DIR__.'/../libs/pvt/rentals.inc.php';
 require_once __DIR__.'/../libs/navigation-context.inc.php';
-alphano_rental_expire();
+alphanoRentalExpire();
 
 
 use Alphano\Database\PDOMySQLDriver;
@@ -21,27 +21,27 @@ use Alphano\Database\PDOMySQLDriver;
  * 1) Identificazione utente
  * ----------------------------------------------------------------*/
 $idpg = GetIDPG(true);
-alphano_presence_touch($idpg);
+alphanoPresenceTouch($idpg);
 
 /* ------------------------------------------------------------------
  * 2) Meteo + alba/tramonto
  * ----------------------------------------------------------------*/
-$meteo             = GetMeteo();
-[$alba, $tramonto] = SorgeCala();
+$meteo             = getMeteo();
+[$alba, $tramonto] = sorgeCala();
 
 /* ------------------------------------------------------------------
  * 3) Luna
  * ----------------------------------------------------------------*/
-$lunaPhase  = FaseLunare();
-$daysToFull = DaysToFullMoon();
-$isLycanNow = LicanTime();
+$lunaPhase  = faseLunare();
+$daysToFull = daysToFullMoon();
+$isLycanNow = licanTime();
 
 /* ------------------------------------------------------------------
  * 4) User & posta
  * ----------------------------------------------------------------*/
 $db   = db();
 require_once __DIR__.'/../libs/transformations.inc.php';
-alphano_transformation_sync($idpg);
+alphanoTransformationSync($idpg);
 $user = $db->query('SELECT * FROM utenti WHERE id = ?', [$idpg])[0];
 
 $leggere = (int)$db->query(
@@ -57,7 +57,7 @@ $totMail = (int)$db->query(
 )[0]['n'];
 
 if ($user['bloccato']) {
-    UnLockUser($idpg);
+    unLockUser($idpg);
 }
 
 /* ------------------------------------------------------------------
@@ -108,7 +108,7 @@ if ($user['admin']) { $menu[] = ['url'=>'/admin/welcome.php','label'=>'Messaggio
 if ($user['admin'] || $user['fatepower']) { $menu[] = ['url'=>'/admin/malus.php','label'=>'Vulnerabilità e condizioni','w'=>1100,'h'=>820]; }
 if ($user['admin']) { $menu[] = ['url'=>'/admin/rpg.php','label'=>'Razze, abilità ed esperienza','w'=>1200,'h'=>850]; }
 if ($user['admin']) { $menu[] = ['url'=>'/admin/master-ia.php','label'=>'Master IA','w'=>1100,'h'=>800]; }
-if (alphano_relations_staff($idpg)) { $menu[] = ['url'=>'/admin/png-relazioni.php','label'=>'Relazioni dei PNG','w'=>1100,'h'=>800]; }
+if (alphanoRelationsStaff($idpg)) { $menu[] = ['url'=>'/admin/png-relazioni.php','label'=>'Relazioni dei PNG','w'=>1100,'h'=>800]; }
 if ($user['admin'] || $user['fatepower']) {
     $menu[] = ['url'=>'/sessione/sessione.php','label'=>'Regia sessione','w'=>1250,'h'=>880];
     $menu[] = ['url'=>'/discussioni/?tipo=M','label'=>'Tracce Quest','w'=>800,'h'=>600];
@@ -179,8 +179,8 @@ if ($user['admin']) {
 /* ----- ancestrale ----- */
 require_once __DIR__.'/../libs/lineages.inc.php';
 require_once __DIR__.'/../libs/lycan.inc.php';
-if(lineage_vampire_can_infect($user)){ $menu[]=['url'=>'/admin/vampiri.php','label'=>'Infetta · Stirpe vampirica','w'=>800,'h'=>650]; }
-if (alphano_transformation_state($user)['visible']||alphano_lycan_can_grant($user)) {
+if(lineageVampireCanInfect($user)){ $menu[]=['url'=>'/admin/vampiri.php','label'=>'Infetta · Stirpe vampirica','w'=>800,'h'=>650]; }
+if (alphanoTransformationState($user)['visible']||alphanoLycanCanGrant($user)) {
     $menu[] = ['url'=>'/admin/ancestrali.php','label'=>'Trasformazione','w'=>500,'h'=>700];
 }
 
@@ -196,8 +196,8 @@ if (!$menu) {
  * 7) Output JSON
  * ----------------------------------------------------------------*/
 if(!empty($user['admin'])){ $menu[]=['url'=>'/admin/setup.php','label'=>'Configurazione del gioco','w'=>1100,'h'=>850];$menu[]=['url'=>'/admin/appearance.php','label'=>'Template e homepage','w'=>1200,'h'=>850];$menu[]=['url'=>'/admin/settings.php','label'=>'Impostazioni del gioco','w'=>1100,'h'=>850];$menu[]=['url'=>'/admin/world.php','label'=>'Gestione del mondo','w'=>1100,'h'=>850];$menu[]=['url'=>'/admin/world-map.php','label'=>'Mappa visiva','w'=>1400,'h'=>900];$menu[]=['url'=>'/admin/privacy.php','label'=>'Cookie e privacy','w'=>1100,'h'=>850];}
-if(!alphano_config('ai_enabled')){ $menu=array_values(array_filter($menu,static fn($item)=>!str_contains($item['url'],'ai')&&!str_contains($item['url'],'png-relazioni'))); }
-$navigation=alphano_navigation($menu);
+if(!alphanoConfig('ai_enabled')){ $menu=array_values(array_filter($menu,static fn($item)=>!str_contains($item['url'],'ai')&&!str_contains($item['url'],'png-relazioni'))); }
+$navigation=alphanoNavigation($menu);
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 
@@ -207,12 +207,12 @@ echo json_encode([
     'alba'         => date('H:i', $alba),
     'tramonto'     => date('H:i', $tramonto),
 
-    'worldCalendar' => alphano_world_calendar(),
-    'weatherIcons' => alphano_weather_icons($meteo,$lunaPhase,time()<$alba||time()>=$tramonto),
+    'worldCalendar' => alphanoWorldCalendar(),
+    'weatherIcons' => alphanoWeatherIcons($meteo,$lunaPhase,time()<$alba||time()>=$tramonto),
     'cielo'        => abs($meteo['cielo']),
     'descrCielo'   => $GLOBALS['cielo'][$meteo['cielo']],
     'tempoCode'    => abs($meteo['tempo']),
-    'descrTempo'   => GetDescrTempo($meteo['tempo'], $meteo['temperatura']),
+    'descrTempo'   => getDescrTempo($meteo['tempo'], $meteo['temperatura']),
     'ventoCode'    => abs($meteo['vento']),
     'descrVento'   => $GLOBALS['vento'][$meteo['vento']],
     'temperatura'  => (int)$meteo['temperatura'],
@@ -221,12 +221,12 @@ echo json_encode([
     'daysToFull'   => $daysToFull,
 
     'postaNonLette'=> $leggere,
-    'welcome'      => alphano_welcome_message($idpg),
-    'civicInvitation'=>alphano_elections_invitation($idpg),
-    'csrfToken'    => alphano_csrf_token(),
+    'welcome'      => alphanoWelcomeMessage($idpg),
+    'civicInvitation'=>alphanoElectionsInvitation($idpg),
+    'csrfToken'    => alphanoCsrfToken(),
 
     'menu'         => $navigation['items'],
     'menuGroups'   => $navigation['groups'],
-    'recentScene'  => alphano_navigation_recent_scene($user),
+    'recentScene'  => alphanoNavigationRecentScene($user),
     'status'       => $isLycanNow ? 1 : 0,
 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

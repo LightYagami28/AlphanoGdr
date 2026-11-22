@@ -13,9 +13,9 @@ use Alphano\Database\PDOMySQLDriver;
  * @param int     $salva      flag storico, mantenuto per compatibilità; le missive personali conservano sempre la copia inviata
  * @return bool
  */
-function InviaMissiva(string $oggetto, string $messaggio, int $destinatario, int $mittente = 0, int $salva = 0): bool
+function inviaMissiva(string $oggetto, string $messaggio, int $destinatario, int $mittente = 0, int $salva = 0): bool
 {
-    $db = $GLOBALS['db'] ?? ConnectDB();
+    $db = $GLOBALS['db'] ?? connectDB();
     // A conversation must retain both directions. Hiding a sent copy is now an
     // explicit mailbox action, never an accidental side effect of sending it.
     if ($mittente > 0) { $salva = 0; }
@@ -47,9 +47,9 @@ SQL;
  *
  * @param int $idpg
  */
-function PurgePosta(int $idpg): void
+function purgePosta(int $idpg): void
 {
-    $db = $GLOBALS['db'] ?? ConnectDB();
+    $db = $GLOBALS['db'] ?? connectDB();
 
     // 2) Cancello i messaggi più vecchi di 14 giorni (no baule),
     //    o quelli contrassegnati cancellati da entrambe le parti

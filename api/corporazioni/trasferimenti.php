@@ -34,7 +34,7 @@ function respond(array $data): void {
 
 try {
     // ─── autenticazione ─────────────────────────────────────────────────────
-    $idpg = alphano_require_login(true);
+    $idpg = alphanoRequireLogin(true);
     if ($idpg === null) {
         respond(['success'=>false,'error'=>true,'message'=>'Non autenticato']);
     }
@@ -50,7 +50,7 @@ try {
         respond(['success'=>false,'error'=>true,'message'=>'Nessuna corporazione selezionata']);
     }
 
-    try{$corp=alphano_corporation_context($user,$_POST['corp']??$_GET['corp']??null);}catch(DomainException $e){http_response_code($e->getCode());respond(['success'=>false,'error'=>true,'message'=>$e->getMessage()]);}
+    try{$corp=alphanoCorporationContext($user,$_POST['corp']??$_GET['corp']??null);}catch(DomainException $e){http_response_code($e->getCode());respond(['success'=>false,'error'=>true,'message'=>$e->getMessage()]);}
     $pgname        = $user['nome'];
     $isAdminTransf = !empty($user['admin']) || (bool)$user['admintrasfcorp'] || (bool)$user['admincorporazione'];
     if (in_array((int)$user['razza'],[ALPHANO_RACE_SPIRIT,ALPHANO_RACE_DEAD_VAMPIRE,ALPHANO_RACE_LEGACY_SPIRIT],true)) { http_response_code(403); respond(['success'=>false,'error'=>true,'message'=>'Non puoi gestire il commercio quando sei morto']); }
@@ -61,13 +61,13 @@ try {
     if ($azione!=='list' && ($_SERVER['REQUEST_METHOD'] ?? 'GET')!=='POST') {
         http_response_code(405); header('Allow: GET, POST'); respond(['success'=>false,'error'=>true,'message'=>'Usare POST per modificare dati']);
     }
-    if (($_SERVER['REQUEST_METHOD'] ?? 'GET')==='POST') { alphano_require_csrf(true); }
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET')==='POST') { alphanoRequireCsrf(true); }
 
 
     if (in_array($azione,['adminorder','admintransf','consegna','prendiincarico'],true)) {
         foreach (['id','prezzo','qta'] as $field) {
             if (isset($_POST[$field]) && commercioIntero($_POST[$field],1,$field==='qta' ? 10000 : 2147483647)===null) {
-                http_response_code(400); respond(['success'=>false,'error'=>true,'message'=>alphano_currency_text('Inserisci quantità e Corone intere nei limiti consentiti')]);
+                http_response_code(400); respond(['success'=>false,'error'=>true,'message'=>alphanoCurrencyText('Inserisci quantità e Corone intere nei limiti consentiti')]);
             }
         }
     }
@@ -234,7 +234,7 @@ case 'admintransf':
         foreach (getTransazioniCorp($corp, $idpg) as $r) {
             $transazioni[] = [
                 'id'           => (int)$r['id'],
-                'data'         => FormatTimestamp($r['data']),
+                'data'         => formatTimestamp($r['data']),
                 'pg'           => (int)$r['pg'],
                 'interlocutore'=> $r['interlocutore'],
                 'nomeobj'      => $r['nomeobj'],
@@ -252,7 +252,7 @@ case 'admintransf':
         foreach (getStoricoAcqCorp($corp) as $r) {
             $storicoAcq[] = [
                 'id'           => (int)$r['id'],
-                'data'         => FormatTimestamp($r['data']),
+                'data'         => formatTimestamp($r['data']),
                 'pg'           => (int)$r['pg'],
                 'pgcorp'       => (int)$r['pgcorp'],
                 'pgcorpName'   => GetPGFromID((int)$r['pgcorp']),
@@ -269,7 +269,7 @@ case 'admintransf':
         $storicoVen=[];
         foreach (getStoricoVenCorp($corp) as $r) {
             $storicoVen[]=[
-                'id'=>(int)$r['id'],'data'=>FormatTimestamp($r['data']),
+                'id'=>(int)$r['id'],'data'=>formatTimestamp($r['data']),
                 'pg'=>(int)$r['pg'],'pgcorp'=>(int)$r['pgcorp'],
                 'pgcorpName'=>GetPGFromID((int)$r['pgcorp']),
                 'interlocutore'=>$r['interlocutore'],'nomeobj'=>$r['nomeobj'],
@@ -284,7 +284,7 @@ case 'admintransf':
         foreach (getOrdiniCorp($corp) as $r) {
             $ordini[] = [
                 'id'           => (int)$r['id'],
-                'data'         => FormatTimestamp($r['data']),
+                'data'         => formatTimestamp($r['data']),
                 'pg'           => (int)$r['pg'],
                 'pgcorp'       => $r['pgcorp'] ? (int)$r['pgcorp'] : 0,
                 'pgcorpName'   => $r['pgcorp'] ? GetPGFromID((int)$r['pgcorp']) : null,
@@ -303,7 +303,7 @@ case 'admintransf':
         foreach (getOrdiniPGCorp($corp, $idpg) as $r) {
             $ordiniPresi[] = [
                 'id'           => (int)$r['id'],
-                'data'         => FormatTimestamp($r['data']),
+                'data'         => formatTimestamp($r['data']),
                 'pg'           => (int)$r['pg'],
                 'interlocutore'=> $r['interlocutore'],
                 'nomeobj'      => $r['nomeobj'],
@@ -324,7 +324,7 @@ case 'admintransf':
             $magazzino[] = [
                 'materia' => $materia,
                 'name' => $materialArt[$materia]['shortDesc']??ucfirst($materia),
-                'image' => alphano_equipment_image(rawurldecode($materialArt[$materia]['immagine']??'')),
+                'image' => alphanoEquipmentImage(rawurldecode($materialArt[$materia]['immagine']??'')),
                 'qta'     => $qta,
             ];
         }
@@ -333,9 +333,9 @@ case 'admintransf':
         $consegne = [];
         foreach (getConsegne($corp, $idpg) as $r) {
             $consegne[] = [
-                'image' => alphano_equipment_image(rawurldecode($r['immagine']??'')),
+                'image' => alphanoEquipmentImage(rawurldecode($r['immagine']??'')),
                 'id'           => (int)$r['id'],
-                'data'         => FormatTimestamp($r['data']),
+                'data'         => formatTimestamp($r['data']),
                 'pg'           => (int)$r['pg'],
                 'interlocutore'=> $r['interlocutore'],
                 'nomeobj'      => $r['nomeobj'],

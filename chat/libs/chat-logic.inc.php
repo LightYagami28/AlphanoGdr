@@ -33,7 +33,7 @@ function buildChatMessage(
     }
 
     // 1) aggiorno posizione
-    SetPosizione($position !== '' ? $position : $chat, $idpg, $chat);
+    setChatPosizione($position !== '' ? $position : $chat, $idpg, $chat);
 
     // 2) dati PG
     $pg = $db->query("SELECT * FROM utenti WHERE id = ?", [$idpg])[0] ?? null;
@@ -70,7 +70,7 @@ function buildChatMessage(
     $scriviPart = ! str_contains($partecipanti, ";{$idpg};");
 
     // 5) meteo (vampire damage)
-    $meteo = (int)(GetMeteo()['cielo'] ?? 0);
+    $meteo = (int)(getMeteo()['cielo'] ?? 0);
 
     // 6) preparazione markup
     $link  = "<a href=\"javascript:openProfileId('{$idpg}')\">";
@@ -78,7 +78,7 @@ function buildChatMessage(
     if ($umore) {
         $name .= '&nbsp;' . GetUmore($umore);
     }
-    $name='<a class="chat-character-name '.alphano_chat_gender((string)$pg['sesso']).'" href="javascript:openProfileId(\''.$idpg.'\')">'.$name.'</a>';
+    $name='<a class="chat-character-name '.alphanoChatGender((string)$pg['sesso']).'" href="javascript:openProfileId(\''.$idpg.'\')">'.$name.'</a>';
     if ($db->query("SELECT 1 FROM equippg WHERE slot='musica' AND idpg=?",[$idpg])) {
         $name .= '&nbsp;<img src=\"/chatimg/musica.gif\" border=\"0\">';
     }
@@ -90,12 +90,12 @@ function buildChatMessage(
 
     // Language follows the configured visible form; raw race retains the sunlight rules.
     require_once __DIR__.'/../../libs/transformations.inc.php';
-    $losesLanguage=alphano_loses_human_language($pg);
+    $losesLanguage=alphanoLosesHumanLanguage($pg);
     $render=function(string $text,bool $action=false)use($losesLanguage,$sesso,&$l):string{
-        if(!$losesLanguage){ return alphano_chat_text($text,$sesso,$action); }
-        $formatted=alphano_chat_lupine_text($text,$sesso,$action);if($formatted['speech']){ $l='1'; }return $formatted['html'];
+        if(!$losesLanguage){ return alphanoChatText($text,$sesso,$action); }
+        $formatted=alphanoChatLupineText($text,$sesso,$action);if($formatted['speech']){ $l='1'; }return $formatted['html'];
     };
-    $razImg   = processRazza(alphano_visible_race($pg),(int)$pg['etnia']);
+    $razImg   = processRazza(alphanoVisibleRace($pg),(int)$pg['etnia']);
     $razImg   = $link . $razImg . '</a>&nbsp;';
     $incog    = ($str[0] ?? '') === '|' && $pg['fatepower'] && $SessionIsRunning;
     $alline   = $incog ? 'N' : ($pg['allineamento'][1] ?? 'N');
@@ -202,7 +202,7 @@ function buildChatMessage(
                     [$idpg,$anim]
                 )[0]??null;
                 if ($row) {
-                    Consuma($idpg,(int)$row['id']);
+                    consuma($idpg,(int)$row['id']);
                     $out = $fAzo.$ora.'&nbsp;'
                          .htmlentities($row['nome']).', '
                          .htmlentities($row['shortDesc']).' di '
@@ -232,8 +232,8 @@ function buildChatMessage(
     // Persist a semantic presentation type; no schema change, also retained in saved logs.
     if($out!==''){$type=str_starts_with($str,'//')?'ooc':match($first){'+'=>'action','$'=>'whisper','&'=>'animal','#'=>'master',default=>'speech'};$out='<div data-message-type="'.$type.'">'.$out.'</div>';}
 
-    // 8) VampireDamage
-    if ((!function_exists('rpg_creation_ready')||!rpg_creation_ready()) && $vampiredamage && $out && $razza===2 && !LicanTime() && $meteo===0) {
+    // 8) vampireDamage
+    if ((!function_exists('rpgCreationReady')||!rpgCreationReady()) && $vampiredamage && $out && $razza===2 && !licanTime() && $meteo===0) {
         if (!str_contains($ferite,'Bruciature solari')) {
             $ferite .= ' Bruciature solari';
         }
@@ -242,13 +242,13 @@ function buildChatMessage(
                 'UPDATE utenti SET puntif=puntif-?,ferite=? WHERE id=?',
                 [maxpuntif/10,$ferite,$idpg]
             );
-            VampireDamage($chat,$pg['nome'],$sesso,false);
+            vampireDamage($chat,$pg['nome'],$sesso,false);
         } else {
             $db->execute(
                 'UPDATE utenti SET puntif=?,razza=7,ferite="" WHERE id=?',
                 [maxpuntif,$idpg]
             );
-            VampireDamage($chat,$pg['nome'],$sesso,true);
+            vampireDamage($chat,$pg['nome'],$sesso,true);
         }
     }
 

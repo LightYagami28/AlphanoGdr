@@ -1,10 +1,10 @@
 <?php
 $h=static fn($v)=>htmlspecialchars((string)($v??''),ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
-$death=$death??['npc_name'=>$npc['name'],'portrait'=>$profile['portrait']?:'/assets/placeholder.svg','death_at'=>0,'place_name'=>$npc['title'],'circumstance'=>'Decesso registrato. Le circostanze non sono documentate.','story'=>alphano_npc_mortality_plain((string)$profile['biography'],2500),'killer_kind'=>'unknown','killer_id'=>0,'killer_name'=>''];
+$death=$death??['npc_name'=>$npc['name'],'portrait'=>$profile['portrait']?:'/assets/placeholder.svg','death_at'=>0,'place_name'=>$npc['title'],'circumstance'=>'Decesso registrato. Le circostanze non sono documentate.','story'=>alphanoNpcMortalityPlain((string)$profile['biography'],2500),'killer_kind'=>'unknown','killer_id'=>0,'killer_name'=>''];
 $day=(int)$death['death_at']>0?date('d/m/Y',(int)$death['death_at']):'Data non documentata';
 $canCorrect=!empty($viewer['admin'])&&!empty($death['id'])&&str_starts_with((string)($death['source_key']??''),'admin:'.$npc['id'].':')&&($death['effect_key']??'')==='';
 ?>
-<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="csrf-token" content="<?=$h(alphano_csrf_token())?>"><title>In memoria di <?=$h($death['npc_name'])?></title><link rel="stylesheet" href="/css/theme/theme.css?v=<?=filemtime(dirname(__DIR__,2).'/css/theme/theme.css')?>"><?php if($canCorrect): ?><script src="/js/npc-memorial.js" defer></script><?php endif; ?></head>
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="csrf-token" content="<?=$h(alphanoCsrfToken())?>"><title>In memoria di <?=$h($death['npc_name'])?></title><link rel="stylesheet" href="/css/theme/theme.css?v=<?=filemtime(dirname(__DIR__,2).'/css/theme/theme.css')?>"><?php if($canCorrect): ?><script src="/js/npc-memorial.js" defer></script><?php endif; ?></head>
 <body class="ui-page"><main class="npc-memorial" aria-label="Memoriale di <?=$h($death['npc_name'])?>">
  <figure class="npc-memorial-stone">
   <img class="npc-memorial-background" src="/assets/placeholder.svg" alt="Lapide gotica illuminata da candele">

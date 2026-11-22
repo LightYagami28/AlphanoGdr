@@ -6,7 +6,7 @@
 <?php if ($notice): ?><p class="ui-notice" role="status"><?=$h($notice)?></p><?php endif; ?>
 <div class="welcome-admin-grid">
 <form method="post" class="welcome-admin-form panel">
- <input type="hidden" name="_csrf" value="<?=$h(alphano_csrf_token())?>">
+ <input type="hidden" name="_csrf" value="<?=$h(alphanoCsrfToken())?>">
  <input type="hidden" name="revision" value="<?=$h($form['revision'])?>">
  <h2>Accoglienza dei giocatori</h2>
  <label class="welcome-enabled"><input type="checkbox" name="enabled" value="1" <?=$form['enabled']?'checked':''?>> Mostra il benvenuto a tutti gli utenti</label>

@@ -42,7 +42,7 @@ function respond(array $data): void {
 
 try {
     // ─── autenticazione ──────────────────────────────────────────────────
-    $idpg = alphano_require_login(true);
+    $idpg = alphanoRequireLogin(true);
     if (!$idpg) { respond(['success'=>false,'error'=>true,'message'=>'Non autenticato']); }
 
     $db   = getDB();
@@ -65,13 +65,13 @@ try {
     if ($azione!=='list' && ($_SERVER['REQUEST_METHOD'] ?? 'GET')!=='POST') {
         http_response_code(405); header('Allow: GET, POST'); respond(['success'=>false,'error'=>true,'message'=>'Usare POST per modificare dati']);
     }
-    if (($_SERVER['REQUEST_METHOD'] ?? 'GET')==='POST') { alphano_require_csrf(true); }
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET')==='POST') { alphanoRequireCsrf(true); }
 
 
     if (in_array($azione,['adminorder','admintransf','consegna','prendiincarico'],true)) {
         foreach (['id','prezzo','qta'] as $field) {
             if (isset($_POST[$field]) && commercioIntero($_POST[$field],1,$field==='qta' ? 10000 : 2147483647)===null) {
-                http_response_code(400); respond(['success'=>false,'error'=>true,'message'=>alphano_currency_text('Inserisci quantità e Corone intere nei limiti consentiti')]);
+                http_response_code(400); respond(['success'=>false,'error'=>true,'message'=>alphanoCurrencyText('Inserisci quantità e Corone intere nei limiti consentiti')]);
             }
         }
     }
@@ -294,7 +294,7 @@ try {
             $transazioni[] = [
                 'id'=> (int)$r['id'],
                 'isOwner'=> (int)$r['pg']===$idpg,
-                'data'=>FormatTimestamp($r['data']),
+                'data'=>formatTimestamp($r['data']),
                 'pg'=> (int)$r['pg'],
                 'pgcorp'=> $pgcorpId,
                 'pgcorpName'=> $pgcorpName,
@@ -315,7 +315,7 @@ try {
             $transazioni[] = [
                 'id'=> (int)$r['id'],
                 'isOwner'=> (int)$r['pg']===$idpg,
-                'data'=>FormatTimestamp($r['data']),
+                'data'=>formatTimestamp($r['data']),
                 'pg'=> (int)$r['pg'],
                 'pgcorp'=> $pgcorpId,
                 'pgcorpName'=> GetPGFromID($pgcorpId),
@@ -335,7 +335,7 @@ try {
         foreach (getCronologiaPG($idpg) as $r)
             { $storicoAcq[] = [
               'id'=>(int)$r['id'],
-              'data'=>FormatTimestamp($r['data']),
+              'data'=>formatTimestamp($r['data']),
               'pgcorp'=>(int)$r['pgcorp'],
               'pgcorpName'=>GetPGFromID((int)$r['pgcorp']),
               'interlocutore'=>$r['interlocutore'],
@@ -361,7 +361,7 @@ try {
                    : (int)$r['esecutore'];
             $sign  = ((int)$r['esecutore'] === $idpg) ? -1 : +1;
             $cronDenaro[] = [
-              'data'=>FormatTimestamp($r['data']),
+              'data'=>formatTimestamp($r['data']),
               'azione'=>$r['azione'],
               'controparte'=>$r['azione']==='donazione' ? (string)($db->query('SELECT nome FROM organizzazioni WHERE id=?',[(int)$r['destinatario']])[0]['nome'] ?? 'Organizzazione') : getUserName($other),
               'importo'=>$sign*(int)$r['qta'],
@@ -374,7 +374,7 @@ try {
         foreach ($db->query('SELECT t.*,c.nome AS nomecorp,u.nome AS interlocutore FROM trasferimenti t JOIN corporazioni c ON c.id=t.corp LEFT JOIN utenti u ON u.id=t.pgcorp WHERE t.pg=? AND t.verso=2 AND t.stato BETWEEN 0 AND 5 ORDER BY t.data,t.id',[$idpg]) as $r)
             { $ordini[] = [
               'id'=>(int)$r['id'],
-              'data'=>FormatTimestamp($r['data']),
+              'data'=>formatTimestamp($r['data']),
               'corpName'=>$r['nomecorp'],
               'pgcorp'=>(int)$r['pgcorp'],
               'pgcorpName'=>GetPGFromID((int)$r['pgcorp']),

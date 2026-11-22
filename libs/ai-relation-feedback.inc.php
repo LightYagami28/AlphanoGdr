@@ -20,7 +20,7 @@ function ai_relation_event(int $npc,int $player,array $before,array $after,strin
         if(!$validSource&&$origin&&(int)$origin['pg']===0&&$origin['chat']===$chat&&(int)$origin['dest']===0){ $validSource=(bool)$db->query("SELECT e.id FROM ai_scene_events e JOIN ai_scene_witnesses w ON w.event_id=e.id WHERE e.source_id=? AND BINARY e.chat_key=BINARY ? AND e.kind='transformation' AND e.actor_id=? AND w.npc_id=?",[$source,$chat,$player,$npc]); }
         $staffHere=$actor>0&&($owner['chat']??'')===$chat;
         if(($validSource||$staffHere)&&!empty($owner)&&empty($owner['bloccato'])){
-            $mode=alphano_experience_settings($player)['relationship_effects'];$audience=[];
+            $mode=alphanoExperienceSettings($player)['relationship_effects'];$audience=[];
             if($mode==='public'){ foreach($db->query('SELECT id FROM utenti WHERE BINARY chat=BINARY ? AND bloccato=0 AND lastmove>? ORDER BY id LIMIT 250',[$chat,time()-900]) as $u){ $audience[]=(int)$u['id']; } }
             $after['_notice']=['chat_key'=>$chat,'source_id'=>$source,'visibility'=>$mode,'audience'=>$audience,'deltas'=>$changes];
         }
@@ -33,7 +33,7 @@ function ai_relation_notices(string $chat,int $viewer,int $since,bool $initial=f
     $db=aiDb();$last=(int)($db->query('SELECT MAX(id) AS last_id FROM ai_relationship_events')[0]['last_id']??0);
     $out=['cursor'=>$last,'events'=>[],'more'=>false];
     if($initial||$since>$last){ return $out; }
-    $out['cursor']=$since;$mode=alphano_experience_settings($viewer)['relationship_effects'];
+    $out['cursor']=$since;$mode=alphanoExperienceSettings($viewer)['relationship_effects'];
     $who=$db->query('SELECT chat,bloccato FROM utenti WHERE id=?',[$viewer])[0]??[];
     if($mode==='off'||($who['chat']??'')!==$chat||!empty($who['bloccato'])){$out['cursor']=$last;return $out;}
     $rows=$db->query('SELECT id,npc_id,player_id,before_state,after_state,created_at FROM ai_relationship_events WHERE id>? ORDER BY id LIMIT 100',[$since]);
@@ -43,9 +43,9 @@ function ai_relation_notices(string $chat,int $viewer,int $since,bool $initial=f
         $out['cursor']=(int)$row['id'];if((int)$row['created_at']<time()-120){ continue; }
         $after=json_decode($row['after_state'],true)?:[];$note=$after['_notice']??[];$uid=(int)$row['player_id'];$nid=(int)$row['npc_id'];
         if(($note['chat_key']??'')!==$chat||($note['visibility']??'off')==='off'){ continue; }
-        if($uid!==$viewer&&($mode!=='public'||($note['visibility']??'')!=='public'||!in_array($viewer,$note['audience']??[],true)||($ownerModes[$uid]??=alphano_experience_settings($uid)['relationship_effects'])!=='public')){ continue; }
+        if($uid!==$viewer&&($mode!=='public'||($note['visibility']??'')!=='public'||!in_array($viewer,$note['audience']??[],true)||($ownerModes[$uid]??=alphanoExperienceSettings($uid)['relationship_effects'])!=='public')){ continue; }
         $deltas=[];$before=json_decode($row['before_state'],true)?:[];
-        foreach(AI_RELATION_METRICS as $key=>$label){$change=(int)($after[$key]??0)-(int)($before[$key]??0);if($change){ $deltas[]=['key'=>$key,'label'=>$label,'delta'=>$change,'icon'=>alphano_profile_symbol($key)]; }}
+        foreach(AI_RELATION_METRICS as $key=>$label){$change=(int)($after[$key]??0)-(int)($before[$key]??0);if($change){ $deltas[]=['key'=>$key,'label'=>$label,'delta'=>$change,'icon'=>alphanoProfileSymbol($key)]; }}
         if(!$deltas){ continue; }
         $person=$people[$uid]??=($db->query('SELECT id,nome FROM utenti WHERE id=?',[$uid])[0]??[]);
         $npc=$npcs[$nid]??=($db->query('SELECT id,name,profile FROM ai_npcs WHERE id=?',[$nid])[0]??[]);

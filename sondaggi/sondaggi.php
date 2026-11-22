@@ -4,17 +4,17 @@ require_once __DIR__ . '/../libs/kernel.inc.php';
 require_once __DIR__ . '/../libs/libsondaggi.inc.php';
 require_once __DIR__ . '/../libs/libgrafica.inc.php';
 require_once __DIR__ . '/../libs/libpg.inc.php';
-$pgid=alphano_require_login();
+$pgid=alphanoRequireLogin();
 $admin=IsAdmin($pgid);
-$db=ConnectDB();
+$db=connectDB();
 $message='';
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET')==='POST') {
-    alphano_require_csrf();
+    alphanoRequireCsrf();
     if (isset($_POST['vota']) || isset($_POST['id'])) {
         $answer=$_POST['vota'] ?? '';$pollId=$_POST['id'] ?? '';
-        if (!is_scalar($answer) || !is_scalar($pollId) || !preg_match('/^[1-9]\d*$/D',(string)$answer) || !preg_match('/^[1-9]\d*$/D',(string)$pollId)) alphano_fail('Scegli una risposta valida.',400);
-        try { Vote((int)$answer,(int)$pollId,$pgid);$message='Il tuo voto è registrato.'; }
-        catch (RuntimeException $error) { alphano_fail($error->getMessage(),400); }
+        if (!is_scalar($answer) || !is_scalar($pollId) || !preg_match('/^[1-9]\d*$/D',(string)$answer) || !preg_match('/^[1-9]\d*$/D',(string)$pollId)) alphanoFail('Scegli una risposta valida.',400);
+        try { vote((int)$answer,(int)$pollId,$pgid);$message='Il tuo voto è registrato.'; }
+        catch (RuntimeException $error) { alphanoFail($error->getMessage(),400); }
     }
 }
 $counts=[];

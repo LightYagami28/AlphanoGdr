@@ -39,8 +39,8 @@ require_once __DIR__.'/rpg-combat.inc.php';
 require_once __DIR__.'/session-control.inc.php';
 
 /** Il modello riceve soltanto testo. Non gli vengono esposti strumenti, SQL o comandi. */
-function aiDb(): \Alphano\Database\PDOMySQLDriver { return ConnectDB(); }
-function aiDeadline(): int { return max(10,min(240,(int)alphano_config('ai_timeout'))); }
+function aiDb(): \Alphano\Database\PDOMySQLDriver { return connectDB(); }
+function aiDeadline(): int { return max(10,min(240,(int)alphanoConfig('ai_timeout'))); }
 /** Riconosce anche il nome proprio, senza scambiarlo con una parte di parola. */
 function aiMentionsNpc(string $text, string $name): bool {
     $first=preg_split('/\s+/u',trim($name))[0]??$name;
@@ -53,12 +53,12 @@ function aiText(string $text, int $max): string {
     return mb_substr(trim(html_entity_decode(strip_tags($text), ENT_QUOTES | ENT_HTML5, 'UTF-8')), 0, $max);
 }
 function aiRoom(string $chat): ?array {
-    if(!alphano_config('ai_enabled')){ return null; }
+    if(!alphanoConfig('ai_enabled')){ return null; }
     return aiDb()->query('SELECT * FROM ai_rooms WHERE chat_key=?', [$chat])[0] ?? null;
 }
 function aiAdmin(bool $json = true): int {
-    $id = alphano_require_login($json);
-    if (empty(alphano_user()['admin'])) { throw new AiEngineDomainException('Accesso riservato agli amministratori.',403); }
+    $id = alphanoRequireLogin($json);
+    if (empty(alphanoUser()['admin'])) { throw new AiEngineDomainException('Accesso riservato agli amministratori.',403); }
     return $id;
 }
 function aiPublicRoom(string $chat): array {
@@ -92,7 +92,7 @@ function aiAppendMemory(string $chat, int $npc, string $text): void {
 /** Sotto lock della stanza: idempotenza durevole, limiti globali e un solo turno pendente per luogo. */
 function aiEnqueueLocked(array $room, array $npc, int $user, string $key, string $prompt, string $kind, array $options=[]): array {
  $source=(int)($options['source']??0); $companions=$options['companions']??[];
- if(!alphano_config('ai_enabled')){ throw new AiEngineDomainException('Supporto IA disabilitato.',503); }
+ if(!alphanoConfig('ai_enabled')){ throw new AiEngineDomainException('Supporto IA disabilitato.',503); }
     $db=aiDb();
     $old=$db->query('SELECT id,status FROM ai_jobs WHERE request_key=?',[$key])[0]??null;
     if ($old) { return $old; }
@@ -118,7 +118,7 @@ function aiEnqueueLocked(array $room, array $npc, int $user, string $key, string
 /** Hook dopo l'invio: nessun errore IA deve trasformare un messaggio già salvato in un invio fallito. */
 function aiAfterMessage(string $chat, int $source, int $user, string $html, string $raw, int $dest, string $lican, array $options=[]): array {
  $requested=(bool)($options['requested']??false); $npcId=(int)($options['npcId']??0); $abilityId=(int)($options['abilityId']??0); $autoAddress=(bool)($options['autoAddress']??false);
- if(!alphano_config('ai_enabled')){ return []; }
+ if(!alphanoConfig('ai_enabled')){ return []; }
     $db=aiDb();$owned=!$db->inTransaction();
     if($dest===0&&!str_starts_with($chat,'rent_')&&preg_match('/^[#%]/',ltrim($raw))){
         if($owned){ $db->beginTransaction(); }
@@ -132,7 +132,7 @@ function aiAfterMessage(string $chat, int $source, int $user, string $html, stri
         }catch(Throwable $e){if($owned&&$db->inTransaction()){ $db->rollBack(); }throw $e;}
     }
     require_once __DIR__.'/revelations.inc.php';
-    try{alphano_revelations_after_message($chat,$source,$user,$raw,$dest);}
+    try{alphanoRevelationsAfterMessage($chat,$source,$user,$raw,$dest);}
     catch(Throwable $e){error_log('[Rivelazioni] Aggiornamento dei testimoni rinviato.');}
     $reading=aiNarrativeParse($raw);
     if($reading['segments']&&count(array_filter($reading['segments'],static fn($part)=>$part['kind']!=='ooc'))===0&&!str_starts_with(ltrim($raw),'#')){ return []; }
@@ -165,7 +165,7 @@ function aiAfterMessage(string $chat, int $source, int $user, string $html, stri
         }
         if($ability){
             if(in_array($ability['effect']['type'],['attack','defence','mental','heal'],true)){ throw new AiEngineDomainException('Per questa abilità serve una quest attiva e un bersaglio presente. Scegli il destinatario o indica il suo nome nell’azione.',422); }
-            $reserved=rpg_use_ability('pg',$user,$abilityId,['event_key'=>'chat:'.$source,'session_id'=>0,'round'=>0]);if(isset($reserved['human_rules'])){$activation=$reserved['activated']?'attivata: '.$reserved['human_rules']['bonus_text']:'attivazione fallita, nessun bonus';$text.=' [ESITO VERIFICATO ATTIVAZIONE: '.$activation.'. Richiede '.$reserved['human_rules']['requirement_text'].' Non implica riuscita automatica dell’azione.]';$db->execute('UPDATE ai_events SET content=? WHERE chat_key=? AND source_id=?',[$text,$chat,$source]);$activationHtml=rpg_activation_public_html($reserved,$speaker);$db->execute('INSERT INTO chat(pg,chat,ora,msg,dest,lican) VALUES(0,?,?,?,0,0)',[$chat,time(),$activationHtml]);$db->execute('INSERT INTO registrazionichat(registrazione,testo) SELECT id,? FROM registrazioni WHERE chat=?',[$activationHtml,$chat]);}
+            $reserved=rpg_use_ability('pg',$user,$abilityId,['event_key'=>'chat:'.$source,'session_id'=>0,'round'=>0]);if(isset($reserved['human_rules'])){$activation=$reserved['activated']?'attivata: '.$reserved['human_rules']['bonus_text']:'attivazione fallita, nessun bonus';$text.=' [ESITO VERIFICATO ATTIVAZIONE: '.$activation.'. Richiede '.$reserved['human_rules']['requirement_text'].' Non implica riuscita automatica dell’azione.]';$db->execute('UPDATE ai_events SET content=? WHERE chat_key=? AND source_id=?',[$text,$chat,$source]);$activationHtml=rpgActivationPublicHtml($reserved,$speaker);$db->execute('INSERT INTO chat(pg,chat,ora,msg,dest,lican) VALUES(0,?,?,?,0,0)',[$chat,time(),$activationHtml]);$db->execute('INSERT INTO registrazionichat(registrazione,testo) SELECT id,? FROM registrazioni WHERE chat=?',[$activationHtml,$chat]);}
         }
         if (!$npcs) { if($owned){ $db->commit(); } return []; }
         if((!$requested||$npcId<1)&&$autoAddress){
@@ -202,13 +202,13 @@ function aiRuntimeBudget(?int $seconds=null):?float{
     static $endsAt=null;if($seconds!==null){$endsAt=$seconds>0?microtime(true)+$seconds:null;if($seconds>0){ ai_local_model_pin(true); }}return $endsAt;
 }
 function aiRuntime(string $path, ?array $body=null): array {
-    if(!alphano_config('ai_enabled')){ throw new AiEngineDomainException('Supporto IA disabilitato.',503); }
-    $base=(string)(ai_local_model_pin()['url']??alphano_config('ai_url'));
+    if(!alphanoConfig('ai_enabled')){ throw new AiEngineDomainException('Supporto IA disabilitato.',503); }
+    $base=(string)(ai_local_model_pin()['url']??alphanoConfig('ai_url'));
     if (!preg_match('~^https?://[^\s]+$~D',$base)) { throw new AiEngineRuntimeException('Servizio locale non configurato.'); }
     $remaining=aiRuntimeBudget();$timeoutMs=$body?aiDeadline()*1000:2000;
     if($remaining!==null){$timeoutMs=min($timeoutMs,(int)(($remaining-microtime(true))*1000));if($timeoutMs<1){ throw new AiEngineRuntimeException('Tempo massimo di generazione raggiunto.'); }}
     $curl=curl_init($base.$path);
-    curl_setopt_array($curl,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_CONNECTTIMEOUT_MS=>min(2000,$timeoutMs),CURLOPT_TIMEOUT_MS=>$timeoutMs,CURLOPT_HTTPHEADER=>['Content-Type: application/json','Authorization: Bearer '.alphano_config('ai_api_key')],CURLOPT_PROXY=>'',CURLOPT_FOLLOWLOCATION=>false]);
+    curl_setopt_array($curl,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_CONNECTTIMEOUT_MS=>min(2000,$timeoutMs),CURLOPT_TIMEOUT_MS=>$timeoutMs,CURLOPT_HTTPHEADER=>['Content-Type: application/json','Authorization: Bearer '.alphanoConfig('ai_api_key')],CURLOPT_PROXY=>'',CURLOPT_FOLLOWLOCATION=>false]);
     if ($body!==null) { curl_setopt_array($curl,[CURLOPT_POST=>true,CURLOPT_POSTFIELDS=>json_encode($body,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR)]); }
     $raw=curl_exec($curl);$code=curl_getinfo($curl,CURLINFO_HTTP_CODE);curl_close($curl);
     if ($raw===false || $code!==200) { throw new AiEngineRuntimeException('Il motore locale non risponde.'); }
@@ -217,18 +217,18 @@ function aiRuntime(string $path, ?array $body=null): array {
 /** One language contract covers full, compact, perception and quest voices. */
 function aiLanguagePrompt(array $npc,array $job):string {
     $profile=ai_npc_profile($npc);
-    $out=alphano_race_loses_human_language((int)$profile['race_id'])
+    $out=alphanoRaceLosesHumanLanguage((int)$profile['race_id'])
         ?"\nLINGUAGGIO DEL PNG VERIFICATO: la tua forma non può pronunciare parole umane. Esprimiti con gesti, posture e versi; nessuna battuta, frase pronunciata o scrittura usata per aggirare questo limite."
         :"\nLINGUAGGIO DEL PNG VERIFICATO: la tua forma conserva il parlato umano; non applicarle il limite linguistico di altre stirpi.";
     $id=(int)($job['user_id']??0);$speaker=$id>0?aiDb()->query('SELECT razza,vampire_human_form,infetto,ancestrale FROM utenti WHERE id=?',[$id])[0]??[]:[];
-    if($speaker){ $out.=alphano_loses_human_language($speaker)
+    if($speaker){ $out.=alphanoLosesHumanLanguage($speaker)
         ?"\nLINGUAGGIO DELL’INTERLOCUTORE VERIFICATO: la sua forma produce versi incomprensibili, senza parole umane. Reagisci ai gesti osservabili; non attribuire significato verbale ai versi."
         :"\nLINGUAGGIO DELL’INTERLOCUTORE VERIFICATO: questa forma conserva il parlato umano. Le parole pronunciate nel turno sono udibili; non negarne la comprensione per il solo aspetto fisico. Questo non rivela alcuna sottostirpe.";
     }
     return $out;
 }
 function aiLanguageOutputGuard(array $npc,string $text):string {
-    if(!alphano_race_loses_human_language((int)ai_npc_profile($npc)['race_id'])){ return $text; }
+    if(!alphanoRaceLosesHumanLanguage((int)ai_npc_profile($npc)['race_id'])){ return $text; }
     $reading=aiNarrativeParse($text,['channel'=>'action']);$parts=[];$voiced=false;
     foreach($reading['segments'] as $segment){
         if($segment['kind']==='speech'){if(!$voiced){ $parts[]='Emette un ringhio privo di parole umane.'; }$voiced=true;}
@@ -238,7 +238,7 @@ function aiLanguageOutputGuard(array $npc,string $text):string {
 }
 function aiPrompt(array $room,array $npc,array $job,float $scale=1.0):array {
     $messages=aiPromptContent($room,$npc,$job,$scale);
-    $messages[0]['content'].=rpg_prompt_context($npc,$job,$scale);
+    $messages[0]['content'].=rpgPromptContext($npc,$job,$scale);
     $configured=aiSocialRules((int)$npc['id']);
     foreach(['narrative_rules'=>'DIRETTIVE NARRATIVE DEL PNG','scene_context'=>'CONTESTO ATTUALE CONFIGURATO DEL PNG'] as $key=>$label){ if(($configured[$key]??'')!==''){ $messages[0]['content'].="\n".$label.': '.ai_prompt_relevant_text($configured[$key],(string)($job['prompt']??''),$key==='narrative_rules'?1100:850,true).'. Si applicano alla voce e alla scena; fatti verificati, identità, preferenze e regole del gioco restano vincolanti.'; } }
     $messages[0]['content'].=aiLanguagePrompt($npc,$job).ai_identity_context($npc,$job).ai_situation_context($room,$npc,$job).ai_relation_context_prompt($npc,$job);
@@ -267,7 +267,7 @@ function aiPromptContent(array $room, array $npc, array $job, float $scale=1.0):
     $clip=static fn($value,$limit)=>aiText((string)$value,(int)($limit*$scale));
     $system.="Puoi aggiungere piccoli gesti e dettagli di atmosfera, ma non nuovi indizi, colpevoli, eventi passati o regole del mondo. Se il PNG non sa una cosa, lo ammette senza inventare spiegazioni. Non usare la parola giocatore nel turno: rivolgiti all'interlocutore come a una persona della scena.\n";
     $system.="La conversazione procede da ciò che è appena successo: rispondi prima alla domanda concreta, poi scegli un gesto pertinente e lascia spazio all'altro. La diffidenza non è un rifiuto automatico; gratitudine, esitazione, ironia e dissenso dipendono da carattere, relazione e situazione. Non ripetere rituali di accoglienza, ammonimenti, gesti o domande già esauriti.\n";
-    $system.=alphano_world_prompt_context();
+    $system.=alphanoWorldPromptContext();
     $system.="\nAMBIENTAZIONE: ".$clip($room['setting'],1000)."\nATMOSFERA: ".$clip($room['atmosphere'],250)."\nTRAMA: ".$clip($room['plot'],500)."\nSTILE: ".$clip($room['style'],250)."\nPNG: ".aiText($npc['name'],80);
     $system.="\nCARATTERE E VOCE: ".ai_background_persona($npc,aiSocialRules((int)$npc['id']),(int)(650*$scale));
     foreach (['knowledge'=>'CONOSCENZE','behavior'=>'COMPORTAMENTO E LIMITI'] as $key=>$label) { $system.="\n".$label.': '.$clip($npc[$key],450); }

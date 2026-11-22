@@ -21,7 +21,7 @@ require_once __DIR__."/../libs/search-filters.inc.php";
 
 
 
-$db      = ConnectDB();
+$db      = connectDB();
 $pgid    = GetIDPG();
 
 // Titolo del sito (cambia se vuoi)
@@ -31,7 +31,7 @@ function TitoloSito(): string { return 'Alphano'; }
 // 2. Setup variabili di base
 // ------------------------------------------------------------------
 
-$db      = ConnectDB();
+$db      = connectDB();
 $pgid    = GetIDPG();
 
 // privilegi utente
@@ -110,7 +110,7 @@ if ($araldIDs) {
 // ------------------------------------------------------------------
 $ricerca = [];
 foreach ($rows as $d) {
-    $portrait=alphano_profile_portrait($d);
+    $portrait=alphanoProfilePortrait($d);
     $obj = [
         'portrait'=>$portrait['url'],'portrait_default'=>$portrait['default'],
         'idpg'        => $d['id'],

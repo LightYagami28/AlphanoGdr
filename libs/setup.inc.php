@@ -4,27 +4,27 @@ require_once __DIR__.'/rpg.inc.php';
 require_once __DIR__.'/world.inc.php';
 require_once dirname(__DIR__).'/install/installer.php';
 
-function alphano_setup_steps():array {return ['general'=>'Impostazioni generali','chats'=>'Chat e luoghi','races'=>'Razze e trasformazioni','ethnicities'=>'Etnie','cities'=>'Città ed elezioni','organizations'=>'Organizzazioni','corporations'=>'Corporazioni e produzione','appearance'=>'Template e disposizione','rules'=>'Regole, abilità e testi','review'=>'Verifica e apertura'];}
-function alphano_setup_status():array {return array_column(ConnectDB()->query('SELECT step_key,status FROM engine_setup_steps'),'status','step_key');}
-function alphano_setup_mark(string $step,string $status,int $actor):void {
- if(!isset(alphano_setup_steps()[$step])||!in_array($status,['pending','skipped','completed'],true)||($step==='general'&&$status!=='completed')){ throw new DomainException('Passaggio non valido.'); }
- ConnectDB()->execute('UPDATE engine_setup_steps SET status=?,updated_by=?,updated_at=? WHERE step_key=?',[$status,$actor,time(),$step]);
- ConnectDB()->execute('INSERT INTO engine_admin_audit(actor,action,created_at) VALUES(?,?,?)',[$actor,'setup:'.$step.':'.$status,time()]);
+function alphanoSetupSteps():array {return ['general'=>'Impostazioni generali','chats'=>'Chat e luoghi','races'=>'Razze e trasformazioni','ethnicities'=>'Etnie','cities'=>'Città ed elezioni','organizations'=>'Organizzazioni','corporations'=>'Corporazioni e produzione','appearance'=>'Template e disposizione','rules'=>'Regole, abilità e testi','review'=>'Verifica e apertura'];}
+function alphanoSetupStatus():array {return array_column(connectDB()->query('SELECT step_key,status FROM engine_setup_steps'),'status','step_key');}
+function alphanoSetupMark(string $step,string $status,int $actor):void {
+ if(!isset(alphanoSetupSteps()[$step])||!in_array($status,['pending','skipped','completed'],true)||($step==='general'&&$status!=='completed')){ throw new DomainException('Passaggio non valido.'); }
+ connectDB()->execute('UPDATE engine_setup_steps SET status=?,updated_by=?,updated_at=? WHERE step_key=?',[$status,$actor,time(),$step]);
+ connectDB()->execute('INSERT INTO engine_admin_audit(actor,action,created_at) VALUES(?,?,?)',[$actor,'setup:'.$step.':'.$status,time()]);
 }
-function alphano_setup_settings(array $changes):void {
+function alphanoSetupSettings(array $changes):void {
  $path=dirname(__DIR__).'/private/settings.json';$old=is_file($path)?json_decode(file_get_contents($path),true,32,JSON_THROW_ON_ERROR):[];
- alphano_settings_write(array_replace($old,$changes));
+ alphanoSettingsWrite(array_replace($old,$changes));
 }
-function alphano_setup_next(string $step):string {$keys=array_keys(alphano_setup_steps());$pos=array_search($step,$keys,true);return $keys[$pos+1]??'';}
-function alphano_setup_save(string $step,array $in,int $actor):void {
- $db=ConnectDB();$pdo=$db->getConnection();$insert=static fn($table,$values)=>alphano_seed_insert($pdo,$table,$values);
+function alphanoSetupNext(string $step):string {$keys=array_keys(alphanoSetupSteps());$pos=array_search($step,$keys,true);return $keys[$pos+1]??'';}
+function alphanoSetupSave(string $step,array $in,int $actor):void {
+ $db=connectDB();$pdo=$db->getConnection();$insert=static fn($table,$values)=>alphano_seed_insert($pdo,$table,$values);
  if($step==='races'){
   $input=$in;$input['name']=$in['name']??'';foreach(['special','enabled','human_default','transformation_enabled','loses_human_language'] as $k){ $input[$k]=!empty($in[$k]); }
-  $r=rpg_admin_save_race($input,$actor);$default=alphano_human_race_id(true);alphano_setup_settings(['initial_race'=>$default]);
+  $r=rpg_admin_save_race($input,$actor);$default=alphanoHumanRaceId(true);alphanoSetupSettings(['initial_race'=>$default]);
   if($default){ $db->execute('UPDATE utenti SET razza=? WHERE razza=0',[$default]); }return;
  }
  if($step==='appearance'){
-  $out=[];foreach(['theme'=>array_keys(alphano_themes()),'sidebar_position'=>['left','right'],'header_position'=>['top','bottom']] as $k=>$allowed){if(!in_array($in[$k]??'', $allowed,true)){ throw new DomainException('Opzione template non valida.'); }$out[$k]=$in[$k];}alphano_setup_settings($out);return;
+  $out=[];foreach(['theme'=>array_keys(alphanoThemes()),'sidebar_position'=>['left','right'],'header_position'=>['top','bottom']] as $k=>$allowed){if(!in_array($in[$k]??'', $allowed,true)){ throw new DomainException('Opzione template non valida.'); }$out[$k]=$in[$k];}alphanoSetupSettings($out);return;
  }
  if($step==='rules'){
   $points=rpg_int($in['initial_points']??20,0,100,'Punti iniziali');
@@ -32,14 +32,14 @@ function alphano_setup_save(string $step,array $in,int $actor):void {
   $names=[];foreach(rpg_catalog()['stats'] as $stat){ $names[$stat['key']]=rpg_text($in['stat_names'][$stat['key']]??'',80,true); }
   $privacy=rpg_text($in['privacy_text']??'',20000,true);$terms=rpg_text($in['terms_text']??'',20000,true);
   foreach($names as $key=>$name){ $db->execute('UPDATE rpg_characteristics SET name=? WHERE stat_key=?',[$name,$key]); }
-  alphano_setup_settings(['initial_points'=>$points,'abilities_enabled'=>!empty($in['abilities_enabled']),'privacy_text'=>$privacy,'terms_text'=>$terms]);return;
+  alphanoSetupSettings(['initial_points'=>$points,'abilities_enabled'=>!empty($in['abilities_enabled']),'privacy_text'=>$privacy,'terms_text'=>$terms]);return;
  }
  if($step==='review'){
-  if(!empty($in['registration_enabled'])&&alphano_human_race_id()<1){ throw new DomainException('Per aprire le iscrizioni seleziona una razza ordinaria attiva come iniziale.'); }
-  alphano_setup_settings(['registration_enabled'=>!empty($in['registration_enabled'])]);return;
+  if(!empty($in['registration_enabled'])&&alphanoHumanRaceId()<1){ throw new DomainException('Per aprire le iscrizioni seleziona una razza ordinaria attiva come iniziale.'); }
+  alphanoSetupSettings(['registration_enabled'=>!empty($in['registration_enabled'])]);return;
  }
  if(in_array($step,['ethnicities','organizations','corporations'],true)&&($in['action']??'')==='toggle'){
-  $key=['ethnicities'=>'ethnicities_enabled','organizations'=>'organizations_enabled','corporations'=>'corporations_enabled'][$step];alphano_setup_settings([$key=>!empty($in['feature_enabled'])]);return;
+  $key=['ethnicities'=>'ethnicities_enabled','organizations'=>'organizations_enabled','corporations'=>'corporations_enabled'][$step];alphanoSetupSettings([$key=>!empty($in['feature_enabled'])]);return;
  }
  $db->beginTransaction();try{
   if($step==='chats'){

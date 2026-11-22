@@ -6,10 +6,10 @@ use Alphano\Database\PDOMySQLDriver;
 /** The daily IP quota is waived only for a loopback request to a locally configured site.
  * Never trust Host or forwarded headers alone: the live base URL keeps the quota on.
  */
-function alphano_registration_is_local(): bool
+function alphanoRegistrationIsLocal(): bool
 {
     $localHosts=['localhost','127.0.0.1','::1'];
-    $configured=trim(strtolower((string)parse_url((string)alphano_config('base_url'),PHP_URL_HOST)),'[]');
+    $configured=trim(strtolower((string)parse_url((string)alphanoConfig('base_url'),PHP_URL_HOST)),'[]');
     $requested=trim(strtolower((string)parse_url('http://'.(string)($_SERVER['HTTP_HOST']??''),PHP_URL_HOST)),'[]');
     return in_array($configured,$localHosts,true)
         && in_array($requested,$localHosts,true)
@@ -74,7 +74,7 @@ function validname(string $nome): bool
 function valido(string $nome): bool
 {
     // recupera il driver PDO
-    $db = ConnectDB(); /** @var PDOMySQLDriver $db */
+    $db = connectDB(); /** @var PDOMySQLDriver $db */
 
     // rimuove eventuali backslash
     $clean = stripslashes($nome);

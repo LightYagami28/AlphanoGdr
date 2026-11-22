@@ -4,8 +4,8 @@ require_once __DIR__.'/kernel.inc.php';
 require_once __DIR__.'/libaccademia.inc.php';
 require_once __DIR__.'/libequip.inc.php';
 require_once __DIR__.'/libposta.inc.php';
-$idpg=alphano_require_login();
-$db=ConnectDB();
+$idpg=alphanoRequireLogin();
+$db=connectDB();
 $isCorporation=$proposalKind==='corp';
 $title=$isCorporation?'Proponi una corporazione':'Proponi un’organizzazione';
 $listUrl=$isCorporation?'/corporazioni/':'/organizzazioni/';
@@ -17,8 +17,8 @@ $categories=[];if($isCorporation){ foreach($db->query('SELECT subtipo,nome FROM 
 $quality=QUALITY;$maxPoints=MAX_POINT_VALUE;
 $message='';$saved=false;
 if($_SERVER['REQUEST_METHOD']==='POST'){
-    alphano_require_csrf();
-    foreach($_POST as $value){ if(!is_string($value)){ alphano_fail('Parametri non validi.',400); } }
+    alphanoRequireCsrf();
+    foreach($_POST as $value){ if(!is_string($value)){ alphanoFail('Parametri non validi.',400); } }
     try{
         $name=trim($_POST['nome']??'');$site=trim($_POST['sito']??'');$statute=trim($_POST['statuto']??'');
         if(mb_strlen($site)>255){ throw new DomainException('L’indirizzo del sito è troppo lungo.'); }

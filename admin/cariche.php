@@ -10,7 +10,7 @@ foreach (array_merge($_GET,$_POST) as $value) {
 }
 
 require __DIR__ . '/../libs/kernel.inc.php';
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') { alphano_require_csrf(); }
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') { alphanoRequireCsrf(); }
 require __DIR__ . '/../libs/libpg.inc.php';
 require __DIR__ . '/../libs/libgrafica.inc.php';
 require __DIR__ . '/../libs/libtext.inc.php';
@@ -19,7 +19,7 @@ require_once __DIR__ . '/../libs/activity.inc.php';
 
 
 // ─── Inizializzazione ────────────────────────────────────────────────
-$db      = ConnectDB();
+$db      = connectDB();
 
 $pgid    = GetIDPG(0, 1);
 
@@ -132,7 +132,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($pgName && $cid && ($admin || $sindaco) && $db->query('SELECT 1 FROM araldiche WHERE id=?',[$cid])) {
             require_once __DIR__.'/../libs/admin-governance.inc.php';
             $target=$admin?(int)GetPGID((string)$pgName):(int)$pgName;
-            try{alphano_governance_apply((int)$pgid,$target,['araldica'=>$cid],'Assegnazione dal pannello araldiche',null,'citta',$idcity);$msg='Araldica assegnata con successo';}
+            try{alphanoGovernanceApply((int)$pgid,$target,['araldica'=>$cid],'Assegnazione dal pannello araldiche',null,'citta',$idcity);$msg='Araldica assegnata con successo';}
             catch(DomainException $e){http_response_code($e->getCode());$msg=$e->getMessage();}
         } else {
             $msg = "Parametri non esaurienti";
@@ -223,7 +223,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             foreach (['roles','branches'] as $key) { $state[$key]=['count'=>count($state[$key]),'hash'=>hash('sha256',json_encode($state[$key]))]; }
             return $state;
         };
-        alphano_record_activity('heraldry_'.$activityAction,(int)$pgid,$audiences,$activityTitles[$activityAction],$msg,
+        alphanoRecordActivity('heraldry_'.$activityAction,(int)$pgid,$audiences,$activityTitles[$activityAction],$msg,
             ['city'=>$activityCity,'subject'=>$activitySubject,'player'=>$activityPlayer,'before'=>$summarize($activityBefore),'after'=>$summarize($activityAfter)]);
     }
 }
@@ -323,8 +323,8 @@ $araldiche = $db->query(
             <td><?=htmlspecialchars($a['nome'],ENT_QUOTES)?></td>
             <td><?=$a['prima']? '✔️':''?></td>
             <td><?=htmlspecialchars($listacity[$a['city']] ?? '',ENT_QUOTES)?></td>
-            <td><?= (int)$a['stipendio'] ?> <?=alphano_currency_html()?></td>
-            <td><?=ProcessText($a['descrizione'])?></td>
+            <td><?= (int)$a['stipendio'] ?> <?=alphanoCurrencyHtml()?></td>
+            <td><?=processText($a['descrizione'])?></td>
             <td><?=htmlspecialchars((string)($a['ramo']??'Senza ramo'),ENT_QUOTES)?></td>
             <td><?= (int)$a['livello'] ?></td>
             <td>
@@ -451,4 +451,4 @@ $araldiche = $db->query(
 </body>
 </html>
 
-<?php ClosePage(); ?>
+<?php closePage(); ?>

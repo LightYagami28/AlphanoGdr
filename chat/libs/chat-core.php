@@ -4,15 +4,15 @@ declare(strict_types=1);
 // ────────────────────────────────────────
 //  1) Bootstrap & dipendenze
 // ────────────────────────────────────────
-require_once __DIR__ . '/../../libs/kernel.inc.php';      // ConnectDB(), costanti…
+require_once __DIR__ . '/../../libs/kernel.inc.php';      // connectDB(), costanti…
 require_once __DIR__ . '/../../libs/libchat.inc.php';    // getChatImages(), MAX_RIGHE_CHAT, SECS_KEEP_CHAT
-require_once __DIR__ . '/../../libs/libpg.inc.php';      // SetPosizione(), GetIDPG(), GetUmore(), LockUser()
-require_once __DIR__ . '/../../libs/libtext.inc.php';    // ProcessText(), Gnl2br(), …
-require_once __DIR__ . '/../../libs/libmeteo.inc.php';   // GetMeteo()
-require_once __DIR__ . '/../../libs/libequip.inc.php';   // Consuma()
-require_once __DIR__ . '/../../libs/libblocco.inc.php';  // LockUser()
+require_once __DIR__ . '/../../libs/libpg.inc.php';      // setChatPosizione(), GetIDPG(), GetUmore(), lockUser()
+require_once __DIR__ . '/../../libs/libtext.inc.php';    // processText(), gnl2br(), …
+require_once __DIR__ . '/../../libs/libmeteo.inc.php';   // getMeteo()
+require_once __DIR__ . '/../../libs/libequip.inc.php';   // consuma()
+require_once __DIR__ . '/../../libs/libblocco.inc.php';  // lockUser()
 require_once __DIR__ . '/../../libs/libgrafica.inc.php'; // processRazza(), processAraldica()
-require_once __DIR__ . '/../../libs/libxml.inc.php';     // PrintBZXMLFromArray()
+require_once __DIR__ . '/../../libs/libxml.inc.php';     // printBZXMLFromArray()
 require_once __DIR__ . '/chat-logic.inc.php';           // buildChatMessage()
 
 use Alphano\Database\PDOMySQLDriver;
@@ -29,7 +29,7 @@ if (! function_exists('db')) {
     function db(): PDOMySQLDriver
     {
         static $db;
-        return $db ??= ConnectDB();
+        return $db ??= connectDB();
     }
 }
 
@@ -37,7 +37,7 @@ if (! function_exists('db')) {
 //  4) Prune / hard‐limit
 // ────────────────────────────────────────
 function clearOldMessages(string $chat): void {
-    $liveFilter=alphano_chat_live_filter();
+    $liveFilter=alphanoChatLiveFilter();
     db()->execute("DELETE FROM chat WHERE chat = ? AND ora < ?".$liveFilter,
         [$chat, time() - SECS_KEEP_CHAT]
     );

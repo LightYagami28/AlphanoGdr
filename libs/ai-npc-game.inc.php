@@ -88,7 +88,7 @@ function ai_game_inventory(string $kind,int $id):array{
 }
 function ai_npc_item_slot(int $npc,int $instance,string $slot):void{
  if(!in_array($slot,AI_GAME_SLOTS,true)){ throw new DomainException('Posizione di equipaggiamento non valida.',422); }
- EquipAtomico(static function()use($npc,$instance,$slot){
+ equipAtomico(static function()use($npc,$instance,$slot){
   $db=aiDb();$owner=ai_npc_owner($npc);$item=$db->query('SELECT p.id,p.consumo,e.durata FROM equippg p JOIN equip e ON e.id=p.uid WHERE p.id=? AND p.idpg=? FOR UPDATE',[$instance,$owner])[0]??null;
   if(!$item||($slot!==''&&(int)$item['consumo']>=(int)$item['durata'])){ throw new DomainException('Oggetto assente o consumato.',422); }
   $db->execute("UPDATE equippg SET slot='',idpadre=0 WHERE id=? AND idpg=?",[$instance,$owner]);

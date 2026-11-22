@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 /** Visible credits are centralized; their integrity policy is described in LICENSE. */
-function alphano_render_credit(string $placement): string
+function alphanoRenderCredit(string $placement): string
 {
     if(!in_array($placement,['home','equipment'],true)){ throw new InvalidArgumentException('Posizione dei crediti non valida.'); }
     if(!is_file(dirname(__DIR__).'/config/credits.php')||!is_file(dirname(__DIR__).'/templates/credits/'.$placement.'.php')){ return ''; }

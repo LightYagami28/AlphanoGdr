@@ -8,8 +8,8 @@ require_once __DIR__ . '/../libs/libpg.inc.php';
 
 
 // ─── Bootstrap ───────────────────────────────────────────────────────
-alphano_require_login();
-$db     = ConnectDB();
+alphanoRequireLogin();
+$db     = connectDB();
 $pgid   = GetIDPG(true);
 
 
@@ -19,7 +19,7 @@ $tab   = $db->query("SHOW TABLE STATUS LIKE 'utenti'")[0] ?? [];
 $max   = (int)($db->query('SELECT COUNT(*) AS n FROM utenti')[0]['n'] ?? 0);
 $tot   = (int)(($tab['Auto_increment'] ?? 1) - 1);
 // Nuovi 7gg e cancellati 7gg
-$since7 = GeneratePastTimestamp(7);
+$since7 = generatePastTimestamp(7);
 $reg7   = $db->query("SELECT COUNT(*) AS num FROM utenti WHERE dataregistrazione>=? AND ultimoingresso>0", [$since7])[0]['num'] ?? 0;
 $del7   = $db->query("SELECT COUNT(*) AS num FROM recuperopg")[0]['num'] ?? 0;
 // Maschi, femmine, online
@@ -162,7 +162,7 @@ $oggi = $db->query(
        FROM utenti
       WHERE dataregistrazione>=?
    ORDER BY nome",
-    [GeneratePastTimestamp(0)]
+    [generatePastTimestamp(0)]
 );
 
 // ─── 10. Da Cancellare ─────────────────────────────────────────────
@@ -173,7 +173,7 @@ $canc = $db->query(
              OR (ultimoingresso=0 AND dataregistrazione<=?))
         AND admin<>'1'
    ORDER BY nome",
-    [GeneratePastTimestamp(59), GeneratePastTimestamp(89), GeneratePastTimestamp(6)]
+    [generatePastTimestamp(59), generatePastTimestamp(89), generatePastTimestamp(6)]
 );
 
 ?>
@@ -365,4 +365,4 @@ $canc = $db->query(
   </div>
 </body>
 </html>
-<?php ClosePage(); ?>
+<?php closePage(); ?>

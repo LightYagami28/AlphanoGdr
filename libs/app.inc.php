@@ -4,9 +4,9 @@ declare(strict_types=1);
 require_once __DIR__.'/runtime-requirements.inc.php';
 require_once __DIR__.'/http-context.inc.php';
 require_once __DIR__.'/database-lock.inc.php';
-alphano_runtime_require();
+alphanoRuntimeRequire();
 require_once __DIR__.'/credits-guard.inc.php';
-alphano_credits_guard();
+alphanoCreditsGuard();
 
 if (PHP_SAPI !== 'cli' && !is_file(dirname(__DIR__).'/config/local.php')) {header('Location: /install/',true,303);exit;}
 require_once __DIR__ . '/engine-settings.inc.php';
@@ -22,7 +22,7 @@ const ALPHANO_RACE_ANCESTRAL = 6;
 const ALPHANO_RACE_DEAD_VAMPIRE = 7;
 const ALPHANO_RACE_LEGACY_SPIRIT = 8;
 
-function alphano_config(string $key): mixed
+function alphanoConfig(string $key): mixed
 {
     static $config;
     $config ??= (static function (): array { return require dirname(__DIR__) . '/config/app.php'; })();
@@ -30,36 +30,36 @@ function alphano_config(string $key): mixed
     return $config[$key];
 }
 
-function alphano_session(): void
+function alphanoSession(): void
 {
     if (session_status() === PHP_SESSION_NONE) {
         if (!headers_sent()) {
             session_name('alphano_'.substr(hash('sha256',dirname(__DIR__)),0,16));
             session_set_cookie_params([
                 'httponly' => true, 'samesite' => 'Lax', 'path' => '/',
-                'secure' => alphano_https_context((string)alphano_config('base_url')),
+                'secure' => alphanoHttpsContext((string)alphanoConfig('base_url')),
             ]);
         }
         session_start();
     }
-    if(!empty($_SESSION['support_session_id'])){require_once __DIR__.'/user-support.inc.php';alphano_support_guard();}
+    if(!empty($_SESSION['support_session_id'])){require_once __DIR__.'/user-support.inc.php';alphanoSupportGuard();}
 }
 
-function alphano_user(): ?array
+function alphanoUser(): ?array
 {
-    alphano_session();
+    alphanoSession();
     $id = (int)($_SESSION['user_id'] ?? 0);
     if ($id < 1) { return null; }
-    return ConnectDB()->query('SELECT * FROM utenti WHERE id = ? LIMIT 1', [$id])[0] ?? null;
+    return connectDB()->query('SELECT * FROM utenti WHERE id = ? LIMIT 1', [$id])[0] ?? null;
 }
 
-function alphano_can(string $flag): bool
+function alphanoCan(string $flag): bool
 {
-    $user = alphano_user();
+    $user = alphanoUser();
     return $user !== null && (!empty($user['admin']) || !empty($user[$flag]));
 }
 
-function alphano_fail(string $message, int $status, bool $json = false, ?string $code = null): never
+function alphanoFail(string $message, int $status, bool $json = false, ?string $code = null): never
 {
     http_response_code($status);
     if ($json) {
@@ -75,30 +75,30 @@ function alphano_fail(string $message, int $status, bool $json = false, ?string 
             429 => 'Un momento di attesa',
             default => 'Non è stato possibile continuare',
         };
-        alphano_status_page($title, $message);
+        alphanoStatusPage($title, $message);
     }
     exit;
 }
 
-function alphano_require_login(bool $json = false): int
+function alphanoRequireLogin(bool $json = false): int
 {
-    $user = alphano_user();
-    if (!$user) { alphano_fail('Devi effettuare il login.', $json ? 401 : 403, $json); }
+    $user = alphanoUser();
+    if (!$user) { alphanoFail('Devi effettuare il login.', $json ? 401 : 403, $json); }
     $path=parse_url($_SERVER['REQUEST_URI']??'',PHP_URL_PATH)??'';
-    if((str_starts_with($path,'/corporazioni/')||str_starts_with($path,'/api/corporazioni/'))&&!alphano_config('corporations_enabled')){ alphano_fail('Corporazioni e produzione di oggetti disabilitate dalla gestione.',403,$json); }
-    if(str_starts_with($path,'/organizzazioni/')&&!alphano_config('organizations_enabled')){ alphano_fail('Organizzazioni disabilitate dalla gestione.',403,$json); }
-    if (!empty($user['bloccato'])) { alphano_fail('Il personaggio è bloccato.', 403, $json); }
+    if((str_starts_with($path,'/corporazioni/')||str_starts_with($path,'/api/corporazioni/'))&&!alphanoConfig('corporations_enabled')){ alphanoFail('Corporazioni e produzione di oggetti disabilitate dalla gestione.',403,$json); }
+    if(str_starts_with($path,'/organizzazioni/')&&!alphanoConfig('organizations_enabled')){ alphanoFail('Organizzazioni disabilitate dalla gestione.',403,$json); }
+    if (!empty($user['bloccato'])) { alphanoFail('Il personaggio è bloccato.', 403, $json); }
     return (int)$user['id'];
 }
 
-function alphano_csrf_token(): string
+function alphanoCsrfToken(): string
 {
-    alphano_session();
+    alphanoSession();
     if (empty($_SESSION['csrf_token'])) { $_SESSION['csrf_token'] = bin2hex(random_bytes(32)); }
     return $_SESSION['csrf_token'];
 }
 
-function alphano_request_json(): array
+function alphanoRequestJson(): array
 {
     static $decoded;
     if ($decoded === null) {
@@ -109,38 +109,38 @@ function alphano_request_json(): array
     return $decoded;
 }
 
-function alphano_require_csrf(bool $json = false): void
+function alphanoRequireCsrf(bool $json = false): void
 {
-    alphano_session();
+    alphanoSession();
     $input = $_POST;
     if (str_contains($_SERVER['CONTENT_TYPE'] ?? '', 'application/json')) {
-        try { $input = alphano_request_json(); }
-        catch (Throwable) { alphano_fail('Richiesta JSON non valida.', 400, $json); }
+        try { $input = alphanoRequestJson(); }
+        catch (Throwable) { alphanoFail('Richiesta JSON non valida.', 400, $json); }
     }
     $token = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? $input['_csrf'] ?? $input['csrf_token'] ?? $input['token'] ?? '';
     if (!is_string($token) || empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $token)) {
-        alphano_fail('Sessione scaduta: ricarica la pagina e riprova.', 403, $json, 'csrf_expired');
+        alphanoFail('Sessione scaduta: ricarica la pagina e riprova.', 403, $json, 'csrf_expired');
     }
 }
 
-function alphano_password_verify(string $password, string $hash): bool
+function alphanoPasswordVerify(string $password, string $hash): bool
 {
     return preg_match('/^[a-f0-9]{32}$/iD', $hash)
         ? hash_equals(strtolower($hash), md5($password)) : password_verify($password, $hash);
 }
 
 /** Protezione condivisa per le form storiche e i client fetch, senza cambiare l'interfaccia. */
-function alphano_html_runtime(): void
+function alphanoHtmlRuntime(): void
 {
     if (PHP_SAPI === 'cli') { return; }
-    $token = alphano_csrf_token();
+    $token = alphanoCsrfToken();
     ob_start(static function (string $html) use ($token): string {
         foreach (headers_list() as $header) {
             if (preg_match('/^Content-Type:\s*(application\/json|application\/pdf|image\/)/i', $header)) { return $html; }
         }
-        if (!preg_match('/<(?:!doctype\s+html|html)\b/i', $html)) { return alphano_credits_filter_html($html); }
-        alphano_privacy_headers();
-        $html = alphano_theme_document($html);
+        if (!preg_match('/<(?:!doctype\s+html|html)\b/i', $html)) { return alphanoCreditsFilterHtml($html); }
+        alphanoPrivacyHeaders();
+        $html = alphanoThemeDocument($html);
         $escaped = htmlspecialchars($token, ENT_QUOTES, 'UTF-8');
         $html = preg_replace_callback('/<form\b[^>]*>/i', static function ($match) use ($escaped) {
             $tag = $match[0];
@@ -148,9 +148,9 @@ function alphano_html_runtime(): void
                 $url = trim(str_replace(["\t", "\r", "\n"], '', html_entity_decode(($action[1] ?? '') ?: (($action[2] ?? '') ?: ($action[3] ?? '')), ENT_QUOTES | ENT_HTML5, 'UTF-8')));
                 $url = str_replace('\\', '/', $url);
                 if (str_starts_with($url, '//') || preg_match('/^[a-z][a-z0-9+.-]*:/i', $url)) {
-                    $requestScheme = (alphano_https_context((string)alphano_config('base_url'))) ? 'https' : 'http';
+                    $requestScheme = (alphanoHttpsContext((string)alphanoConfig('base_url'))) ? 'https' : 'http';
                     $target = parse_url(str_starts_with($url, '//') ? $requestScheme . ':' . $url : $url);
-                    $origin = parse_url(alphano_canonical_origin((string)alphano_config('base_url')));
+                    $origin = parse_url(alphanoCanonicalOrigin((string)alphanoConfig('base_url')));
                     if (!$target || !in_array(strtolower($target['scheme'] ?? ''), ['http','https'], true)
                         || strcasecmp($target['host'] ?? '', $origin['host'] ?? '') !== 0
                         || strtolower($target['scheme']) !== $requestScheme
@@ -174,21 +174,21 @@ function alphano_html_runtime(): void
             if (stripos($html, '</head>') !== false) { $html = preg_replace('/<\/head>/i', $assets . '</head>', $html, 1); }
             else { $html .= $assets; }
         }
-        if(!empty($GLOBALS['alphano_support_active'])){ $html=str_ireplace('</body>',alphano_support_banner().'</body>',$html); }
-        return alphano_credits_filter_html($html);
+        if(!empty($GLOBALS['alphano_support_active'])){ $html=str_ireplace('</body>',alphanoSupportBanner().'</body>',$html); }
+        return alphanoCreditsFilterHtml($html);
     });
 }
 
-date_default_timezone_set((string)alphano_config('timezone'));
+date_default_timezone_set((string)alphanoConfig('timezone'));
 if(PHP_SAPI!=='cli'){
  $route=parse_url($_SERVER['REQUEST_URI']??'',PHP_URL_PATH)??'';
- if((str_starts_with($route,'/corporazioni/')||str_starts_with($route,'/api/corporazioni/'))&&!alphano_config('corporations_enabled')){ alphano_fail('Corporazioni e produzione di oggetti disabilitate dalla gestione.',403,str_starts_with($route,'/api/')); }
- if(str_starts_with($route,'/organizzazioni/')&&!alphano_config('organizations_enabled')){ alphano_fail('Organizzazioni disabilitate dalla gestione.',403); }
+ if((str_starts_with($route,'/corporazioni/')||str_starts_with($route,'/api/corporazioni/'))&&!alphanoConfig('corporations_enabled')){ alphanoFail('Corporazioni e produzione di oggetti disabilitate dalla gestione.',403,str_starts_with($route,'/api/')); }
+ if(str_starts_with($route,'/organizzazioni/')&&!alphanoConfig('organizations_enabled')){ alphanoFail('Organizzazioni disabilitate dalla gestione.',403); }
 }
-alphano_html_runtime();
+alphanoHtmlRuntime();
 
 /** Ponti espliciti per i risultati PEAR ancora consumati dai template storici. */
-function LegacyFetchRow(array &$rows): array|false
+function legacyFetchRow(array &$rows): array|false
 {
     $row = current($rows);
     if ($row === false) { return false; }
@@ -196,7 +196,7 @@ function LegacyFetchRow(array &$rows): array|false
     return $row;
 }
 
-function LegacyNumRows(array $rows): int { return count($rows); }
+function legacyNumRows(array $rows): int { return count($rows); }
 
 if (!class_exists('PEAR', false)) {
     class PEAR { public static function isError(mixed $value): bool { return $value instanceof Throwable; } }
@@ -205,10 +205,10 @@ if (!class_exists('PEAR', false)) {
 // Errori inattesi: diagnostica nel log e risposta coerente con il tipo dell'endpoint.
 if (PHP_SAPI !== 'cli') { set_exception_handler(static function (Throwable $exception): never {
     error_log('[Alphano] ' . $exception);
-    $reference=alphano_error_reference($exception,'document');
+    $reference=alphanoErrorReference($exception,'document');
     while (ob_get_level()) { ob_end_clean(); }
     $json = false;
     foreach (headers_list() as $header) { if (stripos($header, 'Content-Type: application/json') === 0) { $json = true; } }
-    alphano_fail('Operazione non completata. Riprova tra poco. Codice assistenza: '.$reference, 500, $json);
+    alphanoFail('Operazione non completata. Riprova tra poco. Codice assistenza: '.$reference, 500, $json);
 }
 ); }

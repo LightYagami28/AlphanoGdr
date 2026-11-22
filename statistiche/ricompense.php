@@ -2,12 +2,12 @@
     require_once "../libs/kernel.inc.php";
     require_once "../libs/libpg.inc.php";
     require_once "../libs/libequip.inc.php";
-    alphano_require_login();
-    $user = alphano_user();
+    alphanoRequireLogin();
+    $user = alphanoUser();
     if (!$user || (empty($user['admin']) && empty($user['fatepower']))) {
-        alphano_fail('Accesso riservato ai Master e agli Amministratori.', 403);
+        alphanoFail('Accesso riservato ai Master e agli Amministratori.', 403);
     }
-    $db=ConnectDB();
+    $db=connectDB();
 
     $master = isset($_GET["master"]) ? (int)$_GET["master"] : null;
     $sessione = isset($_GET["sessione"]) ? (int)$_GET["sessione"] : null;
@@ -23,13 +23,13 @@
         $condition = "sessioni.id = ? AND logs_adminpg.data BETWEEN ? AND ?";
         $params = [(int)$dati["id"], (int)$dati["datain"], (int)$dati["dataout"]];
     } else {
-        alphano_fail("Nessun tipo di indagine selezionato.", 400);
+        alphanoFail("Nessun tipo di indagine selezionato.", 400);
     }
 
     $query="SELECT sessioni.id,sessioni.nome,logs_adminpg.obj,logs_adminpg.azione,logs_adminpg.qta,logs_adminpg.esecutore AS master,master.nome AS nomemaster,destinatario.nome AS nomedestinatario,destinatario.id AS destinatario FROM `logs_adminpg`,sessioni,utenti AS destinatario,utenti AS master WHERE logs_adminpg.azione LIKE 'ricompensa%' AND destinatario.id=logs_adminpg.destinatario AND master.id=logs_adminpg.esecutore AND logs_adminpg.chat=sessioni.chat AND $condition";
     $res=$db->query($query, $params);
     $sessioni=array();
-    while($dati=LegacyFetchRow($res)) {
+    while($dati=legacyFetchRow($res)) {
         $sessioni[$dati["id"]]["nome"]=$dati["nome"];
         $sessioni[$dati["id"]]["master"][$dati["master"]]["nome"]=$dati["nomemaster"];
         $sessioni[$dati["id"]]["master"][$dati["master"]]["ricompense"][$dati["destinatario"]]["nome"]=$dati["nomedestinatario"];
@@ -58,8 +58,8 @@
 <?PHP
             $dati = $db->query('SELECT * FROM sessioni WHERE id = ?', [(int)$key])[0] ?? [];
 ?>
-                    Aperta da: <A href="javascript:openProfileId('<?=(int)($dati["masterin"] ?? 0)?>')"><?=htmlentities(GetPGFromID($dati["masterin"] ?? 0))?></A> in data <?=FormatTimestamp((int)($dati["datain"] ?? 0))?><br>
-                    Chiusa da: <A href="javascript:openProfileId('<?=(int)($dati["masterout"] ?? 0)?>')"><?=htmlentities(GetPGFromID($dati["masterout"] ?? 0))?></A> in data <?=FormatTimestamp((int)($dati["dataout"] ?? 0))?><br>
+                    Aperta da: <A href="javascript:openProfileId('<?=(int)($dati["masterin"] ?? 0)?>')"><?=htmlentities(GetPGFromID($dati["masterin"] ?? 0))?></A> in data <?=formatTimestamp((int)($dati["datain"] ?? 0))?><br>
+                    Chiusa da: <A href="javascript:openProfileId('<?=(int)($dati["masterout"] ?? 0)?>')"><?=htmlentities(GetPGFromID($dati["masterout"] ?? 0))?></A> in data <?=formatTimestamp((int)($dati["dataout"] ?? 0))?><br>
 <?PHP
             $rawIds = array_filter(array_map('intval', explode(';', trim((string)($dati['partecipanti'] ?? ''), ';'))));
             $partecipanti = [];
@@ -88,12 +88,12 @@
 <?PHP
                     if(($dati3["soldi"] ?? 0)) {
 ?>
-                                    (<?=($dati3["soldi"] ?? 0)?> <?=alphano_currency_html()?>)
+                                    (<?=($dati3["soldi"] ?? 0)?> <?=alphanoCurrencyHtml()?>)
 <?PHP
                     }
                     foreach(($dati3["obj"] ?? []) as $key => $qta) {
 ?>
-                                    (<?=$qta?> <?=htmlentities(GetEquipDesc($key))?>)
+                                    (<?=$qta?> <?=htmlentities(getEquipDesc($key))?>)
 <?PHP
                     }
 ?>

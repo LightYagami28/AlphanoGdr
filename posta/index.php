@@ -26,9 +26,9 @@ require_once "$root/libs/mail-presentation.inc.php";
 // ———————————————————————————
 // 2) LOGIN & DB
 // ———————————————————————————
-$pgid      = alphano_require_login();
-if ($_SERVER['REQUEST_METHOD'] === 'POST') { alphano_require_csrf(); }
-$db        = ConnectDB();
+$pgid      = alphanoRequireLogin();
+if ($_SERVER['REQUEST_METHOD'] === 'POST') { alphanoRequireCsrf(); }
+$db        = connectDB();
 
 
 
@@ -39,7 +39,7 @@ if (IsAdmin($pgid)) {
 }
 
 // Pulisce la casella di posta secondo le regole definite in libposta.inc.php
-PurgePosta($pgid);
+purgePosta($pgid);
 
 // ———————————————————————————
 // 3) CARICO I MESSAGGI
@@ -71,6 +71,6 @@ foreach ($db->query(
 
 $names=[$pgid=>GetPGFromID($pgid)];
 $uniqueMail=[];foreach($mail as $box){ foreach($box as $row){ $uniqueMail[(int)$row['id']]=$row; } }
-$mailView=alphano_mail_boxes(array_values($uniqueMail),$pgid);
+$mailView=alphanoMailBoxes(array_values($uniqueMail),$pgid);
 require __DIR__.'/../templates/mail/workspace.php';
-ClosePage();
+closePage();

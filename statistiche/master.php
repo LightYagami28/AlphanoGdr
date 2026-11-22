@@ -3,32 +3,32 @@
     require_once "../libs/kernel.inc.php";
     require_once "../libs/libpg.inc.php";
     require_once "../libs/libgrafica.inc.php";
-    alphano_require_login();
+    alphanoRequireLogin();
 
 
 
-    $db=ConnectDB();
+    $db=connectDB();
     $query="SELECT id,nome FROM utenti WHERE fatepower='1'";
     $res=$db->query($query);
     $master=$masters=array();
-    while($dati=LegacyFetchRow($res)) {
+    while($dati=legacyFetchRow($res)) {
         $masters[]=$dati["id"];
         $master[$dati["id"]]=["nome"=>$dati["nome"],"ricompense"=>0];
     }
 
     $query="SELECT esecutore,COUNT(*) AS tot FROM logs_adminpg WHERE logs_adminpg.azione LIKE 'ricompensa%' AND esecutore IN ('".implode("','",$masters)."') GROUP BY esecutore";
     $res=$db->query($query);
-    while($dati=LegacyFetchRow($res)) $master[$dati["esecutore"]]["ricompense"]=$dati["tot"];
+    while($dati=legacyFetchRow($res)) $master[$dati["esecutore"]]["ricompense"]=$dati["tot"];
 
     $query="SELECT id,masterin FROM sessioni WHERE masterin=masterout AND masterin IN ('".implode("','",$masters)."') AND run=0";
     $res=$db->query($query);
     $sessioni=array();
-    while($dati=LegacyFetchRow($res)) $sessioni[$dati["masterin"]][]=$dati["id"];
+    while($dati=legacyFetchRow($res)) $sessioni[$dati["masterin"]][]=$dati["id"];
 
     $query="SELECT sessione,parere FROM parerisessioni";
     $res=$db->query($query);
     $parerisessioni=array();
-    while($dati=LegacyFetchRow($res)) $parerisessioni[$dati["sessione"]][]=$dati["parere"];
+    while($dati=legacyFetchRow($res)) $parerisessioni[$dati["sessione"]][]=$dati["parere"];
 ?>
 <HTML>
     <HEAD>

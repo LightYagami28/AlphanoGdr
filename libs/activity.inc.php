@@ -3,7 +3,7 @@ declare(strict_types=1);
 require_once __DIR__.'/kernel.inc.php';
 
 /** Immutable receipts. Audiences retain current role checks when read. */
-function alphano_record_activity(string $type,int $actor,array $audiences,string $title,string $detail,array $data=[],?string $eventKey=null): int
+function alphanoRecordActivity(string $type,int $actor,array $audiences,string $title,string $detail,array $data=[],?string $eventKey=null): int
 {
     if(!preg_match('/^[a-zA-Z0-9:_-]{1,64}$/D',$type)||$actor<0||!$audiences||count($audiences)>30){ throw new InvalidArgumentException('Evento non valido'); }
     $scopes=['organizzazioni','corporazioni','citta','accademia','personale','master','gestione'];
@@ -16,7 +16,7 @@ function alphano_record_activity(string $type,int $actor,array $audiences,string
     if(strlen($eventKey)>190||!preg_match('/^[a-zA-Z0-9:_-]+$/D',$eventKey)){ throw new InvalidArgumentException('Chiave evento non valida'); }
     $json=json_encode($data,JSON_UNESCAPED_UNICODE|JSON_INVALID_UTF8_SUBSTITUTE|JSON_THROW_ON_ERROR,20);
     if(strlen($json)>65535){ throw new InvalidArgumentException('Dettagli evento troppo lunghi'); }
-    $db=ConnectDB();$own=!$db->inTransaction();if($own){ $db->beginTransaction(); }
+    $db=connectDB();$own=!$db->inTransaction();if($own){ $db->beginTransaction(); }
     try{
         $actorName=$actor?($db->query('SELECT nome FROM utenti WHERE id=?',[$actor])[0]['nome']??'Personaggio'):'Sistema';
         $created=$db->execute('INSERT INTO activity_events(event_key,event_type,actor_id,actor_name,title,detail,data_json,created_at) VALUES(?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE event_key=VALUES(event_key)',
@@ -39,7 +39,7 @@ function alphano_record_activity(string $type,int $actor,array $audiences,string
 }
 
 /** Scope/section is server-owned; callers cannot provide arbitrary links. */
-function alphano_activity_destination(string $scope,int $id,string $section): array
+function alphanoActivityDestination(string $scope,int $id,string $section): array
 {
     $group=$scope==='personale'?'gioco':$scope;
     if($section==='tesoreria'&&in_array($scope,['citta','organizzazioni','corporazioni'],true)){ return ['group'=>$group,'section'=>$section,'url'=>'/governo/?'.http_build_query(['scope'=>$scope,'id'=>$id])]; }
@@ -59,9 +59,9 @@ function alphano_activity_destination(string $scope,int $id,string $section): ar
 }
 
 /** SQL clauses are built only from the current authenticated player record. */
-function alphano_activity_acl(array $u): array
+function alphanoActivityAcl(array $u): array
 {
-    $db=ConnectDB();
+    $db=connectDB();
     $clauses=['(a.audience_scope=\'personale\' AND a.scope_id=?)'];$params=[$u['id']];
     foreach(['organizzazioni'=>['organizzazione','adminorganizzazione'],'corporazioni'=>['corporazione','admincorporazione']] as $scope=>[$field,$admin]){
         if((int)$u[$field]<1){ continue; }
@@ -87,9 +87,9 @@ function alphano_activity_acl(array $u): array
     return ['('.implode(' OR ',$clauses).')',$params];
 }
 
-function alphano_activity_where(array $user,bool $includeRead=false,?string $group=null,?string $section=null): array
+function alphanoActivityWhere(array $user,bool $includeRead=false,?string $group=null,?string $section=null): array
 {
-    [$acl,$params]=alphano_activity_acl($user);
+    [$acl,$params]=alphanoActivityAcl($user);
     if(!$includeRead){ $acl.=' AND nr.read_at IS NULL'; }
     if($group!==null&&$group!==''){$acl.=' AND a.audience_scope=?';$params[]=$group==='gioco'?'personale':$group;}
     if($section!==null&&$section!==''){$acl.=' AND a.section_key=?';$params[]=$section;}
@@ -97,32 +97,32 @@ function alphano_activity_where(array $user,bool $includeRead=false,?string $gro
 }
 
 /** Existing rows written by older code remain tasks until they have a receipt. */
-function alphano_recorded_sources(array $user,string $source,array $ids): array
+function alphanoRecordedSources(array $user,string $source,array $ids): array
 {
     if(!$ids){ return []; }
     if(!in_array($source,['loan','order'],true)){ throw new InvalidArgumentException('Fonte attività non valida'); }
-    [$acl,$params]=alphano_activity_acl($user);$known=[];
+    [$acl,$params]=alphanoActivityAcl($user);$known=[];
     foreach(array_chunk(array_values(array_unique(array_map('intval',$ids))),300) as $chunk){
         $path='$.'.$source.'_id';
-        $rows=ConnectDB()->query('SELECT DISTINCT JSON_UNQUOTE(JSON_EXTRACT(e.data_json,?)) AS source_id FROM activity_events e JOIN activity_event_audiences a ON a.event_id=e.id WHERE '.$acl.' AND CAST(JSON_UNQUOTE(JSON_EXTRACT(e.data_json,?)) AS UNSIGNED) IN('.implode(',',array_fill(0,count($chunk),'?')).')',[$path,...$params,$path,...$chunk]);
+        $rows=connectDB()->query('SELECT DISTINCT JSON_UNQUOTE(JSON_EXTRACT(e.data_json,?)) AS source_id FROM activity_events e JOIN activity_event_audiences a ON a.event_id=e.id WHERE '.$acl.' AND CAST(JSON_UNQUOTE(JSON_EXTRACT(e.data_json,?)) AS UNSIGNED) IN('.implode(',',array_fill(0,count($chunk),'?')).')',[$path,...$params,$path,...$chunk]);
         foreach($rows as $row){ $known[(int)$row['source_id']]=true; }
     }
     return $known;
 }
 
-function alphano_activity_history_total(int $recipient,?string $group=null,?string $section=null): int
+function alphanoActivityHistoryTotal(int $recipient,?string $group=null,?string $section=null): int
 {
-    $db=ConnectDB();$u=$db->query('SELECT * FROM utenti WHERE id=?',[$recipient])[0]??null;if(!$u){ return 0; }
-    [$where,$params]=alphano_activity_where($u,true,$group,$section);
+    $db=connectDB();$u=$db->query('SELECT * FROM utenti WHERE id=?',[$recipient])[0]??null;if(!$u){ return 0; }
+    [$where,$params]=alphanoActivityWhere($u,true,$group,$section);
     return (int)$db->query('SELECT COUNT(DISTINCT e.id) AS n FROM activity_events e JOIN activity_event_audiences a ON a.event_id=e.id WHERE '.$where,$params)[0]['n'];
 }
 
 /** History and unread receipts share the same current membership/role ACL. */
-function alphano_persisted_activity(int $recipient,bool $includeRead=false,int $limit=0,int $offset=0,?string $group=null,?string $section=null,bool $summary=false,array $eventIds=[]): array
+function alphanoPersistedActivity(int $recipient,bool $includeRead=false,int $limit=0,int $offset=0,?string $group=null,?string $section=null,bool $summary=false,array $eventIds=[]): array
 {
-    $db=ConnectDB();$u=$db->query('SELECT * FROM utenti WHERE id=?',[$recipient])[0]??null;
+    $db=connectDB();$u=$db->query('SELECT * FROM utenti WHERE id=?',[$recipient])[0]??null;
     if(!$u){ return []; }
-    [$where,$params]=alphano_activity_where($u,$includeRead,$group,$section);
+    [$where,$params]=alphanoActivityWhere($u,$includeRead,$group,$section);
     $ids=[];
     if($eventIds){$eventIds=array_values(array_unique(array_map('intval',$eventIds)));$where.=' AND e.id IN('.implode(',',array_fill(0,count($eventIds),'?')).')';array_push($params,...$eventIds);}
     if($limit>0){
@@ -138,7 +138,7 @@ function alphano_persisted_activity(int $recipient,bool $includeRead=false,int $
         WHERE '.$where.' ORDER BY e.created_at DESC,e.id DESC',[$recipient,...$params]);
     $events=[];
     foreach($rows as $row){
-        $target=alphano_activity_destination($row['audience_scope'],(int)$row['scope_id'],$row['section_key']);
+        $target=alphanoActivityDestination($row['audience_scope'],(int)$row['scope_id'],$row['section_key']);
         $key='event:'.$row['id'];
         $data=json_decode($row['data_json'],true,20,JSON_THROW_ON_ERROR);
         if($row['event_type']==='board-game'&&$row['audience_scope']==='personale'&&!empty($data['game_id'])){ $target['url']='/chat/index.php?'.http_build_query(['chat'=>$data['chat'],'board_game'=>(int)$data['game_id']]); }

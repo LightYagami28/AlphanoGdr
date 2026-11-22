@@ -2,12 +2,12 @@
 declare(strict_types=1);
 /** The UI consumes only committed effect receipts. It never calculates game outcomes. */
 function ai_scene_effect_icon(string $key):string {
-    return match($key){'wound'=>'/assets/placeholder.svg','dice'=>'/assets/placeholder.svg','health'=>alphano_profile_symbol('health'),'money'=>alphano_profile_symbol('crowns'),'item','ammunition','reload'=>alphano_profile_symbol('equipment'),'death'=>alphano_profile_symbol('victims'),'xp'=>alphano_profile_symbol('abilities'),default=>alphano_profile_symbol('master-notes')};
+    return match($key){'wound'=>'/assets/placeholder.svg','dice'=>'/assets/placeholder.svg','health'=>alphanoProfileSymbol('health'),'money'=>alphanoProfileSymbol('crowns'),'item','ammunition','reload'=>alphanoProfileSymbol('equipment'),'death'=>alphanoProfileSymbol('victims'),'xp'=>alphanoProfileSymbol('abilities'),default=>alphanoProfileSymbol('master-notes')};
 }
 function ai_verdict_public_html(array $v):string {
     $esc=static fn($s)=>htmlspecialchars((string)$s,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
     $rows=ai_verdict_receipts((int)$v['id']);$situation=ai_tactical_situation((int)$v['session_id']);$events=[];
-    $html='<section class="quest-verdict" data-verdict-id="'.(int)$v['id'].'"><header class="quest-verdict-heading"><img src="'.$esc(alphano_profile_symbol('master-notes')).'" alt="" width="55" height="55"><div><small>Master · Esito del giro '.(int)$v['round_number'].'</small><h3>Il destino della scena</h3></div></header><div class="quest-verdict-narrative">';
+    $html='<section class="quest-verdict" data-verdict-id="'.(int)$v['id'].'"><header class="quest-verdict-heading"><img src="'.$esc(alphanoProfileSymbol('master-notes')).'" alt="" width="55" height="55"><div><small>Master · Esito del giro '.(int)$v['round_number'].'</small><h3>Il destino della scena</h3></div></header><div class="quest-verdict-narrative">';
     foreach(preg_split('/\n\s*\n/u',trim($v['narrative']),-1,PREG_SPLIT_NO_EMPTY) as $p){ $html.='<p>'.nl2br($esc($p)).'</p>'; }
     $html.='</div>';
     $technical=rpg_decode($v['technical']??'{}');foreach($technical['results']??[] as $result){ if(isset($result['activation'])){$a=$result['activation'];$html.='<p class="human-activation'.($a['success']?'':' is-failed').'"><strong>'.$esc($result['actor']).' · '.$esc($a['name']).'</strong> — Attivazione: '.$a['roll'].' / 100 · soglia '.$a['chance'].'% · '.($a['success']?'riuscita':'fallita').'</p>';} }
@@ -26,7 +26,7 @@ function ai_dice_public_html(string $name,int $roll,int $receipt):string {
 }
 
 function ai_reward_public_html(string $name,int $xp,int $money,int $player):string {
-    $changes=[];foreach(['xp'=>[$xp,'Esperienza'],'money'=>[$money,alphano_currency_text('Corone')]] as $key=>[$amount,$label]){ if($amount>0){ $changes[]=['key'=>$key,'label'=>$label,'value'=>'+'.$amount,'delta'=>$amount,'icon'=>ai_scene_effect_icon($key)]; } }
+    $changes=[];foreach(['xp'=>[$xp,'Esperienza'],'money'=>[$money,alphanoCurrencyText('Corone')]] as $key=>[$amount,$label]){ if($amount>0){ $changes[]=['key'=>$key,'label'=>$label,'value'=>'+'.$amount,'delta'=>$amount,'icon'=>ai_scene_effect_icon($key)]; } }
     $esc=static fn($s)=>htmlspecialchars((string)$s,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
     $html='<div class="MasterKey"><section class="quest-consequences"><h4>Ricompense registrate · '.$esc($name).'</h4><div class="quest-consequence-changes">';
     foreach($changes as $c){ $html.='<div class="quest-change"><img src="'.$esc($c['icon']).'" alt="" width="45" height="45"><div><small>'.$esc($c['label']).'</small><b>'.$esc($c['value']).'</b></div></div>'; }

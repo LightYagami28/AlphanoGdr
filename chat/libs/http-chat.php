@@ -13,7 +13,7 @@ function httpChatRoom(string $chat, ?int $idpg = null): array
         'SELECT chat_key, position, vampiredamage FROM mappe WHERE chat_key = ? AND chat = 1 AND public_enabled=1 AND (area_id IS NULL OR area_id IN(SELECT id FROM world_areas WHERE enabled=1)) LIMIT 1',
         [$chat]
     )[0] ?? null;
-    if (!$room && ($private = alphano_private_room($chat, $idpg ?? (int)($_SESSION['user_id'] ?? 0)))) { return $private; }
+    if (!$room && ($private = alphanoPrivateRoom($chat, $idpg ?? (int)($_SESSION['user_id'] ?? 0)))) { return $private; }
     if (!$room) {
         throw new DomainException('Chat inesistente', 404);
     }
@@ -24,7 +24,7 @@ function httpChatRoom(string $chat, ?int $idpg = null): array
 function httpChatHistory(string $chat, int $since, int $viewer, bool $initial, int $viewerRace = 0): array
 {
     $db = getDB();
-    $liveFilter=alphano_chat_live_filter();$archiveColumn=alphano_chat_has_archive()?',history_only':',0 AS history_only';
+    $liveFilter=alphanoChatLiveFilter();$archiveColumn=alphanoChatHasArchive()?',history_only':',0 AS history_only';
     if ($initial) {
         // Fissa il limite prima della lettura: un arrivo concorrente verrà letto al giro dopo.
         $cursor = (int)($db->query('SELECT MAX(id) AS id FROM chat WHERE chat = ?', [$chat])[0]['id'] ?? 0);
@@ -64,14 +64,14 @@ function httpChatHistory(string $chat, int $since, int $viewer, bool $initial, i
         }
         if ((int)$row['lican'] === 1 && !in_array($viewerRace,[ALPHANO_RACE_LYCAN,ALPHANO_RACE_ANCESTRAL],true)) {
             require_once __DIR__.'/../../libs/chat-format.inc.php';
-            if(str_contains($row['msg'],'data-language="lupine"')){ $row['msg']=alphano_chat_mask_lupine($row['msg']); }
+            if(str_contains($row['msg'],'data-language="lupine"')){ $row['msg']=alphanoChatMaskLupine($row['msg']); }
             else{
                 // Historical rows have no segmented markup: keep their original privacy rule.
                 $name = htmlspecialchars(GetPGFromID((int)$row['pg']) ?? 'Qualcuno', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
                 $row['msg'] = '<span class="String">' . $name . ' emette un ringhio sommesso.</span>';
             }
         }
-        $messages[] = ['id' => (int)$row['id'], 'msg' => $row['msg'], 'pg' => (int)$row['pg'], 'location' => $row['location'] ?? '', 'sent_at'=>(int)$row['ora'], ...alphano_chat_view($row)];
+        $messages[] = ['id' => (int)$row['id'], 'msg' => $row['msg'], 'pg' => (int)$row['pg'], 'location' => $row['location'] ?? '', 'sent_at'=>(int)$row['ora'], ...alphanoChatView($row)];
     }
     return ['messages' => $messages, 'lastId' => $cursor, 'more' => $more];
 }

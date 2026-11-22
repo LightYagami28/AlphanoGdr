@@ -1,4 +1,4 @@
-<?php $h=static fn($value)=>htmlspecialchars((string)$value,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');$csrf=alphano_csrf_token(); ?>
+<?php $h=static fn($value)=>htmlspecialchars((string)$value,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');$csrf=alphanoCsrfToken(); ?>
 <!doctype html><html lang="it"><head><meta charset="utf-8"><title>Accademia – <?=$h(TitoloSito)?></title><script src="/js/accademia.js" defer></script></head><body>
 <section class="academy-workspace" aria-label="Lavori dell’Accademia">
 <?php if($msg): ?><p class="flash" role="status"><?=$h($msg==='OK'?'Operazione riuscita':($msg==='KO'?'Operazione non riuscita':$msg))?></p><?php endif; ?>

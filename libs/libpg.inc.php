@@ -16,14 +16,14 @@ class BadgeSaveException extends RuntimeException {}
 require_once __DIR__ . '/kernel.inc.php';
 require_once __DIR__ . '/astro.inc.php';
 require_once __DIR__.'/alignments.inc.php';
-alphano_session();
+alphanoSession();
 /**
  * Inizializza la sessione PHP (una sola volta).
  */
 function initSession(): void
 {
     if (session_status() === PHP_SESSION_NONE) {
-        alphano_session();
+        alphanoSession();
     }
 }
 
@@ -34,7 +34,7 @@ function getDB(): PDOMySQLDriver
 {
     static $db;
     if (!$db) {
-        $db = ConnectDB();
+        $db = connectDB();
     }
     return $db;
 }
@@ -55,7 +55,7 @@ function doLogin(string $username, string $password): bool
     initSession();
     $db = getDB();
     $rows = $db->query('SELECT id, nome, password FROM utenti WHERE nome = ? LIMIT 1', [$username]);
-    if (count($rows) !== 1 || !alphano_password_verify($password, $rows[0]['password'])) {return false;}
+    if (count($rows) !== 1 || !alphanoPasswordVerify($password, $rows[0]['password'])) {return false;}
     // Migrazione progressiva: gli account esistenti continuano a funzionare.
     if (password_needs_rehash($rows[0]['password'], PASSWORD_DEFAULT)) {
         $column = $db->query("SHOW COLUMNS FROM utenti LIKE 'password'")[0]['Type'] ?? '';
@@ -104,7 +104,7 @@ function getIDPG($requireLogin = true): ?int
     $id = (int)$_SESSION['user_id'];
     if ($id < 1 || !getDB()->query('SELECT 1 FROM utenti WHERE id = ?', [$id])) {
         unset($_SESSION['user_id'], $_SESSION['user_name']);
-        if ($requireLogin) {alphano_fail('Sessione scaduta. Effettua nuovamente il login.', 403);}
+        if ($requireLogin) {alphanoFail('Sessione scaduta. Effettua nuovamente il login.', 403);}
         return null;
     }
     return $id;
@@ -180,7 +180,7 @@ function setPosizione(string $pos, int $idpg, string $chat = ''): void
         );
     }
     require_once __DIR__.'/lycan.inc.php';
-    alphano_lycan_sync($idpg);
+    alphanoLycanSync($idpg);
 }
 
 
@@ -218,7 +218,7 @@ function getAllineamento(int $idpg): ?string
 
 function processAl(string $al): string
 {
-    return alphano_alignment($al)['name']??$al;
+    return alphanoAlignment($al)['name']??$al;
 }
 
 function getRazza(int $r): string
@@ -601,7 +601,7 @@ function makeRichiestaCity(int $city, int $idpg): void
         [$city]
     );
     foreach ($admins as $ad) {
-        InviaMissiva(
+        inviaMissiva(
             'Notifica Richiesta di Cittadinanza',
             'Hai ricevuto una nuova richiesta di ammissione',
             (int)$ad['id']
@@ -760,7 +760,7 @@ function makeRichiestaOrg(int $org, int $pg): bool
         $db->execute('INSERT INTO richieste(idpg,data,organizzazione) VALUES(?,?,?)',[$pg,time(),$org]);
         $admins=$db->query('SELECT id FROM utenti WHERE organizzazione=? AND adminorganizzazione=1',[$org]);
         require_once __DIR__.'/libposta.inc.php';
-        foreach($admins as $admin) {InviaMissiva('Richiesta di Ammissione','Hai ricevuto una nuova richiesta di ammissione.',(int)$admin['id']);}
+        foreach($admins as $admin) {inviaMissiva('Richiesta di Ammissione','Hai ricevuto una nuova richiesta di ammissione.',(int)$admin['id']);}
         $db->commit();return true;
     } catch(Throwable $e) { if($db->inTransaction()){$db->rollBack();} throw $e; }
 }
@@ -1022,7 +1022,7 @@ function makeRichiestaCorp(int $corp, int $pg): bool
         $db->execute('INSERT INTO richieste(idpg,data,corporazione) VALUES(?,?,?)',[$pg,time(),$corp]);
         $admins=$db->query('SELECT id FROM utenti WHERE corporazione=? AND admincorporazione=1',[$corp]);
         require_once __DIR__.'/libposta.inc.php';
-        foreach($admins as $admin) {InviaMissiva('Richiesta di Ammissione','Hai ricevuto una nuova richiesta di ammissione.',(int)$admin['id']);}
+        foreach($admins as $admin) {inviaMissiva('Richiesta di Ammissione','Hai ricevuto una nuova richiesta di ammissione.',(int)$admin['id']);}
         $db->commit();return true;
     } catch(Throwable $e) { if($db->inTransaction()){$db->rollBack();} throw $e; }
 }

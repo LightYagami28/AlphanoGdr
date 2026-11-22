@@ -7,7 +7,7 @@
 declare(strict_types=1);
 
 /** Uniforma i percorsi storici delle immagini senza dipendere dall'URL del modulo. */
-function alphano_equipment_image(string $source, string $slot = 'attrezzi'): string
+function alphanoEquipmentImage(string $source, string $slot = 'attrezzi'): string
 {
     $slots=['guanti','elmo','mantello','veste','armasx','armatura','armadx','bracciali','faretra','stivali','scudo','musica','anellosx','collana','anellodx','attrezzi'];
     $fallback = '/assets/equipment/'.(in_array($slot,$slots,true)?$slot:'attrezzi').'.jpg';
@@ -19,9 +19,9 @@ function alphano_equipment_image(string $source, string $slot = 'attrezzi'): str
     return $fallback;
 }
 
-require_once __DIR__ . '/kernel.inc.php';   // costanti + ConnectDB()
-require_once __DIR__ . '/libpg.inc.php';    // GetPGFromID(), LockUser…
-require_once __DIR__ . '/libposta.inc.php';  // InviaMissiva()
+require_once __DIR__ . '/kernel.inc.php';   // costanti + connectDB()
+require_once __DIR__ . '/libpg.inc.php';    // GetPGFromID(), lockUser…
+require_once __DIR__ . '/libposta.inc.php';  // inviaMissiva()
 
 use Alphano\Database\PDOMySQLDriver;
 
@@ -74,7 +74,7 @@ if (!function_exists('db')) {
     function db(): PDOMySQLDriver
     {
         static $db;
-        return $db ??= ConnectDB();
+        return $db ??= connectDB();
     }
 }
 
@@ -82,7 +82,7 @@ if (!function_exists('db')) {
  *                    FUNZIONI DI UTILITÀ GENERALI
  *====================================================================*/
 /** Serializza le modifiche dell'inventario e conserva log e ripristino PF insieme. */
-function EquipAtomico(callable $operation): mixed
+function equipAtomico(callable $operation): mixed
 {
     $pdo=db()->getConnection();
     $own=!$pdo->inTransaction();
@@ -113,10 +113,10 @@ function getSize(int $id): string
 /*======================================================================
  *                      CONSUMO / DURATA / BREAK
  *====================================================================*/
-function Consuma(int $pg, int $obj, int $quantita = 1): bool
+function consuma(int $pg, int $obj, int $quantita = 1): bool
 {
     if ($quantita<=0) { return false; }
-    return EquipAtomico(static function() use($pg,$obj,$quantita): bool {
+    return equipAtomico(static function() use($pg,$obj,$quantita): bool {
         $db=db();
         $item=$db->query('SELECT p.consumo,e.durata FROM equippg p JOIN equip e ON e.id=p.uid WHERE p.id=? AND p.idpg=? FOR UPDATE',[$obj,$pg])[0] ?? null;
         if (!$item) { return false; }
@@ -131,7 +131,7 @@ function Consuma(int $pg, int $obj, int $quantita = 1): bool
 /*======================================================================
  *                          DESCRIZIONI
  *====================================================================*/
-function GetEquipDesc(int $uid): string
+function getEquipDesc(int $uid): string
 {
     $row = db()->query(
         'SELECT shortDesc FROM equip WHERE id = ? LIMIT 1',
@@ -140,7 +140,7 @@ function GetEquipDesc(int $uid): string
     return $row ? (string)$row[0]['shortDesc'] : '';
 }
 
-function GetShortDesc(int $equippgId): string
+function getShortDesc(int $equippgId): string
 {
     $row = db()->query(
         "SELECT equip.shortDesc
@@ -170,7 +170,7 @@ function getPesoTotale(int $pgid): float
     return (float)$row['pesotot'];
 }
 
-function GetAffaticamento(float $peso, int $forza): string
+function getAffaticamento(float $peso, int $forza): string
 {
     return match (true) {
         $peso < 0.20 * $forza => 'Nessun Problema di Fatica',
@@ -227,7 +227,7 @@ function getInformation(int $equippgId): array
  *====================================================================*/
 function equipObject(int $equippgId, string $slot, string $side = ''): void
 {
-    EquipAtomico(static function() use($equippgId,$slot,$side): void {
+    equipAtomico(static function() use($equippgId,$slot,$side): void {
         $db=db();
         $item=getInformation($equippgId);
         if (!$item || empty($item['equipaggiabile']) || (int)$item['padre']>0 || $item['slot']!=='') { return; }
@@ -424,13 +424,13 @@ function getEquipInVetrina(int $pgid): array
  *——————————————————————————————————————————————————————————————*/
 function useObject(int $equippgId, int $pgId, int $mandante): int
 {
-    return EquipAtomico(static function() use($equippgId,$pgId,$mandante): int {
+    return equipAtomico(static function() use($equippgId,$pgId,$mandante): int {
         $db=db();
         $user=$db->query('SELECT puntif FROM utenti WHERE id=? FOR UPDATE',[$pgId])[0] ?? null;
         $info=$db->query('SELECT e.restore,e.id AS uid FROM equippg p JOIN equip e ON e.id=p.uid WHERE p.id=? AND p.idpg=? FOR UPDATE',[$equippgId,$pgId])[0] ?? null;
         if (!$user || !$info || (int)$info['restore']<=0) { return 0; }
         if ((int)$user['puntif']>=maxpuntif) { return -1; }
-        if (!Consuma($pgId,$equippgId,1)) { return 0; }
+        if (!consuma($pgId,$equippgId,1)) { return 0; }
         $new=min(maxpuntif,(int)$user['puntif']+(int)$info['restore']);
         $db->execute('UPDATE utenti SET puntif=? WHERE id=?',[$new,$pgId]);
         $db->execute("INSERT INTO logs_equip(data,esecutore,origine,obj,azione) VALUES(?,?,?,?,'USATO')",[time(),$mandante,$pgId,$info['uid']]);
@@ -441,21 +441,21 @@ function useObject(int $equippgId, int $pgId, int $mandante): int
 function moveObject(int $equippgId, int $src, int $dest, int $mandante): bool
 {
     if ($src===$dest) { return false; }
-    return EquipAtomico(static function() use($equippgId,$src,$dest,$mandante): bool {
+    return equipAtomico(static function() use($equippgId,$src,$dest,$mandante): bool {
         $db=db();
         $row=$db->query('SELECT uid FROM equippg WHERE id=? AND idpg=? FOR UPDATE',[$equippgId,$src])[0] ?? null;
         if (!$row || !$db->query('SELECT 1 FROM utenti WHERE id=?',[$dest])) { return false; }
         $db->execute("UPDATE equippg SET idpadre=0,slot='' WHERE idpadre=? AND idpg=?",[$equippgId,$src]);
         $db->execute("UPDATE equippg SET idpg=?,slot='',idpadre=0 WHERE id=? AND idpg=?",[$dest,$equippgId,$src]);
         $db->execute("INSERT INTO logs_equip(data,esecutore,origine,destinatario,obj,azione) VALUES(?,?,?,?,?,'SPOSTA')",[time(),$mandante,$src,$dest,$row['uid']]);
-        InviaMissiva('Notifica Trasferimento Oggetto',GetPGFromID($src).' ti ha inviato un oggetto.',$dest);
+        inviaMissiva('Notifica Trasferimento Oggetto',GetPGFromID($src).' ti ha inviato un oggetto.',$dest);
         return true;
     });
 }
 
 function deleteObject(int $equippgId, int $pgid, int $mandante): bool
 {
-    return EquipAtomico(static function() use($equippgId,$pgid,$mandante): bool {
+    return equipAtomico(static function() use($equippgId,$pgid,$mandante): bool {
         $db=db();
         $row=$db->query('SELECT uid FROM equippg WHERE id=? AND idpg=? FOR UPDATE',[$equippgId,$pgid])[0] ?? null;
         if (!$row) { return false; }
@@ -511,7 +511,7 @@ function getSlottedEquip(int $pgid): array
     foreach ($rows as $r) {
         $slot = $r['slot'];
         if (!isset($equip[$slot])) { continue; }
-        $equip[$slot]['img']  = alphano_equipment_image((string)$r['immagine'],$slot);
+        $equip[$slot]['img']  = alphanoEquipmentImage((string)$r['immagine'],$slot);
         $equip[$slot]['desc'] = stripslashes($r['shortDesc']);
         $equip[$slot]['id']   = $r['id'];
     }
@@ -529,7 +529,7 @@ function checkSlotPadre(string $slot, int $padreTipo, int $pgid): array|false
 
 function equipObjectPadre(int $equippgId, string $slot, int $padreId): void
 {
-    EquipAtomico(static function() use($equippgId,$slot,$padreId): void {
+    equipAtomico(static function() use($equippgId,$slot,$padreId): void {
         $db=db(); $item=getInformation($equippgId);
         if (!$item || empty($item['equipaggiabile']) || (int)$item['padre']<=0 || $equippgId===$padreId || strtolower($slot)!==strtolower($item['tipoG'])) { return; }
         $owner=(int)$item['owner'];
@@ -545,7 +545,7 @@ function equipObjectPadre(int $equippgId, string $slot, int $padreId): void
 /*======================================================================
  *                         ALTRE UTILITY
  *====================================================================*/
-function GetMateriePrime(array $obj): array|false
+function getMateriePrime(array $obj): array|false
 {
     $filtered = array_intersect_key($obj, array_flip(MATERIE_PRIME));
     ksort($filtered);

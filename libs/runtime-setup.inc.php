@@ -2,19 +2,19 @@
 declare(strict_types=1);
 
 /** PHP 8.0-compatible bootstrap; never loads Composer or connects to the database. */
-function alphano_runtime_install_url(?string $script = null): string
+function alphanoRuntimeInstallUrl(?string $script = null): string
 {
     $base = rtrim(str_replace('\\', '/', dirname($script ?? ($_SERVER['SCRIPT_NAME'] ?? '/index.php'))), '/');
     if (basename($base) === 'install') { $base = rtrim(dirname($base), '/'); }
     if (!preg_match('~^(?:/[A-Za-z0-9_-]+)*$~D', $base)) { $base = ''; }
     return $base.'/install/';
 }
-function alphano_altervista_php84_config(string $original): string
+function alphanoAltervistaPhp84Config(string $original): string
 {
     $original = preg_replace('~\n?# BEGIN AlphanoGdr PHP\r?\n.*?# END AlphanoGdr PHP\r?\n?~s', '', $original);
     return rtrim($original, "\r\n")."\n\n# BEGIN AlphanoGdr PHP\nAddHandler av-php84 .php\n# END AlphanoGdr PHP\n";
 }
-function alphano_runtime_select_php84(string $root): void
+function alphanoRuntimeSelectPhp84(string $root): void
 {
     if (is_file($root.'/config/local.php') || is_file($root.'/private/installed.lock')) { throw new DomainException('Il sito è già configurato: seleziona PHP dal pannello del provider.'); }
     if (!is_dir($root.'/private') || !is_writable($root.'/private')) { throw new DomainException('La cartella private/ deve essere scrivibile. In alternativa seleziona PHP 8.4 nel pannello AlterVista.'); }
@@ -36,7 +36,7 @@ function alphano_runtime_select_php84(string $root): void
         }
         $temp = tempnam($root, '.alphano-php-');
         if ($temp === false) { throw new DomainException('La radice del sito non è scrivibile. Seleziona PHP 8.4 dal pannello AlterVista.'); }
-        $updated = alphano_altervista_php84_config($original);
+        $updated = alphanoAltervistaPhp84Config($original);
         if (file_put_contents($temp, $updated, LOCK_EX) !== strlen($updated)) { throw new DomainException('Scrittura della selezione PHP non riuscita.'); }
         chmod($temp, is_file($path) ? fileperms($path) & 0777 : 0644);
         if ((is_file($path) ? file_get_contents($path) : '') !== $original) { throw new DomainException('Il file .htaccess è cambiato nel frattempo. Riprova.'); }
@@ -47,20 +47,20 @@ function alphano_runtime_select_php84(string $root): void
         flock($guard, LOCK_UN);fclose($guard);
     }
 }
-function alphano_runtime_setup(string $root): void
+function alphanoRuntimeSetup(string $root): void
 {
     require_once __DIR__.'/status-page.inc.php';
     require_once __DIR__.'/http-context.inc.php';
     $fresh = !is_file($root.'/config/local.php') && !is_file($root.'/private/installed.lock');
     $altervista = preg_match('/^[a-z0-9-]+\.altervista\.org(?::443)?$/iD', (string)($_SERVER['HTTP_HOST'] ?? '')) === 1;
-    $install = alphano_runtime_install_url();
+    $install = alphanoRuntimeInstallUrl();
     $message = 'Il server usa PHP '.PHP_VERSION.'. Per eseguire il gioco e le sue dipendenze serve PHP 8.4: accettare il rischio non rende compatibile PHP 8.0. Puoi proseguire selezionando la versione corretta.';
     $form = null;
     if ($fresh && $altervista) {
         http_response_code(200);
         $error = ''; 
         session_name('alphano_php_setup_'.substr(hash('sha256', $root), 0, 12));
-        session_start(['cookie_httponly'=>true,'cookie_samesite'=>'Strict','cookie_secure'=>alphano_https_context()]);
+        session_start(['cookie_httponly'=>true,'cookie_samesite'=>'Strict','cookie_secure'=>alphanoHttpsContext()]);
         $_SESSION['runtime_csrf'] ??= bin2hex(random_bytes(32));
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             if (!is_string($_POST['_csrf'] ?? null) || !hash_equals($_SESSION['runtime_csrf'], $_POST['_csrf'])) {
@@ -69,7 +69,7 @@ function alphano_runtime_setup(string $root): void
                 http_response_code(422);$error = 'Per continuare, conferma la selezione di PHP 8.4 per questo sito.';
             } else {
                 try {
-                    alphano_runtime_select_php84($root);
+                    alphanoRuntimeSelectPhp84($root);
                     session_write_close();
                     header('Location: '.$install.'?runtime=updated', true, 303);exit;
                 } catch (DomainException $e) {http_response_code(422);$error = $e->getMessage();}
@@ -83,6 +83,6 @@ function alphano_runtime_setup(string $root): void
             $form = ['action'=>$install,'csrf'=>$_SESSION['runtime_csrf'],'checkbox'=>'accept_runtime_change','consent'=>'Ho compreso: selezionare PHP 8.4 può cambiare il comportamento di eventuali altri script in questo spazio. Voglio continuare.','button'=>'Attiva PHP 8.4 e continua'];
         }
     }
-    alphano_status_page('Prepariamo l’installazione', $message, $install, 'Ho selezionato PHP 8.4: riprova', $form);
+    alphanoStatusPage('Prepariamo l’installazione', $message, $install, 'Ho selezionato PHP 8.4: riprova', $form);
     exit;
 }

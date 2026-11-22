@@ -34,7 +34,7 @@ function ai_validate_profile(array $input, array $previous): array {
 }
 function ai_profile_link(array $npc, bool $icon=true): string {
     $p=ai_npc_profile($npc);$url='/profili/png.php?Id='.(int)$npc['id'];
-    return '<a class="npc-profile-link '.alphano_chat_gender($p['sex']).'" href="'.$url.'" data-npc-profile="'.(int)$npc['id'].'">'.($icon?processRazza((int)$p['race_id'],(int)$p['ethnicity_id']).' ':'').htmlspecialchars($npc['name'],ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8').'</a>';
+    return '<a class="npc-profile-link '.alphanoChatGender($p['sex']).'" href="'.$url.'" data-npc-profile="'.(int)$npc['id'].'">'.($icon?processRazza((int)$p['race_id'],(int)$p['ethnicity_id']).' ':'').htmlspecialchars($npc['name'],ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8').'</a>';
 }
 function ai_public_npc(array $npc): array {
     $p=ai_npc_profile($npc);
@@ -45,7 +45,7 @@ function ai_pending_public(string $chat): array {
     return aiDb()->query("SELECT j.id,n.name,j.npc_id,j.status,j.user_id FROM ai_jobs j JOIN ai_npcs n ON n.id=j.npc_id JOIN ai_rooms r ON r.chat_key=j.chat_key WHERE j.chat_key=? AND j.kind IN('play','observe','npc-turn','reaction') AND j.status IN('queued','running') AND j.created_at>? AND r.enabled=1 AND n.active=1 ORDER BY j.id LIMIT 24",[$chat,time()-1800]);
 }
 function ai_portrait_directory(): string {
-    return (alphano_config('storage_root')?:dirname(__DIR__).'/config/storage').'/npc-portraits';
+    return (alphanoConfig('storage_root')?:dirname(__DIR__).'/config/storage').'/npc-portraits';
 }
 function ai_upload_portrait(array $file): string {
     if (($file['error']??-1)!==UPLOAD_ERR_OK || !is_uploaded_file($file['tmp_name']??'') || ($file['size']??0)>3*1024*1024) { throw new DomainException('Scegli un’immagine PNG, JPEG o WebP entro 3 MB.',422); }
@@ -72,6 +72,6 @@ function ai_message_html(array $job, ?string $name=null): string {
     $header=$npc?ai_profile_link($npc):htmlspecialchars($name,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
     $time=(int)($data['sent_at']??$job['finished_at']??0)?:time();
     $position=$data['situation']??[];$tag=isset($position['place'],$position['position'])?implode(' · ',array_unique([aiText((string)$position['place'],80),aiText((string)$position['position'],100)])):'';
-    $placement=$tag!==''?'<strong class="chat-action '.alphano_chat_gender($profile['sex']).'" data-npc-position>['.htmlspecialchars($tag,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8').'] </strong>':'';
-    return '<div class="ai-narration scene-note" data-message-type="action" data-ai-job="'.(int)$job['id'].'"><div class="chat-character-header"><time datetime="'.date(DATE_ATOM,$time).'">'.date('H:i',$time).'</time> '.$header.'</div><div class="chat-character-text">'.$placement.alphano_chat_text($data['testo'],$profile['sex'],true).(!empty($data['ability'])?rpg_combat_badge($data['ability']):'').'</div></div>';
+    $placement=$tag!==''?'<strong class="chat-action '.alphanoChatGender($profile['sex']).'" data-npc-position>['.htmlspecialchars($tag,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8').'] </strong>':'';
+    return '<div class="ai-narration scene-note" data-message-type="action" data-ai-job="'.(int)$job['id'].'"><div class="chat-character-header"><time datetime="'.date(DATE_ATOM,$time).'">'.date('H:i',$time).'</time> '.$header.'</div><div class="chat-character-text">'.$placement.alphanoChatText($data['testo'],$profile['sex'],true).(!empty($data['ability'])?rpgCombatBadge($data['ability']):'').'</div></div>';
 }

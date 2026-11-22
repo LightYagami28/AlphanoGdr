@@ -9,19 +9,19 @@ const ALPHANO_MSG_QUESTA_AZIONE_RISERVATA_AI_MASTE_66EF = 'Questa azione è rise
  ********************************************************/
 
 /* ─────────────────── 1) Bootstrap ───────────────────────── */
-require_once __DIR__ . '/../libs/kernel.inc.php';         // ConnectDB()
+require_once __DIR__ . '/../libs/kernel.inc.php';         // connectDB()
 require_once __DIR__ . '/../libs/libpg.inc.php';          // GetIDPG()
 require_once __DIR__ . '/../libs/libgrafica.inc.php';
 require_once __DIR__ . '/../libs/session-control.inc.php';
-require_once __DIR__ . '/../libs/libferite.inc.php';      // SetFerite(), Uccidi(), …
-require_once __DIR__ . '/../libs/libequip.inc.php';       // Consuma(), DaiOggetto(), …
+require_once __DIR__ . '/../libs/libferite.inc.php';      // setFerite(), uccidi(), …
+require_once __DIR__ . '/../libs/libequip.inc.php';       // consuma(), daiOggetto(), …
 require_once __DIR__ . '/../libs/libeconomia.inc.php';   // validazione interi dei moduli
-require_once __DIR__ . '/../chat/libs/chat-core.php';     // db(), InsertIntoChat(), …
+require_once __DIR__ . '/../chat/libs/chat-core.php';     // db(), insertIntoChat(), …
 
 
 
-alphano_require_login();
-if ($_SERVER['REQUEST_METHOD'] === 'POST') { alphano_require_csrf(); }
+alphanoRequireLogin();
+if ($_SERVER['REQUEST_METHOD'] === 'POST') { alphanoRequireCsrf(); }
 /* sessione + login */
 initSession();
 $idpg = GetIDPG(false, true);
@@ -31,7 +31,7 @@ if (!$idpg) {
 }
 
 /* PDO singleton da chat-core */
-$db = ConnectDB();
+$db = connectDB();
 
 /* ─────────────────── 2) Permessi correnti ───────────────── */
 $user = $db->query(
@@ -80,7 +80,7 @@ $msg = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $replayed=false;
     try {
-    $guard=alphano_session_guard($chatRoom);
+    $guard=alphanoSessionGuard($chatRoom);
     if(!(int)($db->query('SELECT GET_LOCK(?,5) locked',[$guard])[0]['locked']??0)){ throw new DomainException('La regia sta aggiornando la scena. Riprova.',409); }
     register_shutdown_function(static function()use($db,$guard){$db->query('SELECT RELEASE_LOCK(?)',[$guard]);});
     foreach ($_POST as $value) { if (!is_scalar($value)) { throw new InvalidArgumentException('Parametri non validi'); } }
@@ -89,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $target = economiaIntero($_POST['pg'] ?? null,1);
     if ($target===null) { throw new InvalidArgumentException('Personaggio non valido'); }
     $requestKey=isset($_POST['_request_key']) ? (string)$_POST['_request_key'] : null;
-    if(!$user['administrator']&&$canMaster&&(!in_array($action,['ferisci','uccidi'],true)||!$canHurt)){ alphano_session_require_manager($idpg,$chatRoom); }
+    if(!$user['administrator']&&$canMaster&&(!in_array($action,['ferisci','uccidi'],true)||!$canHurt)){ alphanoSessionRequireManager($idpg,$chatRoom); }
     if ($chatRoom === '' || !$db->query('SELECT id FROM utenti WHERE id=? AND chat=?', [$target,$chatRoom])) {
         http_response_code(400); exit('Il personaggio deve essere presente nella stessa chat');
     }
@@ -101,7 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($target && ($canMaster || $canHurt)) {
                 $modo = economiaIntero($_POST['modo'] ?? '0',0,1);
                 if ($modo===null) { throw new InvalidArgumentException('Modo non valido'); }
-                $msg  = Uccidi($target, $idpg, $modo, $chatRoom)
+                $msg  = uccidi($target, $idpg, $modo, $chatRoom)
                       ? 'Personaggio ucciso con successo'
                       : 'Impossibile uccidere il personaggio';
             } else { $msg = ALPHANO_MSG_PARAMETRI_NON_ESAURIENTI_B98C; }
@@ -112,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($pf===null) { throw new InvalidArgumentException('I PF devono essere un numero intero valido'); }
             $tipo = trim($_POST['tipo']   ?? '');
             if ($target && $pf > 0 && ($canMaster || $canHurt)) {
-                $msg = SetFerite($target, $pf, $tipo, $idpg, $chatRoom)
+                $msg = setFerite($target, $pf, $tipo, $idpg, $chatRoom)
                      ? 'Personaggio ferito con successo'
                      : 'Impossibile ferire il personaggio';
             } else { $msg = ALPHANO_MSG_PARAMETRI_NON_ESAURIENTI_B98C; }
@@ -121,7 +121,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         /* ― Resurrezione ― */
         case 'resuscita':
             if ($target && $canResurrect) {
-                $msg = Resuscita($target, $idpg, $chatRoom)
+                $msg = resuscita($target, $idpg, $chatRoom)
                      ? 'Personaggio resuscitato con successo'
                      : 'Impossibile resuscitare il personaggio';
             } else { $msg = ALPHANO_MSG_PARAMETRI_NON_ESAURIENTI_B98C; }
@@ -130,12 +130,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         /* ― Ricompense Master (solo se sessione attiva) ― */
         case 'ricompensa':
             $soldi = economiaIntero($_POST['soldi'] ?? null,1,1000000000);
-            if ($soldi===null) { throw new InvalidArgumentException(alphano_currency_text('Le Corone devono essere un numero intero da 1 a 1000000000')); }
+            if ($soldi===null) { throw new InvalidArgumentException(alphanoCurrencyText('Le Corone devono essere un numero intero da 1 a 1000000000')); }
             if (!$canMaster) { throw new DomainException(ALPHANO_MSG_QUESTA_AZIONE_RISERVATA_AI_MASTE_66EF,403); }
             if ($target && $target !== $idpg && $canMaster && $sessionRunning
                 && in_array((string)$target, $partecipanti, true) && $soldi > 0) {
-                $msg = Ricompensa($target, $soldi, $idpg, $chatRoom,$requestKey,$replayed)
-                     ? alphano_currency_text("Ricompensa di $soldi Corone inviata")
+                $msg = ricompensa($target, $soldi, $idpg, $chatRoom,$requestKey,$replayed)
+                     ? alphanoCurrencyText("ricompensa di $soldi Corone inviata")
                      : 'Impossibile ricompensare il personaggio';
             } else { throw new DomainException('Il premio richiede una sessione attiva e un partecipante diverso dal Master',400); }
             break;
@@ -146,20 +146,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$canMaster) { throw new DomainException(ALPHANO_MSG_QUESTA_AZIONE_RISERVATA_AI_MASTE_66EF,403); }
             if ($target && $target !== $idpg && $canMaster && $sessionRunning
                 && in_array((string)$target, $partecipanti, true) && $objId > 0) {
-                $msg = DaiOggetto($target, $objId, $idpg, $chatRoom,$requestKey,$replayed)
+                $msg = daiOggetto($target, $objId, $idpg, $chatRoom,$requestKey,$replayed)
                      ? 'Oggetto consegnato con successo'
                      : 'Impossibile consegnare l’oggetto';
             } else { throw new DomainException('Il premio richiede una sessione attiva e un partecipante diverso dal Master',400); }
             break;
 
-        /* ― Consuma item ― */
+        /* ― consuma item ― */
         case 'consuma':
             $objId = economiaIntero($_POST['oggetto'] ?? null,1);
             $qty   = economiaIntero($_POST['quantita'] ?? null,1,2147483647);
             if ($objId===null || $qty===null) { throw new InvalidArgumentException('Oggetto e quantità devono essere numeri interi validi'); }
             if (!$canMaster) { throw new DomainException(ALPHANO_MSG_QUESTA_AZIONE_RISERVATA_AI_MASTE_66EF,403); }
             if ($target && $objId > 0 && $qty > 0 && $canMaster) {
-                $msg = ConsumaMaster($target,$objId,$qty,$idpg,$chatRoom,$requestKey,$replayed)
+                $msg = consumaMaster($target,$objId,$qty,$idpg,$chatRoom,$requestKey,$replayed)
                      ? 'Oggetto consumato con successo'
                      : 'Impossibile consumare l’oggetto';
             } else { $msg = ALPHANO_MSG_PARAMETRI_NON_ESAURIENTI_B98C; }
@@ -169,7 +169,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         case 'addnote':
             $nota = trim($_POST['nota'] ?? '');
             if ($target && $nota !== '' && $canMaster) {
-                $msg = NotaMaster($target,$idpg,$chatRoom,$nota,$requestKey,$replayed,'Nota inserita dal pannello del Master')
+                $msg = notaMaster($target,$idpg,$chatRoom,$nota,$requestKey,$replayed,'Nota inserita dal pannello del Master')
                      ? 'Nota inserita con successo'
                      : 'Impossibile inserire la nota';
             } else { $msg = ALPHANO_MSG_PARAMETRI_NON_ESAURIENTI_B98C; }
@@ -188,7 +188,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     /* messaggio di esito in chat */
     if ($msg !== '' && !$replayed && http_response_code()<400) {
-        InsertIntoChat(
+        insertIntoChat(
             $chatRoom,
             '<DIV class="MasterKey">' . htmlspecialchars($msg) . '</DIV>'
         );
@@ -216,7 +216,7 @@ $equipList = $db->query(
    ORDER BY shortDesc'
 );
 
-/* preload equip per “Consuma” */
+/* preload equip per “consuma” */
 $equipData = [];
 foreach ($inChat as $pg) {
     $equipData[$pg['id']] = $db->query(
@@ -249,8 +249,8 @@ foreach ($inChat as $pg) {
 <?php /* ---------------- pannelli ---------------- */ ?>
 
 <?php if ($canResurrect): ?>
-<form class="panel" method="post" id="resuscita"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphano_csrf_token(), ENT_QUOTES) . '">' ?>
-  <header>Resuscita</header>
+<form class="panel" method="post" id="resuscita"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphanoCsrfToken(), ENT_QUOTES) . '">' ?>
+  <header>resuscita</header>
   <label>Personaggio</label>
   <select name="pg" required>
     <option value="">– seleziona –</option>
@@ -259,12 +259,12 @@ foreach ($inChat as $pg) {
     <?php endforeach; ?>
   </select>
   <input type="hidden" name="azione" value="resuscita">
-  <button>Resuscita</button>
+  <button>resuscita</button>
 </form>
 <?php endif; ?>
 
 <?php if ($canMaster || $canHurt): ?>
-<form class="panel" method="post" id="uccidi"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphano_csrf_token(), ENT_QUOTES) . '">' ?>
+<form class="panel" method="post" id="uccidi"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphanoCsrfToken(), ENT_QUOTES) . '">' ?>
   <header>Morte e stato spirituale</header>
   <label>Personaggio</label>
   <select name="pg" required>
@@ -279,10 +279,10 @@ foreach ($inChat as $pg) {
     <option value="1">Spirito</option>
   </select>
   <input type="hidden" name="azione" value="uccidi">
-  <button>Uccidi</button>
+  <button>uccidi</button>
 </form>
 
-<form class="panel" method="post" id="ferisci"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphano_csrf_token(), ENT_QUOTES) . '">' ?>
+<form class="panel" method="post" id="ferisci"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphanoCsrfToken(), ENT_QUOTES) . '">' ?>
   <header>Ferisci</header>
   <label>Personaggio</label>
   <select name="pg" required>
@@ -301,8 +301,8 @@ foreach ($inChat as $pg) {
 <?php endif; ?>
 
 <?php if ($canMaster && $sessionRunning): ?>
-<form class="panel" method="post" id="ricompensa"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphano_csrf_token(), ENT_QUOTES) . '">' ?>
-  <header>Ricompensa</header>
+<form class="panel" method="post" id="ricompensa"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphanoCsrfToken(), ENT_QUOTES) . '">' ?>
+  <header>ricompensa</header>
   <label>Personaggio</label>
   <select name="pg" required>
     <option value="">– seleziona –</option>
@@ -310,14 +310,14 @@ foreach ($inChat as $pg) {
       <option value="<?=$p['id']?>"><?=htmlspecialchars($p['nome'])?></option>
     <?php endif; endforeach; ?>
   </select>
-  <label><?=alphano_currency_html()?></label>
+  <label><?=alphanoCurrencyHtml()?></label>
   <input type="number" name="soldi" min="1" max="1000000000" step="1" required>
   <input type="hidden" name="azione" value="ricompensa">
   <input type="hidden" name="_request_key" value="<?=bin2hex(random_bytes(16))?>">
   <button>Consegna</button>
 </form>
 
-<form class="panel" method="post" id="oggetto"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphano_csrf_token(), ENT_QUOTES) . '">' ?>
+<form class="panel" method="post" id="oggetto"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphanoCsrfToken(), ENT_QUOTES) . '">' ?>
   <header>Oggetto</header>
   <label>Personaggio</label>
   <select name="pg" required>
@@ -340,8 +340,8 @@ foreach ($inChat as $pg) {
 <?php endif; ?>
 
 <?php if ($canMaster): ?>
-<form class="panel" method="post" id="consuma"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphano_csrf_token(), ENT_QUOTES) . '">' ?>
-  <header>Consuma</header>
+<form class="panel" method="post" id="consuma"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphanoCsrfToken(), ENT_QUOTES) . '">' ?>
+  <header>consuma</header>
   <label>Personaggio</label>
   <select id="pg-cons" name="pg" onchange="onPGChange()" required>
     <option value="">– seleziona –</option>
@@ -357,10 +357,10 @@ foreach ($inChat as $pg) {
   <input type="number" name="quantita" min="1" max="2147483647" step="1" required>
   <input type="hidden" name="azione" value="consuma">
   <input type="hidden" name="_request_key" value="<?=bin2hex(random_bytes(16))?>">
-  <button>Consuma</button>
+  <button>consuma</button>
 </form>
 
-<form class="panel" method="post" id="addnote"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphano_csrf_token(), ENT_QUOTES) . '">' ?>
+<form class="panel" method="post" id="addnote"><?= '<input type="hidden" name="_csrf" value="' . htmlspecialchars(alphanoCsrfToken(), ENT_QUOTES) . '">' ?>
   <header>Inserisci Nota</header>
   <label>Personaggio</label>
   <select name="pg" required>

@@ -1,11 +1,11 @@
 <?php
 declare(strict_types=1);
 /** Optional player-published handles; legacy free-form contacts remain owner-only. */
-function alphano_profile_contacts_ready(bool $refresh=false):bool {
+function alphanoProfileContactsReady(bool $refresh=false):bool {
  static $ready=null;if($refresh)$ready=null;
- return $ready??=count(ConnectDB()->query("SHOW COLUMNS FROM utenti WHERE Field IN ('telegram','discord')"))===2;
+ return $ready??=count(connectDB()->query("SHOW COLUMNS FROM utenti WHERE Field IN ('telegram','discord')"))===2;
 }
-function alphano_profile_contact_value(string $field,string $value):string {
+function alphanoProfileContactValue(string $field,string $value):string {
  $value=trim($value);
  if($field==='telegram'){
   $value=ltrim($value,'@');if($value==='')return '';

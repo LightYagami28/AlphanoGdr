@@ -9,5 +9,5 @@ if (GetIDPG(false) === null) {
     return;
 }
 $idpg = GetIDPG(true);
-$manuals = ['apiUrl'=>'/api/manuali.php','adminAccademia'=>(alphano_can('adminaccademia')||alphano_can('admin')),'csrfToken'=>alphano_csrf_token()];
+$manuals = ['apiUrl'=>'/api/manuali.php','adminAccademia'=>(alphanoCan('adminaccademia')||alphanoCan('admin')),'csrfToken'=>alphanoCsrfToken()];
 require __DIR__ . '/../templates/manuals/index.php';

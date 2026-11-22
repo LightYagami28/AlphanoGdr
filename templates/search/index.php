@@ -20,4 +20,4 @@ $filterFields=[
 </form>
 <nav class="search-alphabet" aria-label="Iniziale del nome"><?php foreach(range('a','z') as $letter):$letterQuery=$_GET;$letterQuery['nome']=$letter; ?><a href="/ricerca/?<?=$sh(http_build_query($letterQuery))?>"<?=strtolower($filters['nome'])===$letter?' aria-current="true"':''?>><?=strtoupper($letter)?></a><?php endforeach; ?><a href="/ricerca/">Tutti</a></nav>
 <section id="risultato" class="search-results" aria-label="Risultati della ricerca" aria-live="polite"></section>
-</body></html><?php ClosePage(); ?>
+</body></html><?php closePage(); ?>

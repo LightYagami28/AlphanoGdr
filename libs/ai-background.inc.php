@@ -117,7 +117,7 @@ function ai_background_player_context(array $npc,array $job,bool $compact=false)
     $scope.=ai_relation_context_memory_scope($nid,$uid,'m');
     $source=(int)($job['source_id']??0);
     if($source>0){$scope.=' AND j.source_id<?';$params[]=$source;}
-    $rows=aiDb()->query("SELECT m.id,c.msg FROM ai_personal_memories m JOIN ai_jobs j ON j.id=m.job_id AND j.npc_id=m.npc_id AND j.user_id=m.player_id JOIN chat c ON c.id=j.source_id AND c.pg=m.player_id AND BINARY c.chat=BINARY m.chat_key WHERE m.npc_id=? AND m.player_id=? AND m.active=1 AND m.source='dialogue' AND j.status='done' AND c.dest=0 AND $scope".(function_exists('alphano_chat_has_archive')&&alphano_chat_has_archive()?' AND c.history_only=0':'').' ORDER BY m.id DESC LIMIT 32',$params);
+    $rows=aiDb()->query("SELECT m.id,c.msg FROM ai_personal_memories m JOIN ai_jobs j ON j.id=m.job_id AND j.npc_id=m.npc_id AND j.user_id=m.player_id JOIN chat c ON c.id=j.source_id AND c.pg=m.player_id AND BINARY c.chat=BINARY m.chat_key WHERE m.npc_id=? AND m.player_id=? AND m.active=1 AND m.source='dialogue' AND j.status='done' AND c.dest=0 AND $scope".(function_exists('alphanoChatHasArchive')&&alphanoChatHasArchive()?' AND c.history_only=0':'').' ORDER BY m.id DESC LIMIT 32',$params);
     $query=ai_background_query($question);$parts=[];$seen=[];$remaining=$compact?230:360;
     foreach($rows as $row){
         $speech=aiNarrativeParse((string)$row['msg'])['speech'];

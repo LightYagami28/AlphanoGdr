@@ -19,7 +19,7 @@ function playerApi(callable $action): never
         $status = (int)$e->getCode();
         if ($status < 400 || $status > 499) {
             error_log('[player API] ' . $e);
-            $reference=alphano_error_reference($e,'player-api');
+            $reference=alphanoErrorReference($e,'player-api');
             $status = 500;
         }
         http_response_code($status);
@@ -50,7 +50,7 @@ function playerText(array $input, string $field, int $limit = 65535, bool $requi
 function playerMutation(): void
 {
     if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {throw new PlayerRequestRuntimeException('Metodo non consentito', 405);}
-    alphano_require_csrf(true);
+    alphanoRequireCsrf(true);
 }
 
 function playerBoardPermissions($db, int $board, array $user): array

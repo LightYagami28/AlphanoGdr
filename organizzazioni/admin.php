@@ -12,7 +12,7 @@ require_once __DIR__ . '/admin.inc.php'; // include backend
 
 
 
-$db      = ConnectDB();
+$db      = connectDB();
 
 ?><!DOCTYPE html>
 <html lang="it">
@@ -95,7 +95,7 @@ $db      = ConnectDB();
       <?php if ($rich): foreach ($rich as $r): ?>
       <tr>
         <td><a href="#" onclick="openProfileId('<?=$r['idpg']?>')"><?=htmlspecialchars(GetPGFromID($r['idpg']), ENT_QUOTES)?></a></td>
-        <td><?=FormatTimestamp($r['data'])?></td>
+        <td><?=formatTimestamp($r['data'])?></td>
         <td>
           <form method="post" class="inline"><input type="hidden" name="org" value="<?= (int)$org ?>">
       <input type="hidden" name="_request_key" value="<?=bin2hex(random_bytes(16))?>">
@@ -298,7 +298,7 @@ $db      = ConnectDB();
   <!-- Finanze -->
   <div id="tab-finanze" class="tab-content">
     <h2>Budget attuale</h2>
-    <p class="Valore"><?= $budget ?> <?=alphano_currency_html()?></p>
+    <p class="Valore"><?= $budget ?> <?=alphanoCurrencyHtml()?></p>
 
     <h2>Stato richieste di prestito ricevute</h2>
     <table>
@@ -312,7 +312,7 @@ $db      = ConnectDB();
           : ((int)$d['stato']<5 ? (int)$d['quantita'] : 0);
       ?>
       <tr>
-        <td><?=FormatTimestamp($d['data'])?></td>
+        <td><?=formatTimestamp($d['data'])?></td>
         <td>
           <?php if ($d['pgorg']): ?>
             <a href="#" onclick="openProfileId('<?=$d['pgorg']?>')"><?=htmlspecialchars(GetPGFromID($d['pgorg']),ENT_QUOTES)?></a>
@@ -329,10 +329,10 @@ $db      = ConnectDB();
         </td>
         <td><?=htmlspecialchars(GetCorporazione($d['corp']),ENT_QUOTES)?></td>
         <td><a href="#" onclick="openProfileId('<?=$d['pgcorp']?>')"><?=htmlspecialchars(GetPGFromID($d['pgcorp']),ENT_QUOTES)?></a></td>
-        <td><?=$d['quantita']?> <?=alphano_currency_html()?></td>
+        <td><?=$d['quantita']?> <?=alphanoCurrencyHtml()?></td>
         <td><?=$d['interessi']?> %</td>
         <td><?=processStato($d['stato'])?></td>
-        <td><?=$rimanente?> <?=alphano_currency_html()?></td>
+        <td><?=$rimanente?> <?=alphanoCurrencyHtml()?></td>
       </tr>
       <?php endforeach; else: ?>
       <tr><td colspan="8" class="u-72a68ac34">Nessun prestito in atto</td></tr>
@@ -352,7 +352,7 @@ $db      = ConnectDB();
       ?>
         <?php if (in_array((int)$d['stato'], [1,2,4], true)): ?>
         <tr>
-          <td><?=FormatTimestamp($d['data'])?>
+          <td><?=formatTimestamp($d['data'])?>
           <form id="org-loan-<?=(int)$d['id']?>" method="post"><input type="hidden" name="org" value="<?= (int)$org ?>">
             <input type="hidden" name="action" value="adminprestito">
             <input type="hidden" name="_request_key" value="<?=bin2hex(random_bytes(16))?>">
@@ -363,10 +363,10 @@ $db      = ConnectDB();
           </td>
             <td><?=htmlspecialchars(GetCorporazione($d['corp']),ENT_QUOTES)?></td>
             <td><a href="#" onclick="openProfileId('<?=$d['pgcorp']?>')"><?=htmlspecialchars(GetPGFromID($d['pgcorp']),ENT_QUOTES)?></a></td>
-            <td><input type="number" min="1" max="2147483647" step="1" required name="quantita" form="org-loan-<?=(int)$d['id']?>" value="<?=$d['quantita']?>" class="u-a053cda31"> <?=alphano_currency_html()?></td>
+            <td><input type="number" min="1" max="2147483647" step="1" required name="quantita" form="org-loan-<?=(int)$d['id']?>" value="<?=$d['quantita']?>" class="u-a053cda31"> <?=alphanoCurrencyHtml()?></td>
             <td><input type="number" min="0" max="100" step="1" required name="interessi" form="org-loan-<?=(int)$d['id']?>" value="<?=$d['interessi']?>" class="u-1a96f4c6d"> %</td>
             <td><?=processStato($d['stato'])?></td>
-            <td><?=$rimanente?> <?=alphano_currency_html()?></td>
+            <td><?=$rimanente?> <?=alphanoCurrencyHtml()?></td>
             <td>
               <?php if ($budget >= $d['quantita']): ?>
                 <button type="button" form="org-loan-<?=(int)$d['id']?>" onclick="this.form.accetta.value=1; this.form.submit()">Accetta</button><br>
@@ -377,13 +377,13 @@ $db      = ConnectDB();
         </tr>
         <?php else: ?>
         <tr>
-          <td><?=FormatTimestamp($d['data'])?></td>
+          <td><?=formatTimestamp($d['data'])?></td>
           <td><?=htmlspecialchars(GetCorporazione($d['corp']),ENT_QUOTES)?></td>
           <td><a href="#" onclick="openProfileId('<?=$d['pgcorp']?>')"><?=htmlspecialchars(GetPGFromID($d['pgcorp']),ENT_QUOTES)?></a></td>
-          <td><?=$d['quantita']?> <?=alphano_currency_html()?></td>
+          <td><?=$d['quantita']?> <?=alphanoCurrencyHtml()?></td>
           <td><?=$d['interessi']?> %</td>
           <td><?=processStato($d['stato'])?></td>
-          <td><?=$rimanente?> <?=alphano_currency_html()?></td>
+          <td><?=$rimanente?> <?=alphanoCurrencyHtml()?></td>
           <td></td>
         </tr>
         <?php endif; ?>
@@ -405,7 +405,7 @@ $db      = ConnectDB();
           <option value="<?=$pid?>"><?=htmlspecialchars($pn, ENT_QUOTES)?></option>
         <?php endforeach; ?>
       </select>
-      <input type="number" name="qta" min="1" max="<?=min($budget,2147483647)?>" step="1" required> <?=alphano_currency_html()?>
+      <input type="number" name="qta" min="1" max="<?=min($budget,2147483647)?>" step="1" required> <?=alphanoCurrencyHtml()?>
       <button class="panel-button">Invia</button>
     </form>
     <h2>Lista Prestiti Attivi</h2>
@@ -413,9 +413,9 @@ $db      = ConnectDB();
       <tr><th>Data</th><th>Destinatario</th><th>Debito residuo</th></tr>
       <?php foreach ($prestitiPG as $d): ?>
       <tr>
-        <td><?=FormatTimestamp((int)$d['data'])?></td>
+        <td><?=formatTimestamp((int)$d['data'])?></td>
         <td><a href="#" onclick="openProfileId('<?=(int)$d['id']?>')"><?=htmlspecialchars($d['nome'],ENT_QUOTES)?></a></td>
-        <td><?=(int)$d['qta']?> <?=alphano_currency_html()?></td>
+        <td><?=(int)$d['qta']?> <?=alphanoCurrencyHtml()?></td>
       </tr>
       <?php endforeach; ?>
       <?php if (!$prestitiPG): ?><tr><td colspan="3">Nessun prestito a personaggi attivo</td></tr><?php endif; ?>
@@ -479,7 +479,7 @@ $db      = ConnectDB();
           <?php endforeach; ?>
         </select>
         <textarea name="programma" rows="2" placeholder="Programma" required></textarea>
-        <span class="Valore"><?=$listacity[$cid]['costoelezioni']?> <?=alphano_currency_html()?></span>
+        <span class="Valore"><?=$listacity[$cid]['costoelezioni']?> <?=alphanoCurrencyHtml()?></span>
         <button class="panel-button">Proponi</button>
       </form>
       <hr class="u-f63e01396">
@@ -501,8 +501,8 @@ $db      = ConnectDB();
         <tr>
           <td><?=htmlspecialchars($listacity[$cityId]['city'],ENT_QUOTES)?></td>
           <td><a href="#" onclick="openProfileId('<?=$cand['id']?>')"><?=htmlspecialchars($cand['nome'],ENT_QUOTES)?></a></td>
-          <td><div class="Valore u-97c21ea8e"><?= ProcessText($cand['programma']) ?></div></td>
-          <td class="Valore"><?=htmlspecialchars($listacity[$cityId]['costoelezioni'],ENT_QUOTES)?> <?=alphano_currency_html()?></td>
+          <td><div class="Valore u-97c21ea8e"><?= processText($cand['programma']) ?></div></td>
+          <td class="Valore"><?=htmlspecialchars($listacity[$cityId]['costoelezioni'],ENT_QUOTES)?> <?=alphanoCurrencyHtml()?></td>
         </tr>
         <?php endforeach; ?>
       </table>

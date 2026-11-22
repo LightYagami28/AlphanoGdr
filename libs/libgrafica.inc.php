@@ -21,7 +21,7 @@ const APPROVED_IMG = '/assets/placeholder.svg';
  *
  * @throws RuntimeException
  */
-function ResizeImage(string $srcPath, int $newWidth, string $destPath): bool
+function resizeImage(string $srcPath, int $newWidth, string $destPath): bool
 {
     if (!file_exists($srcPath)) {
         throw new RuntimeException("File non trovato: $srcPath");
@@ -75,11 +75,11 @@ function ResizeImage(string $srcPath, int $newWidth, string $destPath): bool
         throw new RuntimeException("Impossibile creare dir: $dir");
     }
 
-    $ok = WriteImage($type, $thumb, $destPath);
+    $ok = writeImage($type, $thumb, $destPath);
     imagedestroy($thumb);
 
     if (!$ok) {
-        throw new RuntimeException("WriteImage fallito: $destPath");
+        throw new RuntimeException("writeImage fallito: $destPath");
     }
 
     return true;
@@ -88,7 +88,7 @@ function ResizeImage(string $srcPath, int $newWidth, string $destPath): bool
 /**
  * Scrive un’immagine GD su file, selezionando il formato giusto.
  */
-function WriteImage(int $type, \GdImage $image, string $filename): bool
+function writeImage(int $type, \GdImage $image, string $filename): bool
 {
     if (file_exists($filename)) {
         @unlink($filename);

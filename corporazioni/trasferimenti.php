@@ -8,10 +8,10 @@ require_once __DIR__ . '/../libs/libeconomia.inc.php';
 require_once __DIR__ . '/../libs/libposta.inc.php';
 require_once __DIR__ . '/../libs/libequip.inc.php';
 require_once __DIR__.'/../libs/corporation-commerce.inc.php';
-alphano_require_login();
-$tradeUser=alphano_user();
+alphanoRequireLogin();
+$tradeUser=alphanoUser();
 if(!empty($tradeUser['admin'])&&empty($tradeUser['corporazione'])&&!isset($_GET['corp'])){header('Location: /corporazioni/');exit;}
-try{$selectedCorp=alphano_corporation_context($tradeUser,$_GET['corp']??null);}catch(DomainException $e){alphano_fail($e->getMessage(),$e->getCode());}
+try{$selectedCorp=alphanoCorporationContext($tradeUser,$_GET['corp']??null);}catch(DomainException $e){alphanoFail($e->getMessage(),$e->getCode());}
 
 // autenticazione
 $idpg = GetIDPG(false);
@@ -54,7 +54,7 @@ $admintrasf = (bool)$db->query(
 
 </head>
 <body data-corporation="<?=$corp?>">
-  <p><strong>Budget della corporazione:</strong> <span id="corporate-trade-balance"><?= (int)$budget ?></span> <?=alphano_currency_html()?></p>
+  <p><strong>Budget della corporazione:</strong> <span id="corporate-trade-balance"><?= (int)$budget ?></span> <?=alphanoCurrencyHtml()?></p>
   <p id="corporate-trade-feedback" class="notice" role="status" aria-live="polite" hidden></p>
   <nav class="ui-tablist" role="tablist" aria-label="Commercio della corporazione">
     <button type="button" id="mpersonal" role="tab" aria-controls="personal">Acquisti dai giocatori</button>

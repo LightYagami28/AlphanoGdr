@@ -81,7 +81,7 @@ function trasferisciSoldi(int $mittente, int $destinatario, int $soldi, string $
 {
     if ($soldi<=0 || $mittente===$destinatario) {return false;}
     return economiaBool(static function() use($mittente,$destinatario,$soldi,$motivo,$requestKey): bool {
-        if (!alphano_operation_once('money-transfer',$mittente,$requestKey,[$destinatario,$soldi,$motivo])) {return true;}
+        if (!alphanoOperationOnce('money-transfer',$mittente,$requestKey,[$destinatario,$soldi,$motivo])) {return true;}
         $db=getDB();
         $rows=$db->query('SELECT id,nome,denari FROM utenti WHERE id IN (?,?) ORDER BY id FOR UPDATE',[$mittente,$destinatario]);
         $users=array_column($rows,null,'id');
@@ -89,11 +89,11 @@ function trasferisciSoldi(int $mittente, int $destinatario, int $soldi, string $
         $db->execute(ECON_DEBIT_SQL,[$soldi,$mittente]);
         $db->execute(ECON_CREDIT_SQL,[$soldi,$destinatario]);
         $db->execute('INSERT INTO logs_adminpg(azione,esecutore,destinatario,qta,data,descr,chat) VALUES(?,?,?,?,?,?,?)',['trasferimento',$mittente,$destinatario,$soldi,time(),$motivo,'']);
-        InviaMissiva('Notifica di Trasferimento',$users[$mittente]['nome'].alphano_currency_text(" ti ha dato {$soldi} Corone").($motivo!=='' ? ", motivazione: {$motivo}" : '.'),$destinatario);
-        alphano_record_activity('money-transferred',$mittente,[
+        inviaMissiva('Notifica di Trasferimento',$users[$mittente]['nome'].alphanoCurrencyText(" ti ha dato {$soldi} Corone").($motivo!=='' ? ", motivazione: {$motivo}" : '.'),$destinatario);
+        alphanoRecordActivity('money-transferred',$mittente,[
             ['scope'=>'personale','id'=>$mittente,'section'=>'trasferimenti','role'=>'member'],
             ['scope'=>'personale','id'=>$destinatario,'section'=>'trasferimenti','role'=>'member'],
-        ],alphano_currency_text('Trasferimento di Corone'),$users[$mittente]['nome'].alphano_currency_text(" ha trasferito {$soldi} Corone a ").$users[$destinatario]['nome'].($motivo!=='' ? ". Motivazione: {$motivo}" : '.'),['mittente'=>$mittente,'destinatario'=>$destinatario,'importo'=>$soldi,'motivo'=>$motivo]);
+        ],alphanoCurrencyText('Trasferimento di Corone'),$users[$mittente]['nome'].alphanoCurrencyText(" ha trasferito {$soldi} Corone a ").$users[$destinatario]['nome'].($motivo!=='' ? ". Motivazione: {$motivo}" : '.'),['mittente'=>$mittente,'destinatario'=>$destinatario,'importo'=>$soldi,'motivo'=>$motivo]);
         return true;
     });
 }
@@ -224,7 +224,7 @@ function prestitoMissiva(array $loan, string $side, string $title, string $detai
     $flag=$side==='org'?'adminorganizzazione':'admincorporazione';
     $owner=(int)$loan['pg'.$side];
     $recipients=prestitoResponsabileValido($loan,$side)?[['id'=>$owner]]:getDB()->query("SELECT id FROM utenti WHERE {$field}=? AND {$flag}=1",[(int)$loan[$side]]);
-    foreach ($recipients as $recipient) {InviaMissiva($title,$detail,(int)$recipient['id']);}
+    foreach ($recipients as $recipient) {inviaMissiva($title,$detail,(int)$recipient['id']);}
 }
 
 function prestitoMessaggio(array $loan, string $event): string
@@ -232,13 +232,13 @@ function prestitoMessaggio(array $loan, string $event): string
     $db=getDB();
     $org=$db->query('SELECT nome FROM organizzazioni WHERE id=?',[$loan['org']])[0]['nome'] ?? 'Organizzazione';
     $corp=$db->query('SELECT nome FROM corporazioni WHERE id=?',[$loan['corp']])[0]['nome'] ?? 'Corporazione';
-    return alphano_currency_text("Prestito #{$loan['id']}: {$corp} / {$org}. {$event}\nImporto: {$loan['quantita']} Corone. Interesse mensile semplice: {$loan['interessi']}%.");
+    return alphanoCurrencyText("Prestito #{$loan['id']}: {$corp} / {$org}. {$event}\nImporto: {$loan['quantita']} Corone. Interesse mensile semplice: {$loan['interessi']}%.");
 }
 
 /** Storico condiviso, scritto nella stessa transazione del movimento. */
 function prestitoEvento(array $loan, int $actor, string $event, string $title, string $detail, array $data = []): void
 {
-    alphano_record_activity('loan-'.$event,$actor,[
+    alphanoRecordActivity('loan-'.$event,$actor,[
         ['scope'=>'organizzazioni','id'=>(int)$loan['org'],'section'=>'finanze','role'=>'admin'],
         ['scope'=>'corporazioni','id'=>(int)$loan['corp'],'section'=>'finanze','role'=>'admin'],
     ],$title,prestitoMessaggio($loan,$detail),['loan_id'=>(int)$loan['id'],'quantita'=>(int)$loan['quantita'],'interessi'=>(int)$loan['interessi'],'stato'=>(int)($loan['stato'] ?? 0),'restituiti'=>(int)($loan['restituiti'] ?? 0),...$data]);
@@ -249,7 +249,7 @@ function createPrestito(int $pgcorp, int $corp, int $org, int $quantita, int $in
 {
     if ($quantita<=0 || $quantita>2147483647 || $interessi<0 || $interessi>100) {return false;}
     return economiaBool(static function() use($pgcorp,$corp,$org,$quantita,$interessi,$requestKey): bool {
-        if (!alphano_operation_once('loan-create',$pgcorp,$requestKey,[$corp,$org,$quantita,$interessi])) {return true;}
+        if (!alphanoOperationOnce('loan-create',$pgcorp,$requestKey,[$corp,$org,$quantita,$interessi])) {return true;}
         $db=getDB();
         $user=$db->query('SELECT organizzazione FROM utenti WHERE id=? AND corporazione=? AND admincorporazione=1 FOR UPDATE',[$pgcorp,$corp])[0] ?? null;
         economiaVerifica($user && (int)$user['organizzazione']!==$org && (bool)$db->query('SELECT id FROM corporazioni WHERE id=?',[$corp]) && (bool)$db->query('SELECT id FROM organizzazioni WHERE id=? AND approvato=1',[$org]),'Organizzazione o mandato non valido');
@@ -266,7 +266,7 @@ function updatePrestito(int $id, int $pg, int $quantita, int $interessi, int $st
     if ($quantita<=0 || $quantita>2147483647 || $interessi<0 || $interessi>100 || !in_array($stato,[2,3,4,5],true)) {return false;}
     if ($stato===5) {return acceptPrestito($id,$pg,$requestKey);}
     return economiaBool(static function() use($id,$pg,$quantita,$interessi,$stato,$requestKey): bool {
-        if (!alphano_operation_once('loan-proposal',$pg,$requestKey,[$id,$quantita,$interessi,$stato])) {return true;}
+        if (!alphanoOperationOnce('loan-proposal',$pg,$requestKey,[$id,$quantita,$interessi,$stato])) {return true;}
         $db=getDB();
         $loan=$db->query('SELECT * FROM prestiti WHERE id=? AND stato BETWEEN 1 AND 4 FOR UPDATE',[$id])[0] ?? null;
         economiaVerifica((bool)$loan,'Prestito non negoziabile');
@@ -287,7 +287,7 @@ function updatePrestito(int $id, int $pg, int $quantita, int $interessi, int $st
 function prendiInCarico(int $id, int $pg, ?string $requestKey = null): bool
 {
     return economiaBool(static function() use($id,$pg, $requestKey): bool {
-        if (!alphano_operation_once('loan-claim',$pg,$requestKey,[$id])) {return true;}
+        if (!alphanoOperationOnce('loan-claim',$pg,$requestKey,[$id])) {return true;}
         $db=getDB();
         $loan=$db->query('SELECT * FROM prestiti WHERE id=? AND stato=0 AND pgorg=0 FOR UPDATE',[$id])[0] ?? null;
         economiaVerifica((bool)$loan,'Richiesta già presa in carico');
@@ -304,7 +304,7 @@ function prendiInCarico(int $id, int $pg, ?string $requestKey = null): bool
 function acceptPrestito(int $id, int $pg, ?string $requestKey = null): bool
 {
     return economiaBool(static function() use($id,$pg, $requestKey): bool {
-        if (!alphano_operation_once('loan-accept',$pg,$requestKey,[$id])) {return true;}
+        if (!alphanoOperationOnce('loan-accept',$pg,$requestKey,[$id])) {return true;}
         $db=getDB();
         $loan=$db->query('SELECT * FROM prestiti WHERE id=? AND stato BETWEEN 1 AND 4 FOR UPDATE',[$id])[0] ?? null;
         economiaVerifica($loan && (int)$loan['quantita']>0 && (int)$loan['quantita']<=2147483647 && (int)$loan['interessi']>=0 && (int)$loan['interessi']<=100,'Prestito non valido o già accettato');
@@ -318,7 +318,7 @@ function acceptPrestito(int $id, int $pg, ?string $requestKey = null): bool
         $db->execute('UPDATE corporazioni SET budget=budget+? WHERE id=?',[$amount,$loan['corp']]);
         $db->execute('UPDATE prestiti SET stato=5,data=? WHERE id=?',[time(),$id]);
         prestitoEvento($loan,$pg,'accepted','Prestito accettato','Finanziamento accreditato al budget corporativo.',['stato'=>5,'org_budget_before'=>(int)$org['budget'],'org_budget_after'=>(int)$org['budget']-$amount,'corp_budget_before'=>(int)$corp['budget'],'corp_budget_after'=>(int)$corp['budget']+$amount]);
-        prestitoMissiva($loan,$side==='org'?'corp':'org','Prestito accettato e accreditato',prestitoMessaggio($loan,alphano_currency_text('Accreditate le Corone al budget della corporazione. Gli interessi decorrono da oggi.')));
+        prestitoMissiva($loan,$side==='org'?'corp':'org','Prestito accettato e accreditato',prestitoMessaggio($loan,alphanoCurrencyText('Accreditate le Corone al budget della corporazione. Gli interessi decorrono da oggi.')));
         return true;
     });
 }
@@ -327,7 +327,7 @@ function acceptPrestito(int $id, int $pg, ?string $requestKey = null): bool
 function deletePrestito(int $id, int $pg, ?string $requestKey = null): bool
 {
     return economiaBool(static function() use($id,$pg, $requestKey): bool {
-        if (!alphano_operation_once('loan-reject',$pg,$requestKey,[$id])) {return true;}
+        if (!alphanoOperationOnce('loan-reject',$pg,$requestKey,[$id])) {return true;}
         $db=getDB();
         $loan=$db->query('SELECT * FROM prestiti WHERE id=? AND stato<5 FOR UPDATE',[$id])[0] ?? null;
         economiaVerifica((bool)$loan,'Prestito non eliminabile');
@@ -357,7 +357,7 @@ function pagaPrestito(int $id, int $pgcorp, float $pagamento, ?string $requestKe
 {
     if (!is_finite($pagamento) || $pagamento<1 || $pagamento>=PHP_INT_MAX || floor($pagamento)!==$pagamento) {return false;}
     return economiaBool(static function() use($id,$pgcorp,$pagamento, $requestKey): bool {
-        if (!alphano_operation_once('loan-repay',$pgcorp,$requestKey,[$id,$pagamento])) {return true;}
+        if (!alphanoOperationOnce('loan-repay',$pgcorp,$requestKey,[$id,$pagamento])) {return true;}
         $db=getDB();
         $loan=$db->query('SELECT * FROM prestiti WHERE id=? AND stato=5 FOR UPDATE',[$id])[0] ?? null;
         economiaVerifica($loan && prestitoInterlocutore($loan,$pgcorp)==='corp','Prestito o mandato non valido');
@@ -370,8 +370,8 @@ function pagaPrestito(int $id, int $pgcorp, float $pagamento, ?string $requestKe
         $db->execute('UPDATE prestiti SET restituiti=restituiti+?,stato=? WHERE id=?',[$amount,$remaining===$amount?6:5,$id]);
         $db->execute('UPDATE organizzazioni SET budget=budget+? WHERE id=?',[$amount,$loan['org']]);
         $db->execute('UPDATE corporazioni SET budget=budget-? WHERE id=?',[$amount,$loan['corp']]);
-        prestitoEvento($loan,$pgcorp,'repaid',$remaining===$amount?'Prestito estinto':'Rimborso parziale del prestito',alphano_currency_text("Ricevute {$amount} Corone. Residuo: ").($remaining-$amount).alphano_currency_text(ECON_CURRENCY_SUFFIX),['stato'=>$remaining===$amount?6:5,'importo'=>$amount,'residuo'=>$remaining-$amount,'restituiti'=>(int)$loan['restituiti']+$amount,'org_budget_before'=>(int)$org['budget'],'org_budget_after'=>(int)$org['budget']+$amount,'corp_budget_before'=>(int)$corp['budget'],'corp_budget_after'=>(int)$corp['budget']-$amount]);
-        prestitoMissiva($loan,'org','Rimborso prestito',prestitoMessaggio($loan,alphano_currency_text("Rimborsate {$amount} Corone. Debito residuo: ").($remaining-$amount).alphano_currency_text(ECON_CURRENCY_SUFFIX).($remaining===$amount?' Prestito estinto.':'')));
+        prestitoEvento($loan,$pgcorp,'repaid',$remaining===$amount?'Prestito estinto':'Rimborso parziale del prestito',alphanoCurrencyText("Ricevute {$amount} Corone. Residuo: ").($remaining-$amount).alphanoCurrencyText(ECON_CURRENCY_SUFFIX),['stato'=>$remaining===$amount?6:5,'importo'=>$amount,'residuo'=>$remaining-$amount,'restituiti'=>(int)$loan['restituiti']+$amount,'org_budget_before'=>(int)$org['budget'],'org_budget_after'=>(int)$org['budget']+$amount,'corp_budget_before'=>(int)$corp['budget'],'corp_budget_after'=>(int)$corp['budget']-$amount]);
+        prestitoMissiva($loan,'org','Rimborso prestito',prestitoMessaggio($loan,alphanoCurrencyText("Rimborsate {$amount} Corone. Debito residuo: ").($remaining-$amount).alphanoCurrencyText(ECON_CURRENCY_SUFFIX).($remaining===$amount?' Prestito estinto.':'')));
         return true;
     });
 }
@@ -401,19 +401,19 @@ function commercioAttivita(string $type,int $actor,array $trade,string $title,st
     $before=$changes['before']??[]; $after=$changes['after']??[]; $extra=$changes['extra']??[]; $eventKey=$changes['eventKey']??null;
     $audiences=[['scope'=>'corporazioni','id'=>(int)$trade['corp'],'section'=>'trasferimenti','role'=>'trade']];
     if ((int)($trade['pg'] ?? 0)>0) {$audiences[]=['scope'=>'personale','id'=>(int)$trade['pg'],'section'=>'trasferimenti','role'=>'member'];}
-    $event=alphano_record_activity($type,$actor,$audiences,$title,$detail,array_merge([
+    $event=alphanoRecordActivity($type,$actor,$audiences,$title,$detail,array_merge([
         'order_id'=>(int)$trade['id'],'stato'=>(int)$after['stato'],'verso'=>(int)$trade['verso'],
         'qta'=>(int)($after['qta'] ?? $trade['qta']),'prezzo'=>(int)($after['prezzo'] ?? $trade['prezzo']),
         'oggetto'=>(string)$trade['nomeobj'],'prima'=>$before,'dopo'=>$after,
     ],$extra),$eventKey);
-    $db=ConnectDB();$current=$db->query('SELECT * FROM trasferimenti WHERE id=?',[(int)$trade['id']])[0]??$trade;
+    $db=connectDB();$current=$db->query('SELECT * FROM trasferimenti WHERE id=?',[(int)$trade['id']])[0]??$trade;
     $recipients=[(int)($current['pg']??0),(int)($current['pgcorp']??0)];
     if(empty($current['pgcorp'])){foreach($db->query('SELECT id FROM utenti WHERE corporazione=? AND (admintrasfcorp=1 OR admincorporazione=1) AND bloccato=0',[(int)$trade['corp']]) as $member){$recipients[]=(int)$member['id'];}}
     $marker='[alphano-trade:'.(int)$trade['id'].':'.$event.']';
     foreach(array_unique($recipients) as $recipient){
         if($recipient<1||$recipient===$actor){continue;}
         if($db->query('SELECT id FROM mail WHERE iddestinatario=? AND idmittente=0 AND messaggio LIKE ? LIMIT 1',[$recipient,'%'.$marker.'%'])){continue;}
-        InviaMissiva($title.' · #'.(int)$trade['id'],$detail."\n\nApri questa missiva per consultare lo stato aggiornato e rispondere alla trattativa.\n".$marker,$recipient);
+        inviaMissiva($title.' · #'.(int)$trade['id'],$detail."\n\nApri questa missiva per consultare lo stato aggiornato e rispondere alla trattativa.\n".$marker,$recipient);
     }
 }
 
@@ -563,7 +563,7 @@ function buyObject(int $equippgId, int $dest, int $pgcorp, int $corp, int $qta =
     if ($pgcorp===$dest || $qta<1 || $qta>10000 || !economiaImpiegato($pgcorp,$corp)) {return false;}
     return economiaBool(static function() use($equippgId,$dest,$pgcorp,$corp,$qta,$requestKey): bool {
         $db=getDB();
-        if (!alphano_operation_once('purchase-create',$pgcorp,$requestKey,['instance'=>$equippgId,'seller'=>$dest,'corp'=>$corp,'qta'=>$qta])) {return true;}
+        if (!alphanoOperationOnce('purchase-create',$pgcorp,$requestKey,['instance'=>$equippgId,'seller'=>$dest,'corp'=>$corp,'qta'=>$qta])) {return true;}
         $row=$db->query('SELECT e.uid,p.shortDesc FROM equippg e JOIN equip p ON p.id=e.uid WHERE e.id=? AND e.idpg=? FOR UPDATE',[$equippgId,$dest])[0] ?? null;
         economiaVerifica((bool)$row,'Oggetto assente');
         economiaVerifica(!$db->query('SELECT 1 FROM trasferimenti t JOIN equippg e ON e.id=t.obj WHERE t.pgcorp=? AND t.pg=? AND e.uid=? AND t.verso=1 AND t.stato<5',[$pgcorp,$dest,$row['uid']]),'Offerta già presente');
@@ -642,7 +642,7 @@ function updateTransf(int $id, int $pg, float $prezzo, int $stato, ?int $qta = n
         $available=$db->query('SELECT id FROM equippg WHERE uid=? AND idpg=? FOR UPDATE',[$item['uid'],$d['pg']]);
         economiaVerifica(count($available)>=$quantity,'Quantità non disponibile');
         $db->execute('UPDATE trasferimenti SET prezzo=?,qta=?,stato=? WHERE id=?',[(int)$prezzo,$quantity,$stato,$id]);
-        commercioAttivita('purchase-proposal',$pg,$d,'Nuova proposta di acquisto',"{$d['nomeobj']}: {$quantity} pezzi per ".(int)$prezzo.alphano_currency_text(' Corone totali.'),['before'=>['stato'=>(int)$d['stato'],'qta'=>(int)$d['qta'],'prezzo'=>(int)$d['prezzo']],'after'=>['stato'=>$stato,'qta'=>$quantity,'prezzo'=>(int)$prezzo],'extra'=>['totale'=>(int)$prezzo]]);
+        commercioAttivita('purchase-proposal',$pg,$d,'Nuova proposta di acquisto',"{$d['nomeobj']}: {$quantity} pezzi per ".(int)$prezzo.alphanoCurrencyText(' Corone totali.'),['before'=>['stato'=>(int)$d['stato'],'qta'=>(int)$d['qta'],'prezzo'=>(int)$d['prezzo']],'after'=>['stato'=>$stato,'qta'=>$quantity,'prezzo'=>(int)$prezzo],'extra'=>['totale'=>(int)$prezzo]]);
         return true;
     });
 }
@@ -791,7 +791,7 @@ function finalizeTransf(int $id, int $pg): string
             $db->execute(ECON_CREDIT_SQL,[$price,$seller]);
             $materia=(string)($item['materiaprima'] ?? '');
             if ($materia!=='') {economiaVerifica(inserisciMateria($materia,$corp,$qta),'Materia prima non valida');}
-            else foreach (GetMateriePrime($item) ?: [] as $mat=>$units) {
+            else foreach (getMateriePrime($item) ?: [] as $mat=>$units) {
                 economiaVerifica((int)$units>=0,'Materie prime non valide');
                 if ((int)$units>0) {economiaVerifica(inserisciMateria($mat,$corp,(int)$units*$qta),'Magazzino non aggiornabile');}
             }
@@ -801,8 +801,8 @@ function finalizeTransf(int $id, int $pg): string
             $db->execute("UPDATE equippg SET idpadre=0,slot='' WHERE idpg=? AND idpadre IN ($ph)",array_merge([$seller],$deleted));
             $db->execute("DELETE FROM equippg WHERE idpg=? AND id IN ($ph)",array_merge([$seller],$deleted));
             $db->execute('UPDATE trasferimenti SET stato=5 WHERE id=?',[$id]);
-            $materie=GetMateriePrime($item) ?: [];
-            commercioAttivita('purchase-completed',$pg,$d,'Acquisto completato',alphano_currency_text("La corporazione ha acquistato {$qta}× {$d['nomeobj']} per {$price} Corone totali. Materiali recuperati in magazzino."),['before'=>['stato'=>(int)$d['stato']],'after'=>['stato'=>5],'extra'=>['totale'=>$price,'venditore'=>(int)$d['pg'],'materie_recuperate'=>$materia!=='' ? [$materia=>$qta] : array_map(static fn($n)=>(int)$n*$qta,$materie)]]);
+            $materie=getMateriePrime($item) ?: [];
+            commercioAttivita('purchase-completed',$pg,$d,'Acquisto completato',alphanoCurrencyText("La corporazione ha acquistato {$qta}× {$d['nomeobj']} per {$price} Corone totali. Materiali recuperati in magazzino."),['before'=>['stato'=>(int)$d['stato']],'after'=>['stato'=>5],'extra'=>['totale'=>$price,'venditore'=>(int)$d['pg'],'materie_recuperate'=>$materia!=='' ? [$materia=>$qta] : array_map(static fn($n)=>(int)$n*$qta,$materie)]]);
             $remaining=array_slice(array_column($stock,'id'),$qta); $left=count($remaining);
             foreach ($others as $other) {
                 if (!$left) {$db->execute(ECON_CANCEL_TRANSFER_SQL,[$other['id']]);}
@@ -843,7 +843,7 @@ function makeOrdine(int $obj, int $pg, int $corp, int $qta = 1, ?string $request
     return economiaBool(static function() use($obj,$pg,$corp,$qta,$requestKey,&$orderId): bool {
         $db=getDB();
         $eventKey=$requestKey!==null && $requestKey!=='' ? 'commerce-order:'.$pg.':'.$requestKey : null;
-        if (!alphano_operation_once('order-create',$pg,$requestKey,['obj'=>$obj,'corp'=>$corp,'qta'=>$qta])) {
+        if (!alphanoOperationOnce('order-create',$pg,$requestKey,['obj'=>$obj,'corp'=>$corp,'qta'=>$qta])) {
             $receipt=$db->query('SELECT data_json FROM activity_events WHERE event_key=?',[$eventKey])[0] ?? null;
             $orderId=(int)(json_decode($receipt['data_json'] ?? '{}',true)['order_id'] ?? 0);
             economiaVerifica($orderId>0,'Ricevuta ordine non disponibile');
@@ -889,7 +889,7 @@ function finalizeOrdine(int $id, int $pg): string
         economiaVerifica($d && commercioPrezzoValido((float)$d['prezzo'],(int)$d['qta']) && economiaImpiegato((int)$d['pgcorp'],(int)$d['corp']),"L'ordine selezionato non esiste o non è a tuo carico");
         economiaVerifica($pg===(int)$d['pg'] ? (int)$d['stato']===3 : (int)$d['stato']===2,'Puoi accettare soltanto una proposta della controparte');
         $db->execute('UPDATE trasferimenti SET stato=5 WHERE id=?',[$id]);
-        commercioAttivita('order-agreed',$pg,$d,'Ordine concordato',alphano_currency_text("Concordati {$d['qta']}× {$d['nomeobj']} a {$d['prezzo']} Corone ciascuno. Pagamento alla consegna."),['before'=>['stato'=>(int)$d['stato']],'after'=>['stato'=>5],'extra'=>['totale'=>(int)$d['qta']*(int)$d['prezzo']]]);
+        commercioAttivita('order-agreed',$pg,$d,'Ordine concordato',alphanoCurrencyText("Concordati {$d['qta']}× {$d['nomeobj']} a {$d['prezzo']} Corone ciascuno. Pagamento alla consegna."),['before'=>['stato'=>(int)$d['stato']],'after'=>['stato'=>5],'extra'=>['totale'=>(int)$d['qta']*(int)$d['prezzo']]]);
         return true;
     });
     return $ok ? 'Ordine accettato con successo' : "L'ordine selezionato non è accettabile o non è a tuo carico";
@@ -922,7 +922,7 @@ function updateOrdine(int $id, int $pg, float $prezzo, int $qta, int $stato): bo
         $owner=$pg===(int)$d['pg'];
         economiaVerifica($owner ? (int)$d['stato']===3 && $stato===2 : in_array((int)$d['stato'],[1,2],true) && $stato===3,'Attendi la risposta della controparte');
         $db->execute('UPDATE trasferimenti SET prezzo=?,qta=?,stato=? WHERE id=?',[(int)$prezzo,$qta,$stato,$id]);
-        commercioAttivita('order-proposal',$pg,$d,'Nuova proposta per l’ordine',"{$d['nomeobj']}: {$qta} pezzi a ".(int)$prezzo.alphano_currency_text(' Corone ciascuno.'),['before'=>['stato'=>(int)$d['stato'],'qta'=>(int)$d['qta'],'prezzo'=>(int)$d['prezzo']],'after'=>['stato'=>$stato,'qta'=>$qta,'prezzo'=>(int)$prezzo],'extra'=>['totale'=>$qta*(int)$prezzo]]);
+        commercioAttivita('order-proposal',$pg,$d,'Nuova proposta per l’ordine',"{$d['nomeobj']}: {$qta} pezzi a ".(int)$prezzo.alphanoCurrencyText(' Corone ciascuno.'),['before'=>['stato'=>(int)$d['stato'],'qta'=>(int)$d['qta'],'prezzo'=>(int)$d['prezzo']],'after'=>['stato'=>$stato,'qta'=>$qta,'prezzo'=>(int)$prezzo],'extra'=>['totale'=>$qta*(int)$prezzo]]);
         return true;
     });
 }
@@ -1014,9 +1014,9 @@ function consegna(int $id, int $pg, int $corp): string
                 economiaVerifica($role && (float)$role['provvigione']>=0 && (float)$role['provvigione']<=100,'Provvigioni non impostate correttamente');
                 $commission=(int)floor((float)$role['provvigione']*$total/100);
             } else {economiaVerifica(!empty($info['stipendio']),'Provvigioni non impostate correttamente');}
-            require_once __DIR__.'/item-engine.inc.php';item_stock_delivery($item,$qty);
+            require_once __DIR__.'/item-engine.inc.php';itemStockDelivery($item,$qty);
             $mag=array_column($db->query('SELECT materia,qta FROM equipcorp WHERE corp=? FOR UPDATE',[$corp]),'qta','materia');
-            foreach (GetMateriePrime($item) ?: [] as $mat=>$unit) {
+            foreach (getMateriePrime($item) ?: [] as $mat=>$unit) {
                 $need=(int)$unit*$qty;
                 economiaVerifica($need>=0 && ($mag[$mat] ?? 0)>=$need,'Non disponi delle materie prime');
                 if ($need>0) {$db->execute('UPDATE equipcorp SET qta=qta-? WHERE corp=? AND materia=?',[$need,$corp,$mat]);}
@@ -1026,7 +1026,7 @@ function consegna(int $id, int $pg, int $corp): string
             $db->execute('UPDATE corporazioni SET budget=budget+? WHERE id=?',[$total-$commission,$corp]);
             for ($i=0;$i<$qty;$i++) {$db->execute('INSERT INTO equippg(uid,idpg) VALUES(?,?)',[$d['obj'],$d['pg']]);}
             $db->execute('UPDATE trasferimenti SET stato=7 WHERE id=?',[$id]);
-            commercioAttivita('order-delivered',$pg,$d,'Ordine consegnato e pagato',alphano_currency_text("Consegnati {$qty}× {$d['nomeobj']}. Addebitate {$total} Corone al cliente; provvigione {$commission} Corone."),['before'=>['stato'=>5],'after'=>['stato'=>7],'extra'=>['totale'=>$total,'provvigione'=>$commission,'entrata_corporazione'=>$total-$commission,'materie_consumate'=>array_map(static fn($n)=>(int)$n*$qty,GetMateriePrime($item) ?: [])]]);
+            commercioAttivita('order-delivered',$pg,$d,'Ordine consegnato e pagato',alphanoCurrencyText("Consegnati {$qty}× {$d['nomeobj']}. Addebitate {$total} Corone al cliente; provvigione {$commission} Corone."),['before'=>['stato'=>5],'after'=>['stato'=>7],'extra'=>['totale'=>$total,'provvigione'=>$commission,'entrata_corporazione'=>$total-$commission,'materie_consumate'=>array_map(static fn($n)=>(int)$n*$qty,getMateriePrime($item) ?: [])]]);
             return 'Consegna andata a buon fine';
         });
     } catch (DomainException $e) { return $e->getMessage(); }
@@ -1038,7 +1038,7 @@ function consegna(int $id, int $pg, int $corp): string
 function impostaProduzioniCorp(int $corp, int $actor, array $selection, ?string $requestKey = null): bool
 {
     return economiaBool(static function() use($corp,$actor,$selection,$requestKey): bool {
-        if (!alphano_operation_once('corporation-production',$actor,$requestKey,[$corp,$selection])) {return true;}
+        if (!alphanoOperationOnce('corporation-production',$actor,$requestKey,[$corp,$selection])) {return true;}
         $db=getDB();
         economiaVerifica((bool)$db->query('SELECT id FROM utenti WHERE id=? AND (admin=1 OR (corporazione=? AND admincorporazione=1)) FOR UPDATE',[$actor,$corp]),ECON_INVALID_MANDATE);
         economiaVerifica((bool)$db->query('SELECT id FROM corporazioni WHERE id=? FOR UPDATE',[$corp]),'Corporazione non valida');
@@ -1059,7 +1059,7 @@ function impostaProduzioniCorp(int $corp, int $actor, array $selection, ?string 
         }
         $hidden=$db->execute('UPDATE equip e JOIN tipo t ON t.id=e.tipo LEFT JOIN produzionicorporazioni p ON p.produzione=t.subtipo AND p.corporazione=e.corp SET e.visibile=0 WHERE e.corp=? AND e.visibile=1 AND p.produzione IS NULL',[$corp]);
         $after=$db->query('SELECT produzione,quality FROM produzionicorporazioni WHERE corporazione=? ORDER BY produzione',[$corp]);
-        if ($before!==$after || $hidden>0) {alphano_record_activity('corporation-production-updated',$actor,[['scope'=>'corporazioni','id'=>$corp,'section'=>'production','role'=>'admin']],
+        if ($before!==$after || $hidden>0) {alphanoRecordActivity('corporation-production-updated',$actor,[['scope'=>'corporazioni','id'=>$corp,'section'=>'production','role'=>'admin']],
             'Produzioni corporative aggiornate',"Assegnati {$points} punti produzione. Oggetti nascosti perché non più producibili: {$hidden}.",['corporazione'=>$corp,'prima'=>$before,'dopo'=>$after,'punti'=>$points,'oggetti_nascosti'=>$hidden]);}
         return true;
     });
@@ -1087,10 +1087,10 @@ function getStipendi(int $corp): int
 function consegnastipendi(int $corp, ?string $requestKey = null): bool
 {
     require_once __DIR__.'/treasury.inc.php';
-    if(alphano_treasury_ready()){return economiaBool(static fn():bool=>alphano_treasury_payroll('corporazioni',$corp,(int)($_SESSION['user_id']??0),$requestKey?:bin2hex(random_bytes(16)))['status']==='applied');}
+    if(alphanoTreasuryReady()){return economiaBool(static fn():bool=>alphanoTreasuryPayroll('corporazioni',$corp,(int)($_SESSION['user_id']??0),$requestKey?:bin2hex(random_bytes(16)))['status']==='applied');}
     $actor=(int)($_SESSION['user_id'] ?? 0);
     return economiaBool(static function() use($corp,$requestKey,$actor): bool {
-        if (!alphano_operation_once('corporation-payroll',$actor,$requestKey,[$corp])) {return true;}
+        if (!alphanoOperationOnce('corporation-payroll',$actor,$requestKey,[$corp])) {return true;}
         $db=getDB();
         economiaVerifica((bool)$db->query('SELECT id FROM utenti WHERE id=? AND (admin=1 OR (corporazione=? AND admincorporazione=1)) FOR UPDATE',[$actor,$corp]),ECON_INVALID_MANDATE);
         $organization=$db->query('SELECT budget,stipendio,nome FROM corporazioni WHERE id=? FOR UPDATE',[$corp])[0] ?? null;
@@ -1106,12 +1106,12 @@ function consegnastipendi(int $corp, ?string $requestKey = null): bool
         foreach ($members as $m) {
             $amount=(int)$m['stipendio'];if($amount<1){continue;}
             $db->execute(ECON_CREDIT_SQL,[$amount,$m['id']]);
-            InviaMissiva('Stipendio corporativo ricevuto',alphano_currency_text("Hai ricevuto {$amount} Corone di stipendio da {$organization['nome']}."),(int)$m['id']);
-            alphano_record_activity('corporation-salary-received',$actor,[['scope'=>'personale','id'=>(int)$m['id'],'section'=>'trasferimenti','role'=>'member']],
-                'Stipendio corporativo ricevuto',alphano_currency_text("{$organization['nome']} ha accreditato {$amount} Corone di stipendio."),['corporazione'=>$corp,'importo'=>$amount,'denari_prima'=>(int)$m['denari'],'denari_dopo'=>(int)$m['denari']+$amount]);
+            inviaMissiva('Stipendio corporativo ricevuto',alphanoCurrencyText("Hai ricevuto {$amount} Corone di stipendio da {$organization['nome']}."),(int)$m['id']);
+            alphanoRecordActivity('corporation-salary-received',$actor,[['scope'=>'personale','id'=>(int)$m['id'],'section'=>'trasferimenti','role'=>'member']],
+                'Stipendio corporativo ricevuto',alphanoCurrencyText("{$organization['nome']} ha accreditato {$amount} Corone di stipendio."),['corporazione'=>$corp,'importo'=>$amount,'denari_prima'=>(int)$m['denari'],'denari_dopo'=>(int)$m['denari']+$amount]);
         }
-        alphano_record_activity('corporation-payroll',$actor,[['scope'=>'corporazioni','id'=>$corp,'section'=>'finanze','role'=>'admin']],
-            'Stipendi corporativi consegnati',alphano_currency_text("{$organization['nome']}: erogate {$total} Corone a {$paid} personaggi."),['corporazione'=>$corp,'totale'=>$total,'destinatari'=>$paid,'budget_prima'=>(int)$organization['budget'],'budget_dopo'=>(int)$organization['budget']-$total]);
+        alphanoRecordActivity('corporation-payroll',$actor,[['scope'=>'corporazioni','id'=>$corp,'section'=>'finanze','role'=>'admin']],
+            'Stipendi corporativi consegnati',alphanoCurrencyText("{$organization['nome']}: erogate {$total} Corone a {$paid} personaggi."),['corporazione'=>$corp,'totale'=>$total,'destinatari'=>$paid,'budget_prima'=>(int)$organization['budget'],'budget_dopo'=>(int)$organization['budget']-$total]);
         return true;
     });
 }
@@ -1159,13 +1159,13 @@ function clearTrasferimenti(int $corp): bool
 function consegnaStipendiCity(int $city, ?string $requestKey = null): string
 {
     require_once __DIR__.'/treasury.inc.php';
-    if(alphano_treasury_ready()){
-        $ok=economiaBool(static fn():bool=>alphano_treasury_payroll('citta',$city,(int)($_SESSION['user_id']??0),$requestKey?:bin2hex(random_bytes(16)))['status']==='applied');
+    if(alphanoTreasuryReady()){
+        $ok=economiaBool(static fn():bool=>alphanoTreasuryPayroll('citta',$city,(int)($_SESSION['user_id']??0),$requestKey?:bin2hex(random_bytes(16)))['status']==='applied');
         return $ok?'Stipendi consegnati correttamente':'Fondi insufficienti o mandato non valido';
     }
     $actor=(int)($_SESSION['user_id'] ?? 0);
     $ok=economiaBool(static function() use($city,$requestKey,$actor): bool {
-        if (!alphano_operation_once('city-payroll',$actor,$requestKey,[$city])) {return true;}
+        if (!alphanoOperationOnce('city-payroll',$actor,$requestKey,[$city])) {return true;}
         $db=getDB();
         economiaVerifica((bool)$db->query('SELECT u.id FROM utenti u JOIN araldiche a ON a.id=u.araldica WHERE u.id=? AND a.city=? AND u.sindaco=1 FOR UPDATE',[$actor,$city]),ECON_INVALID_MANDATE);
         $row=$db->query('SELECT budget,city FROM city WHERE id=? FOR UPDATE',[$city])[0] ?? null;
@@ -1181,12 +1181,12 @@ function consegnaStipendiCity(int $city, ?string $requestKey = null): string
         foreach ($members as $m) {
             $amount=(int)$m['stipendio'];if($amount<1){continue;}
             $db->execute(ECON_CREDIT_SQL,[$amount,$m['id']]);
-            InviaMissiva('Stipendio cittadino ricevuto',alphano_currency_text("Hai ricevuto {$amount} Corone di stipendio da {$row['city']}."),(int)$m['id']);
-            alphano_record_activity('city-salary-received',$actor,[['scope'=>'personale','id'=>(int)$m['id'],'section'=>'trasferimenti','role'=>'member']],
-                'Stipendio cittadino ricevuto',alphano_currency_text("{$row['city']} ha accreditato {$amount} Corone di stipendio."),['city'=>$city,'importo'=>$amount,'denari_prima'=>(int)$m['denari'],'denari_dopo'=>(int)$m['denari']+$amount]);
+            inviaMissiva('Stipendio cittadino ricevuto',alphanoCurrencyText("Hai ricevuto {$amount} Corone di stipendio da {$row['city']}."),(int)$m['id']);
+            alphanoRecordActivity('city-salary-received',$actor,[['scope'=>'personale','id'=>(int)$m['id'],'section'=>'trasferimenti','role'=>'member']],
+                'Stipendio cittadino ricevuto',alphanoCurrencyText("{$row['city']} ha accreditato {$amount} Corone di stipendio."),['city'=>$city,'importo'=>$amount,'denari_prima'=>(int)$m['denari'],'denari_dopo'=>(int)$m['denari']+$amount]);
         }
-        alphano_record_activity('city_consegnastipendi',$actor,[['scope'=>'citta','id'=>$city,'section'=>'budget-stipendi','role'=>'admin']],
-            'Stipendi cittadini consegnati',alphano_currency_text("{$row['city']}: erogate {$total} Corone a {$paid} cittadini."),['city'=>$city,'totale'=>$total,'destinatari'=>$paid,'budget_prima'=>(int)$row['budget'],'budget_dopo'=>(int)$row['budget']-$total]);
+        alphanoRecordActivity('city_consegnastipendi',$actor,[['scope'=>'citta','id'=>$city,'section'=>'budget-stipendi','role'=>'admin']],
+            'Stipendi cittadini consegnati',alphanoCurrencyText("{$row['city']}: erogate {$total} Corone a {$paid} cittadini."),['city'=>$city,'totale'=>$total,'destinatari'=>$paid,'budget_prima'=>(int)$row['budget'],'budget_dopo'=>(int)$row['budget']-$total]);
         return true;
     });
     return $ok ? 'Stipendi consegnati correttamente' : 'Fondi insufficienti o stipendi non validi';
@@ -1200,7 +1200,7 @@ function creaPrestitoPG(int $org, int $pg, int $denari, ?string $requestKey = nu
     if ($denari<=0 || $denari>2147483647) {return false;}
     $actor=(int)($_SESSION['user_id'] ?? 0);
     return economiaBool(static function() use($org,$pg,$denari,$requestKey,$actor): bool {
-        if (!alphano_operation_once('loan-pg',$actor,$requestKey,[$org,$pg,$denari])) {return true;}
+        if (!alphanoOperationOnce('loan-pg',$actor,$requestKey,[$org,$pg,$denari])) {return true;}
         $db=getDB();
         $budget=$db->query('SELECT budget,nome FROM organizzazioni WHERE id=? FOR UPDATE',[$org])[0] ?? null;
         economiaVerifica((bool)$db->query('SELECT id FROM utenti WHERE id=? AND organizzazione=? AND adminorganizzazione=1 AND bloccato=0 FOR UPDATE',[$actor,$org]),ECON_INVALID_MANDATE);
@@ -1210,12 +1210,12 @@ function creaPrestitoPG(int $org, int $pg, int $denari, ?string $requestKey = nu
         $loanId=(int)$db->lastInsertId();
         $db->execute('UPDATE organizzazioni SET budget=budget-? WHERE id=?',[$denari,$org]);
         $db->execute(ECON_CREDIT_SQL,[$denari,$pg]);
-        $detail=alphano_currency_text("Hai ricevuto {$denari} Corone di prestito da {$budget['nome']}. Puoi rimborsarle dalla sezione Trasferimenti, donando alla stessa organizzazione.");
-        InviaMissiva('Prestito ricevuto',$detail,$pg);
-        alphano_record_activity('loan-pg-created',$actor,[
+        $detail=alphanoCurrencyText("Hai ricevuto {$denari} Corone di prestito da {$budget['nome']}. Puoi rimborsarle dalla sezione Trasferimenti, donando alla stessa organizzazione.");
+        inviaMissiva('Prestito ricevuto',$detail,$pg);
+        alphanoRecordActivity('loan-pg-created',$actor,[
             ['scope'=>'organizzazioni','id'=>$org,'section'=>'prestiti','role'=>'admin'],
             ['scope'=>'personale','id'=>$pg,'section'=>'trasferimenti','role'=>'member'],
-        ],'Prestito a personaggio erogato',alphano_currency_text("{$budget['nome']} ha concesso un prestito di {$denari} Corone a {$user['nome']}. Il rimborso avviene tramite un versamento alla stessa organizzazione dalla sezione Trasferimenti."),['pg_loan_id'=>$loanId,'destinatario'=>$pg,'importo'=>$denari,'org_budget_before'=>(int)$budget['budget'],'org_budget_after'=>(int)$budget['budget']-$denari,'pg_denari_before'=>(int)$user['denari'],'pg_denari_after'=>(int)$user['denari']+$denari]);
+        ],'Prestito a personaggio erogato',alphanoCurrencyText("{$budget['nome']} ha concesso un prestito di {$denari} Corone a {$user['nome']}. Il rimborso avviene tramite un versamento alla stessa organizzazione dalla sezione Trasferimenti."),['pg_loan_id'=>$loanId,'destinatario'=>$pg,'importo'=>$denari,'org_budget_before'=>(int)$budget['budget'],'org_budget_after'=>(int)$budget['budget']-$denari,'pg_denari_before'=>(int)$user['denari'],'pg_denari_after'=>(int)$user['denari']+$denari]);
         return true;
     });
 }
@@ -1225,7 +1225,7 @@ function creaDonazione(int $idpg, int $org, int $soldi, string $motivo = '', ?st
 {
     if ($soldi<=0) {return false;}
     return economiaBool(static function() use($idpg,$org,$soldi,$motivo,$requestKey): bool {
-        if (!alphano_operation_once('donation',$idpg,$requestKey,[$org,$soldi,$motivo])) {return true;}
+        if (!alphanoOperationOnce('donation',$idpg,$requestKey,[$org,$soldi,$motivo])) {return true;}
         $db=getDB();
         $organization=$db->query('SELECT budget,nome FROM organizzazioni WHERE id=? FOR UPDATE',[$org])[0] ?? null;
         $user=$db->query('SELECT denari,nome FROM utenti WHERE id=? FOR UPDATE',[$idpg])[0] ?? null;
@@ -1243,9 +1243,9 @@ function creaDonazione(int $idpg, int $org, int $soldi, string $motivo = '', ?st
         $db->execute('UPDATE organizzazioni SET budget=budget+? WHERE id=?',[$soldi,$org]);
         $db->execute(ECON_DEBIT_SQL,[$soldi,$idpg]);
         $db->execute('INSERT INTO logs_adminpg(azione,esecutore,destinatario,qta,data,descr,chat) VALUES(?,?,?,?,?,?,?)',['donazione',$idpg,$org,$soldi,time(),$motivo,'']);
-        $detail=alphano_currency_text("{$user['nome']} ha versato {$soldi} Corone a {$organization['nome']}. Rimborso prestiti: {$repaid} Corone. Donazione: {$remaining} Corone. Debito residuo: ").max(0,$debito-$soldi).alphano_currency_text(ECON_CURRENCY_SUFFIX).($motivo!=='' ? " Motivazione: {$motivo}" : '');
-        foreach ($db->query('SELECT id FROM utenti WHERE organizzazione=? AND adminorganizzazione=1',[$org]) as $admin) {InviaMissiva($repaid>0?'Rimborso prestito PG':'Donazione ricevuta',$detail,(int)$admin['id']);}
-        alphano_record_activity('organization-payment',$idpg,[
+        $detail=alphanoCurrencyText("{$user['nome']} ha versato {$soldi} Corone a {$organization['nome']}. Rimborso prestiti: {$repaid} Corone. Donazione: {$remaining} Corone. Debito residuo: ").max(0,$debito-$soldi).alphanoCurrencyText(ECON_CURRENCY_SUFFIX).($motivo!=='' ? " Motivazione: {$motivo}" : '');
+        foreach ($db->query('SELECT id FROM utenti WHERE organizzazione=? AND adminorganizzazione=1',[$org]) as $admin) {inviaMissiva($repaid>0?'Rimborso prestito PG':'Donazione ricevuta',$detail,(int)$admin['id']);}
+        alphanoRecordActivity('organization-payment',$idpg,[
             ['scope'=>'organizzazioni','id'=>$org,'section'=>$repaid>0?'prestiti':'finanze','role'=>'admin'],
             ['scope'=>'personale','id'=>$idpg,'section'=>'trasferimenti','role'=>'member'],
         ],$repaid>0?'Rimborso prestito a personaggio':'Donazione all’organizzazione',$detail,['importo'=>$soldi,'rimborso'=>$repaid,'donazione'=>$remaining,'debito_residuo'=>max(0,$debito-$soldi),'motivo'=>$motivo,'prestiti'=>$receipts,'org_budget_before'=>(int)$organization['budget'],'org_budget_after'=>(int)$organization['budget']+$soldi,'pg_denari_before'=>(int)$user['denari'],'pg_denari_after'=>(int)$user['denari']-$soldi]);
@@ -1304,14 +1304,14 @@ function riparaOggetto(int $instance, int $pg, int $corp): string
             economiaVerifica((bool)$item,'Oggetto non riparabile');
             $ratio=min((int)$item['consumo'],(int)$item['durata'])/max(1,(int)$item['durata']);
             $mag=array_column($db->query('SELECT materia,qta FROM equipcorp WHERE corp=? FOR UPDATE',[$corp]),'qta','materia');
-            foreach (GetMateriePrime($item) ?: [] as $mat=>$units) {
+            foreach (getMateriePrime($item) ?: [] as $mat=>$units) {
                 $need=(int)ceil((int)$units*$ratio);
                 economiaVerifica($need>=0 && ($mag[$mat] ?? 0)>=$need,'Non disponi delle materie prime');
                 if ($need>0) {$db->execute('UPDATE equipcorp SET qta=qta-? WHERE corp=? AND materia=?',[$need,$corp,$mat]);}
             }
             $db->execute('UPDATE equippg SET consumo=0 WHERE id=? AND idpg=?',[$instance,$pg]);
             $db->execute("INSERT INTO logs_equip(data,esecutore,origine,obj,azione) VALUES(?,?,?,?,'RIPARA')",[time(),$pg,$pg,$item['id']]);
-            alphano_record_activity('equipment-repaired',$pg,[['scope'=>'corporazioni','id'=>$corp,'section'=>'catalogo','role'=>'trade'],['scope'=>'personale','id'=>$pg,'section'=>'trasferimenti','role'=>'member']],'Oggetto riparato',"Riparato {$item['shortDesc']}: consumo {$item['consumo']} → 0. Materie prelevate dal magazzino.",['instance_id'=>$instance,'oggetto'=>$item['shortDesc'],'prima'=>['consumo'=>(int)$item['consumo']],'dopo'=>['consumo'=>0],'materie_consumate'=>array_map(static fn($n)=>(int)ceil((int)$n*$ratio),GetMateriePrime($item) ?: [])]);
+            alphanoRecordActivity('equipment-repaired',$pg,[['scope'=>'corporazioni','id'=>$corp,'section'=>'catalogo','role'=>'trade'],['scope'=>'personale','id'=>$pg,'section'=>'trasferimenti','role'=>'member']],'Oggetto riparato',"Riparato {$item['shortDesc']}: consumo {$item['consumo']} → 0. Materie prelevate dal magazzino.",['instance_id'=>$instance,'oggetto'=>$item['shortDesc'],'prima'=>['consumo'=>(int)$item['consumo']],'dopo'=>['consumo'=>0],'materie_consumate'=>array_map(static fn($n)=>(int)ceil((int)$n*$ratio),getMateriePrime($item) ?: [])]);
             return 'Oggetto riparato correttamente';
         });
     } catch (DomainException $e) { return $e->getMessage(); }

@@ -6,7 +6,7 @@ require_once __DIR__.'/kernel.inc.php';
 const AI_RELATION_CONTEXT_MAX=1200;
 function ai_relation_context_current(int $npc,int $player):?array {
     if($npc<1||$player<1)return null;
-    $db=ConnectDB();$locking=$db->inTransaction();
+    $db=connectDB();$locking=$db->inTransaction();
     // Match the writer's lock order; a consistent snapshot opened before an
     // awaited edit must not restore the superseded context after the pair lock.
     if($locking)$db->query('SELECT npc_id FROM ai_relationships WHERE npc_id=? AND player_id=? FOR UPDATE',[$npc,$player]);

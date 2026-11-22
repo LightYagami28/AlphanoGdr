@@ -22,9 +22,14 @@ function CreateGMLHelper(obj)
 	bar.className='gml-toolbar';
 	for(const [title,fn] of tools)
 	{
-		const link=document.createElement('a');
+		const link=document.createElement('button');
+		link.type='button';
 		link.title=title;
-		link.href='javascript:'+fn+'('+(fn==='ApriScegliColore'?'':obj)+')';
+		link.addEventListener('click',()=>{
+			const action=window[fn];
+			if(typeof action!=='function'){return;}
+			if(fn==='ApriScegliColore'){action();}else{action(obj);}
+		});
 		const img=document.createElement('img');
 		img.src='/assets/placeholder.svg';
 		img.setAttribute('border','0');

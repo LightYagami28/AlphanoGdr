@@ -12,7 +12,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET')==='POST') {
     alphanoRequireCsrf();
     if (isset($_POST['vota']) || isset($_POST['id'])) {
         $answer=$_POST['vota'] ?? '';$pollId=$_POST['id'] ?? '';
-        if (!is_scalar($answer) || !is_scalar($pollId) || !preg_match('/^[1-9]\d*$/D',(string)$answer) || !preg_match('/^[1-9]\d*$/D',(string)$pollId)) alphanoFail('Scegli una risposta valida.',400);
+        if (!is_scalar($answer) || !is_scalar($pollId) || !preg_match('/^[1-9]\d*$/D',(string)$answer) || !preg_match('/^[1-9]\d*$/D',(string)$pollId)) {
+            alphanoFail('Scegli una risposta valida.',400);
+        }
         try { vote((int)$answer,(int)$pollId,$pgid);$message='Il tuo voto è registrato.'; }
         catch (RuntimeException $error) { alphanoFail($error->getMessage(),400); }
     }
@@ -24,7 +26,9 @@ foreach ($db->query('SELECT idsondaggio,idrisposta,COUNT(*) AS votes FROM risond
     $counts[$poll]['answers'][$answer]=(int)$row['votes'];
 }
 $ownVotes=[];
-foreach ($db->query('SELECT idsondaggio,idrisposta FROM risondaggi WHERE idpg=?',[$pgid]) as $vote) $ownVotes[(int)$vote['idsondaggio']]=(int)$vote['idrisposta'];
+foreach ($db->query('SELECT idsondaggio,idrisposta FROM risondaggi WHERE idpg=?',[$pgid]) as $vote) {
+    $ownVotes[(int)$vote['idsondaggio']]=(int)$vote['idrisposta'];
+}
 $pollGroups=['active'=>[],'archive'=>[]];
 foreach ($db->query('SELECT id,tema,risposte,attivo FROM sondaggi ORDER BY id DESC') as $row) {
     $id=(int)$row['id'];$active=!empty($row['attivo']);$total=$counts[$id]['total'] ?? 0;$answers=[];

@@ -10,6 +10,7 @@ require_once __DIR__ . '/app.inc.php';
 // valori massimi ammessi
 define('MAXMISSIVE', 50);
 define('MAXPUNTIF', 1000);
+if (!defined('maxpuntif')) { define('maxpuntif', MAXPUNTIF); }
 
 /** Restituisce il percorso canonico solo se risolve dentro $base, altrimenti null. */
 function alphanoCanonicalInside(string $base, string $path): ?string

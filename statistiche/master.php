@@ -18,17 +18,23 @@
 
     $query="SELECT esecutore,COUNT(*) AS tot FROM logs_adminpg WHERE logs_adminpg.azione LIKE 'ricompensa%' AND esecutore IN ('".implode("','",$masters)."') GROUP BY esecutore";
     $res=$db->query($query);
-    while($dati=legacyFetchRow($res)) $master[$dati["esecutore"]]["ricompense"]=$dati["tot"];
+    while($dati=legacyFetchRow($res)) {
+        $master[$dati["esecutore"]]["ricompense"]=$dati["tot"];
+    }
 
     $query="SELECT id,masterin FROM sessioni WHERE masterin=masterout AND masterin IN ('".implode("','",$masters)."') AND run=0";
     $res=$db->query($query);
     $sessioni=array();
-    while($dati=legacyFetchRow($res)) $sessioni[$dati["masterin"]][]=$dati["id"];
+    while($dati=legacyFetchRow($res)) {
+        $sessioni[$dati["masterin"]][]=$dati["id"];
+    }
 
     $query="SELECT sessione,parere FROM parerisessioni";
     $res=$db->query($query);
     $parerisessioni=array();
-    while($dati=legacyFetchRow($res)) $parerisessioni[$dati["sessione"]][]=$dati["parere"];
+    while($dati=legacyFetchRow($res)) {
+        $parerisessioni[$dati["sessione"]][]=$dati["parere"];
+    }
 ?>
 <!DOCTYPE html>
 <HTML lang="it">
@@ -61,13 +67,21 @@
         foreach(($sessioni[$id] ?? []) as $value) {
             $num=0;
             $numpar+=count($parerisessioni[$value] ?? []);
-            foreach(($parerisessioni[$value] ?? []) as $valore) $num+=$valore;
+            foreach(($parerisessioni[$value] ?? []) as $valore) {
+                $num+=$valore;
+            }
             $somma+=$num;
-            if(count($parerisessioni[$value] ?? [])) $numero+=$num/count($parerisessioni[$value] ?? []);
-            else $numero+=0;
+            if(count($parerisessioni[$value] ?? [])) {
+                $numero+=$num/count($parerisessioni[$value] ?? []);
+            } else {
+                $numero+=0;
+            }
         }
-        if($numpar) $media=$somma/$numpar;
-        else $media=0;
+        if($numpar) {
+            $media=$somma/$numpar;
+        } else {
+            $media=0;
+        }
 ?>
             master[<?=$i?>]["media"] = <?=(float)round($media,2)?>;
             master[<?=$i?>]["somma"] = <?=(int)$somma?>;

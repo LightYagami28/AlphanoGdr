@@ -1,6 +1,17 @@
 <?php
 declare(strict_types=1);
 
+function aiDialogueSelectNpc(array $npc,array $selected,string $text,array $roles,string $role,bool $joint,bool $collective,string $faction,array $g,array $npcs):bool
+{
+    $named=aiMentionsNpc($text,$npc['name']);$titled=false;
+    foreach($roles as $pattern=>$stem){ if(mb_stripos($role,$stem)!==false&&preg_match('/\b'.$pattern.'\b/iu',$text)){
+        // Ambiguous titles never summon several unrelated characters.
+        $matches=array_filter($npcs,static fn($n)=>(int)$n['active']&&mb_stripos(aiNpcGame((int)$n['id'])['rank'].' '.aiNpcProfile($n)['occupation'],$stem)!==false);
+        if(count($matches)===1){ $titled=true; }
+    } }
+    $bothNames=$named&&aiMentionsNpc($text,$selected['name'])&&(bool)preg_match('/\be\b/iu',$text);
+    return ($joint&&($named||$titled))||$bothNames||($collective&&$faction!==''&&$g['faction']===$faction);
+}
 /** Only present, explicitly addressed characters join a dialogue. No model routing or AI-to-AI loop. */
 function aiDialogueParticipants(array $npcs, array $selected, string $text): array {
     $participants=[$selected];
@@ -16,15 +27,7 @@ function aiDialogueParticipants(array $npcs, array $selected, string $text): arr
     foreach($npcs as $npc){
         if((int)$npc['id']===(int)$selected['id']||!(int)$npc['active']||(int)aiNpcProfile($npc)['hit_points']<=0){ continue; }
         $g=aiNpcGame((int)$npc['id']);$role=$g['rank'].' '.aiNpcProfile($npc)['occupation'];
-        $named=aiMentionsNpc($text,$npc['name']);$titled=false;
-        foreach($roles as $pattern=>$stem){ if(mb_stripos($role,$stem)!==false&&preg_match('/\b'.$pattern.'\b/iu',$text)){
-            // Ambiguous titles never summon several unrelated characters.
-            $matches=array_filter($npcs,static fn($n)=>(int)$n['active']&&mb_stripos(aiNpcGame((int)$n['id'])['rank'].' '.aiNpcProfile($n)['occupation'],$stem)!==false);
-            if(count($matches)===1){ $titled=true; }
-        }
-        }
-        $bothNames=$named&&aiMentionsNpc($text,$selected['name'])&&(bool)preg_match('/\be\b/iu',$text);
-        if(($joint&&($named||$titled))||$bothNames||($collective&&$faction!==''&&$g['faction']===$faction)){ $participants[]=$npc; }
+        if(aiDialogueSelectNpc($npc,$selected,$text,$roles,$role,$joint,$collective,$faction,$g,$npcs)){ $participants[]=$npc; }
         if(count($participants)>=AI_MAX_NPCS){ break; }
     }
     return $participants;
@@ -59,6 +62,17 @@ function aiDialogueContext(array $npc,array $job,float $scale): string {
     return $out;
 }
 
+function aiDialogueStripCopiedPrefix(string $oldText,string $text):string
+{
+    preg_match_all('/[\p{L}\p{N}]+/u',$oldText,$oldWords);
+    preg_match_all('/[\p{L}\p{N}]+/u',$text,$newWords,PREG_OFFSET_CAPTURE);
+    $old=array_map('mb_strtolower',$oldWords[0]);$new=array_map(static fn($word)=>mb_strtolower($word[0]),$newWords[0]);
+    if(count($old)>=14&&array_slice($new,0,count($old))===$old){
+        [$last,$offset]=$newWords[0][count($old)-1];
+        return preg_replace('/^[\s.!?«»“”"]+/u','',substr($text,$offset+strlen($last)));
+    }
+    return $text;
+}
 /** Remove long sentences copied from recent turns, before the word limit can discard the new answer. */
 function aiDialogueWithoutRepeats(array $npc,array $job,string $text): string {
     if(!in_array($job['kind'],['play','observe','reaction'],true)){ return $text; }
@@ -69,15 +83,7 @@ function aiDialogueWithoutRepeats(array $npc,array $job,string $text): string {
     };
     $previous=aiDb()->query('SELECT content FROM ai_events WHERE chat_key=? AND npc_id=? AND (job_id IS NULL OR job_id<>?) AND created_at>=? ORDER BY id DESC LIMIT 3',[$job['chat_key'],(int)$npc['id'],(int)($job['id']??0),(int)($job['created_at']??time())-1800]);
     if(!$previous){ return $text; }
-    foreach($previous as $row){
-        preg_match_all('/[\p{L}\p{N}]+/u',$row['content'],$oldWords);
-        preg_match_all('/[\p{L}\p{N}]+/u',$text,$newWords,PREG_OFFSET_CAPTURE);
-        $old=array_map('mb_strtolower',$oldWords[0]);$new=array_map(static fn($word)=>mb_strtolower($word[0]),$newWords[0]);
-        if(count($old)>=14&&array_slice($new,0,count($old))===$old){
-            [$last,$offset]=$newWords[0][count($old)-1];
-            $text=preg_replace('/^[\s.!?«»“”"]+/u','',substr($text,$offset+strlen($last)));
-        }
-    }
+    foreach($previous as $row){ $text=aiDialogueStripCopiedPrefix($row['content'],$text); }
     $history=array_map(static fn($row)=>' '.$normalize($row['content']).' ',$previous);
     $sentences=preg_split('/(?<=[.!?])(?:[»”"])*(?:\s+|$)/u',$text,-1,PREG_SPLIT_OFFSET_CAPTURE|PREG_SPLIT_NO_EMPTY);
     // Use offsets in the original text so unmatched punctuation, quotes and accents are preserved.

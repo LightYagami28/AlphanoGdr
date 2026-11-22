@@ -272,7 +272,7 @@ const renderHTML=(el,markup)=>{const doc=new DOMParser().parseFromString(String(
     if(abilityId&&!['+','//','$','&','#'].some(prefix=>trimmed.startsWith(prefix))){text='+'+trimmed;}
     const content = JSON.stringify([text, mood, location, aiRequested, npcId,abilityId,item,work]);
     // Un nuovo tentativo dello stesso invio mantiene l'ID, anche se la risposta ├¿ andata persa.
-    if (!pendingSubmission || pendingSubmission.content !== content) {
+    if (pendingSubmission?.content !== content) {
       pendingSubmission = { content, id: crypto.randomUUID() };
     }
       const response = await fetch(endpoint, {

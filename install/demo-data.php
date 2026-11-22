@@ -4,7 +4,7 @@ declare(strict_types=1);
 function alphano_install_demo_data(PDO $pdo, int $admin, array &$settings): array
 {
     $seed=json_decode(file_get_contents(dirname(__DIR__).'/config/demo-data.json'),true,32,JSON_THROW_ON_ERROR);
-    $insert=static fn(string $table,array $values):int=>alphano_seed_insert($pdo,$table,$values);
+    $insert=static fn(string $table,array $values):int=>alphanoSeedInsert($pdo,$table,$values);
     $now=time();$stats=$seed['race']['stats'];
     $race=$insert('razze',['id'=>100,'nome'=>$seed['race']['name'],'forza'=>$stats['strength']]);
     $insert('rpg_races',['race_id'=>$race,'base_stats'=>json_encode($stats,JSON_THROW_ON_ERROR),'description'=>'Razza ordinaria iniziale, personalizzabile dal gestore.','source'=>'Pacchetto di esempio AlphanoGdr','special'=>0,'enabled'=>1,'human_default'=>1,'updated_at'=>$now]);

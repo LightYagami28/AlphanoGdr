@@ -5,6 +5,14 @@
  */
 $activeTab = 'iscritti';
 require_once __DIR__ . '/admin.inc.php'; // include backend
+function alphanoOrgLoanRemaining(array $loan):int
+{
+    if ((int)$loan['stato'] === 5) {
+        return calcolaInteressi((int)$loan['quantita'], (int)$loan['interessi'], (int)$loan['data']) - (int)$loan['restituiti'];
+    }
+    return (int)$loan['stato'] < 5 ? (int)$loan['quantita'] : 0;
+}
+
 
 
 
@@ -94,7 +102,7 @@ $db      = ConnectDB();
       <?php $rich = GetRichiesteOrg($org); ?>
       <?php if ($rich): foreach ($rich as $r): ?>
       <tr>
-        <td><a href="#" onclick="openProfileId('<?=$r['idpg']?>')"><?=htmlspecialchars(GetPGFromID($r['idpg']), ENT_QUOTES)?></a></td>
+        <td><button type="button" class="u-link-button" onclick="openProfileId('<?=$r['idpg']?>')"><?=htmlspecialchars(GetPGFromID($r['idpg']), ENT_QUOTES)?></button></td>
         <td><?=FormatTimestamp($r['data'])?></td>
         <td>
           <form method="post" class="inline"><input type="hidden" name="org" value="<?= (int)$org ?>">
@@ -141,7 +149,7 @@ $db      = ConnectDB();
                 <form id="org-assignment" method="post" class="inline"><input type="hidden" name="org" value="<?= (int)$org ?>">
       <input type="hidden" name="_request_key" value="<?=bin2hex(random_bytes(16))?>">
                   <input type="hidden" name="action" value="changecarica">
-                  <select name="pg" required>
+                  <select name="pg" required aria-label="Seleziona personaggio">
                     <option value="">– seleziona PG –</option>
                     <?php foreach ($pgList as $pid => $pn): ?>
                       <option value="<?=$pid?>"><?=htmlspecialchars($pn, ENT_QUOTES)?></option>
@@ -150,7 +158,7 @@ $db      = ConnectDB();
                 </form>
               </td>
               <td>
-                  <select name="carica" form="org-assignment" required>
+                  <select name="carica" form="org-assignment" required aria-label="Seleziona carica">
                     <option value="">– seleziona carica –</option>
                     <?php foreach ($ramiList as $ramoId => $ramoNome): ?>
                       <?php if (!empty($byRamo[$ramoId])): ?>
@@ -194,9 +202,9 @@ $db      = ConnectDB();
               <?= htmlspecialchars($m['carica'], ENT_QUOTES) ?>
             </td>
             <td>
-              <a href="#" onclick="openProfileId('<?= $m['pid'] ?>')">
+              <button type="button" class="u-link-button" onclick="openProfileId('<?= $m['pid'] ?>')">
                 <?= htmlspecialchars($m['player'], ENT_QUOTES) ?>
-              </a>
+              </button>
             </td>
           </tr>
           <?php endforeach; ?>
@@ -206,21 +214,23 @@ $db      = ConnectDB();
 
     <h2>Gerarchia Organizzazione</h2>
     <?php foreach ($cariche as $lvl => $ramiLivello): ?>
-      <div class="ui-table-scroll" tabindex="0" role="region" aria-label="Gerarchia dell’organizzazione">
+      <section class="ui-table-scroll" aria-label="Gerarchia dell’organizzazione">
       <table class="ui-hierarchy-table">
+        <tr><th scope="col">Rami e cariche</th></tr>
         <tr>
           <?php foreach ($ramiLivello as $ramoId => $ramoDat): ?>
             <td>
               <strong><?=htmlspecialchars($ramoDat['nome'], ENT_QUOTES)?></strong>
               <table>
+                <tr><th scope="col">Cariche</th></tr>
                 <?php foreach ($ramoDat['cariche'] as $cid => $cinf): ?>
                 <tr>
                   <td class="u-72a68ac34">
-                    <a href="#" onclick="Carica('<?=$cid?>')">
+                    <button type="button" class="u-link-button" onclick="Carica('<?=$cid?>')">
                       <?=GetCaricaOrg($org,(int)$cid,false)?>
                       <?=htmlspecialchars($cinf['nomecarica'], ENT_QUOTES)?>
                       <?php if ($cinf['prima']): ?><img src="/assets/placeholder.svg" alt="Prima"><?php endif;?>
-                    </a>
+                    </button>
                   </td>
                 </tr>
                 <?php endforeach; ?>
@@ -229,7 +239,7 @@ $db      = ConnectDB();
           <?php endforeach; ?>
         </tr>
       </table>
-      </div>
+      </section>
     <?php endforeach; ?>
 
     <h2>Gestione Rami</h2>
@@ -237,26 +247,26 @@ $db      = ConnectDB();
     <form method="post" class="u-f267e3ca6"><input type="hidden" name="org" value="<?= (int)$org ?>">
       <input type="hidden" name="_request_key" value="<?=bin2hex(random_bytes(16))?>">
       <input type="hidden" name="action" value="addramo">
-      <input type="text" name="nome" placeholder="Nome ramo" required>
-      <input type="number" name="livello" value="0" min="0" required>
+      <input type="text" name="nome" placeholder="Nome ramo" required aria-label="Nome del ramo">
+      <input type="number" name="livello" value="0" min="0" required aria-label="Livello del ramo">
       <button class="panel-button">Aggiungi Ramo</button>
     </form>
     <form id="org-branch-form" method="post"><input type="hidden" name="org" value="<?= (int)$org ?>">
       <input type="hidden" name="_request_key" value="<?=bin2hex(random_bytes(16))?>">
       <input type="hidden" name="action" value="modifyramo">
-      <select name="ramo" onchange="selectOrgAlphalandch(this.value)" required>
+      <select name="ramo" onchange="selectOrgAlphalandch(this.value)" required aria-label="Ramo da modificare">
         <option value="">– seleziona ramo da modificare –</option>
         <?php foreach ($rami as $rid=>$rn): ?><option value="<?=(int)$rid?>"><?=htmlspecialchars($rn,ENT_QUOTES)?></option><?php endforeach; ?>
       </select>
-      <input name="nome" placeholder="Nome ramo" required>
-      <input name="livello" type="number" min="0" value="0" required>
+      <input name="nome" placeholder="Nome ramo" required aria-label="Nuovo nome del ramo">
+      <input name="livello" type="number" min="0" value="0" required aria-label="Nuovo livello del ramo">
       <button>Modifica Ramo</button>
     </form>
     <!-- Elimina ramo -->
     <form method="post"><input type="hidden" name="org" value="<?= (int)$org ?>">
       <input type="hidden" name="_request_key" value="<?=bin2hex(random_bytes(16))?>">
       <input type="hidden" name="action" value="dropramo">
-      <select name="ramo" required>
+      <select name="ramo" required aria-label="Ramo da eliminare">
         <option value="">– seleziona ramo da eliminare –</option>
         <?php foreach ($rami as $rid => $rn): ?>
           <option value="<?=$rid?>"><?=htmlspecialchars($rn, ENT_QUOTES)?></option>
@@ -271,23 +281,23 @@ $db      = ConnectDB();
       <input type="hidden" name="_request_key" value="<?=bin2hex(random_bytes(16))?>">
       <input type="hidden" name="action" value="addcarica">
       <input type="hidden" name="carica" value="0">
-      <input type="file" name="immagine">
-      <input type="text" name="nome" placeholder="Nome carica" required>
+      <input type="file" name="immagine" aria-label="Immagine della carica">
+      <input type="text" name="nome" placeholder="Nome carica" required aria-label="Nome della carica">
       <label><input type="checkbox" name="prima"> Prima</label>
-      <input type="number" name="livello" value="0" min="0" required>
-      <select name="ramo" required>
+      <input type="number" name="livello" value="0" min="0" required aria-label="Livello della carica">
+      <select name="ramo" required aria-label="Ramo della carica">
         <?php foreach ($rami as $rid => $rn): ?>
           <option value="<?=$rid?>"><?=htmlspecialchars($rn, ENT_QUOTES)?></option>
         <?php endforeach; ?>
       </select>
-      <textarea name="descrizione" rows="2" placeholder="Descrizione"></textarea>
+      <textarea name="descrizione" rows="2" placeholder="Descrizione" aria-label="Descrizione della carica"></textarea>
       <button type="submit" class="panel-button">Aggiungi Carica</button>
       <button type="button" onclick="resetRoleForm()">Nuova carica</button>
     </form>
     <form method="post"><input type="hidden" name="org" value="<?= (int)$org ?>">
       <input type="hidden" name="_request_key" value="<?=bin2hex(random_bytes(16))?>">
       <input type="hidden" name="action" value="dropcarica">
-      <select name="carica" required>
+      <select name="carica" required aria-label="Carica da eliminare">
         <option value="">– seleziona carica da eliminare –</option>
         <?php foreach ($resCariche as $role): ?><option value="<?=(int)$role['id']?>"><?=htmlspecialchars($role['nome'],ENT_QUOTES)?></option><?php endforeach; ?>
       </select>
@@ -307,15 +317,13 @@ $db      = ConnectDB();
         <th>Interloc.</th><th>Q.tà</th><th>%</th><th>Stato</th><th>Rimanente</th>
       </tr>
       <?php if ($prestitiOrg): foreach ($prestitiOrg as $d):
-        $rimanente = (int)$d['stato']===5
-          ? calcolaInteressi((int)$d['quantita'],(int)$d['interessi'],(int)$d['data']) - (int)$d['restituiti']
-          : ((int)$d['stato']<5 ? (int)$d['quantita'] : 0);
+        $rimanente = alphanoOrgLoanRemaining($d);
       ?>
       <tr>
         <td><?=FormatTimestamp($d['data'])?></td>
         <td>
           <?php if ($d['pgorg']): ?>
-            <a href="#" onclick="openProfileId('<?=$d['pgorg']?>')"><?=htmlspecialchars(GetPGFromID($d['pgorg']),ENT_QUOTES)?></a>
+            <button type="button" class="u-link-button" onclick="openProfileId('<?=$d['pgorg']?>')"><?=htmlspecialchars(GetPGFromID($d['pgorg']),ENT_QUOTES)?></button>
           <?php elseif ($d['corp']!=$corp): ?>
             <form method="post" class="inline"><input type="hidden" name="org" value="<?= (int)$org ?>">
               <input type="hidden" name="action" value="prendiincarico">
@@ -328,7 +336,7 @@ $db      = ConnectDB();
           <?php endif; ?>
         </td>
         <td><?=htmlspecialchars(GetCorporazione($d['corp']),ENT_QUOTES)?></td>
-        <td><a href="#" onclick="openProfileId('<?=$d['pgcorp']?>')"><?=htmlspecialchars(GetPGFromID($d['pgcorp']),ENT_QUOTES)?></a></td>
+        <td><button type="button" class="u-link-button" onclick="openProfileId('<?=$d['pgcorp']?>')"><?=htmlspecialchars(GetPGFromID($d['pgcorp']),ENT_QUOTES)?></button></td>
         <td><?=$d['quantita']?> <?=alphano_currency_html()?></td>
         <td><?=$d['interessi']?> %</td>
         <td><?=processStato($d['stato'])?></td>
@@ -346,9 +354,7 @@ $db      = ConnectDB();
         <th>Q.tà</th><th>%</th><th>Stato</th><th>Rimanente</th><th>Azioni</th>
       </tr>
       <?php if ($prestitiPGOrg): foreach ($prestitiPGOrg as $d):
-        $rimanente = (int)$d['stato']===5
-          ? calcolaInteressi((int)$d['quantita'],(int)$d['interessi'],(int)$d['data']) - (int)$d['restituiti']
-          : ((int)$d['stato']<5 ? (int)$d['quantita'] : 0);
+        $rimanente = alphanoOrgLoanRemaining($d);
       ?>
         <?php if (in_array((int)$d['stato'], [1,2,4], true)): ?>
         <tr>
@@ -362,9 +368,9 @@ $db      = ConnectDB();
           </form>
           </td>
             <td><?=htmlspecialchars(GetCorporazione($d['corp']),ENT_QUOTES)?></td>
-            <td><a href="#" onclick="openProfileId('<?=$d['pgcorp']?>')"><?=htmlspecialchars(GetPGFromID($d['pgcorp']),ENT_QUOTES)?></a></td>
-            <td><input type="number" min="1" max="2147483647" step="1" required name="quantita" form="org-loan-<?=(int)$d['id']?>" value="<?=$d['quantita']?>" class="u-a053cda31"> <?=alphano_currency_html()?></td>
-            <td><input type="number" min="0" max="100" step="1" required name="interessi" form="org-loan-<?=(int)$d['id']?>" value="<?=$d['interessi']?>" class="u-1a96f4c6d"> %</td>
+            <td><button type="button" class="u-link-button" onclick="openProfileId('<?=$d['pgcorp']?>')"><?=htmlspecialchars(GetPGFromID($d['pgcorp']),ENT_QUOTES)?></button></td>
+            <td><input aria-label="Quantità da modificare" type="number" min="1" max="2147483647" step="1" required name="quantita" form="org-loan-<?=(int)$d['id']?>" value="<?=$d['quantita']?>" class="u-a053cda31"> <?=alphano_currency_html()?></td>
+            <td><input aria-label="Percentuale interessi" type="number" min="0" max="100" step="1" required name="interessi" form="org-loan-<?=(int)$d['id']?>" value="<?=$d['interessi']?>" class="u-1a96f4c6d"> %</td>
             <td><?=processStato($d['stato'])?></td>
             <td><?=$rimanente?> <?=alphano_currency_html()?></td>
             <td>
@@ -379,7 +385,7 @@ $db      = ConnectDB();
         <tr>
           <td><?=FormatTimestamp($d['data'])?></td>
           <td><?=htmlspecialchars(GetCorporazione($d['corp']),ENT_QUOTES)?></td>
-          <td><a href="#" onclick="openProfileId('<?=$d['pgcorp']?>')"><?=htmlspecialchars(GetPGFromID($d['pgcorp']),ENT_QUOTES)?></a></td>
+          <td><button type="button" class="u-link-button" onclick="openProfileId('<?=$d['pgcorp']?>')"><?=htmlspecialchars(GetPGFromID($d['pgcorp']),ENT_QUOTES)?></button></td>
           <td><?=$d['quantita']?> <?=alphano_currency_html()?></td>
           <td><?=$d['interessi']?> %</td>
           <td><?=processStato($d['stato'])?></td>
@@ -399,13 +405,13 @@ $db      = ConnectDB();
     <form method="post" class="u-f267e3ca6"><input type="hidden" name="org" value="<?= (int)$org ?>">
       <input type="hidden" name="action" value="prestito">
       <input type="hidden" name="_request_key" value="<?=bin2hex(random_bytes(16))?>">
-      <select name="pg" required>
+      <select name="pg" required aria-label="Personaggio a cui prestare">
         <option value="">– seleziona PG –</option>
         <?php foreach ($pginorg as $pid => $pn): ?>
           <option value="<?=$pid?>"><?=htmlspecialchars($pn, ENT_QUOTES)?></option>
         <?php endforeach; ?>
       </select>
-      <input type="number" name="qta" min="1" max="<?=min($budget,2147483647)?>" step="1" required> <?=alphano_currency_html()?>
+      <input type="number" name="qta" min="1" max="<?=min($budget,2147483647)?>" step="1" required aria-label="Quantità del prestito"> <?=alphano_currency_html()?>
       <button class="panel-button">Invia</button>
     </form>
     <h2>Lista Prestiti Attivi</h2>
@@ -414,7 +420,7 @@ $db      = ConnectDB();
       <?php foreach ($prestitiPG as $d): ?>
       <tr>
         <td><?=FormatTimestamp((int)$d['data'])?></td>
-        <td><a href="#" onclick="openProfileId('<?=(int)$d['id']?>')"><?=htmlspecialchars($d['nome'],ENT_QUOTES)?></a></td>
+        <td><button type="button" class="u-link-button" onclick="openProfileId('<?=(int)$d['id']?>')"><?=htmlspecialchars($d['nome'],ENT_QUOTES)?></button></td>
         <td><?=(int)$d['qta']?> <?=alphano_currency_html()?></td>
       </tr>
       <?php endforeach; ?>
@@ -428,7 +434,7 @@ $db      = ConnectDB();
     <form method="post" class="u-f267e3ca6"><input type="hidden" name="org" value="<?= (int)$org ?>">
       <input type="hidden" name="_request_key" value="<?=bin2hex(random_bytes(16))?>">
       <input type="hidden" name="action" value="visualizzaflag">
-      <select name="nome" required>
+      <select name="nome" required aria-label="Personaggio per i flag">
         <option value="">– seleziona PG –</option>
         <?php foreach ($pginorg as $pid => $pn): ?>
           <option value="<?=$pid?>"
@@ -472,13 +478,13 @@ $db      = ConnectDB();
       <input type="hidden" name="_request_key" value="<?=bin2hex(random_bytes(16))?>">
         <input type="hidden" name="action" value="proponi">
         <input type="hidden" name="city"   value="<?=$cid?>">
-        <select name="pg" required>
+        <select name="pg" required aria-label="Candidato">
           <option value="">– seleziona PG –</option>
           <?php foreach ($mems as $pid => $pinfo): ?>
             <option value="<?=$pid?>"><?=htmlspecialchars($pinfo['nome'],ENT_QUOTES)?></option>
           <?php endforeach; ?>
         </select>
-        <textarea name="programma" rows="2" placeholder="Programma" required></textarea>
+        <textarea name="programma" rows="2" placeholder="Programma" required aria-label="Programma del candidato"></textarea>
         <span class="Valore"><?=$listacity[$cid]['costoelezioni']?> <?=alphano_currency_html()?></span>
         <button class="panel-button">Proponi</button>
       </form>
@@ -500,7 +506,7 @@ $db      = ConnectDB();
         <?php foreach ($candidati as $cityId => $cand): ?>
         <tr>
           <td><?=htmlspecialchars($listacity[$cityId]['city'],ENT_QUOTES)?></td>
-          <td><a href="#" onclick="openProfileId('<?=$cand['id']?>')"><?=htmlspecialchars($cand['nome'],ENT_QUOTES)?></a></td>
+          <td><button type="button" class="u-link-button" onclick="openProfileId('<?=$cand['id']?>')"><?=htmlspecialchars($cand['nome'],ENT_QUOTES)?></button></td>
           <td><div class="Valore u-97c21ea8e"><?= ProcessText($cand['programma']) ?></div></td>
           <td class="Valore"><?=htmlspecialchars($listacity[$cityId]['costoelezioni'],ENT_QUOTES)?> <?=alphano_currency_html()?></td>
         </tr>
@@ -517,9 +523,9 @@ $db      = ConnectDB();
       <input type="hidden" name="action" value="modifypvt">
       <table>
         <tr>
-          <td>Città:</td>
+          <th scope="row">Città:</th>
           <td>
-            <select name="city" required>
+            <select name="city" required aria-label="Città">
               <?php foreach ($listacity as $cid => $cdata): ?>
                 <option value="<?=$cid?>" <?= $cid===$cityorg ? 'selected':''?>>
                   <?=htmlspecialchars($cdata['city'],ENT_QUOTES)?>
@@ -529,28 +535,28 @@ $db      = ConnectDB();
           </td>
         </tr>
         <tr>
-          <td>Password stanza:</td>
-          <td><input type="text" name="pvt" value="<?=htmlspecialchars($pvt,ENT_QUOTES)?>" required></td>
+          <th scope="row">Password stanza:</th>
+          <td><input aria-label="Password stanza" type="text" name="pvt" value="<?=htmlspecialchars($pvt,ENT_QUOTES)?>" required></td>
         </tr>
         <tr>
-          <td>Immagine Top:</td>
-          <td><input type="text" name="sfondotop" value="<?=htmlspecialchars($sfondotop,ENT_QUOTES)?>"></td>
+          <th scope="row">Immagine Top:</th>
+          <td><input aria-label="Immagine top" type="text" name="sfondotop" value="<?=htmlspecialchars($sfondotop,ENT_QUOTES)?>"></td>
         </tr>
         <tr>
-          <td>Immagine Sfondo:</td>
-          <td><input type="text" name="sfondo" value="<?=htmlspecialchars($sfondo,ENT_QUOTES)?>"></td>
+          <th scope="row">Immagine Sfondo:</th>
+          <td><input aria-label="Immagine sfondo" type="text" name="sfondo" value="<?=htmlspecialchars($sfondo,ENT_QUOTES)?>"></td>
         </tr>
         <tr>
-          <td>Mappa stanza:</td>
-          <td><input type="text" name="mappa" value="<?=htmlspecialchars($mappa,ENT_QUOTES)?>"></td>
+          <th scope="row">Mappa stanza:</th>
+          <td><input aria-label="Mappa stanza" type="text" name="mappa" value="<?=htmlspecialchars($mappa,ENT_QUOTES)?>"></td>
         </tr>
         <tr>
-          <td>Descrizione stanza:</td>
-          <td><textarea name="descrizione" rows="4"><?=htmlspecialchars($descrizione,ENT_QUOTES)?></textarea></td>
+          <th scope="row">Descrizione stanza:</th>
+          <td><textarea aria-label="Descrizione stanza" name="descrizione" rows="4"><?=htmlspecialchars($descrizione,ENT_QUOTES)?></textarea></td>
         </tr>
         <tr>
-          <td>Sito organizzazione:</td>
-          <td><input type="text" name="sito" value="<?=htmlspecialchars($sito,ENT_QUOTES)?>"></td>
+          <th scope="row">Sito organizzazione:</th>
+          <td><input aria-label="Sito organizzazione" type="text" name="sito" value="<?=htmlspecialchars($sito,ENT_QUOTES)?>"></td>
         </tr>
         <tr>
           <td colspan="2" class="u-72a68ac34">
@@ -561,6 +567,8 @@ $db      = ConnectDB();
     </form>
   </div>
 
-<div id="tab-abilita" class="tab-content"><?php $orgAbilityMode='organization';$orgAbilityId=$org;require __DIR__.'/../templates/academy/organization-abilities.php'; ?></div>
+<div id="tab-abilita" class="tab-content"><?php $orgAbilityMode='organization';$orgAbilityId=$org;require_once __DIR__.'/../templates/academy/organization-abilities.php'; ?></div>
 </body>
 </html>
+
+

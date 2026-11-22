@@ -17,7 +17,7 @@ function alphano_setup_settings(array $changes):void {
 }
 function alphano_setup_next(string $step):string {$keys=array_keys(alphano_setup_steps());$pos=array_search($step,$keys,true);return $keys[$pos+1]??'';}
 function alphano_setup_save(string $step,array $in,int $actor):void {
- $db=ConnectDB();$pdo=$db->getConnection();$insert=static fn($table,$values)=>alphano_seed_insert($pdo,$table,$values);
+ $db=ConnectDB();$pdo=$db->getConnection();$insert=static fn($table,$values)=>alphanoSeedInsert($pdo,$table,$values);
  if($step==='races'){
   $input=$in;$input['name']=$in['name']??'';foreach(['special','enabled','human_default','transformation_enabled','loses_human_language'] as $k){ $input[$k]=!empty($in[$k]); }
   $r=rpg_admin_save_race($input,$actor);$default=alphano_human_race_id(true);alphano_setup_settings(['initial_race'=>$default]);

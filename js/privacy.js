@@ -17,7 +17,7 @@ const renderHTML=(el,markup)=>{const doc=new DOMParser().parseFromString(String(
     const buttons=[...dialog.querySelectorAll('[data-privacy-save]')],status=dialog.querySelector('.privacy-status');buttons.forEach(b=>b.disabled=true);status.hidden=false;status.textContent='Salvataggio delle preferenzeÔÇª';
     try{
      const response=await fetch('/api/privacy.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({version:'1',externalMedia:button.dataset.privacySave==='selection'&&dialog.querySelector('#privacyMedia').checked})});
-     if(!response.ok){throw Error('Scelta sui contenuti non salvata. Riprova.');}
+     if(!response.ok){throw new Error('Scelta sui contenuti non salvata. Riprova.');}
      if(gameLoaded){
       const box=dialog.querySelector('[data-game-preferences]'),settings={};
       for(const key of ['map_effects','map_lighting','ambient_sound','notification_sound']){settings[key]=box.querySelector('[name='+key+']').checked;}
@@ -27,7 +27,7 @@ const renderHTML=(el,markup)=>{const doc=new DOMParser().parseFromString(String(
       settings.chess_skin=box.querySelector('[name=chess_skin]').value;
       box.querySelectorAll('input[name^=email_]').forEach(input=>settings[input.name]=input.checked);
       const result=await fetch('/api/experience.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({settings,confirm:true})});
-      if(!result.ok){throw Error('Preferenze di gioco non salvate. Riprova prima di chiudere.');}
+      if(!result.ok){throw new Error('Preferenze di gioco non salvate. Riprova prima di chiudere.');}
      }
      location.reload();
     }catch(error){status.textContent=error.message;buttons.forEach(b=>b.disabled=false);}
@@ -35,17 +35,17 @@ const renderHTML=(el,markup)=>{const doc=new DOMParser().parseFromString(String(
   }
   if(document.getElementById('app-script')){
    const status=dialog.querySelector('.privacy-status');
-   try{const response=await fetch('/api/experience.php',{cache:'no-store'});if(!response.ok){throw Error();}const data=await response.json();renderHTML(dialog.querySelector('[data-game-preferences]'), data.form);dialog.querySelector('[data-game-preferences]').hidden=false;dialog.querySelector('[data-first-preferences]').hidden=data.confirmed;gameLoaded=true;status.hidden=true;dialog.querySelectorAll('[data-privacy-save]').forEach(b=>b.disabled=false);}
-   catch(_){status.hidden=false;status.textContent='Impostazioni di gioco non disponibili: chiudi e riprova.';gameLoaded=false;dialog.querySelectorAll('[data-privacy-save]').forEach(b=>b.disabled=true);}
+   try{const response=await fetch('/api/experience.php',{cache:'no-store'});if(!response.ok){throw new Error('Impostazioni di gioco non disponibili.');}const data=await response.json();renderHTML(dialog.querySelector('[data-game-preferences]'), data.form);dialog.querySelector('[data-game-preferences]').hidden=false;dialog.querySelector('[data-first-preferences]').hidden=data.confirmed;gameLoaded=true;status.hidden=true;dialog.querySelectorAll('[data-privacy-save]').forEach(b=>b.disabled=false);}
+   catch(error){status.hidden=false;status.textContent='Impostazioni di gioco non disponibili: '+error.message+'. Chiudi e riprova.';gameLoaded=false;dialog.querySelectorAll('[data-privacy-save]').forEach(b=>b.disabled=true);}
   }
   dialog.querySelector('#privacyMedia').checked=allowed();if(!dialog.open){dialog.showModal();}
   return dialog;
  }
- function firstLogin(){return firstPromise??=(async()=>{
-  try{const response=await fetch('/api/experience.php',{cache:'no-store'});if(!response.ok){return;}const data=await response.json();if(data.confirmed){return;}const box=await open();if(box?.open){await new Promise(resolve=>box.addEventListener('close',resolve,{once:true}));}}catch(_){}
- })();}
+ function firstLogin(){if(firstPromise){return firstPromise;}firstPromise=(async()=>{
+  try{const response=await fetch('/api/experience.php',{cache:'no-store'});if(!response.ok){return;}const data=await response.json();if(data.confirmed){return;}const box=await open();if(box?.open){await new Promise(resolve=>box.addEventListener('close',resolve,{once:true}));}}catch(error){console.warn('Alphano: preferenze iniziali non disponibili',error);}
+ })();return firstPromise;}
  window.alphanoPrivacy={open,firstLogin,externalMediaAllowed:allowed};
- document.addEventListener('click',event=>{if(event.target.closest('[data-cookie-settings]')){event.preventDefault();open();}});
+ document.addEventListener('click',event=>{if(event.target.closest('[data-cookie-settings]')){event.preventDefault();void open();}});
  if(window===window.top){const button=document.createElement('button');button.type='button';button.className='privacy-launcher';button.title='Preferenze di gioco e riservatezza';button.setAttribute('aria-label',button.title);button.textContent='Ôùê';button.addEventListener('click',open);document.body.append(button);}
  // CSP already blocks remote resources, including dynamically inserted elements.
  // Preserve their markup and geometry and offer a deliberate way to enable them.
@@ -56,7 +56,7 @@ const renderHTML=(el,markup)=>{const doc=new DOMParser().parseFromString(String(
    let url;try{url=new URL(el.getAttribute('src'),location.href);}catch(_){return;}
    if(!['http:','https:'].includes(url.protocol)||url.origin===location.origin){return;}
    el.dataset.privacyExplained='1';
-   const button=document.createElement('button');button.type='button';button.className='privacy-blocked-media';button.textContent='Contenuto esterno bloccato ┬À Preferenze';button.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();open();});if(el.id==='profile-avatar'||el.hasAttribute('data-privacy-compact')){button.classList.add('privacy-avatar-control');button.title=button.textContent;button.setAttribute('aria-label',button.textContent);button.textContent='Ôùê';}
+   const button=document.createElement('button');button.type='button';button.className='privacy-blocked-media';button.textContent='Contenuto esterno bloccato ┬À Preferenze';button.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();void open();});if(el.id==='profile-avatar'||el.dataset.privacyCompact!==undefined){button.classList.add('privacy-avatar-control');button.title=button.textContent;button.setAttribute('aria-label',button.textContent);button.textContent='Ôùê';}
    if(el.tagName==='IMG'){el.removeAttribute('srcset');el.src=el.dataset.defaultSrc||'/assets/placeholder.svg';if(el.dataset.defaultSrc?.includes('/assets/')){el.classList.add('is-race-portrait');}el.title='Immagine esterna disattivata. Apri Preferenze cookie per abilitarla.';}
    else{el.hidden=true;}
    el.after(button);

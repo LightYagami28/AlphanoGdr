@@ -11,13 +11,27 @@ document.addEventListener('DOMContentLoaded', () => {
     if(method==='GET'){url+='?'+new URLSearchParams({...params,tipo});}else {opts.body=new URLSearchParams({...params,tipo});}
     const res=await fetch(url,opts),data=await res.json();if(!res.ok){throw new Error(data.error||'Richiesta non riuscita');}return data;
   }
-  const controls=(item,reply=false)=>(!reply?button('Apri','open','data-id="' + (item.id) + '"','book'):'') + (item.can_edit?button('Modifica','edit','data-id="' + (item.id) + '"','settings'):'') + (!reply&&item.can_moderate?button(item.chiusa?'Riapri':'Chiudi','toggle','data-id="' + (item.id) + '" data-closed="' + (item.chiusa?1:0) + '"','shield'):'') + (item.can_edit?button('Elimina','delete','data-id="' + (item.id) + '"','settings'):'');
+  function controls(item,reply=false){
+    const toggleLabel=item.chiusa?'Riapri':'Chiudi',closedValue=item.chiusa?1:0;
+    let html='';
+    if(!reply){html+=button('Apri','open','data-id="' + (item.id) + '"','book');}
+    if(item.can_edit){html+=button('Modifica','edit','data-id="' + (item.id) + '"','settings');}
+    if(!reply&&item.can_moderate){html+=button(toggleLabel,'toggle','data-id="' + (item.id) + '" data-closed="' + (closedValue) + '"','shield');}
+    if(item.can_edit){html+=button('Elimina','delete','data-id="' + (item.id) + '"','settings');}
+    return html;
+  }
   async function loadList(){
     const request=++generation;page='list';currentThread=0;title.textContent=config.channels[tipo]+(showClosed?' ┬À Archivio':'');renderHTML(panel, F.notice('CaricamentoÔÇª'));
     try {
       const data=await api({action:showClosed?'list_closed':'list_open'});if(request!==generation){return;}canModerate=!!data.can_moderate;
       const items=await Promise.all(data.threads.map(async item=>({...item,profile:await F.profile(item.author_id)})));if(request!==generation){return;}
-      renderHTML(panel, items.length?F.table(['Autore','Discussione','Attivit├á','Azioni'],items.map(item=>'<tr><td>' + (F.author(item.author_id,item.profile,item.author)) + '</td><td><button type="button" class="ui-text-action" data-action="open" data-id="' + (item.id) + '"><strong>' + (esc(item.oggetto)) + '</strong></button> ' + (F.newBadge(item.unread)) + '<small class="ui-cell-meta">' + (item.ontop?'In evidenza ┬À ':'') + (F.date(item.data)) + '</small></td><td>' + (Number(item.numrisp)) + ' risposte<small class="ui-cell-meta">' + (item.chiusa?'Chiusa':'Aperta') + '</small></td><td><div class="ui-row-actions">' + (controls(item)) + '</div></td></tr>').join(''),'Discussioni di '+config.channels[tipo]):F.notice('Nessuna discussione '+(showClosed?'chiusa.':'presente.')));
+      const emptyLabel=showClosed?'chiusa.':'presente.';
+      const rows=items.map(item=>{
+        const pinned=item.ontop?'In evidenza ┬À ':'';
+        const state=item.chiusa?'Chiusa':'Aperta';
+        return '<tr><td>' + (F.author(item.author_id,item.profile,item.author)) + '</td><td><button type="button" class="ui-text-action" data-action="open" data-id="' + (item.id) + '"><strong>' + (esc(item.oggetto)) + '</strong></button> ' + (F.newBadge(item.unread)) + '<small class="ui-cell-meta">' + (pinned) + (F.date(item.data)) + '</small></td><td>' + (Number(item.numrisp)) + ' risposte<small class="ui-cell-meta">' + (state) + '</small></td><td><div class="ui-row-actions">' + (controls(item)) + '</div></td></tr>';
+      });
+      renderHTML(panel, items.length?F.table(['Autore','Discussione','Attivit├á','Azioni'],rows.join(''),'Discussioni di '+config.channels[tipo]):F.notice('Nessuna discussione '+emptyLabel));
     }catch(error){if(request===generation){renderHTML(panel, F.notice(error.message,true));}}
   }
   let currentPosts=[];
@@ -27,7 +41,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const {thread,posts}=await api({action:'show',id});const all=[thread,...posts];
       const rendered=await Promise.all(all.map(async (item,index)=>F.post({id:item.id,userId:item.author_id,name:item.author,profile:await F.profile(item.author_id),message:item.messaggio,title:index===0?item.oggetto:'',timestamp:item.data,actions:(!thread.chiusa?button('Rispondi','reply'):'')+controls(item,true)})));
       if(request!==generation){return;}currentPosts=all;canModerate=!!thread.can_moderate;title.textContent=config.channels[tipo];
-      renderHTML(panel, '<div class="forum-thread-bar">' + (button('Torna alle discussioni','back','','book')) + '<span>' + (posts.length) + ' risposte ┬À ' + (thread.chiusa?'Discussione chiusa':'Discussione aperta') + '</span></div><div class="forum-posts">' + (rendered.join('')) + '</div><footer class="ui-list-footer">' + (!thread.chiusa?button('Rispondi','reply','data-id="' + (id) + '"'):'<p>Questa discussione ├¿ chiusa.</p>') + (thread.can_moderate?button(thread.chiusa?'Riapri':'Chiudi','toggle','data-id="' + (id) + '" data-closed="' + (thread.chiusa?1:0) + '"','shield'):'') + '</footer>');
+      const threadState=thread.chiusa?'Discussione chiusa':'Discussione aperta';
+      const replyAction=thread.chiusa?'<p>Questa discussione ├¿ chiusa.</p>':button('Rispondi','reply','data-id="' + (id) + '"');
+      const toggleLabel=thread.chiusa?'Riapri':'Chiudi',closedValue=thread.chiusa?1:0;
+      const moderateAction=thread.can_moderate?button(toggleLabel,'toggle','data-id="' + (id) + '" data-closed="' + (closedValue) + '"','shield'):'';
+      renderHTML(panel, '<div class="forum-thread-bar">' + (button('Torna alle discussioni','back','','book')) + '<span>' + (posts.length) + ' risposte ┬À ' + (threadState) + '</span></div><div class="forum-posts">' + (rendered.join('')) + '</div><footer class="ui-list-footer">' + (replyAction) + (moderateAction) + '</footer>');
       F.markRead('discussion',id,tipo,all);
     }catch(error){if(request===generation){renderHTML(panel, F.notice(error.message,true));}}
   }
@@ -37,19 +55,22 @@ document.addEventListener('DOMContentLoaded', () => {
     F.editor(form);form.querySelector('[data-cancel]').onclick=()=>modal.classList.remove('open');modal.classList.add('open');form.querySelector('input[type=text]').focus();
   }
   form.onsubmit=async event=>{event.preventDefault();const submit=form.querySelector('[type=submit]');submit.disabled=true;try{const data=Object.fromEntries(new FormData(form));await api(data,'POST');modal.classList.remove('open');await(page==='thread'?openThread(currentThread):loadList());}catch(error){alert(error.message);}finally{submit.disabled=false;}};
+  async function editPost(id){let item=currentPosts.find(post=>post.id===id);if(!item){item=(await api({action:'show',id})).thread;}return openForm('modify',item);}
+  async function toggleThread(id,target){const closed=target.dataset.closed==='1';if(!confirm(closed?'Riaprire la discussione?':'Chiudere la discussione?')){return;}await api({action:closed?'open':'close',id},'POST');}
+  async function deletePost(id){if(!confirm('Eliminare questo messaggio e le eventuali risposte?')){return;}await api({action:'delete',id},'POST');if(id===currentThread){await loadList();}}
   panel.addEventListener('click',async event=>{
-    const target=event.target.closest('[data-action]');if(!target){return;}const id=Number(target.dataset.id),action=target.dataset.action;
+    const target=event.target.closest('[data-action]');if(!target){return;}
+    const id=Number(target.dataset.id),action=target.dataset.action;
+    const simple={open:()=>openThread(id),back:()=>loadList(),reply:()=>openForm('reply')};
     try {
-      if(action==='open'){return openThread(id);}
-      if(action==='back'){return loadList();}
-      if(action==='reply'){return openForm('reply');}
-      if(action==='edit'){let item=currentPosts.find(post=>post.id===id);if(!item){item=(await api({action:'show',id})).thread;}return openForm('modify',item);}
-      if(action==='toggle'){const closed=target.dataset.closed==='1';if(confirm(closed?'Riaprire la discussione?':'Chiudere la discussione?')){await api({action:closed?'open':'close',id},'POST');}}
-      if(action==='delete'){if(!confirm('Eliminare questo messaggio e le eventuali risposte?')){return;}await api({action:'delete',id},'POST');if(id===currentThread){return loadList();}}
+      if(simple[action]){return simple[action]();}
+      if(action==='edit'){return editPost(id);}
+      if(action==='toggle'){return toggleThread(id,target);}
+      if(action==='delete'){return deletePost(id);}
       await(page==='thread'?openThread(currentThread):loadList());
     }catch(error){alert(error.message);}
   });
-  menu.addEventListener('click',event=>{const target=event.target.closest('[data-tipo]');if(!target){return;}tipo=target.dataset.tipo;menu.querySelectorAll('[data-tipo]').forEach(button=>{button.classList.toggle('active',button===target);button.setAttribute('aria-pressed',String(button===target));});history.replaceState(null,'','?tipo='+encodeURIComponent(tipo));loadList();});
-  document.getElementById('btn-toggle-closed').onclick=event=>{showClosed=!showClosed;const target=event.currentTarget;target.textContent=showClosed?'Mostra aperti':'Mostra chiusi';target.setAttribute('aria-pressed',String(showClosed));loadList();};
-  document.getElementById('btn-create').onclick=()=>openForm('create');modal.querySelector('.close-modal').onclick=()=>modal.classList.remove('open');modal.onclick=event=>{if(event.target===modal){modal.classList.remove('open');}};const initial=Number(new URLSearchParams(location.search).get('thread'));if(initial){openThread(initial);}else {loadList();}
+  menu.addEventListener('click',event=>{const target=event.target.closest('[data-tipo]');if(!target){return;}tipo=target.dataset.tipo;menu.querySelectorAll('[data-tipo]').forEach(button=>{button.classList.toggle('active',button===target);button.setAttribute('aria-pressed',String(button===target));});history.replaceState(null,'','?tipo='+encodeURIComponent(tipo));void loadList();});
+  document.getElementById('btn-toggle-closed').onclick=event=>{showClosed=!showClosed;const target=event.currentTarget;target.textContent=showClosed?'Mostra aperti':'Mostra chiusi';target.setAttribute('aria-pressed',String(showClosed));void loadList();};
+  document.getElementById('btn-create').onclick=()=>openForm('create');modal.querySelector('.close-modal').onclick=()=>modal.classList.remove('open');modal.onclick=event=>{if(event.target===modal){modal.classList.remove('open');}};const initial=Number(new URLSearchParams(location.search).get('thread'));if(initial){void openThread(initial);}else {void loadList();}
 });

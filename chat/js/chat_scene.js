@@ -10,24 +10,27 @@
   $('sessionModalClose')?.addEventListener('click',window.CloseSessionManager);
   sessionDialog?.addEventListener('close',()=>{ $('session-manager-frame')?.removeAttribute('src');window.dispatchEvent(new Event('alphano:refresh-chat'));});
   let opened=null,quest=null,offset=0,cueKey='',acknowledged='',presenceBusy=false,returnFocus=null;
-  const icon=name=>window.alphanoUI?.icon(name)||document.createTextNode('');
   const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!=null){n.textContent=text;}if(cls){n.className=cls;}return n;};
   const title={menu:'Menu e pannelli',luogo:'Luogo e ambientazione',descrizione:'Descrizione',presenti:'Personaggi e presenze',scontro:'Situazione della quest',opzioni:'Opzioni della chat'};
   const basePlaceholder=input?.placeholder||'';
   function close(){drawer.hidden=true;$('chat-mobile-menu')?.setAttribute('aria-expanded','false');$('chat-drawer-backdrop').hidden=true;opened=null;document.querySelectorAll('.scene-actions [data-view]').forEach(b=>{b.classList.toggle('active',b.dataset.view==='chat');b.setAttribute('aria-expanded','false');});returnFocus?.focus({preventScroll:true});}
   function open(kind,button){if(kind==='chat'||opened===kind){close();return;}returnFocus=button;opened=kind;drawer.hidden=false;$('chat-drawer-backdrop').hidden=false;$('chat-drawer-title').textContent=title[kind];
-   drawer.querySelectorAll('.chat-drawer-body > section').forEach(s=>s.hidden=s.id!==kind);document.querySelectorAll('.scene-actions [data-view]').forEach(b=>{b.classList.toggle('active',b.dataset.view===kind);b.setAttribute('aria-expanded',String(b.dataset.view===kind));});$('chat-drawer-close').focus({preventScroll:true});if(kind==='presenti'){presence();}if(kind==='scontro'){combat();}
+   drawer.querySelectorAll('.chat-drawer-body > section').forEach(s=>s.hidden=s.id!==kind);document.querySelectorAll('.scene-actions [data-view]').forEach(b=>{b.classList.toggle('active',b.dataset.view===kind);b.setAttribute('aria-expanded',String(b.dataset.view===kind));});$('chat-drawer-close').focus({preventScroll:true});if(kind==='presenti'){void presence();}if(kind==='scontro'){combat();}
   }
   document.querySelectorAll('.scene-actions [data-view]').forEach(b=>b.addEventListener('click',()=>open(b.dataset.view,b)));
   window.addEventListener('alphano:open-panel',e=>open(e.detail,document.querySelector('.scene-actions [data-view="'+e.detail+'"]')));
   $('chat-mobile-menu')?.addEventListener('click',()=>{open(opened==='menu'?'chat':'menu',$('chat-mobile-menu'));$('chat-mobile-menu').setAttribute('aria-expanded',String(opened==='menu'));});
   document.querySelectorAll('[data-scene-open]').forEach(b=>b.addEventListener('click',()=>open(b.dataset.sceneOpen,b)));
-  const mobileLinks=document.querySelector('.scene-mobile-links');
-  for(const [source,label] of [['sessionBtn','Session Manager'],['recordBtn','Registra / salva giocata']])if($(source)&&mobileLinks){const b=el('button',label);b.type='button';b.addEventListener('click',()=>{close();$(source).click();});mobileLinks.append(b);}
-  if($('moodSelect')&&mobileLinks){const label=el('label','Umore'),select=$('moodSelect').cloneNode(true);select.id='scene-mobile-mood';select.addEventListener('change',()=>{$('moodSelect').value=select.value;$('moodSelect').dispatchEvent(new Event('change'));});label.append(select);mobileLinks.append(label);}
   const returnPlace=()=>{if(window.parent!==window&&typeof window.parent.alphanoReturnToLocation==='function'){window.parent.alphanoReturnToLocation();}else {location.href='/main.php';}};
   $('scene-return')?.addEventListener('click',returnPlace);
-  if(mobileLinks){const back=el('button','Torna al luogo');back.type='button';back.addEventListener('click',returnPlace);mobileLinks.append(back);}
+  function setupMobileLinks(){
+    const mobileLinks=document.querySelector('.scene-mobile-links');
+    if(!mobileLinks){return;}
+    for(const [source,label] of [['sessionBtn','Session Manager'],['recordBtn','Registra / salva giocata']])if($(source)){const b=el('button',label);b.type='button';b.addEventListener('click',()=>{close();$(source).click();});mobileLinks.append(b);}
+    if($('moodSelect')){const label=el('label','Umore'),select=$('moodSelect').cloneNode(true);select.id='scene-mobile-mood';select.addEventListener('change',()=>{$('moodSelect').value=select.value;$('moodSelect').dispatchEvent(new Event('change'));});label.append(select);mobileLinks.append(label);}
+    const back=el('button','Torna al luogo');back.type='button';back.addEventListener('click',returnPlace);mobileLinks.append(back);
+  }
+  setupMobileLinks();
   $('chat-game-menu')?.addEventListener('click',()=>{close();if(window.parent!==window){window.parent.alphanoMobileMenu?.();}else {location.href='/main.php';}});
   if(window.parent!==window){window.parent.alphanoSceneFocus?.(true);}
   window.addEventListener('pagehide',()=>{if(window.parent!==window){window.parent.alphanoSceneFocus?.(false);}},{once:true});

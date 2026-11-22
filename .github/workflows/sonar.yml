@@ -55,6 +55,9 @@ jobs:
       - name: Test unitari con copertura
         run: vendor/bin/phpunit --coverage-clover=tests/runtime/coverage.xml
 
+      - name: Test JavaScript con copertura
+        run: node --test --experimental-test-coverage --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=tests/runtime/js-coverage.lcov tests/js-behavior.test.cjs
+
       - name: Analisi
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -67,4 +70,5 @@ jobs:
             -Dsonar.sources=. \
             -Dsonar.tests=tests \
             -Dsonar.exclusions=vendor/**,tests/** \
-            -Dsonar.php.coverage.reportPaths=tests/runtime/coverage.xml
+            -Dsonar.php.coverage.reportPaths=tests/runtime/coverage.xml \
+            -Dsonar.javascript.lcov.reportPaths=tests/runtime/js-coverage.lcov

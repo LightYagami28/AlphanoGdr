@@ -29,6 +29,38 @@ const renderHTML=(el,markup)=>{const doc=new DOMParser().parseFromString(String(
   const typingNodes = new Map();
   function connectionStatus(text){const status=document.getElementById('chat-connection-status');if(status){status.textContent=text;status.hidden=!text;}}
 
+  function messageStyle(message){
+    if(message.kind==='character'){return window.alphanoChatView?.character(message);}
+    if(message.kind==='master'){return window.alphanoChatView?.master(message);}
+    return null;
+  }
+  function markSameLocation(box,ownLocation){
+    if(!ownLocation){return;}
+    for(const line of box.children){
+      const author=Number(line.dataset.pg);
+      if(author!==window.myPgId&&locations.get(author)===ownLocation){line.classList.add('same-location');}
+      else {line.classList.remove('same-location');}
+    }
+  }
+  function messageKind(text){
+    if(text.startsWith('+')){return 'action';}
+    if(text.startsWith('//')){return 'ooc';}
+    if(text.startsWith('#')){return 'master';}
+    return 'speech';
+  }
+  function questNoticeCopy(q){
+    const copy={title:'Attendi il tuo turno',message:'Adesso tocca a ' + (q.turn||'un altro partecipante') + '. Potrai inviare la tua azione quando arriver├á il tuo turno.'};
+    if(q.paused){copy.title='Regia sospesa';copy.message='Il Master ha sospeso la regia di questa scena.';}
+    else if(q.status==='review'){copy.title='In attesa del verdetto';copy.message='Il giro ' + (q.round) + ' ┬¿ terminato. Si attende la verifica degli esiti prima di una nuova azione.';}
+    else if(q.status==='resolving'){copy.title='Il Master sta valutando il giro';copy.message='Il giro ' + (q.round) + ' ┬¿ terminato. Il Master sta preparando il verdetto.';}
+    else if(q.status==='attention'){copy.title='Intervento del Master';copy.message='La regia sta recuperando questo giro. Le azioni gi├á inviate sono conservate.';}
+    return copy;
+  }
+  function questNoticeItems(q,current){
+    const queue=(current?q.remaining:q.next_queue)||[];
+    return queue.map((member,index)=>({label:member.name,meta:(member.kind==='pg'?'Giocatore':'PNG')+(current&&index===0?' ┬À Turno attuale':'')}));
+  }
+
   function renderTyping(jobs = []) {
     const box=document.getElementById('chatbox');if(!box){return;}
     const stick=box.scrollHeight-box.scrollTop-box.clientHeight<80;
@@ -48,14 +80,16 @@ const renderHTML=(el,markup)=>{const doc=new DOMParser().parseFromString(String(
     const slot=document.getElementById('quest-header-slot');if(!slot){return;}
     if(!bar){bar=document.createElement('div');bar.id='quest-chat-status';bar.className='quest-chat-status';slot.append(bar);}
     const button=document.createElement('button');button.type='button';button.className='quest-header-button';
-    const phase=q.paused?'En pausa':q.status==='active'?'Tocca a '+(q.turn||'ÔÇª'):'Master in elaborazione';
+    let phase='Master in elaborazione';
+    if(q.paused){phase='En pausa';}
+    else if(q.status==='active'){phase='Tocca a '+(q.turn||'ÔÇª');}
     button.textContent='Giro ' + (q.round) + ' ┬À ' + (phase);button.title=(q.remaining||q.next_queue||[]).map(p=>p.name).join(' ÔåÆ ')+(q.progress?.label?' ┬À '+q.progress.label:'');
     button.setAttribute('aria-label','Scontro: '+button.textContent+'. Apri coda e dettagli');
     button.addEventListener('click',()=>window.dispatchEvent(new CustomEvent('alphano:open-panel',{detail:'scontro'})));
     bar.replaceChildren(button);
     const eta=document.createElement('small');eta.className='quest-header-eta';eta.textContent=q.progress?.label||'';bar.append(eta);
     const joinBox=document.getElementById('scene-join-control');joinBox?.replaceChildren();
-    if(!q.participant&&q.mode==='auto'&&joinBox){const join=document.createElement('button');join.type='button';join.textContent='Partecipa dal prossimo giro';join.onclick=async()=>{join.disabled=true;try{const r=await fetch('/api/ai-engine.php',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':token},body:JSON.stringify({action:'join'})});const p=await r.json();if(!r.ok){throw Error(p.error);}join.textContent=p.notice;}catch(e){join.textContent=e.message;join.disabled=false;}};joinBox.append(join);}
+    if(!q.participant&&q.mode==='auto'&&joinBox){const join=document.createElement('button');join.type='button';join.textContent='Partecipa dal prossimo giro';join.onclick=async()=>{join.disabled=true;try{const r=await fetch('/api/ai-engine.php',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':token},body:JSON.stringify({action:'join'})});const p=await r.json();if(!r.ok){throw new Error(p.error);}join.textContent=p.notice;}catch(e){join.textContent=e.message;join.disabled=false;}};joinBox.append(join);}
     window.dispatchEvent(new CustomEvent('alphano:quest',{detail:q}));
   }
 
@@ -71,17 +105,13 @@ const renderHTML=(el,markup)=>{const doc=new DOMParser().parseFromString(String(
       line.dataset.messageId = message.id;
       line.dataset.pg = message.pg || 0;
       if (message.pg && message.location) {locations.set(message.pg, message.location);}
-      const styled=message.kind==='character'?window.alphanoChatView?.character(message):message.kind==='master'?window.alphanoChatView?.master(message):null;
+      const styled=messageStyle(message);
       if(styled){line.classList.add('has-scene-view');line.append(styled);}else {renderHTML(line, message.msg);}
       fragment.appendChild(line);
       window.alphanoSceneEffects?.receive(message, initial);
     }
     box.appendChild(fragment);
-    const ownLocation = locations.get(window.myPgId);
-    for (const line of box.children) {
-      const author = Number(line.dataset.pg);
-      line.classList.toggle('same-location', !!ownLocation && author !== window.myPgId && locations.get(author) === ownLocation);
-    }
+    markSameLocation(box, locations.get(window.myPgId));
     // Limita il DOM anche nelle giocate lunghe. Gli ID vecchi sono gi├á esclusi dal cursore.
     while (box.children.length > 500) {
       seen.delete(Number(box.firstElementChild.dataset.messageId));
@@ -101,6 +131,24 @@ const renderHTML=(el,markup)=>{const doc=new DOMParser().parseFromString(String(
     if (!stopped && navigator.onLine !== false) {timer = setTimeout(poll, ms);}
   }
 
+  async function handlePollStatus(response){
+    if(response.status===410){const data=await response.json();if(data.rental_expired){stopped=true;window.dispatchEvent(new CustomEvent('alphano:rental-expired',{detail:data.rental_expired}));return true;}}
+    if(response.status===401||response.status===403){stopped=true;connectionStatus('Sessione scaduta o accesso non consentito. Accedi nuovamente al gioco. La bozza ├¿ conservata.');return true;}
+    if(!response.ok){throw new Error('Chat HTTP ' + (response.status));}
+    return false;
+  }
+  function applyPollData(data){
+    addMessages(data.messages);
+    relationCursor=Math.max(relationCursor,Number(data.relations?.cursor)||0);
+    window.alphanoRelationEffects?.consume(data.relations?.events||[]);
+    renderTyping(data.typing || []);
+    renderQuest(data.quest || null);
+    for(const actor of data.characters||[]){window.alphanoChatView?.update(actor);}
+    questVersion=data.questVersion||"";
+    cursor = Math.max(cursor, data.lastId);
+    if(data.messages.length){lastActivity = Date.now();}
+    return data.more || !!data.relations?.more;
+  }
   async function poll() {
     clearTimeout(timer);
     if (stopped || navigator.onLine === false) {return;}
@@ -116,35 +164,19 @@ const renderHTML=(el,markup)=>{const doc=new DOMParser().parseFromString(String(
       const response = await fetch((endpoint) + '&relationSince=' + (relationCursor) + '&since=' + (cursor) + '&initial=' + (initial ? 1 : 0) + '&questVersion=' + (encodeURIComponent(questVersion)), {
         credentials: 'same-origin', cache: 'no-store', signal: controller.signal,
       });
-      if(response.status===410){const data=await response.json();if(data.rental_expired){stopped=true;window.dispatchEvent(new CustomEvent('alphano:rental-expired',{detail:data.rental_expired}));return;}}
-      if (response.status === 401 || response.status === 403) {
-        stopped = true;
-        connectionStatus('Sessione scaduta o accesso non consentito. Accedi nuovamente al gioco. La bozza ├¿ conservata.');
-        return;
-      }
-      if (!response.ok) {throw new Error('Chat HTTP ' + (response.status));}
+      if(await handlePollStatus(response)){return;}
       if (response.status === 204) {
         cursor = Math.max(cursor, Number(response.headers.get('X-Chat-Cursor')) || 0);
         relationCursor=Math.max(relationCursor,Number(response.headers.get('X-Relation-Cursor'))||0);
         renderTyping();
       } else {
-        const data = await response.json();
-        addMessages(data.messages);
-        relationCursor=Math.max(relationCursor,Number(data.relations?.cursor)||0);
-        window.alphanoRelationEffects?.consume(data.relations?.events||[]);
-        renderTyping(data.typing || []);
-        renderQuest(data.quest || null);
-        for(const actor of data.characters||[]){window.alphanoChatView?.update(actor);}
-        questVersion=data.questVersion||"";
-        cursor = Math.max(cursor, data.lastId);
-        more = data.more || !!data.relations?.more;
-        if (data.messages.length) {lastActivity = Date.now();}
+        more = applyPollData(await response.json());
       }
       initial = false;
       failures = 0;
       connectionStatus('');
     } catch (error) {
-      if (!stopped){failures += 1;connectionStatus('Collegamento alla chat interrotto. Riconnessione automatica in corsoÔÇª');}
+      if (!stopped){failures += 1;console.warn('Alphano chat: polling interrotto',error);connectionStatus('Collegamento alla chat interrotto. Riconnessione automatica in corsoÔÇª');}
     } finally {
       clearTimeout(timeout);
       controller = null;
@@ -173,11 +205,10 @@ const renderHTML=(el,markup)=>{const doc=new DOMParser().parseFromString(String(
     if(q){
       options.eyebrow='Alphano ┬À Regia della quest';
       if(q.progress?.label){options.detail=q.progress.label+' Il testo che hai scritto ├¿ stato conservato.';}
-      options.title=q.paused?'Regia sospesa':q.status==='review'?'In attesa del verdetto':q.status==='resolving'?'Il Master sta valutando il giro':q.status==='attention'?'Intervento del Master': 'Attendi il tuo turno';
-      options.message=q.paused?'Il Master ha sospeso la regia di questa scena.':q.status==='review'?'Il giro ' + (q.round) + ' ├¿ terminato. Si attende la verifica degli esiti prima di una nuova azione.':q.status==='resolving'?'Il giro ' + (q.round) + ' ├¿ terminato. Il Master sta preparando il verdetto.':q.status==='attention'?'La regia sta recuperando questo giro. Le azioni gi├á inviate sono conservate.':'Adesso tocca a ' + (q.turn||'un altro partecipante') + '. Potrai inviare la tua azione quando arriver├á il tuo turno.';
+      Object.assign(options,questNoticeCopy(q));
       const current=q.status==='active'&&!q.paused;
       options.itemsTitle=current?'Coda del giro':'Ordine del prossimo giro';
-      options.items=((current?q.remaining:q.next_queue)||[]).map((member,index)=>({label:member.name,meta:(member.kind==='pg'?'Giocatore':'PNG')+(current&&index===0?' ┬À Turno attuale':'')}));
+      options.items=questNoticeItems(q,current);
     }
     if(window.alphanoDialog){return window.alphanoDialog.notice(options);}
     aiStatus(options.message); // Il testo resta accessibile anche se un asset non ├¿ stato caricato.
@@ -221,8 +252,9 @@ const renderHTML=(el,markup)=>{const doc=new DOMParser().parseFromString(String(
         const data = await response.json();
         if (['queued','running'].includes(data.job.status) && Date.now() - started < 850000) { watchAiJob(job, started); return; }
         aiStatus(data.job.status === 'done' ? '' : (data.job.error || 'Il personaggio non ha potuto rispondere. Puoi riprovare.'));
-        poll();
-      } catch (_) {
+        void poll();
+      } catch (error) {
+        console.warn('Alphano chat: stato del job IA non disponibile',error);
         if (Date.now() - started < 850000) {watchAiJob(job, started);}
         else {aiStatus('Risposta ancora in attesa. La chat resta disponibile.');}
       }
@@ -259,7 +291,7 @@ const renderHTML=(el,markup)=>{const doc=new DOMParser().parseFromString(String(
     window.alphanoWorkChat?.accepted(data.work);
     window.dispatchEvent(new CustomEvent('alphano:message-sent',{detail:{text:submittedDraft}}));
     lastActivity = Date.now();
-    poll();
+    void poll();
   }
 
   let recording = false;
@@ -325,7 +357,7 @@ const renderHTML=(el,markup)=>{const doc=new DOMParser().parseFromString(String(
     const box = document.getElementById('chatbox');
     if (!box) {return;} // Le pagine-mappa condividono il template ma non hanno una chat.
     box.replaceChildren();
-    poll();
+    void poll();
     window.addEventListener('alphano:refresh-chat',()=>poll());
     document.getElementById('recordBtn').addEventListener('click', toggleRecording);
     document.getElementById('moodSelect').addEventListener('change', event => {
@@ -333,7 +365,7 @@ const renderHTML=(el,markup)=>{const doc=new DOMParser().parseFromString(String(
     });
     loadRecordingState().catch(() => {});
     const composer=document.getElementById('comodo'),messageType=document.getElementById('messageType');
-    const syncType=()=>{const text=composer.value.trimStart();const kind=text.startsWith('+')?'action':text.startsWith('//')?'ooc':text.startsWith('#')?'master':'speech';messageType.value=[...messageType.options].some(option=>option.value===kind)?kind:'speech';};
+    const syncType=()=>{const text=composer.value.trimStart();const kind=messageKind(text);messageType.value=[...messageType.options].some(option=>option.value===kind)?kind:'speech';};
     composer.addEventListener('input',syncType);
     messageType.addEventListener('change',()=>{const prefix={action:'+ ',ooc:'// ',master:'# ',speech:''}[messageType.value]||'';composer.value=prefix+composer.value.replace(/^\s*(?:\+\s*|\/\/\s*|#\s*)/,'');composer.dispatchEvent(new Event('input'));composer.focus();composer.setSelectionRange(composer.value.length,composer.value.length);});
     syncType();
@@ -343,24 +375,24 @@ const renderHTML=(el,markup)=>{const doc=new DOMParser().parseFromString(String(
       const link=event.target.closest('a[data-npc-profile]');
       if(link && !event.ctrlKey && !event.metaKey && !event.shiftKey){event.preventDefault();window.alphanoOpenView(link.getAttribute('href'),'Profilo');}
     });
-    loadAiState();
+    void loadAiState();
     document.getElementById('comodo').addEventListener('keydown', event => {
       lastActivity = Date.now();
       if (event.key === 'Enter' && !event.shiftKey && !event.isComposing && !window.matchMedia('(max-width:900px), (max-width:1100px) and (max-height:500px)').matches) {
         event.preventDefault();
-        sendMsg();
+        void sendMsg();
       }
     });
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) {
         lastActivity = Date.now();
-        poll();
-        if (Date.now() - aiStateChecked > 5000) {loadAiState();}
+        void poll();
+        if (Date.now() - aiStateChecked > 5000) {void loadAiState();}
       } else {schedule();}
     });
-    window.addEventListener('online', () => { failures = 0; poll(); });
+    window.addEventListener('online', () => { failures = 0; void poll(); });
     window.addEventListener('focus', () => {
-      if (Date.now() - aiStateChecked > 5000) {loadAiState();}
+      if (Date.now() - aiStateChecked > 5000) {void loadAiState();}
     });
     window.addEventListener('offline', () => { clearTimeout(timer); controller?.abort(); });
     window.addEventListener('pagehide', () => {
@@ -372,7 +404,7 @@ const renderHTML=(el,markup)=>{const doc=new DOMParser().parseFromString(String(
       controller?.abort();
     });
     window.addEventListener('pageshow', event => {
-      if (event.persisted) { stopped = false; poll(); loadAiState(); }
+      if (event.persisted) { stopped = false; void poll(); void loadAiState(); }
     });
   };
   if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',initialize,{once:true});}else {initialize();}

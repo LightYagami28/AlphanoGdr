@@ -6,7 +6,7 @@ require_once __DIR__.'/../../libs/chat-format.inc.php';
 
 
 /** Applies sunlight damage without changing message rendering. */
-function alphanoChatVampireDamage(PDOMySQLDriver $db,int $idpg,string $chat,array $pg,string $sesso,string $ferite,int $razza,int $meteo,bool $vampiredamage): void
+function alphanoChatVampireDamage(PDOMySQLDriver $db,int $idpg,string $chat,string $out,array $pg,string $sesso,string $ferite,int $razza,int $meteo,bool $vampiredamage): void
 {
     // 8) vampireDamage
     if ((!function_exists('rpgCreationReady')||!rpgCreationReady()) && $vampiredamage && $out && $razza===2 && !licanTime() && $meteo===0) {
@@ -30,7 +30,7 @@ function alphanoChatVampireDamage(PDOMySQLDriver $db,int $idpg,string $chat,arra
 }
 
 /** Persists the rendered message in live recordings and the running session log. */
-function alphanoChatSessionLog(PDOMySQLDriver $db,string $chat,int $sessionName,string $out,bool $scriviPart,string $partecipanti,int $idpg): void
+function alphanoChatSessionLog(PDOMySQLDriver $db,string $chat,int $sessionName,string $out,bool $SessionIsRunning,bool $scriviPart,string $partecipanti,int $idpg): void
 {
     // 11) Log sessione in HTML
     if ($SessionIsRunning) {
@@ -293,7 +293,7 @@ function buildChatMessage(
     // Persist a semantic presentation type; no schema change, also retained in saved logs.
     if($out!==''){$type=str_starts_with($str,'//')?'ooc':match($first){'+'=>'action','$'=>'whisper','&'=>'animal','#'=>'master',default=>'speech'};$out='<div data-message-type="'.$type.'">'.$out.'</div>';}
 
-    alphanoChatVampireDamage($db,$idpg,$chat,$pg['nome'],$sesso,$ferite,$razza,$meteo,$vampiredamage);
+    alphanoChatVampireDamage($db,$idpg,$chat,$out,$pg,$sesso,$ferite,$razza,$meteo,$vampiredamage);
 
     // 9) Conta azioni lican
     if ($inf && $OnGame) {
@@ -311,7 +311,7 @@ function buildChatMessage(
         );
     }
 
-    alphanoChatSessionLog($db,$chat,$sessionName,$out,$scriviPart,$partecipanti,$idpg);
+    alphanoChatSessionLog($db,$chat,$sessionName,$out,$SessionIsRunning,$scriviPart,$partecipanti,$idpg);
 
     return [$out, $dest, $newLoc, $l];
 }

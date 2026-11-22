@@ -1,7 +1,7 @@
 (()=>{'use strict';
 const root=document.getElementById('bg-app');if(!root)return;
 let chat=document.body.dataset.bgChat;const inviteOpponent=Number(document.body.dataset.bgInvite||0);const feedback=document.getElementById('bg-feedback');let csrf='',lobby=null,current=null,selected=null,busy=false,timer=null,polling=false,serverOffset=0;
-const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const esc=x=>String(x??'').replace(/[&<>"']/gu,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let chessSkin='classic';
 const chessSymbols={K:'♔',Q:'♕',R:'♖',B:'♗',N:'♘',P:'♙',k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟'};
 const chessRoles={k:'king',q:'queen',r:'rook',b:'bishop',n:'knight',p:'pawn'};

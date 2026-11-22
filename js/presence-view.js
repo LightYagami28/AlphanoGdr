@@ -1,6 +1,6 @@
 import './game-status.js';
 /* Public location headings and the same per-player NPC preference on both surfaces. */
-const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const esc=value=>String(value??'').replace(/[&<>"']/gu,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const key=owner=>'alphano:presence:npcs:'+owner;
 export function presenceShowsNpcs(owner){try{return localStorage.getItem(key(owner))!=='false';}catch{return true;}}
 export function presenceSaveNpcs(owner,show){try{localStorage.setItem(key(owner),String(show));}catch{}}

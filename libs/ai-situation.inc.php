@@ -1,5 +1,7 @@
 <?php
 declare(strict_types=1);
+
+if (!defined('S1192_LIBS_AI_SITUATION_INC_PHP_AE5A6E_S_U')) { define('S1192_LIBS_AI_SITUATION_INC_PHP_AE5A6E_S_U', '/\s+/u'); }
 const AI_SITUATION_ANCHOR='/\b(?:cerchio(?:\s+(?:di\s+pietra|in\s+rovina))?|campo\s+di\s+studio|banco(?:\s+(?:della|delle|dei|di)\s+\p{L}+)?|portico(?:\s+laterale)?|sala\s+comune|riparo(?:\s+di\s+rami)?|muratura|cancelli|portone|varco|bancone|focolare|tavolo|salone|cortile|fontana|pontile|navata|cripta|molo|ingresso|sentier[oi]|pozzo|argine|cascat[ae]|scalinata|mura|scaffali|fucina|officina|altare|mulino|recinto|radici)\b/iu';
 
 function aiSituationPositions(array $room,array $npc):array {
@@ -29,14 +31,14 @@ function aiSituationBase(array $room,array $npc):array {
         if(aiMentionsNpc($clause,(string)$npc['name'])){
             // A room often describes several people in one sentence. Do not
             // prepend a colleague's actions as this NPC's new turn.
-            $full=mb_stripos($clause,$npc['name']);$first=preg_split('/\s+/u',$npc['name'])[0];$start=$full!==false?$full:mb_stripos($clause,$first);
+            $full=mb_stripos($clause,$npc['name']);$first=preg_split(S1192_LIBS_AI_SITUATION_INC_PHP_AE5A6E_S_U,$npc['name'])[0];$start=$full!==false?$full:mb_stripos($clause,$first);
             $own=mb_substr($clause,(int)$start);
             foreach(aiDb()->query('SELECT name FROM ai_npcs WHERE chat_key=? AND id<>?',[$room['chat_key'],(int)$npc['id']]) as $other){
-                $alias=preg_split('/\s+/u',$other['name'])[0];
+                $alias=preg_split(S1192_LIBS_AI_SITUATION_INC_PHP_AE5A6E_S_U,$other['name'])[0];
                 if(preg_match('/(?<!\p{L})'.preg_quote($alias,'/').'(?!\p{L})/iu',$own,$m,PREG_OFFSET_CAPTURE)){ $own=substr($own,0,$m[0][1]); }
             }
             $own=preg_replace('/(?:,\s*[^,.]*|\s+e(?:\s+(?:il|la|l[’\x{27}]))?[^,.]*)$/u','',$own)??$own;
-            $own=aiText($own,300);if(count(preg_split('/\s+/u',$own))<4){ $own=''; }break;
+            $own=aiText($own,300);if(count(preg_split(S1192_LIBS_AI_SITUATION_INC_PHP_AE5A6E_S_U,$own))<4){ $own=''; }break;
         }
     }
     $position=aiText((string)$profile['scene_position'],100);

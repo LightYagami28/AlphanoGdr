@@ -6,7 +6,7 @@
  let state,catalog=[],multipliers=[],wheel,images=new Map(),mode='resource',busy=false,offset=0,refreshing=false;
  const reduced=matchMedia('(prefers-reduced-motion: reduce)');
  const make=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;};
- async function api(payload){const options={cache:'no-store',credentials:'same-origin',signal:AbortSignal.timeout(15000)};if(payload)Object.assign(options,{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':document.querySelector('meta[name="csrf-token"]').content},body:JSON.stringify(payload)});const r=await fetch('/api/fortune.php',options),data=await r.json();if(!r.ok)throw Error(data.error||'La ruota non risponde. Riprova tra poco.');if(data.state)data.state.received_at=Date.now();return data;}
+ async function api(payload){const options={cache:'no-store',credentials:'same-origin',signal:AbortSignal.timeout(15000)};if(payload)Object.assign(options,{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':document.querySelector('meta[name="csrf-token"]').content},body:JSON.stringify(payload)});const r=await fetch('/api/fortune.php',options),data=await r.json();if(!r.ok)throw new Error(data.error||'La ruota non risponde. Riprova tra poco.');if(data.state)data.state.received_at=Date.now();return data;}
  function setState(s){state=s;offset=s.server_time*1000-(s.received_at||Date.now());if(window.parent!==window)window.parent.postMessage({type:'alphano:fortune-updated'},location.origin);}
  function draw(){
   wheel.draw();if(mode!=='resource')return;

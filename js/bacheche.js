@@ -1,7 +1,7 @@
-const renderHTML=(el,markup)=>{const doc=new DOMParser().parseFromString(String(markup??''),'text/html');el.replaceChildren(...[...doc.body.childNodes].map(node=>document.importNode(node,true)));};
 function stripHtml(value){const text=String(value??'');let result='',inside=false;for(const char of text){if(char==='<'){inside=true;}else if(char==='>'){inside=false;}else if(!inside){result+=char;}}return result;}
 document.addEventListener('DOMContentLoaded', () => {
   'use strict';
+  const renderHTML=(el,markup)=>{const doc=new DOMParser().parseFromString(String(markup??''),'text/html');el.replaceChildren(...[...doc.body.childNodes].map(node=>document.importNode(node,true)));};
   const F=window.alphanoForum,{esc,button}=F,config=F.config;
   const header=document.getElementById('panel-header'),panel=document.getElementById('panel-container'),modal=document.getElementById('modal'),form=modal.querySelector('form');
   const query=new URLSearchParams(location.search),fixedLocation=config.initialLocation||query.get('location');

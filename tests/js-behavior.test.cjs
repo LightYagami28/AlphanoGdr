@@ -230,4 +230,5 @@ test('manuali: inizializzazione con configurazione pubblica', async () => {
   await flush();
   ids['manual-filters'].emit('submit');
   await flush();
+  assert.ok(ids['manual-library'], 'libreria manuali inizializzata');
 });

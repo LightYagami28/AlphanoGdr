@@ -425,10 +425,11 @@ function aiQuestCompactNpcPrompt(array $room,array $npc,array $job,float $scale)
   'allenamento'=>'Prepara una tecnica leale e controllata, senza colpi riusciti o danni.',
   'aiuto'=>'Chiedi aiuto; non dichiarare rinforzi già arrivati.',
   default=>'Descrivi solo il tentativo scelto, senza dichiararne il successo.'};
- $targetId=0;
+ $isSelfTarget=false;
  if(!empty($job['quest_threat'])){
   $threat=$job['quest_threat'];$targetKind=$threat['target_kind']??'npc';$targetId=(int)($threat['target_id']??0);
-  $self=$targetKind==='npc'&&$targetId===$nid;
+  $isSelfTarget=$targetKind==='npc'&&$targetId===$nid;
+  $self=$isSelfTarget;
   $system.=(!empty($threat['verbal'])?"\nMINACCIA VERBALE CONTRO ":"\nATTACCO DICHIARATO CONTRO ").($self?'DI TE':$clip(aiQuestName($targetKind,$targetId),60)).': '.($self?'reagisci a questo tentativo.':'sei testimone; non attribuirti il ruolo della vittima e conserva la condotta scelta.');
  }
  if(!empty($job['rpg_ability'])){ $system.="\nCAPACITÀ VERIFICATA DA TENTARE: ".$clip($job['rpg_ability']['name'].'; '.$job['rpg_ability']['description'],180).'.'; }
@@ -465,7 +466,7 @@ function aiQuestNpcPrompt(array $room,array $npc,array $job,float $scale):array{
  $system.=ai_npc_game_context($npc,$job,$scale);
  $system.=' La tua razza effettiva è '.GetRazza((int)$profile['race_id']).'. Non inventare abilità, magie, velocità o resistenze estranee alla tua stirpe. Le capacità dichiarate dal PG sono tentativi da valutare, non risultati già accertati.';
  $defence='';
- if($targetId===$nid){ $defence='Sei il bersaglio: tenta una difesa fisica concreta.'; }
+ if($isSelfTarget){ $defence='Sei il bersaglio: tenta una difesa fisica concreta.'; }
  elseif(($job['quest_decision']??'')==='attacco'){ $defence='Un collega è il bersaglio: sostienilo con il contrattacco scelto dal backend e con l’arma realmente impugnata.'; }
  $system.=' AGGRESSIONE GIÀ DICHIARATA: non limitarti a nuovi ammonimenti. Il rispetto del rango non impedisce la legittima difesa. '.$defence;
  if(($job['quest_decision']??'')==='dialogo'){ $system.=' Scena narrativa: prosegui il dialogo concreto, senza inventare una battaglia o nuovi avversari.'; }

@@ -225,7 +225,7 @@ function aiQuestName(string $kind,int $id):string{
  $field=$kind==='pg'?'nome':'name';$table=$kind==='pg'?'utenti':'ai_npcs';return (string)(aiDb()->query('SELECT '.$field.' AS name FROM '.$table.' WHERE id=?',[$id])[0]['name']??'Assente');
 }
 function aiQuestPublic(string $chat,int $viewer):?array{
- $q=aiQuestRow($chat);if(!$q){ return null; }$g=ai_game_guidance((int)$q['session_id']);$t=ai_game_turn($g);$cast=aiDb()->query('SELECT active FROM ai_quest_cast WHERE session_id=? AND kind=\'pg\' AND actor_id=?',[(int)$q['session_id'],$viewer])[0]??[];
+ $q=aiQuestRow($chat);if(!$q){ return null; }$g=ai_game_guidance((int)$q['session_id']);$cast=aiDb()->query('SELECT active FROM ai_quest_cast WHERE session_id=? AND kind=\'pg\' AND actor_id=?',[(int)$q['session_id'],$viewer])[0]??[];
  return ['id'=>(int)$q['session_id'],'version'=>(int)$q['version'],'name'=>$q['nome'],'status'=>$q['status'],'mode'=>$q['mode'],'round'=>(int)$g['round_number'],'paused'=>(bool)$g['paused'],'participant'=>(bool)($cast['active']??false),'can_control'=>ai_conductor_can($viewer,$chat)&&($q['mode']==='auto'||alphano_session_can_manage($viewer,$chat)),'conductor_id'=>(int)($q['conductor_id']??0),'turn_window'=>ai_turn_window($q,$g,$viewer),...ai_quest_turn_state($q,$g),'progress'=>ai_quest_progress($q,$g)];
 }
 /** Purely public observations: at most one bounded ally reaction to one player's source event. */
@@ -270,7 +270,7 @@ function aiQuestWorkJob(array $job,bool $offline=false):bool{
   elseif((int)$job['user_id']<1){ $job['user_id']=(int)($db->query("SELECT c.actor_id FROM ai_quest_cast c JOIN utenti u ON u.id=c.actor_id WHERE c.session_id=? AND c.kind='pg' AND c.active=1 AND u.chat=? AND u.puntif>0 AND u.bloccato=0 ORDER BY c.actor_id LIMIT 1",[$sid,$job['chat_key']])[0]['actor_id']??0); }
   $tactical=json_decode($db->query("SELECT state FROM ai_quest_cast WHERE session_id=? AND kind='npc' AND actor_id=?",[$sid,(int)$npc['id']])[0]['state']??'{}',true)?:[];
   $observation=$db->query("SELECT a.content,a.source_id FROM ai_quest_actions a JOIN chat c ON c.id=a.source_id AND c.dest=0 AND BINARY c.chat=BINARY ? WHERE a.session_id=? AND a.round_number=? AND a.kind='pg' AND a.actor_id=? ORDER BY a.id DESC LIMIT 1",[$job['chat_key'],$sid,(int)$g['round_number'],(int)$job['user_id']])[0]??null;
-  if($observation){$job['source_id']=(int)$observation['source_id'];$job['episode_input']=$observation['content'];$job['episode']=ai_episode_prepare($npc,[...$job,'prompt'=>$observation['content']]);$snapshot=aiQuestSnapshot($sid);}
+  if($observation){$job['source_id']=(int)$observation['source_id'];$job['episode_input']=$observation['content'];$job['episode']=ai_episode_prepare($npc,[...$job,'prompt'=>$observation['content']]);}
   $decision=ai_scene_kind($q)==='narrazione'?'dialogo':(ai_scene_can_finish($sid)?'negozia':(ai_scene_kind($q)==='allenamento'?'allenamento':ai_npc_decision((int)$npc['id'],(int)$job['user_id'],max(1,$enemies),$allies,(bool)$threat)));if(ai_adjudication_enabled($sid)&&$threat&&$decision==='difesa'&&(int)(json_decode($threat['details'],true)['target_id']??0)!==(int)$npc['id']&&ai_npc_game((int)$npc['id'])['stance']!=='noncombattente'&&array_filter(ai_game_inventory('npc',(int)$npc['id']),static fn($i)=>in_array($i['slot'],['armadx','armasx'],true)&&(int)$i['consumo']<(int)$i['durata'])){ $decision='attacco'; }if(ai_tactical_restrained($tactical,(int)$g['round_number'])){ $decision='fuga'; }$actions=$db->query('SELECT kind,actor_id,content,details FROM ai_quest_actions WHERE session_id=? AND round_number=? ORDER BY id',[$sid,(int)$g['round_number']]);$context=[];foreach($actions as $a){ $context[]=$a['kind']==='pg'?aiQuestAttemptSummary($a):(ai_scene_kind($q)==='narrazione'?aiQuestActor($a['kind'],(int)$a['actor_id'])['name'].': '.aiText($a['content'],180):aiQuestAttemptSummary($a,180,false)); }
   $decision=aiPerceptionSceneDecision($npc,$job,$decision);
   if(!ai_recognition_anonymous($npc,$job)&&ai_coercion_state((int)$npc['id'],(int)$job['user_id'])&&(!$threat||!empty($job['episode']['coercive']))){ $decision='resa'; }
@@ -483,7 +483,7 @@ function aiQuestGuardNpcText(array $npc,array $job,string $text):array{
   if(preg_match('/\b(?:fa|costringe|obbliga).{0,30}\b(?:cadere|sanguinare|crollare|svenire)\b/iu',$clause)
    &&!preg_match('/\b(?:tenta|cerca|prova|vorrebbe|potrebbe|evita|impedire|non)\b/iu',$clause)){ $bad=1; }
  }
- if(preg_match('/\b(?:io|mi|me|mio|mia|miei|mie|cerco|tento|porto|arretr[o]|sgrancio|mantengo|osservo|sollevo|stringo|alzo)\b/iu',$outside)){ $bad=1; }
+ if(preg_match('/\b(?:io|mi|me|mio|mia|miei|mie|cerco|tento|porto|arretro|sgrancio|mantengo|osservo|sollevo|stringo|alzo)\b/iu',$outside)){ $bad=1; }
  foreach(aiDb()->query("SELECT n.id,n.name FROM ai_npcs n JOIN ai_quest_cast c ON c.kind='npc' AND c.actor_id=n.id WHERE c.session_id=?",[(int)$job['session_id']]) as $other){ if((int)$other['id']!==(int)$npc['id']){
   $first=preg_split('/\s+/u',$other['name'])[0];
   if(preg_match('/(?<!\p{L})'.preg_quote($first,'/').'\s+(?:si\s+\p{L}+|solleva|stringe|attacca|colpisce|arretra|cade|grida|dice|risponde)\b/iu',$outside)){ $bad=1; }

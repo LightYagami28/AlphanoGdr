@@ -68,7 +68,7 @@ function economiaImpiegato(int $pg, int $corp): bool
 /**
  * Trasferisce denaro da un PG a un altro, registra log e invia notifiche.
  */
-function trasferisciSoldi(int $mittente, string $nomeMittente, int $dposseduti, int $destinatario, int $soldi, string $motivo = '', ?string $requestKey = null): bool
+function trasferisciSoldi(int $mittente, int $destinatario, int $soldi, string $motivo = '', ?string $requestKey = null): bool
 {
     if ($soldi<=0 || $mittente===$destinatario) {return false;}
     return economiaBool(static function() use($mittente,$destinatario,$soldi,$motivo,$requestKey): bool {
@@ -387,8 +387,9 @@ function commercioPrezzoValido(float $price, int $quantity = 1): bool
 }
 
 /** Ricevuta immutabile, nella stessa transazione dei beni e del denaro. */
-function commercioAttivita(string $type,int $actor,array $trade,string $title,string $detail,array $before,array $after,array $extra=[],?string $eventKey=null): void
+function commercioAttivita(string $type,int $actor,array $trade,string $title,string $detail,array $changes): void
 {
+    $before=$changes['before']??[]; $after=$changes['after']??[]; $extra=$changes['extra']??[]; $eventKey=$changes['eventKey']??null;
     $audiences=[['scope'=>'corporazioni','id'=>(int)$trade['corp'],'section'=>'trasferimenti','role'=>'trade']];
     if ((int)($trade['pg'] ?? 0)>0) {$audiences[]=['scope'=>'personale','id'=>(int)$trade['pg'],'section'=>'trasferimenti','role'=>'member'];}
     $event=alphano_record_activity($type,$actor,$audiences,$title,$detail,array_merge([
@@ -524,8 +525,6 @@ function getCatalogoDamaged(int $idpg, int $corp): array
  */
 function statoTransf(int $stato, int $verso): string
 {
-    $dest = $verso === 1 ? 'PG' : 'Corporazione';
-    $acq  = $verso === 1 ? 'Corporazione' : 'PG';
     return match($stato) {
         0 => 'Non ancora preso in carico',
         1 => 'Preso in carico',
@@ -563,7 +562,7 @@ function buyObject(int $equippgId, int $dest, int $pgcorp, int $corp, int $qta =
         economiaVerifica($count >= $qta,'Quantità non disponibile');
         $db->execute('INSERT INTO trasferimenti(data,corp,pgcorp,pg,obj,nomeobj,verso,stato,qta,prezzo) VALUES(?,?,?,?,?,?,1,2,?,0)',[time(),$corp,$pgcorp,$dest,$equippgId,$row['shortDesc'],$qta]);
         $trade=['id'=>(int)$db->lastInsertId(),'corp'=>$corp,'pg'=>$dest,'verso'=>1,'nomeobj'=>$row['shortDesc'],'qta'=>$qta,'prezzo'=>0];
-        commercioAttivita('purchase-created',$pgcorp,$trade,'Richiesta di acquisto',"La corporazione richiede {$qta}× {$row['shortDesc']}. Il venditore deve proporre un prezzo totale.",[],['stato'=>2,'qta'=>$qta,'prezzo'=>0]);
+        commercioAttivita('purchase-created',$pgcorp,$trade,'Richiesta di acquisto',"La corporazione richiede {$qta}× {$row['shortDesc']}. Il venditore deve proporre un prezzo totale.",['before'=>[],'after'=>['stato'=>2,'qta'=>$qta,'prezzo'=>0]]);
         return true;
     });
 }
@@ -634,7 +633,7 @@ function updateTransf(int $id, int $pg, float $prezzo, int $stato, ?int $qta = n
         $available=$db->query('SELECT id FROM equippg WHERE uid=? AND idpg=? FOR UPDATE',[$item['uid'],$d['pg']]);
         economiaVerifica(count($available)>=$quantity,'Quantità non disponibile');
         $db->execute('UPDATE trasferimenti SET prezzo=?,qta=?,stato=? WHERE id=?',[(int)$prezzo,$quantity,$stato,$id]);
-        commercioAttivita('purchase-proposal',$pg,$d,'Nuova proposta di acquisto',"{$d['nomeobj']}: {$quantity} pezzi per ".(int)$prezzo.alphano_currency_text(' Corone totali.'),['stato'=>(int)$d['stato'],'qta'=>(int)$d['qta'],'prezzo'=>(int)$d['prezzo']],['stato'=>$stato,'qta'=>$quantity,'prezzo'=>(int)$prezzo],['totale'=>(int)$prezzo]);
+        commercioAttivita('purchase-proposal',$pg,$d,'Nuova proposta di acquisto',"{$d['nomeobj']}: {$quantity} pezzi per ".(int)$prezzo.alphano_currency_text(' Corone totali.'),['before'=>['stato'=>(int)$d['stato'],'qta'=>(int)$d['qta'],'prezzo'=>(int)$d['prezzo']],'after'=>['stato'=>$stato,'qta'=>$quantity,'prezzo'=>(int)$prezzo],'extra'=>['totale'=>(int)$prezzo]]);
         return true;
     });
 }
@@ -738,7 +737,7 @@ function prendiInCaricoOrdine(int $id, int $pg): bool
         economiaVerifica($d && economiaImpiegato($pg,(int)$d['corp']) && (int)$d['pg']!==$pg,'Ordine non assegnabile');
         $newState=(int)$d['stato']===5 ? 5 : 1;
         $db->execute('UPDATE trasferimenti SET pgcorp=?,stato=? WHERE id=?',[$pg,$newState,$id]);
-        commercioAttivita('order-assigned',$pg,$d,'Ordine preso in carico',"Un responsabile segue l’ordine di {$d['qta']}× {$d['nomeobj']}.".($newState===5 ? ' Prezzo e quantità già concordati: pronto per la consegna.' : ' In attesa della sua proposta di prezzo.'),['stato'=>(int)$d['stato'],'responsabile'=>0],['stato'=>$newState,'responsabile'=>$pg]);
+        commercioAttivita('order-assigned',$pg,$d,'Ordine preso in carico',"Un responsabile segue l’ordine di {$d['qta']}× {$d['nomeobj']}.".($newState===5 ? ' Prezzo e quantità già concordati: pronto per la consegna.' : ' In attesa della sua proposta di prezzo.'),['before'=>['stato'=>(int)$d['stato'],'responsabile'=>0],'after'=>['stato'=>$newState,'responsabile'=>$pg]]);
         return true;
     });
 }
@@ -793,12 +792,12 @@ function finalizeTransf(int $id, int $pg): string
             $db->execute("UPDATE equippg SET idpadre=0,slot='' WHERE idpg=? AND idpadre IN ($ph)",array_merge([$seller],$deleted));
             $db->execute("DELETE FROM equippg WHERE idpg=? AND id IN ($ph)",array_merge([$seller],$deleted));
             $db->execute('UPDATE trasferimenti SET stato=5 WHERE id=?',[$id]);
-            commercioAttivita('purchase-completed',$pg,$d,'Acquisto completato',alphano_currency_text("La corporazione ha acquistato {$qta}× {$d['nomeobj']} per {$price} Corone totali. Materiali recuperati in magazzino."),['stato'=>(int)$d['stato']],['stato'=>5],['totale'=>$price,'venditore'=>(int)$d['pg'],'materie_recuperate'=>$materia!=='' ? [$materia=>$qta] : array_map(static fn($n)=>(int)$n*$qta,GetMateriePrime($item) ?: [])]);
+            commercioAttivita('purchase-completed',$pg,$d,'Acquisto completato',alphano_currency_text("La corporazione ha acquistato {$qta}× {$d['nomeobj']} per {$price} Corone totali. Materiali recuperati in magazzino."),['before'=>['stato'=>(int)$d['stato']],'after'=>['stato'=>5],'extra'=>['totale'=>$price,'venditore'=>(int)$d['pg'],'materie_recuperate'=>$materia!=='' ? [$materia=>$qta] : array_map(static fn($n)=>(int)$n*$qta,GetMateriePrime($item) ?: [])]]);
             $remaining=array_slice(array_column($stock,'id'),$qta); $left=count($remaining);
             foreach ($others as $other) {
                 if (!$left) {$db->execute('UPDATE trasferimenti SET stato=6 WHERE id=?',[$other['id']]);}
                 else {$db->execute('UPDATE trasferimenti SET obj=?,qta=? WHERE id=?',[in_array($other['obj'],$remaining) ? $other['obj'] : $remaining[0],min((int)$other['qta'],$left),$other['id']]);}
-                commercioAttivita('purchase-availability-changed',$pg,$other,'Disponibilità aggiornata','La disponibilità degli oggetti è cambiata: controlla la quantità e lo stato aggiornati della trattativa.',['stato'=>(int)$other['stato'],'qta'=>(int)$other['qta']],['stato'=>$left?(int)$other['stato']:6,'qta'=>$left?min((int)$other['qta'],$left):(int)$other['qta']]);
+                commercioAttivita('purchase-availability-changed',$pg,$other,'Disponibilità aggiornata','La disponibilità degli oggetti è cambiata: controlla la quantità e lo stato aggiornati della trattativa.',['before'=>['stato'=>(int)$other['stato'],'qta'=>(int)$other['qta']],'after'=>['stato'=>$left?(int)$other['stato']:6,'qta'=>$left?min((int)$other['qta'],$left):(int)$other['qta']]]);
             }
             return 'Trasferimento avvenuto correttamente';
         });
@@ -820,7 +819,7 @@ function rejectTransf(int $id, int $pg): bool
         $d=$db->query('SELECT * FROM trasferimenti WHERE id=? AND (pg=? OR pgcorp=?) AND verso=1 AND stato<5 FOR UPDATE',[$id,$pg,$pg])[0] ?? null;
         economiaVerifica((bool)$d,'Trasferimento non annullabile');
         $db->execute('UPDATE trasferimenti SET stato=6 WHERE id=?',[$id]);
-        commercioAttivita('purchase-cancelled',$pg,$d,'Acquisto annullato',"La trattativa per {$d['qta']}× {$d['nomeobj']} è stata annullata. Nessun pagamento.",['stato'=>(int)$d['stato']],['stato'=>6]);
+        commercioAttivita('purchase-cancelled',$pg,$d,'Acquisto annullato',"La trattativa per {$d['qta']}× {$d['nomeobj']} è stata annullata. Nessun pagamento.",['before'=>['stato'=>(int)$d['stato']],'after'=>['stato'=>6]]);
         return true;
     });
 }
@@ -846,7 +845,7 @@ function makeOrdine(int $obj, int $pg, int $corp, int $qta = 1, ?string $request
         economiaVerifica(!$db->query('SELECT 1 FROM trasferimenti WHERE pg=? AND obj=? AND corp=? AND verso=2 AND stato<5',[$pg,$obj,$corp]),'Ordine già presente');
         $db->execute('INSERT INTO trasferimenti(data,corp,pg,obj,qta,nomeobj,verso,stato) VALUES(?,?,?,?,?,?,2,0)',[time(),$corp,$pg,$obj,$qta,$item['shortDesc']]);
         $orderId=(int)$db->lastInsertId();
-        commercioAttivita('order-created',$pg,['id'=>$orderId,'corp'=>$corp,'pg'=>$pg,'verso'=>2,'qta'=>$qta,'prezzo'=>0,'nomeobj'=>$item['shortDesc']],'Nuovo ordine cliente',"Richiesti {$qta}× {$item['shortDesc']}. La corporazione deve prendere in carico e formulare il prezzo.",[],['stato'=>0,'qta'=>$qta,'prezzo'=>0],[],$eventKey);
+        commercioAttivita('order-created',$pg,['id'=>$orderId,'corp'=>$corp,'pg'=>$pg,'verso'=>2,'qta'=>$qta,'prezzo'=>0,'nomeobj'=>$item['shortDesc']],'Nuovo ordine cliente',"Richiesti {$qta}× {$item['shortDesc']}. La corporazione deve prendere in carico e formulare il prezzo.",['before'=>[],'after'=>['stato'=>0,'qta'=>$qta,'prezzo'=>0],'extra'=>[],'eventKey'=>$eventKey]);
         return true;
     });
 }
@@ -880,7 +879,7 @@ function finalizeOrdine(int $id, int $pg): string
         economiaVerifica($d && commercioPrezzoValido((float)$d['prezzo'],(int)$d['qta']) && economiaImpiegato((int)$d['pgcorp'],(int)$d['corp']),"L'ordine selezionato non esiste o non è a tuo carico");
         economiaVerifica($pg===(int)$d['pg'] ? (int)$d['stato']===3 : (int)$d['stato']===2,'Puoi accettare soltanto una proposta della controparte');
         $db->execute('UPDATE trasferimenti SET stato=5 WHERE id=?',[$id]);
-        commercioAttivita('order-agreed',$pg,$d,'Ordine concordato',alphano_currency_text("Concordati {$d['qta']}× {$d['nomeobj']} a {$d['prezzo']} Corone ciascuno. Pagamento alla consegna."),['stato'=>(int)$d['stato']],['stato'=>5],['totale'=>(int)$d['qta']*(int)$d['prezzo']]);
+        commercioAttivita('order-agreed',$pg,$d,'Ordine concordato',alphano_currency_text("Concordati {$d['qta']}× {$d['nomeobj']} a {$d['prezzo']} Corone ciascuno. Pagamento alla consegna."),['before'=>['stato'=>(int)$d['stato']],'after'=>['stato'=>5],'extra'=>['totale'=>(int)$d['qta']*(int)$d['prezzo']]]);
         return true;
     });
     return $ok ? 'Ordine accettato con successo' : "L'ordine selezionato non è accettabile o non è a tuo carico";
@@ -897,7 +896,7 @@ function rejectOrdine(int $id, int $pg): bool
         $employee=economiaImpiegato($pg,(int)$d['corp']) && ((int)$d['pgcorp']===$pg || (int)$d['pgcorp']===0);
         economiaVerifica($owner || $employee,'Ordine non a tuo carico');
         $db->execute('UPDATE trasferimenti SET stato=6 WHERE id=?',[$id]);
-        commercioAttivita('order-cancelled',$pg,$d,'Ordine annullato',"Annullato l’ordine di {$d['qta']}× {$d['nomeobj']} prima della consegna. Nessun addebito né consumo di materie.",['stato'=>(int)$d['stato']],['stato'=>6]);
+        commercioAttivita('order-cancelled',$pg,$d,'Ordine annullato',"Annullato l’ordine di {$d['qta']}× {$d['nomeobj']} prima della consegna. Nessun addebito né consumo di materie.",['before'=>['stato'=>(int)$d['stato']],'after'=>['stato'=>6]]);
         return true;
     });
 }
@@ -913,7 +912,7 @@ function updateOrdine(int $id, int $pg, float $prezzo, int $qta, int $stato): bo
         $owner=$pg===(int)$d['pg'];
         economiaVerifica($owner ? (int)$d['stato']===3 && $stato===2 : in_array((int)$d['stato'],[1,2],true) && $stato===3,'Attendi la risposta della controparte');
         $db->execute('UPDATE trasferimenti SET prezzo=?,qta=?,stato=? WHERE id=?',[(int)$prezzo,$qta,$stato,$id]);
-        commercioAttivita('order-proposal',$pg,$d,'Nuova proposta per l’ordine',"{$d['nomeobj']}: {$qta} pezzi a ".(int)$prezzo.alphano_currency_text(' Corone ciascuno.'),['stato'=>(int)$d['stato'],'qta'=>(int)$d['qta'],'prezzo'=>(int)$d['prezzo']],['stato'=>$stato,'qta'=>$qta,'prezzo'=>(int)$prezzo],['totale'=>$qta*(int)$prezzo]);
+        commercioAttivita('order-proposal',$pg,$d,'Nuova proposta per l’ordine',"{$d['nomeobj']}: {$qta} pezzi a ".(int)$prezzo.alphano_currency_text(' Corone ciascuno.'),['before'=>['stato'=>(int)$d['stato'],'qta'=>(int)$d['qta'],'prezzo'=>(int)$d['prezzo']],'after'=>['stato'=>$stato,'qta'=>$qta,'prezzo'=>(int)$prezzo],'extra'=>['totale'=>$qta*(int)$prezzo]]);
         return true;
     });
 }
@@ -1017,7 +1016,7 @@ function consegna(int $id, int $pg, int $corp): string
             $db->execute('UPDATE corporazioni SET budget=budget+? WHERE id=?',[$total-$commission,$corp]);
             for ($i=0;$i<$qty;$i++) {$db->execute('INSERT INTO equippg(uid,idpg) VALUES(?,?)',[$d['obj'],$d['pg']]);}
             $db->execute('UPDATE trasferimenti SET stato=7 WHERE id=?',[$id]);
-            commercioAttivita('order-delivered',$pg,$d,'Ordine consegnato e pagato',alphano_currency_text("Consegnati {$qty}× {$d['nomeobj']}. Addebitate {$total} Corone al cliente; provvigione {$commission} Corone."),['stato'=>5],['stato'=>7],['totale'=>$total,'provvigione'=>$commission,'entrata_corporazione'=>$total-$commission,'materie_consumate'=>array_map(static fn($n)=>(int)$n*$qty,GetMateriePrime($item) ?: [])]);
+            commercioAttivita('order-delivered',$pg,$d,'Ordine consegnato e pagato',alphano_currency_text("Consegnati {$qty}× {$d['nomeobj']}. Addebitate {$total} Corone al cliente; provvigione {$commission} Corone."),['before'=>['stato'=>5],'after'=>['stato'=>7],'extra'=>['totale'=>$total,'provvigione'=>$commission,'entrata_corporazione'=>$total-$commission,'materie_consumate'=>array_map(static fn($n)=>(int)$n*$qty,GetMateriePrime($item) ?: [])]]);
             return 'Consegna andata a buon fine';
         });
     } catch (DomainException $e) { return $e->getMessage(); }
@@ -1123,19 +1122,19 @@ function clearTrasferimenti(int $corp): bool
             if ((int)$trade['verso']===2) {
                 if (!$customer) {
                     $db->execute('UPDATE trasferimenti SET stato=6 WHERE id=?',[$trade['id']]);
-                    commercioAttivita('order-cancelled',0,$trade,'Ordine non più disponibile','Il cliente non è più disponibile. Nessun addebito.',['stato'=>(int)$trade['stato']],['stato'=>6]);
+                    commercioAttivita('order-cancelled',0,$trade,'Ordine non più disponibile','Il cliente non è più disponibile. Nessun addebito.',['before'=>['stato'=>(int)$trade['stato']],'after'=>['stato'=>6]]);
                 } elseif ($assigned>0 && !$validEmployee) {
                     // Preserve an agreement already accepted by the customer.
                     $state=(int)$trade['stato']===5 ? 5 : 0;
                     $price=$state===5 ? (int)$trade['prezzo'] : 0;
                     $db->execute('UPDATE trasferimenti SET pgcorp=0,stato=?,prezzo=? WHERE id=?',[$state,$price,$trade['id']]);
-                    commercioAttivita('order-unassigned',0,$trade,'Ordine da riassegnare','Il precedente responsabile non ha più il mandato. Un nuovo responsabile deve prendere in carico l’ordine.'.($state===5 ? ' Il prezzo concordato è conservato.' : ''),['stato'=>(int)$trade['stato'],'responsabile'=>$assigned,'prezzo'=>(int)$trade['prezzo']],['stato'=>$state,'responsabile'=>0,'prezzo'=>$price]);
+                    commercioAttivita('order-unassigned',0,$trade,'Ordine da riassegnare','Il precedente responsabile non ha più il mandato. Un nuovo responsabile deve prendere in carico l’ordine.'.($state===5 ? ' Il prezzo concordato è conservato.' : ''),['before'=>['stato'=>(int)$trade['stato'],'responsabile'=>$assigned,'prezzo'=>(int)$trade['prezzo']],'after'=>['stato'=>$state,'responsabile'=>0,'prezzo'=>$price]]);
                 }
             } elseif ((int)$trade['stato']<5) {
                 $item=(bool)$db->query('SELECT id FROM equippg WHERE id=? AND idpg=?',[$trade['obj'],$trade['pg']]);
                 if (!$customer || !$validEmployee || !$item) {
                     $db->execute('UPDATE trasferimenti SET stato=6 WHERE id=?',[$trade['id']]);
-                    commercioAttivita('purchase-cancelled',0,$trade,'Trattativa non più disponibile','L’oggetto o il mandato del responsabile non è più disponibile. Nessun pagamento.',['stato'=>(int)$trade['stato']],['stato'=>6]);
+                    commercioAttivita('purchase-cancelled',0,$trade,'Trattativa non più disponibile','L’oggetto o il mandato del responsabile non è più disponibile. Nessun pagamento.',['before'=>['stato'=>(int)$trade['stato']],'after'=>['stato'=>6]]);
                 }
             }
         }
@@ -1212,7 +1211,7 @@ function creaPrestitoPG(int $org, int $pg, int $denari, ?string $requestKey = nu
 }
 
 /** Le donazioni rimborsano prima i prestiti più vecchi, poi accrescono il budget. */
-function creaDonazione(int $idpg, string $nomePg, int $org, int $soldi, string $motivo = '', ?string $requestKey = null): bool
+function creaDonazione(int $idpg, int $org, int $soldi, string $motivo = '', ?string $requestKey = null): bool
 {
     if ($soldi<=0) {return false;}
     return economiaBool(static function() use($idpg,$org,$soldi,$motivo,$requestKey): bool {

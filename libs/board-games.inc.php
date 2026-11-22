@@ -3,7 +3,7 @@ declare(strict_types=1);
 require_once __DIR__.'/player-runtime.inc.php';require_once __DIR__.'/libeconomia.inc.php';require_once __DIR__.'/rpg.inc.php';require_once __DIR__.'/board-game-engine.inc.php';require_once __DIR__.'/board-game-computer.inc.php';
 require_once __DIR__.'/board-game-invitations.inc.php';
 require_once __DIR__.'/profile-art.inc.php';
-function bgReady():bool {static $r;return $r??=!!ConnectDB()->query("SHOW TABLES LIKE 'board_games'");}
+function bgReady():bool {static $r=null;return $r??=(bool)ConnectDB()->query("SHOW TABLES LIKE 'board_games'");}
 function bgNow():int{return (int)floor(microtime(true)*1000);}
 function bgSettings():array{
  $db=ConnectDB();$row=$db->query('SELECT settings_json FROM board_game_settings WHERE id=1')[0]??null;
@@ -84,7 +84,7 @@ function bgTick():int{
  $rows=$d->query("SELECT id FROM board_games WHERE (status='pending' AND created_at+IF(JSON_EXTRACT(terms_json,'$.presence_invite')=true,600,?)<=?) OR (status='active' AND (turn_at+IF(JSON_EXTRACT(state_json,'$.turn')=0,clock_white,clock_black)<=? OR (CAST(JSON_EXTRACT(terms_json,'$.per_move') AS UNSIGNED)>0 AND turn_at+CAST(JSON_EXTRACT(terms_json,'$.per_move') AS UNSIGNED)*1000<=?))) ORDER BY turn_at,id LIMIT 100",[bgSettings()['invite_seconds'],time(),$now,$now]);
  foreach($rows as $r){ economiaAtomicaResiliente(function()use($r,&$count){$m=ConnectDB()->query('SELECT * FROM board_games WHERE id=? FOR UPDATE',[$r['id']])[0];$before=$m['status'];bgExpire($m);$count+=(int)($m['status']!==$before);}); }return $count;
 }
-function bgCanWatch(array $m,int $uid):bool{if(in_array($uid,[(int)$m['a'],(int)$m['b']],true)){ return true; }return !!ConnectDB()->query('SELECT source_id FROM board_game_interactions WHERE chat_key=? AND actor_id=? AND target_id IN (?,?) AND created_at>=? LIMIT 1',[$m['chat_key'],$uid,$m['a'],$m['b'],max((int)$m['created_at']-bgSettings()['spectator_hours']*3600,0)]);}
+function bgCanWatch(array $m,int $uid):bool{if(in_array($uid,[(int)$m['a'],(int)$m['b']],true)){ return true; }return (bool)ConnectDB()->query('SELECT source_id FROM board_game_interactions WHERE chat_key=? AND actor_id=? AND target_id IN (?,?) AND created_at>=? LIMIT 1',[$m['chat_key'],$uid,$m['a'],$m['b'],max((int)$m['created_at']-bgSettings()['spectator_hours']*3600,0)]);}
 function bgNarrative(string $chat,int $actor,int $dest,string $raw,int $source):void{
  if(!bgReady()||$dest||preg_match('/^(?:\/\/|[$#&])/u',ltrim($raw))||mb_strlen(trim(strip_tags($raw)))<20){ return; }
  foreach(ConnectDB()->query('SELECT id,nome FROM utenti WHERE chat=? AND id<>? AND bloccato=0',[$chat,$actor]) as $p){ if(preg_match('/(?<![\pL\pN])'.preg_quote($p['nome'],'/').'(?![\pL\pN])/iu',$raw)){ ConnectDB()->execute('INSERT IGNORE INTO board_game_interactions VALUES(?,?,?,?,?)',[$chat,$actor,$p['id'],$source,time()]); } }

@@ -86,7 +86,8 @@ function aiAppendMemory(string $chat, int $npc, string $text): void {
     aiDb()->execute('INSERT INTO aiMemory(chat_key,npc_id,summary,updated_at) VALUES(?,?,?,?) ON DUPLICATE KEY UPDATE summary=VALUES(summary),updated_at=VALUES(updated_at)',[$chat,$npc,$chronicle,time()]);
 }
 /** Sotto lock della stanza: idempotenza durevole, limiti globali e un solo turno pendente per luogo. */
-function aiEnqueueLocked(array $room, array $npc, int $user, string $key, string $prompt, string $kind, int $source=0, array $companions=[]): array {
+function aiEnqueueLocked(array $room, array $npc, int $user, string $key, string $prompt, string $kind, array $options=[]): array {
+ $source=(int)($options['source']??0); $companions=$options['companions']??[];
  if(!alphano_config('ai_enabled')){ throw new DomainException('Supporto IA disabilitato.',503); }
     $db=aiDb();
     $old=$db->query('SELECT id,status FROM ai_jobs WHERE request_key=?',[$key])[0]??null;
@@ -111,7 +112,8 @@ function aiEnqueueLocked(array $room, array $npc, int $user, string $key, string
     return $job;
 }
 /** Hook dopo l'invio: nessun errore IA deve trasformare un messaggio già salvato in un invio fallito. */
-function aiAfterMessage(string $chat, int $source, int $user, string $html, string $raw, int $dest, string $lican, bool $requested=false, int $npcId=0, int $abilityId=0, bool $autoAddress=false): array {
+function aiAfterMessage(string $chat, int $source, int $user, string $html, string $raw, int $dest, string $lican, array $options=[]): array {
+ $requested=(bool)($options['requested']??false); $npcId=(int)($options['npcId']??0); $abilityId=(int)($options['abilityId']??0); $autoAddress=(bool)($options['autoAddress']??false);
  if(!alphano_config('ai_enabled')){ return []; }
     $db=aiDb();$owned=!$db->inTransaction();
     if($dest===0&&!str_starts_with($chat,'rent_')&&preg_match('/^[#%]/',ltrim($raw))){
@@ -172,7 +174,7 @@ function aiAfterMessage(string $chat, int $source, int $user, string $html, stri
         $participants=ai_dialogue_participants($npcs,$selected,$text);
         foreach($participants as $participant){ ai_game_allowed($chat,(int)$participant['id']); }
         if(count($participants)===1){ aiNpcObserve($room,$source,$user,$raw,$npcId); }
-        $job=aiEnqueueLocked($room,$selected,$user,'message:'.$chat.':'.$source,$text,'play',$source,array_slice($participants,1));
+        $job=aiEnqueueLocked($room,$selected,$user,'message:'.$chat.':'.$source,$text,'play',['source'=>$source,'companions'=>array_slice($participants,1)]);
         if($owned){ $db->commit(); }return ['ai_job'=>[...$job,'name'=>$selected['name'],'npc_id'=>(int)$selected['id']]];
     } catch (Throwable $e) {
         // Selected skills share the caller's transaction, including chat, cooldown and turn.
@@ -208,7 +210,8 @@ function aiLanguagePrompt(array $npc,array $job):string {
     $id=(int)($job['user_id']??0);$speaker=$id>0?aiDb()->query('SELECT razza,vampire_human_form,infetto,ancestrale FROM utenti WHERE id=?',[$id])[0]??[]:[];
     if($speaker){ $out.=alphano_loses_human_language($speaker)
         ?"\nLINGUAGGIO DELL’INTERLOCUTORE VERIFICATO: la sua forma produce versi incomprensibili, senza parole umane. Reagisci ai gesti osservabili; non attribuire significato verbale ai versi."
-        :"\nLINGUAGGIO DELL’INTERLOCUTORE VERIFICATO: questa forma conserva il parlato umano. Le parole pronunciate nel turno sono udibili; non negarne la comprensione per il solo aspetto fisico. Questo non rivela alcuna sottostirpe."; }
+        :"\nLINGUAGGIO DELL’INTERLOCUTORE VERIFICATO: questa forma conserva il parlato umano. Le parole pronunciate nel turno sono udibili; non negarne la comprensione per il solo aspetto fisico. Questo non rivela alcuna sottostirpe.";
+    }
     return $out;
 }
 function aiLanguageOutputGuard(array $npc,string $text):string {

@@ -193,7 +193,7 @@ function alphano_group_statute_proposal(string $scope, int $group, int $actor, s
         if(!alphano_operation_once($prefix.'-statute-proposal',$actor,$requestKey,[$group,$statute])){ return true; }
         $before=$db->query("SELECT nome,newstatuto,newidmaster,idmaster FROM {$scope} WHERE id=? AND approvato=1 FOR UPDATE",[$group])[0] ?? null;
         economiaVerifica((bool)$before,'Gruppo non valido');
-        $ok=$scope==='organizzazioni'?salvaStatutoOrg($group,$actor,$statute):salvaStatutoCorp($group,$actor,$statute);
+        $ok=$scope==='organizzazioni'?salvaStatutoOrg($group,$statute):salvaStatutoCorp($group,$statute);
         economiaVerifica($ok,'Impossibile proporre lo statuto');
         if ((string)$before['newstatuto']!==$statute || (int)$before['newidmaster']!==(int)$before['idmaster']) {
             alphano_record_activity($prefix.'-statute-proposed',$actor,[['scope'=>$scope,'id'=>$group,'section'=>'statuto','role'=>'admin']],

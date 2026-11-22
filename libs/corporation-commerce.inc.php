@@ -34,7 +34,7 @@ function alphano_offer_material(int $seller,int $instance,int $corp,int $buyer,i
   if($db->query('SELECT id FROM trasferimenti WHERE pg=? AND pgcorp=? AND corp=? AND obj=? AND verso=1 AND stato<5',[$seller,$buyer,$corp,$instance])){ throw new DomainException('Hai già una proposta aperta per questo materiale e responsabile.',409); }
   $db->execute('INSERT INTO trasferimenti(data,corp,pgcorp,pg,obj,nomeobj,qta,prezzo,verso,stato) VALUES(?,?,?,?,?,?,?,?,1,3)',[time(),$corp,$buyer,$seller,$instance,$r['shortDesc'],$qty,$total]);
   $trade=['id'=>(int)$db->lastInsertId(),'corp'=>$corp,'pg'=>$seller,'pgcorp'=>$buyer,'obj'=>$instance,'nomeobj'=>$r['shortDesc'],'qta'=>$qty,'prezzo'=>$total,'verso'=>1];
-  commercioAttivita('purchase-proposal',$seller,$trade,'Materie prime offerte alla corporazione',alphano_currency_text("Offerti {$qty}× {$r['shortDesc']} per {$total} Corone totali. Beni e denaro cambieranno proprietario soltanto all’accettazione."),[],['stato'=>3,'qta'=>$qty,'prezzo'=>$total],['iniziativa'=>'venditore']);
+  commercioAttivita('purchase-proposal',$seller,$trade,'Materie prime offerte alla corporazione',alphano_currency_text("Offerti {$qty}× {$r['shortDesc']} per {$total} Corone totali. Beni e denaro cambieranno proprietario soltanto all’accettazione."),['before'=>[],'after'=>['stato'=>3,'qta'=>$qty,'prezzo'=>$total],'extra'=>['iniziativa'=>'venditore']]);
   return true;
  });
 }

@@ -19,7 +19,7 @@ function alphano_race_lore(array $race):array {
 
 function alphano_race_view(?int $id,string $sex='Maschio'):array {
  $catalog=rpg_catalog();$races=$catalog['races'];$selected=null;$counts=alphano_race_member_counts();$members=$id===null?[]:alphano_race_members($id,0,20);
- foreach($races as &$race){$race['banner']=alphano_profile_default_banner((int)$race['id'],$sex);$race['icon']=alphano_race_icon((int)$race['id'],$sex);$race['members']=$members[$race['id']]??[];$race['members_count']=(int)($counts[$race['id']]??0);$race['counts']=['innate'=>0,'special'=>0,'purchasable'=>0];foreach($catalog['abilities'] as $a){ if($a['enabled']&&rpg_ability_race_allowed($a,(int)$race['id'])){ $race['counts'][$a['category']]++; } }if($id===$race['id']){ $selected=$race; }}unset($race);
+ foreach($races as &$race){$race['banner']=alphano_profile_default_banner((int)$race['id'],$sex);$race['icon']=alphanoRaceIcon();$race['members']=$members[$race['id']]??[];$race['members_count']=(int)($counts[$race['id']]??0);$race['counts']=['innate'=>0,'special'=>0,'purchasable'=>0];foreach($catalog['abilities'] as $a){ if($a['enabled']&&rpg_ability_race_allowed($a,(int)$race['id'])){ $race['counts'][$a['category']]++; } }if($id===$race['id']){ $selected=$race; }}unset($race);
  if($id!==null&&!$selected){ throw new DomainException('Razza non trovata.',404); }
  $groups=['innate'=>[],'purchasable'=>[]];$abilityNames=array_column($catalog['abilities'],'name','id');$statNames=array_column($catalog['stats'],'name','key');
  if($selected){ foreach($catalog['abilities'] as $a){ if($a['enabled']&&rpg_ability_race_allowed($a,(int)$selected['id'])){

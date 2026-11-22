@@ -23,7 +23,7 @@ function alphano_group_hierarchy(string $kind, int $id, array $viewer): array
     $members = [];
     foreach ($db->query('SELECT id,nome,razza,vampire_human_form,sesso,avatar,avatar2,' . $type['role'] . ' AS office FROM utenti WHERE ' . $field . '=? ORDER BY nome,id', [$id]) as $member) { $members[(int)$member['office']][] = alphano_hierarchy_member($member); }
     foreach ($roles as &$role) {
-        $role['badge'] = alphano_badge_url($kind, (int)$role['id'], $id);
+        $role['badge'] = alphanoBadgeUrl($kind, (int)$role['id'], $id);
         $role['badge_small']=alphano_hierarchy_small_badge($role['badge']);
         $role['description_html'] = ProcessText((string)$role['descrizione']);
         $role['members'] = $members[(int)$role['id']] ?? [];

@@ -242,7 +242,7 @@ function aiPerceptionQuestFallbackCompose(array $npc,array $profile,array $state
         'il passaggio'=>'la scena ancora tesa','conserva la distanza raggiunta nello spavento'=>'cerca di tenere distanza dal pericolo',
     ]);
     if(($profile['sex']??'')==='Femmina'){ $safe=strtr($safe,['pronto ad ascoltare'=>'pronta ad ascoltare','è ancora trattenuto dalla presa'=>'è ancora trattenuta dalla presa']); }
-    if(!empty($state['own_held'])){ $continuation=preg_replace('/; cerca di tenere distanza dal pericolo\./u','; cerca di proteggersi senza dichiararsi '.(($profile['sex']??'')==='Femmina'?'libera':'libero').'.',$continuation)??$continuation; }
+    if(!empty($state['own_held'])){ $continuation=str_replace('; cerca di tenere distanza dal pericolo.','; cerca di proteggersi senza dichiararsi '.(($profile['sex']??'')==='Femmina'?'libera':'libero').'.',$continuation)??$continuation; }
     return ['text'=>$safe.' '.$continuation,'variant'=>'continuity-fallback-v1:'.$styled['variant']];
 }
 function aiPerceptionQuestFallback(array $npc,array $job,string $safe):string {
@@ -400,7 +400,7 @@ function aiPerceptionFearEvidence(array $npc,string $text):bool {
             if(array_diff(array_map('mb_strtolower',$actors[1]),[...array_map('mb_strtolower',$ownNames),...$implicit])){$ownsSubject=false;continue;}
         }
         if(preg_match('/\b(?:osserva|guarda|nota|vede|scruta|ascolta)\b/iu',$clause)
-            &&!preg_match('/\b(?:propri[eo]|propria|proprio)\b/iu',$clause)){
+            &&!preg_match('/\b(?:propri[eo]|propria)\b/iu',$clause)){
             if(preg_match('/trem|singhiozz|respiro|fiato|paura|terrore|balbett/iu',$clause)){ $ownsSubject=false; }
             continue;
         }
@@ -429,7 +429,7 @@ function aiPerceptionValidateText(array $npc,array $job,string $text):string {
     $fearEvidence=aiPerceptionFearEvidence($npc,$text);
     if($r['shock']&&!$fearEvidence){ throw new RuntimeException('Manca la reazione di paura alla rivelazione soprannaturale vista da un umano: rigenera il turno a partire dallo spavento, poi rispondi.'); }
     if($r['shock']&&preg_match('/(?:senza\s+(?:alcun\p{L}*\s+)?(?:paura|timore|turbamento)|senza\s+(?:farsi|esser\p{L}*)\s+turb\p{L}*|rimane\s+impassibile|(?:osserva|accoglie|guarda)\s+[^.!?]{0,65}(?:cambiamento|trasformazione|metamorfosi)[^.!?]{0,40}\bcon\s+calma)/iu',$text)){ throw new RuntimeException('La reazione nega una metamorfosi realmente vista: rigenera una reazione umana coerente con la paura.'); }
-    if($r['shock']&&($r['mode']??'')==='flee'&&!preg_match('/fugg|fug[ga]|scapp|ripar|nascond|arretr|indietregg|retroced|si allontan|via da|passo indietro|verso[^.!?]{0,30}(?:uscita|porta|bosco|sentiero)/iu',$text)){ throw new RuntimeException('Il profilo impone il tentativo di fuga o riparo: rigenera la reazione senza proseguire una normale conversazione.'); }
+    if($r['shock']&&($r['mode']??'')==='flee'&&!preg_match('/fug[ga]|scapp|ripar|nascond|arretr|indietregg|retroced|si allontan|via da|passo indietro|verso[^.!?]{0,30}(?:uscita|porta|bosco|sentiero)/iu',$text)){ throw new RuntimeException('Il profilo impone il tentativo di fuga o riparo: rigenera la reazione senza proseguire una normale conversazione.'); }
     if($r['shock']&&($r['mode']??'')==='freeze'&&!preg_match('/pietrific|immobil|paralizz|blocc|inchiod|trem|balbett|(?:parol|voce|fiato|respiro)[^.!?]{0,40}(?:mozz|spezz|manc|non|incap|ferm)|sgran|gel(?:a|o|ò|id)|sbianc/iu',$text)){ throw new RuntimeException('Il profilo impone terrore paralizzante: rigenera un gesto corporeo credibile prima di qualsiasi battuta.'); }
     $posture=$r['aftermath'];
     if(!$r['shock']&&!empty($posture['active'])){
@@ -441,11 +441,10 @@ function aiPerceptionValidateText(array $npc,array $job,string $text):string {
         $outside=aiNarrativeParse($text,['channel'=>'action'])['action'];
         if(preg_match('/\b(?:sorride\s+serenamente|riprende\s+a\s+(?:suonare|servire|lavorare)|torna\s+(?:serenamente|tranquillamente)\s+al\s+lavoro)\b/iu',$outside)
             ||preg_match('/(?:come\s+posso\s+(?:esser(?:le|vi|ti)\s+d[’\x{27}]aiuto|aiutar(?:la|vi|ti))\s*[?!.»]|(?:mi|ci)\s+dica[^»]{0,35}cosa\s+desidera|può\s+dirmi\s+cosa\s+desidera)/iu',$text)){ throw new RuntimeException('Il pericolo è ancora presente nella scena: sostituisci l’accoglienza ordinaria con distanza, riparo, difesa o una replica concreta alla violenza.'); }
-        if(!$fearEvidence&&!preg_match('/distanza|ripar|lontan|arretr|indietregg|retroced|nascond|copert|difes|proteg|trem|paur|terr(?:or|it)|pietrific|trasform|metamorf|lupin|licantrop|vampir|artig|canin|mors|sangu|attacc|colp|ferm|pericol|minacc|ripieg|soccor|fugg|fug[ga]|parar/iu',$text)){ throw new RuntimeException('La replica ignora il pericolo ancora osservabile: mostra almeno una reazione pertinente, come distanza, protezione, cautela concreta o parole riferite all’aggressione e alla forma visibile.'); }
-        if(($r['scene_state']['fear_intensity']??0)>=60){
-            if(preg_match('/(?:espressione|sguardo|postura)\s+(?:rimane\s+|resta\s+)?neutr[ao]|voce\s+calma|senza\s+(?:alcun\p{L}*\s+)?(?:paura|timore|turbamento)/iu',$text)
-                ||!$fearEvidence){ throw new RuntimeException('La paura personale è ancora intensa: niente calma o neutralità; mostra una reazione corporea credibile o una voce spezzata mentre cerchi distanza o riparo.'); }
-        }
+        if(!$fearEvidence&&!preg_match('/distanza|ripar|lontan|arretr|indietregg|retroced|nascond|copert|difes|proteg|trem|paur|terr(?:or|it)|pietrific|trasform|metamorf|lupin|licantrop|vampir|artig|canin|mors|sangu|attacc|colp|ferm|pericol|minacc|ripieg|soccor|fug[ga]|parar/iu',$text)){ throw new RuntimeException('La replica ignora il pericolo ancora osservabile: mostra almeno una reazione pertinente, come distanza, protezione, cautela concreta o parole riferite all’aggressione e alla forma visibile.'); }
+        if(($r['scene_state']['fear_intensity']??0)>=60
+            && (preg_match('/(?:espressione|sguardo|postura)\s+(?:rimane\s+|resta\s+)?neutr[ao]|voce\s+calma|senza\s+(?:alcun\p{L}*\s+)?(?:paura|timore|turbamento)/iu',$text)
+                ||!$fearEvidence)){ throw new RuntimeException('La paura personale è ancora intensa: niente calma o neutralità; mostra una reazione corporea credibile o una voce spezzata mentre cerchi distanza o riparo.'); }
         if($r['scene_state']['attempts']&&empty($r['scene_state']['confirmed_hold'])){ foreach(preg_split('/[.!?;]+/u',$outside)?:[] as $clause){
             if(preg_match('/\b(?:presa\s+(?:ferrea|salda|stretta)|(?:avversario|uomo|donna|visitatore|visitatrice)\s+(?:è\s+|resta\s+|rimane\s+)?(?:trattenut[oa]|immobilizzat[oa]))\b/iu',$clause)
                 &&!preg_match('/\b(?:tent\p{L}*|cerca|prov\p{L}*|evitare|impedire|prima\s+che|eventuale|possibile)\b/iu',$clause)){ throw new RuntimeException('Il PNG tratta una presa dichiarata dal PG come già riuscita: nessuna presa è stata accertata dal backend; descrivi soltanto il tentativo e la tua reazione.'); }

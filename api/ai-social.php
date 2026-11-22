@@ -98,7 +98,7 @@ try{
         $key='reversal:'.$original['id'];$receipt=$db->query('SELECT * FROM ai_npc_transactions WHERE request_key=?',[$key])[0]??null;
         if(!$receipt){
             $reason=aiField($in,'reason',500,true);$target=(int)$original['player_id'];$amount=(int)$original['amount'];
-            $receipt=aiMoneyTransfer($nid,$target,(int)$original['player_delta']>0?'reversal_to_npc':'reversal_to_player',$amount,'Storno #'.$original['id'].': '.$reason,$key,$uid);
+            $receipt=aiMoneyTransfer($nid,$target,(int)$original['player_delta']>0?'reversal_to_npc':'reversal_to_player',$amount,'Storno #'.$original['id'].': '.$reason,$key,['actor'=>$uid]);
             $debt=$db->query('SELECT * FROM ai_npc_debts WHERE npc_id=? AND player_id=? FOR UPDATE',[$nid,$target])[0];
             $po=(int)$debt['player_owes'];$no=(int)$debt['npc_owes'];
             if($original['kind']==='loan_to_player'){ $po-=$amount; }
@@ -111,12 +111,12 @@ try{
     }elseif(in_array($action,['admin_fund','admin_withdraw','admin_theft'],true)){
         $player=$action==='admin_theft'?aiInteger($in,'player_id',1,PHP_INT_MAX):$uid;
         $nonce=aiField($in,'request_id',80,true);if(!preg_match('/^[a-zA-Z0-9-]{16,80}$/D',$nonce)){ throw new DomainException('Identificativo non valido.',422); }
-        $receipt=aiMoneyTransfer($nid,$player,['admin_fund'=>'fund','admin_withdraw'=>'withdraw','admin_theft'=>'theft_resolved'][$action],aiInteger($in,'amount',1,1000000000),aiField($in,'reason',500,true),'admin:'.$uid.':'.$nonce,$uid);
+        $receipt=aiMoneyTransfer($nid,$player,['admin_fund'=>'fund','admin_withdraw'=>'withdraw','admin_theft'=>'theft_resolved'][$action],aiInteger($in,'amount',1,1000000000),aiField($in,'reason',500,true),'admin:'.$uid.':'.$nonce,['actor'=>$uid]);
     }elseif($action==='gift'){
         $rules=aiSocialRules($nid);if(!$rules['accept_gifts']){ throw new DomainException('Il PNG non accetta doni.',422); }
         if(($viewer['chat']??'')!==$npc['chat_key']){ throw new DomainException('Raggiungi il PNG nella sua chat.',403); }
         $nonce=aiField($in,'request_id',80,true);if(!preg_match('/^[a-zA-Z0-9-]{16,80}$/D',$nonce)){ throw new DomainException('Identificativo non valido.',422); }
-        $receipt=aiMoneyTransfer($nid,$uid,'gift_to_npc',aiInteger($in,'amount',1,1000000),'Dono volontario del personaggio','gift:'.$uid.':'.$nonce,$uid);
+        $receipt=aiMoneyTransfer($nid,$uid,'gift_to_npc',aiInteger($in,'amount',1,1000000),'Dono volontario del personaggio','gift:'.$uid.':'.$nonce,['actor'=>$uid]);
     }elseif(in_array($action,['accept_offer','reject_offer'],true)){
         $offer=$db->query('SELECT * FROM ai_npc_offers WHERE id=? AND npc_id=? AND player_id=? FOR UPDATE',[aiInteger($in,'offer_id',1,PHP_INT_MAX),$nid,$uid])[0]??null;
         if(!$offer){ throw new DomainException('Proposta non disponibile.',404); }
@@ -125,7 +125,7 @@ try{
             if($offer['status']!=='pending'||(int)$offer['expires_at']<time()){ throw new DomainException('Proposta scaduta o già gestita.',409); }
             if($action==='accept_offer'){
                 if(($viewer['chat']??'')!==$npc['chat_key']){ throw new DomainException('Raggiungi il PNG nella sua chat.',403); }
-                $receipt=aiMoneyTransfer($nid,$uid,$offer['kind'],(int)$offer['amount'],$offer['reason'],'offer:'.$offer['id'],$uid,(int)$offer['id']);
+                $receipt=aiMoneyTransfer($nid,$uid,$offer['kind'],(int)$offer['amount'],$offer['reason'],'offer:'.$offer['id'],['actor'=>$uid,'offerId'=>(int)$offer['id']]);
             }
             $db->execute('UPDATE ai_npc_offers SET status=? WHERE id=?',[$action==='accept_offer'?'accepted':'rejected',(int)$offer['id']]);
         }

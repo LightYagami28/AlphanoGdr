@@ -242,7 +242,6 @@ function approvaModifOrg(int $org): bool
           WHERE id = ?',
         [$org]
     )[0];
-    $newStat   = $row['newstatuto'];
     $newMaster = (int)($row['newidmaster'] ?: $row['idmaster']);
     $nome      = $row['nome'];
     // Motivazioni
@@ -343,10 +342,10 @@ function votaOrg(int $org, int $idpg, bool $positivo, string $motivo): bool
         return false;
     }
     $voto = $positivo ? 'vpos' : 'vneg';
-    return ($db->execute(
+    return $db->execute(
         'INSERT INTO accademia (idpg, org, voto, motivo) VALUES (?, ?, ?, ?)',
         [$idpg, $org, $voto, $motivo]
-    ) >= 0);
+    ) >= 0;
     });
 }
 
@@ -358,7 +357,7 @@ function getStatutoOrg(int $org, bool $new = false): string
 }
 
 /** Salva bozza di statuto per un’organizzazione. */
-function salvaStatutoOrg(int $org, int $master, string $statuto): bool
+function salvaStatutoOrg(int $org, string $statuto): bool
 {
     if (trim($statuto)==='') { return false; }
     return accademiaAtomica(static function() use($org,$statuto): bool {
@@ -599,7 +598,6 @@ function approvaModifCorp(int $corp): bool
           WHERE id = ?',
         [$corp]
     )[0];
-    $newStat   = $row['newstatuto'];
     $newMaster = (int)($row['newidmaster'] ?: $row['idmaster']);
     $nome      = $row['nome'];
     $notes     = '';
@@ -696,10 +694,10 @@ function votaCorp(int $corp, int $idpg, bool $positivo, string $motivo): bool
         return false;
     }
     $voto = $positivo ? 'vpos' : 'vneg';
-    return ($db->execute(
+    return $db->execute(
         'INSERT INTO accademia (idpg, corp, voto, motivo) VALUES (?, ?, ?, ?)',
         [$idpg, $corp, $voto, $motivo]
-    ) >= 0);
+    ) >= 0;
     });
 }
 
@@ -711,7 +709,7 @@ function getStatutoCorp(int $corp, bool $new = false): string
 }
 
 /** Salva bozza di statuto per una corporazione. */
-function salvaStatutoCorp(int $corp, int $master, string $statuto): bool
+function salvaStatutoCorp(int $corp, string $statuto): bool
 {
     if (trim($statuto)==='') { return false; }
     return accademiaAtomica(static function() use($corp,$statuto): bool {
@@ -792,10 +790,10 @@ function votaObj(int $obj, int $idpg, bool $positivo, string $motivo): bool
         return false;
     }
     $voto = $positivo ? 'vpos' : 'vneg';
-    return ($db->execute(
+    return $db->execute(
         'INSERT INTO accademia (idpg, obj, voto, motivo) VALUES (?, ?, ?, ?)',
         [$idpg, $obj, $voto, $motivo]
-    ) >= 0);
+    ) >= 0;
     });
 }
 
@@ -1087,10 +1085,10 @@ function votaGiocata(int $giocata, int $idpg, bool $positivo, string $motivo): b
         return false;
     }
     $voto = $positivo ? 'vpos' : 'vneg';
-    return ($db->execute(
+    return $db->execute(
         'INSERT INTO accademia (idpg, giocata, voto, motivo) VALUES (?, ?, ?, ?)',
         [$idpg, $giocata, $voto, $motivo]
-    ) >= 0);
+    ) >= 0;
     });
 }
 
@@ -1142,7 +1140,8 @@ function approvaGiocata(int $giocata): bool
     $oggetto = "Approvazione giocata $nomeG";
     $ok = $ok && (bool)InviaMissiva($oggetto, "La Giocata è stata approvata.\nVotazioni:$notes", $idpg);
     if ($ok) { accademiaAnnunciaEsito($oggetto,
-        "La giocata proposta da " . GetPGFromID($idpg) . " è stata approvata.\nVotazioni:$notes"); }
+        "La giocata proposta da " . GetPGFromID($idpg) . " è stata approvata.\nVotazioni:$notes");
+    }
 
     return $ok;
     });
@@ -1183,10 +1182,10 @@ function cancellaGiocata(int $giocata): bool
         $idpg
     );
     if ($ok) { accademiaAnnunciaEsito($oggetto,
-        "La giocata proposta da " . GetPGFromID($idpg) . " è stata invalidata.\nVotazioni:$notes"); }
+        "La giocata proposta da " . GetPGFromID($idpg) . " è stata invalidata.\nVotazioni:$notes");
+    }
 
     return $ok;
     });
 }
 
-?>

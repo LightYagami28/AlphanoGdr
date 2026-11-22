@@ -145,7 +145,7 @@ try {
     if($workPrepared){$result['work']=alphano_work_complete($idpg,$chat,$requestId,$messageId,$workPrepared);}
     else { try {
         require_once __DIR__.'/../libs/ai.inc.php';
-        $result += aiAfterMessage($chat,$messageId,$idpg,$parsed['html'],$text,(int)$parsed['dest'],$parsed['lican'],!empty($input['ai_request']),max(0,(int)($input['ai_npc_id']??0)),$abilityId,$autoAddress);
+        $result += aiAfterMessage($chat,$messageId,$idpg,$parsed['html'],$text,(int)$parsed['dest'],$parsed['lican'],['requested'=>!empty($input['ai_request']),'npcId'=>max(0,(int)($input['ai_npc_id']??0)),'abilityId'=>$abilityId,'autoAddress'=>$autoAddress]);
     }
     catch (Throwable $aiError) { if($atomicChat){ throw $aiError; }
     error_log('[Master IA hook] '.$aiError->getMessage()); }

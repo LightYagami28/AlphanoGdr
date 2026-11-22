@@ -86,7 +86,7 @@ try {
         $import = economiaIntero($_POST['soldi'] ?? null,1,2147483647) ?? 0;
         $motivo = (string)($_POST['motivo'] ?? '');
         if ($dest > 0 && $dest !== $idpg && $import > 0) {
-            $ok = trasferisciSoldi($idpg,$pgname,$saldo,$dest,$import,$motivo,$_POST['_request_key'] ?? null);
+            $ok = trasferisciSoldi($idpg,$dest,$import,$motivo,$_POST['_request_key'] ?? null);
             respond(['success'=>$ok,
                      'message'=> $ok ? 'Trasferimento completato con successo'
                                      : 'Errore durante il trasferimento']);
@@ -101,7 +101,7 @@ try {
         $import = economiaIntero($_POST['soldi'] ?? null,1,2147483647) ?? 0;
         $motivo = (string)($_POST['motivo'] ?? '');
         if ($org > 0 && $import > 0) {
-            $ok = creaDonazione($idpg,$pgname,$org,$import,$motivo,$_POST['_request_key'] ?? null);
+            $ok = creaDonazione($idpg,$org,$import,$motivo,$_POST['_request_key'] ?? null);
             respond(['success'=>$ok,
                      'message'=> $ok ? 'Donazione andata a buon fine'
                                      : 'Errore durante la donazione']);

@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
     sceneFrame.addEventListener('load',sceneChanged);
     mapBox.appendChild(sceneFrame);
   }
-  function sceneChanged() { loadPresenti(); loadStatus(); }
+  function sceneChanged() { void loadPresenti(); void loadStatus(); }
   function openScene(url) {
     const target=new URL(url,location.origin);
     // Reuse the living scene when consulting a handbook/profile over the chat.
@@ -92,7 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   function openModal(url, w, h, title = '') {
     if (!mapBox) {return;}
-    if(/^\/chat\/index\.php\?/.test(url) && new URL(url,location.origin).searchParams.get('chat')) { openScene(url); return; }
+    if(url.startsWith('/chat/index.php?') && new URL(url,location.origin).searchParams.get('chat')) { openScene(url); return; }
     closeSidebar();
     if (sceneFrame) {sceneFrame.hidden = true;}
     workspace?.remove();
@@ -116,15 +116,19 @@ document.addEventListener('DOMContentLoaded', () => {
         window.history?.replaceState(null,'','/main.php?view='+encodeURIComponent(frame.contentWindow.location.pathname+frame.contentWindow.location.search));
         window.alphanoSceneFocus(true);sceneChanged();window.alphanoMobile?.close();return;
       }
-      loadPresenti();
-      loadNews();
-      loadProfile();
+      void loadPresenti();
+      void loadNews();
+      void loadProfile();
       window.alphanoNotifications?.refresh();
       try {
         const visualMap=!!frame.contentDocument?.body.classList.contains('world-visual');
         pane.classList.toggle('is-visual-map',visualMap);
         const heading = pane.querySelector('h1');
-        if (heading && frame.contentDocument?.title) {heading.textContent = frame.contentDocument.querySelector('.ui-page-heading h1')?.textContent || frame.contentDocument.title.replace(/\s+[—–]\s+.*Alphano.*$/i, '');}
+        if (heading && frame.contentDocument?.title) {
+          const fullTitle=frame.contentDocument.title,separator=/\s+-\s+/.exec(fullTitle);
+          const cleanTitle=separator&&fullTitle.slice(separator.index).toLowerCase().includes('alphano')?fullTitle.slice(0,separator.index):fullTitle;
+          heading.textContent = frame.contentDocument.querySelector('.ui-page-heading h1')?.textContent || cleanTitle;
+        }
         const innerHeading=frame.contentDocument?.querySelector('.ui-page-heading,[data-page-heading]');
         pane.classList.toggle('has-inner-heading',!!innerHeading);
         if(!visualMap&&innerHeading&&!innerHeading.matches('.scene-toolbar,.rpg-hero')&&!innerHeading.querySelector('[data-return-location]')){
@@ -224,7 +228,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const direct=items.length===1;
         const btn = document.createElement(direct?'a':'button');
         btn.className = 'tab-btn'+(direct?' nav-direct':'');
-        if(direct){btn.setAttribute('data-character-markers','off');btn.href=items[0].url;btn.dataset.url=items[0].url;btn.dataset.title=items[0].label;btn.addEventListener('click',event=>{if(event.ctrlKey||event.metaKey||event.shiftKey||event.altKey){return;}if(items[0].url==='/logout.php'){btn.target='_top';return;}event.preventDefault();closeNavigation();openModal(items[0].url,items[0].w,items[0].h,items[0].label);});}
+        if(direct){btn.dataset.characterMarkers='off';btn.href=items[0].url;btn.dataset.url=items[0].url;btn.dataset.title=items[0].label;btn.addEventListener('click',event=>{if(event.ctrlKey||event.metaKey||event.shiftKey||event.altKey){return;}if(items[0].url==='/logout.php'){btn.target='_top';return;}event.preventDefault();closeNavigation();openModal(items[0].url,items[0].w,items[0].h,items[0].label);});}
         else{btn.type='button';btn.setAttribute('aria-haspopup','true');btn.setAttribute('aria-expanded','false');}
         const label=document.createElement('span');label.className='menu-text';const menuName=document.createElement('span');menuName.className='menu-label';menuName.textContent=title;label.append(menuName);btn.title=title;btn.append(label);
         const navIcons = {Menu:'compass',Master:'book','Comunità':'users',Amministrazione:'settings',Strumenti:'scroll'};
@@ -269,7 +273,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if(!mobileViewport.matches&&list.showPopover){list.setAttribute('popover','manual');list.showPopover();}
             btn.classList.add('active');
             btn.setAttribute('aria-expanded','true');
-            if(key==='gioco'){loadStatus();}
+            if(key==='gioco'){void loadStatus();}
           }
         });
 
@@ -301,11 +305,13 @@ document.addEventListener('DOMContentLoaded', () => {
       renderRecentScene(s.recentScene);
 
       /* ---------- 2) Meteo + messaggio Luna  ------------------- */
-      Promise.resolve(window.alphanoPrivacy?.firstLogin()).then(()=>presentWelcome(s.welcome,s.csrfToken)).then(()=>presentCivicInvitation(s.civicInvitation,s.csrfToken));
+      void Promise.resolve(window.alphanoPrivacy?.firstLogin()).then(()=>presentWelcome(s.welcome,s.csrfToken)).then(()=>presentCivicInvitation(s.civicInvitation,s.csrfToken)).catch(err=>console.error(err));
       if (weatherW) {
         const icons=s.weatherIcons||{};
         const fallback={cielo:{src:'/assets/weather-cloud.svg',label:s.descrCielo},tempo:{src:'/assets/weather-cloud.svg',label:s.descrTempo},vento:{src:'/assets/weather-cloud.svg',label:s.descrVento},luna:{src:'/assets/weather-moon.svg',label:s.lunaPhase}};
-        weatherW.innerHTML=`${s.worldCalendar?`<p class="world-calendar" title="${esc(s.worldCalendar.moon_convention)}"><span data-icon="scroll" aria-hidden="true"></span> ${esc(s.worldCalendar.label)} · ON</p>`:''}<div class="weather-icons">${['cielo','tempo','vento','luna'].map(key=>{const asset=icons[key]||fallback[key];return `<figure class="wi" data-tooltip="${esc(asset.description||asset.label)}"><img src="${esc(asset.src)}" alt="${esc(asset.label)}" title="${esc(asset.description||asset.label)}" width="80" height="80"></figure>`;}).join('')}</div><div class="weather-summary"><div class="weather-temperature">${Number(s.temperatura)} °C</div><div class="weather-time" id="weather-time"></div></div>`;
+        const calendarHtml=s.worldCalendar?`<p class="world-calendar" title="${esc(s.worldCalendar.moon_convention)}"><span data-icon="scroll" aria-hidden="true"></span> ${esc(s.worldCalendar.label)} · ON</p>`:'';
+        const iconsHtml=['cielo','tempo','vento','luna'].map(key=>{const asset=icons[key]||fallback[key];return `<figure class="wi" data-tooltip="${esc(asset.description||asset.label)}"><img src="${esc(asset.src)}" alt="${esc(asset.label)}" title="${esc(asset.description||asset.label)}" width="80" height="80"></figure>`;}).join('');
+        weatherW.innerHTML=`${calendarHtml}<div class="weather-icons">${iconsHtml}</div><div class="weather-summary"><div class="weather-temperature">${Number(s.temperatura)} °C</div><div class="weather-time" id="weather-time"></div></div>`;
 
         /* b. date helper ------------------------------------------------- */
         const [hA, mA] = s.alba.split(':').map(Number);
@@ -320,32 +326,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
         /* c. messaggistica ------------------------------------------------ */
         if (s.lunaPhase !== 'Luna Piena') {
-          /* NON è plenilunio */
           const gg = s.daysToFull;
           msg = `Mancano ${gg} ${gg === 1 ? 'giorno' : 'giorni'} alla prossima Luna Piena.`;
-
+        } else if (now < albaOggi) {
+          msg = `Notte di Luna Piena! Fai attenzione: la Luna non sarà più visibile alle ${s.alba}.`;
+        } else if (now < tramontoOggi) {
+          msg = `Luna Piena! Fai attenzione: la Luna sorgerà al tramonto alle ${s.tramonto}.`;
+        } else if (now < albaDomani) {
+          msg = `Notte di Luna Piena! Fai attenzione: la Luna non sarà più visibile alle ${s.alba}.`;
         } else {
-          /* È Luna Piena -------------------------------------- */
+          msg = `Luna Piena: il sole è sorto. La prossima notte torna a fare attenzione!`;
+        }
 
-          if (now < albaOggi) {
-            /* dopo mezzanotte ma prima dell’alba */
-            msg = `Notte di Luna Piena! Fai attenzione: la Luna non sarà più visibile alle ${s.alba}.`;
-          } else if (now < tramontoOggi) {
-            /* giorno (sole alto) prima del tramonto */
-            msg = `Luna Piena! Fai attenzione: la Luna sorgerà al tramonto alle ${s.tramonto}.`;
-          } else if (now >= tramontoOggi && now < albaDomani) {
-            /* sera/notte prima di mezzanotte */
-            msg = `Notte di Luna Piena! Fai attenzione: la Luna non sarà più visibile alle ${s.alba}.`;
-          } else {
-            /* giorno dopo l’alba */
-            msg = `Luna Piena: il sole è sorto. La prossima notte torna a fare attenzione!`;
-          }
-}
-
-        const compact = s.lunaPhase !== 'Luna Piena'
-          ? `Luna Piena tra ${Number(s.daysToFull)} ${Number(s.daysToFull) === 1 ? 'giorno' : 'giorni'}`
-          : (now >= albaOggi && now < tramontoOggi ? `Luna Piena · sorge alle ${s.tramonto}` : `Luna Piena · alba alle ${s.alba}`);
-        timeEl.textContent = compact;
+        timeEl.textContent = compactMoonText(s, now, albaOggi, tramontoOggi);
         timeEl.title = msg;
         timeEl.setAttribute('aria-label',msg);
       }

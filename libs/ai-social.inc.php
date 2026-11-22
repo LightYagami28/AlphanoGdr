@@ -360,7 +360,8 @@ function aiMoneyOffer(array $npc,int $player,string $kind,int $amount,string $re
     return (int)$db->query('SELECT id FROM ai_npc_offers WHERE request_key=?',[$key])[0]['id'];
 }
 /** Validated wallet transfer, atomic ledger/debt receipt and durable idempotency. */
-function aiMoneyTransfer(int $npc,int $player,string $kind,int $amount,string $reason,string $key,int $actor,?int $offerId=null): array {
+function aiMoneyTransfer(int $npc,int $player,string $kind,int $amount,string $reason,string $key,array $options): array {
+    $actor=(int)$options['actor']; $offerId=$options['offerId']??null;
     $db=aiDb();if(!$db->inTransaction()){ throw new LogicException('Transazione richiesta.'); }
     $old=$db->query('SELECT * FROM ai_npc_transactions WHERE request_key=?',[$key])[0]??null;if($old){if((int)$old['npc_id']!==$npc||(int)$old['player_id']!==$player||$old['kind']!==$kind||(int)$old['amount']!==$amount){ throw new DomainException('Identificativo già usato per un movimento diverso.',409); }return $old;}
     if($amount<1||$amount>1000000000){ throw new DomainException('Importo non valido.',422); }
@@ -455,7 +456,7 @@ function aiSocialObservationJob(array $task): array {
     $task['source_id']=(int)($observation['source_id']??0);return $task;
 }
 function aiSocialPrivateView(int $npc,int $viewer): array {
-    $rules=aiSocialRules($npc);$r=aiRelation($npc,$viewer);$revealed=json_decode($r['revealed'],true)?:[];
+    $rules=aiSocialRules($npc);$r=aiRelation($npc,$viewer);
     $character=aiDb()->query('SELECT * FROM ai_npcs WHERE id=?',[$npc])[0]??null;$player=ai_player_identity($viewer);
     $romance=$character&&$player&&aiRomanceAllowed($character,$player,$rules);
     // This authenticated view is the player's own scorecard. Hidden thoughts and

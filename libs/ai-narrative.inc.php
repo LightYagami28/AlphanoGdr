@@ -18,7 +18,7 @@ function aiNarrativeActionCue(string $text): bool {
 
 /** A third-person capability claim may continue narration, but never proves it true. */
 function aiNarrativeDescriptiveClaim(string $text):bool {
-    return (bool)preg_match('/^(?:(?:la\s+(?:sua|propria)\s+(?:natura|stirpe|razza))|(?:il\s+(?:suo|proprio)\s+(?:corpo|sangue|lignaggio)))\b[^.!?]{0,90}\b(?:lo|la)\s+rende\s+(?:immune|resistente|invulnerabile|insensibile)\b/iu',trim($text));
+    return (bool)preg_match('/^(?:la\s+(?:sua|propria)\s+(?:natura|stirpe|razza)|il\s+(?:suo|proprio)\s+(?:corpo|sangue|lignaggio))\b[^.!?]{0,90}\b(?:lo|la)\s+rende\s+(?:immune|resistente|invulnerabile|insensibile)\b/iu',trim($text));
 }
 
 /** A GDR phrase beginning "a voce alta"/"i piedi" is not an HTML a/i element. */
@@ -48,7 +48,7 @@ function aiNarrativePlain(string $raw):string {
 function aiNarrativeClauseIntent(string $text): ?string {
     $v=mb_strtolower(trim($text));$v=preg_replace('/\bs[’\x{27}](?=\p{L})/u','si ',$v)??$v;
     if($v===''||preg_match('/^(?:\/\/|[$#%@|])/u',$v)){ return null; }
-    if(preg_match('/\b(?:non\s+(?:voglio|intendo)\s+(?:più\s+)?(?:combattere|continuare|allenarmi)|mi fermo|si ferma|smette|smetto|mi arrendo|si arrende|fermiamoci|terminiamo|interromp(?:e|o)\s+(?:l[’\x{27}]|il\s+)(?:attacco|assalto|combattimento)|cess(?:a|o)\s+(?:l[’\x{27}]|il\s+)(?:attacco|assalto|combattimento)|finisce l.allenamento|abbassa (?:le armi|la guardia))\b|^basta(?:[,.!]|\s*$)/u',$v)){ return 'fine'; }
+    if(preg_match('/\b(?:non\s+(?:voglio|intendo)\s+(?:più\s+)?(?:combattere|continuare|allenarmi)|mi fermo|si ferma|smette|smetto|mi arrendo|si arrende|fermiamoci|terminiamo|interromp[eo]\s+(?:l[’\x{27}]|il\s+)(?:attacco|assalto|combattimento)|cess[ao]\s+(?:l[’\x{27}]|il\s+)(?:attacco|assalto|combattimento)|finisce l.allenamento|abbassa (?:le armi|la guardia))\b|^basta(?:[,.!]|\s*$)/u',$v)){ return 'fine'; }
     if(preg_match('/\b(?:allenamento|alleniamoci|esercitazione)\b/u',$v)&&preg_match('/\b(?:voglio|chiedo|facciamo|iniziamo|alleniamoci|invita|propone)\b/u',$v)){ return 'allenamento'; }
     if(preg_match('/\b(?:ordina|chiede|invita|propone|implora|minaccia|promette|dice|risponde|proferisce)\b.{0,90}\b(?:di\s+)?(?:attaccare|colpire|mordere|uccidere|arrestare|rubare)\b/u',$v)){ return 'azione'; }
     if(preg_match('/\b(?:vede|guarda|osserva|sente|ascolta|nota)\b.{0,90}\b(?:che|mentre|come)\b.{0,60}\b(?:attacca|colpisce|morde|azzanna|spara|pugnala|'.aiNarrativeBitePattern().')\b/u',$v)){ return 'azione'; }
@@ -123,7 +123,7 @@ function aiNarrativeParse(string $raw,array $options=[]): array {
     };
     foreach($tokens as $tokenIndex=>$token) {
         if(str_starts_with($token,'>')&&str_ends_with($token,'<')){
-            $protected=$stack[count($stack)-1]['kind']??'';$flush();$body=preg_replace('/^>+|<+$/u','',$token)??$token;
+            $protected=$stack[count($stack)-1]['kind']??'';$flush();$body=preg_replace('/(?:^>+|<+$)/u','',$token)??$token;
             if(in_array($protected,['thought','ooc'],true)){ $segments[]=['kind'=>$protected,'text'=>$body,'source'=>'gdr-angle-inverse','confidence'=>.98]; }
             else { foreach(aiNarrativeParse($body)['segments'] as $s){$s['source']='gdr-angle-inverse';$segments[]=$s;} }continue;
         }
@@ -139,7 +139,7 @@ function aiNarrativeParse(string $raw,array $options=[]): array {
             }
             // <osserva l'uomo> and <grazie> are both used in real logs.
             $protected=$stack[count($stack)-1]['kind']??'';$flush();
-            $body=preg_replace('/^<+|>+$/u','',$token)??$token;
+            $body=preg_replace('/(?:^<+|>+$)/u','',$token)??$token;
             if(in_array($protected,['thought','ooc'],true)){ $segments[]=['kind'=>$protected,'text'=>$body,'source'=>'gdr-angle','confidence'=>.98]; }
             else { foreach(aiNarrativeParse($body)['segments'] as $s){$s['source']='gdr-angle';$segments[]=$s;} }continue;
         }

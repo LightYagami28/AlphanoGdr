@@ -69,7 +69,7 @@ function ai_private_companion_reply(string $chat,int $source,int $player,string 
   if(!$room||!$room['enabled']||!companionship_room_npc($chat,$player)){ throw new DomainException('La visita è terminata o il PNG non è più disponibile.',409); }
   $text=ai_turn_text($raw,2500);$speaker=ai_player_identity($player)['nome']??'Ospite';
   $db->execute('INSERT IGNORE INTO ai_events(chat_key,source_id,speaker,content,created_at) VALUES(?,?,?,?,?)',[$chat,$source,$speaker,$text,time()]);
-  $job=aiEnqueueLocked($room,$npc,$player,'message:'.$chat.':'.$source,$text,'play',$source);$db->commit();
+  $job=aiEnqueueLocked($room,$npc,$player,'message:'.$chat.':'.$source,$text,'play',['source'=>$source]);$db->commit();
   return ['ai_job'=>[...$job,'name'=>$npc['name'],'npc_id'=>(int)$npc['id']]];
  }catch(Throwable $e){if($db->inTransaction()){ $db->rollBack(); }if(!$e instanceof DomainException){ error_log('[Visita privata IA] '.$e->getMessage()); }return ['ai_notice'=>$e instanceof DomainException?$e->getMessage():'La risposta è in attesa. Il tuo messaggio resta nella camera.'];}
 }

@@ -48,9 +48,9 @@ function alphano_mail_signature(int $id):string {
   $group=$db->query("SELECT nome FROM $table WHERE id=?",[(int)$u[$key]])[0]['nome']??'';
   if($group===''){ continue; }
   $rank=$db->query("SELECT nome FROM $ranks WHERE id=?",[(int)$u[$rankKey]])[0]['nome']??'';
-  $html.='<span class="mail-signature-role"><img src="'.$h(alphano_badge_url($table,(int)$u[$rankKey],(int)$u[$key])).'" alt=""><span>'.($rank!==''?'<span class="mail-signature-rank">'.$h($rank).'</span>':'').$h($group).'</span></span>';
+  $html.='<span class="mail-signature-role"><img src="'.$h(alphanoBadgeUrl($table,(int)$u[$rankKey],(int)$u[$key])).'" alt=""><span>'.($rank!==''?'<span class="mail-signature-rank">'.$h($rank).'</span>':'').$h($group).'</span></span>';
  }
- if(!empty($u['araldica'])){ $html.='<span class="mail-signature-role"><img src="'.$h(alphano_badge_url('cariche',(int)$u['araldica'])).'" alt=""><span>'.$h(GetAraldica((int)$u['araldica'])??'').'</span></span>'; }
+ if(!empty($u['araldica'])){ $html.='<span class="mail-signature-role"><img src="'.$h(alphanoBadgeUrl('cariche',(int)$u['araldica'])).'" alt=""><span>'.$h(GetAraldica((int)$u['araldica'])??'').'</span></span>'; }
  return $html.'</div></div>';
 }
 
@@ -62,7 +62,7 @@ function alphano_mail_render(string $message):string {
  return preg_replace_callback('~(^|<br\\s*/?>)([\\p{L}\\p{N} _’.\\x27-]{1,70})<br\\s*/?>((?:'.$badge.'){1,3})~u',static function($m){
   $roles=preg_replace_callback('~<img\\s+[^>]*src="/uploads/badges/(organizzazioni|corporazioni|cariche)/([0-9/]+)\\.gif(?:\\?[^"<>]*)?"[^>]*>([^<]*)(?:<br\\s*/?>|$)~u',static function($r){
    $ids=array_map('intval',explode('/',$r[2]));$scope=count($ids)>1?$ids[0]:0;$rank=$ids[count($ids)-1];
-   $url=htmlspecialchars(alphano_badge_url($r[1],$rank,$scope),ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
+   $url=htmlspecialchars(alphanoBadgeUrl($r[1],$rank,$scope),ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
    return '<span class="mail-signature-role"><img src="'.$url.'" alt=""><span>'.$r[3].'</span></span>';
   },$m[3]);
   return $m[1].'<div class="mail-signature mail-signature-legacy"><strong class="mail-signature-name">'.$m[2].'</strong><div class="mail-signature-roles">'.$roles.'</div></div>';

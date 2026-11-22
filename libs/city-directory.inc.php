@@ -44,7 +44,7 @@ function alphano_city_directory(array $viewer, int $selected = 0): array
         $offices = $db->query('SELECT a.id,a.nome,a.stipendio,a.descrizione,a.prima,a.livello,
             a.ramo AS branch_id,COALESCE(r.livello,2147483647) AS branch_level,r.nome AS branch_name FROM araldiche a LEFT JOIN ramiaraldiche r ON r.id=a.ramo AND r.city=a.city
             WHERE a.city=? ORDER BY COALESCE(r.livello,0),COALESCE(r.nome,\'\'),a.livello DESC,a.nome,a.id', [$selected]);
-        foreach ($offices as &$office) { $office['badge'] = alphano_badge_url('cariche', (int)$office['id']); }
+        foreach ($offices as &$office) { $office['badge'] = alphanoBadgeUrl('cariche', (int)$office['id']); }
         unset($office);
         $citizens = $db->query('SELECT u.id,u.nome,u.sindaco,u.razza,u.alternate_form,u.sesso,u.avatar,u.avatar2,a.nome AS office_name,
             a.id AS office_id,r.nome AS branch_name,z.nome AS race_name
@@ -55,7 +55,7 @@ function alphano_city_directory(array $viewer, int $selected = 0): array
             $race = alphano_visible_race($citizen);
             $citizen['portrait_data']=alphano_hierarchy_member($citizen);
             $citizen['race_name'] = GetRazza($race)??'';
-            $citizen['race_icon'] = alphano_race_icon($race,$citizen['sesso']);
+            $citizen['race_icon'] = alphanoRaceIcon();
         }
         unset($citizen);
         $byOffice=[];foreach($citizens as $citizen){ $byOffice[(int)$citizen['office_id']][]=$citizen['portrait_data']; }

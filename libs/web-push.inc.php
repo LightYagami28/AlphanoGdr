@@ -116,7 +116,7 @@ function alphano_push_transport(array $keys, array $clientOptions = []): \Minish
     return new \Minishlink\WebPush\WebPush(['VAPID'=>$keys], ['TTL'=>300,'urgency'=>'normal'], $client);
 }
 
-function alphano_push_valid_subscription(object $db, array $sub, array $keys, int $now): bool
+function alphano_push_valid_subscription(object $db, array $sub, array $keys): bool
 {
     $account = $db->query('SELECT bloccato FROM utenti WHERE id=?', [$sub['user_id']])[0] ?? null;
     return (bool)$account && !$account['bloccato'] && hash_equals(hash('sha256',$keys['publicKey']),$sub['vapid_hash']);
@@ -163,7 +163,7 @@ function alphano_push_publish(?callable $sender = null): array
                 // Never lock the player row while waiting on the remote push service.
                 $sub = $db->query('SELECT * FROM web_push_subscriptions WHERE id=? FOR UPDATE', [$entry['id']])[0] ?? null;
                 if (!$sub || !$sub['enabled'] || (int)$sub['available_at']>$now) { $db->commit(); continue; }
-                if (!alphano_push_valid_subscription($db, $sub, $keys, $now)) {
+                if (!alphano_push_valid_subscription($db, $sub, $keys)) {
                     $db->execute('UPDATE web_push_subscriptions SET enabled=0 WHERE id=?', [$sub['id']]); $db->commit(); $result['skipped']++; continue;
                 }
                 $latest = (int)$db->query('SELECT COALESCE(MAX(id),0) AS id FROM mail WHERE iddestinatario=? AND id>? AND letto=0 AND deldest=0 AND baule=0', [$sub['user_id'],$sub['last_mail_id']])[0]['id'];

@@ -3,8 +3,8 @@ declare(strict_types=1);
 require_once __DIR__.'/alphano-exceptions.inc.php';
 
 const WEB_PUSH_INC_CHIAVE_DEL_DISPOSITIVO_NON_VALIDA = 'Chiave del dispositivo non valida.';
-const WEB_PUSH_INC_VENDOR_AUTOLOAD_PHP = '/vendor/autoload.php';
 require_once __DIR__.'/kernel.inc.php';
+require_once __DIR__.'/webpush-native.inc.php';
 
 /** Web Push is optional. Private keys and capability URLs never leave this boundary. */
 function alphanoPushKeys(): ?array
@@ -37,9 +37,7 @@ function alphanoPushReady(): bool
 {
     foreach (['curl','mbstring','openssl'] as $extension) { if (!extension_loaded($extension)) { return false; } }
     if (!in_array('prime256v1', openssl_get_curve_names() ?: [], true) || !in_array('aes-128-gcm', openssl_get_cipher_methods(), true)) { return false; }
-    if (!alphanoPushKeys() || !is_file(dirname(__DIR__).WEB_PUSH_INC_VENDOR_AUTOLOAD_PHP)) { return false; }
-    require_once dirname(__DIR__).WEB_PUSH_INC_VENDOR_AUTOLOAD_PHP;
-    return class_exists(\Minishlink\WebPush\WebPush::class)
+    return alphanoPushKeys() !== null
         && (bool)connectDB()->query("SHOW TABLES LIKE 'web_push_subscriptions'");
 }
 
@@ -94,11 +92,9 @@ function alphanoPushDisable(int $user, string $hash): void
 }
 
 /** Factory is injectable only from trusted PHP tests, never from HTTP input. */
-function alphanoPushTransport(array $keys, array $clientOptions = []): \Minishlink\WebPush\WebPush
+function alphanoPushTransport(array $keys, array $clientOptions = []): AlphanoWebPushTransport
 {
-    require_once dirname(__DIR__).WEB_PUSH_INC_VENDOR_AUTOLOAD_PHP;
-    return new \Minishlink\WebPush\WebPush(['VAPID'=>$keys], ['TTL'=>300,'urgency'=>'normal'], 5,
-        array_replace(['allow_redirects'=>false,'connect_timeout'=>3,'verify'=>true], $clientOptions));
+    return new AlphanoWebPushTransport($keys, $clientOptions);
 }
 
 /** Poll all mail writers, coalescing a burst once per device. No private content in payload. */
@@ -130,7 +126,7 @@ function alphanoPushPublish(?callable $sender = null): array
                     $payload = json_encode(['type'=>'mail','event'=>'mail:'.$latest,'url'=>'/posta/','silent'=>!$audio['notification_sound'] || !$audio['notification_volume']],JSON_THROW_ON_ERROR);
                     if ($sender) { $status = (int)$sender($sub,$payload); }
                     else {
-                        $report = $transport->sendOneNotification(\Minishlink\WebPush\Subscription::create(['contentEncoding'=>'aes128gcm','endpoint'=>$sub['endpoint'],'keys'=>['p256dh'=>$sub['p256dh'],'auth'=>$sub['auth']]]), $payload, ['topic'=>'alphano-mail']);
+                        $report = $transport->sendOneNotification($sub, $payload, ['topic'=>'alphano-mail']);
                         $status = $report->getResponse()?->getStatusCode() ?? 0;
                     }
                 } catch (Throwable) { $status = 0; } // No exception details: they can contain capability URLs.

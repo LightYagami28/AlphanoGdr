@@ -109,12 +109,12 @@ function alphanoParticipantsApplyTargets(array $ids,string $action,array $values
  foreach($ids as $id){
   $subKey='participants:'.substr(hash('sha256',$key.':'.$id),0,64);$replayed=false;
   $ok=match($action){
-   'health'=>setFerite($id,$values['hp'],$values['wounds'],$actor,$chat,$subKey,$replayed,$reason,true),
-   'note'=>notaMaster($id,$actor,$chat,$values['note'],$subKey,$replayed,$reason,true),
-   'crowns'=>ricompensa($id,$values['amount'],$actor,$chat,$subKey,$replayed,$reason,true),
-   'item'=>daiOggetto($id,$values['item_id'],$actor,$chat,$subKey,$replayed,$values['quantity'],$reason,true),
-   'remove'=>rimuoviOggettoMaster($id,$values['instance'],$actor,$chat,$subKey,$replayed,$reason,true),
-   'break'=>rompiOggettoMaster($id,$values['instance'],$actor,$chat,$subKey,$replayed,$reason,true),
+   'health'=>setFerite($id,$values['hp'],$values['wounds'],$actor,$chat,['request_key'=>$subKey,'replayed'=>&$replayed,'reason'=>$reason,'journal'=>true]),
+   'note'=>notaMaster($id,$actor,$chat,$values['note'],['request_key'=>$subKey,'replayed'=>&$replayed,'reason'=>$reason,'journal'=>true]),
+   'crowns'=>ricompensa($id,$values['amount'],$actor,$chat,['request_key'=>$subKey,'replayed'=>&$replayed,'reason'=>$reason,'journal'=>true]),
+   'item'=>daiOggetto($id,$values['item_id'],$actor,$chat,['request_key'=>$subKey,'replayed'=>&$replayed,'reason'=>$reason,'journal'=>true,'quantity'=>$values['quantity']]),
+   'remove'=>rimuoviOggettoMaster($id,$values['instance'],$actor,$chat,['request_key'=>$subKey,'replayed'=>&$replayed,'reason'=>$reason,'journal'=>true]),
+   'break'=>rompiOggettoMaster($id,$values['instance'],$actor,$chat,['request_key'=>$subKey,'replayed'=>&$replayed,'reason'=>$reason,'journal'=>true]),
    'consume'=>alphanoParticipantsConsume($id,$actor,$chat,$values,$subKey,$reason),
   };
   if(!$ok){throw new ParticipantsDomainException('L’intervento non è applicabile alla scheda selezionata.',422);}
@@ -148,5 +148,5 @@ function alphanoParticipantsConsume(int $target,int $actor,string $chat,array $v
     if(!$item){throw new ParticipantsDomainException('L’oggetto non appartiene più al personaggio selezionato.',409);}
     $remaining=max(0,(int)$item['durata']-(int)$item['consumo']);$quantity=$values['quantity'];
     if($quantity>$remaining){throw new ParticipantsDomainException('Il consumo supera la durata residua dell’oggetto.',422);}
-    $replayed=false;return consumaMaster($target,$values['instance'],$quantity,$actor,$chat,$key,$replayed,$reason,true);
+    $replayed=false;return consumaMaster($target,$values['instance'],$quantity,$actor,$chat,['request_key'=>$key,'replayed'=>&$replayed,'reason'=>$reason,'journal'=>true]);
 }

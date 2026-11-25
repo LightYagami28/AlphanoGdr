@@ -55,7 +55,7 @@ function alphanoSessionReplayGroup(string $raw,array $session):array {
  elseif(preg_match('/\b([0-2]\d:[0-5]\d)\b/',$part->textContent,$m)){ $stamp=strtotime(date('Y-m-d',$stamp).' '.$m[1]); }
  $view=alphanoChatView(['id'=>0,'pg'=>$pg,'dest'=>0,'msg'=>$source]);
  $view['body']=alphanoSanitizeHtml($view['body']??$source);$view['msg']=alphanoSanitizeHtml($source);$view['sent_at']=$stamp;$view['scene_label']=$session['location_label']??$session['chat'];
- $out[]=$view;
+ return $view;
 }
 
 /** Admin batch close: serialize with the Session Manager and AI room, announce once via durable outbox. */

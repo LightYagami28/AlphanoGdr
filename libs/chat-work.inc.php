@@ -42,9 +42,9 @@ function alphanoWorkState(int $player,string $chat):array {
  elseif((int)($p['rest_until']??0)>$now||!$remaining){ $reason='Sei stanco: hai raggiunto il limite di raccolta. Riposa fino al '.date('d/m H:i',$until).'.'; }
  elseif($pending){ $reason='Prima di un altro lavoro, invia un’Azione ordinaria: renditi conto dell’esito e, se hai trovato una risorsa, descrivi come la raccogli e la riponi nella borsa. Non viene assegnata una seconda volta.'; }
  elseif($until>$now){ $reason='Riprendi fiato prima del prossimo tentativo: attendi '.($until-$now).' secondi.'; }
- $stats=rpg_actor_stats('pg',$player);$jobs=[];
+ $stats=rpgActorStats('pg',$player);$jobs=[];
  foreach(alphanoWorkCatalog($chat) as $j){if(!$j['enabled']||!alphanoWorkValidResource($j)){ continue; }$odds=alphanoWorkOdds($j,$stats,$s);$data=['id'=>(int)$j['id'],'action'=>$j['azione'],'resource_id'=>(int)$j['res'],'resource_name'=>$j['resource_name'],'image'=>alphanoEquipmentImage(rawurldecode($j['resource_image'])),'quantity'=>min((int)$j['quantity'],$remaining)]+$odds;
-  $data['success_text']=$j['frase'];$data['quote']=hash('sha256',rpg_json([$j,$odds,$s,$data['quantity']]));$jobs[]=$data;
+  $data['success_text']=$j['frase'];$data['quote']=hash('sha256',rpgJson([$j,$odds,$s,$data['quantity']]));$jobs[]=$data;
  }
  return ['server_time'=>$now,'settings'=>$s,'units'=>$units,'remaining'=>$remaining,'available_at'=>$until,'pending_narration'=>$pending,'can_work'=>$reason==='','reason'=>$reason,'jobs'=>$jobs];
 }
@@ -66,13 +66,13 @@ function alphanoWorkReceiptHtml(array $receipt,array $job,string $name,array $no
  $html.='<details class="work-receipt-details"><summary>Dettagli del tentativo</summary><p>'.$h($job['action']).'</p>';
  if($qty&&trim($job['success_text']??'')!==''){ $html.='<p>'.$h(str_replace('=nome',$name,$job['success_text'])).'</p>'; }
  $html.='<p>d20 '.$roll.' + '.$bonus.' contro '.$dc.' · Probabilità '.$prob.'%. 1 naturale fallisce, 20 naturale riesce.</p></details>';
- if($qty){$events=[['name'=>$name,'title'=>'Esito del lavoro','kind'=>'pg','id'=>$player,'changes'=>[['key'=>'item','label'=>$job['resource_name'],'value'=>'+'.$qty.' nella borsa','delta'=>$qty,'icon'=>$job['image']]]]];$html.='<span hidden data-scene-effects="'.$h(rpg_json($events)).'"></span>';}
+ if($qty){$events=[['name'=>$name,'title'=>'Esito del lavoro','kind'=>'pg','id'=>$player,'changes'=>[['key'=>'item','label'=>$job['resource_name'],'value'=>'+'.$qty.' nella borsa','delta'=>$qty,'icon'=>$job['image']]]]];$html.='<span hidden data-scene-effects="'.$h(rpgJson($events)).'"></span>';}
  return $html.'</section>';
 }
 function alphanoWorkComplete(int $player,string $chat,string $request,int $source,array $prepared):array {
  $d=connectDB();$j=$prepared['job'];$s=$prepared['state']['settings'];$roll=random_int(1,20);$success=alphanoWorkSuccess($roll,$j['bonus'],$j['difficulty']);$qty=$success?$j['quantity']:0;$ids=[];
  for($i=0;$i<$qty;$i++){$d->execute('INSERT INTO equippg(uid,idpg) VALUES(?,?)',[$j['resource_id'],$player]);$ids[]=(int)$d->lastInsertId();}
- $d->execute('INSERT INTO chat_work_attempts(player_id,chat_key,job_id,request_key,action_chat_id,roll,bonus,difficulty,probability,quantity,resource_id,snapshot,inventory_ids,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)',[$player,$chat,$j['id'],$request,$source,$roll,$j['bonus'],$j['difficulty'],$j['probability'],$qty,$j['resource_id'],rpg_json($j),rpg_json($ids),time()]);$id=(int)$d->lastInsertId();
+ $d->execute('INSERT INTO chat_work_attempts(player_id,chat_key,job_id,request_key,action_chat_id,roll,bonus,difficulty,probability,quantity,resource_id,snapshot,inventory_ids,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)',[$player,$chat,$j['id'],$request,$source,$roll,$j['bonus'],$j['difficulty'],$j['probability'],$qty,$j['resource_id'],rpgJson($j),rpgJson($ids),time()]);$id=(int)$d->lastInsertId();
  $rest=$qty>0&&$prepared['state']['units']+$qty>=$s['max_units']?time()+$s['rest_seconds']:0;
  $d->execute('INSERT INTO chat_work_players(player_id,pending_attempt,rest_until) VALUES(?,?,?) ON DUPLICATE KEY UPDATE pending_attempt=VALUES(pending_attempt),rest_until=GREATEST(rest_until,VALUES(rest_until))',[$player,$s['require_narration']?$id:0,$rest]);
  $notes=[];if($s['require_narration']){ $notes[]='Ora invia un’Azione ordinaria'; }

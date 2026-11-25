@@ -8,7 +8,7 @@ function rpgRacialFamily(int $race):string {
 }
 function rpgRacialCatalog(int $race):array {return array_values(array_filter(rpgHumanManual()['malus'],static fn($m)=>$m['family']===rpgRacialFamily($race)&&!($race===5&&$m['number']===8)));}
 function rpgMalusFields():array {return ['corruption_offer'=>['Offerta corruttiva credibile accertata',0,1],'decisive_desire'=>['Offerta che soddisfa un desiderio documentato',0,1],'wound'=>['Ferita fisica (0 nessuna, 1 lieve, 2 grave)',0,2],'fatigue'=>['Turni di sforzo intenso senza riposo',0,5],'sunlight'=>['Esposizione diretta consecutiva (turni)',0,4],'indirect_light'=>['Luce indiretta intensa',0,1],'sacred'=>['Sacro (0 nessuno, 1 croce, 2 reliquia, 3 acqua santa)',0,3],'silver_contact'=>['Argento a contatto',0,1],'silver_wound'=>['Ferita d’argento (0 nessuna, 1 lieve, 2 grave)',0,2],'silver_embedded'=>['Argento trattenuto nella ferita',0,1],'dismembered'=>['Smembramento completo',0,1],'destroyed'=>['Combustione totale accertata',0,1]];}
-function rpgMalusState(string $kind,int $id):array {if(!rpgCreationReady()){ return []; }return rpg_decode(connectDB()->query('SELECT conditions FROM rpg_malus_state WHERE owner_kind=? AND owner_id=?',[$kind,$id])[0]['conditions']??'{}');}
+function rpgMalusState(string $kind,int $id):array {if(!rpgCreationReady()){ return []; }return rpgDecode(connectDB()->query('SELECT conditions FROM rpg_malus_state WHERE owner_kind=? AND owner_id=?',[$kind,$id])[0]['conditions']??'{}');}
 function rpgMalusHumanRules(array $state,string $test,callable $add):void {
  if($test!=='physical'){ return; }
  $add('wound',match((int)($state['wound']??0)){2=>25,1=>10,default=>0},1);
@@ -46,17 +46,17 @@ function rpgRacialSheet(string $kind,int $id,array $identity):array {
 }
 function rpgMalusSceneState(string $kind,int $id,array $state):array {
  $row=connectDB()->query("SELECT c.state,g.round_number FROM ai_quest_cast c JOIN ai_quests q ON q.session_id=c.session_id LEFT JOIN ai_session_guidance g ON g.session_id=c.session_id WHERE c.kind=? AND c.actor_id=? AND c.active=1 AND q.status='active' ORDER BY q.created_at DESC LIMIT 1",[$kind,$id])[0]??[];
- $scene=rpg_decode($row['state']??'{}');$round=(int)($row['round_number']??1);
+ $scene=rpgDecode($row['state']??'{}');$round=(int)($row['round_number']??1);
  $corruption=$scene['corruption']??null;if($corruption&&(int)$corruption['until']<$round){ $corruption=null; }
  $command=$scene['dominated']??null;if($command&&(int)$command['until']<$round){ $command=null; }
  if(isset($scene['racial_malus'])){ $state=array_replace($state,$scene['racial_malus']);$source='Condizioni dell’ultima quest attiva'; }else{ $source='Condizioni registrate dallo staff'; }
  return [$state,$source,$command,$corruption];
 }
 function rpgSaveMalus(string $kind,int $id,mixed $input,string $reason,int $actor):array {
- if(!is_array($input)||array_diff(array_keys($input),array_keys(rpgMalusFields()))){ throw new DomainException('Condizioni razziali non valide.',422); }$values=[];foreach(rpgMalusFields() as $key=>[$label,$min,$max]){ $values[$key]=rpg_int($input[$key]??0,$min,$max,$label); }$reason=rpg_text($reason,500,true);
- return rpg_atomic(function()use($kind,$id,$values,$reason,$actor){$before=rpgMalusState($kind,$id);if(!empty($before['silver_contact'])&&empty($values['silver_contact'])){ $values['silver_after']=1; }connectDB()->execute('INSERT INTO rpg_malus_state(owner_kind,owner_id,conditions,reason,actor_id,updated_at) VALUES(?,?,?,?,?,?) ON DUPLICATE KEY UPDATE conditions=VALUES(conditions),reason=VALUES(reason),actor_id=VALUES(actor_id),updated_at=VALUES(updated_at)',[$kind,$id,rpg_json($values),$reason,$actor,time()]);
-  foreach(connectDB()->query("SELECT c.session_id,c.state FROM ai_quest_cast c JOIN ai_quests q ON q.session_id=c.session_id WHERE c.kind=? AND c.actor_id=? AND q.status='active' FOR UPDATE",[$kind,$id]) as $row){$s=rpg_decode($row['state']);$s['racial_malus']=$values;connectDB()->execute('UPDATE ai_quest_cast SET state=? WHERE session_id=? AND kind=? AND actor_id=?',[rpg_json($s),$row['session_id'],$kind,$id]);}
-  rpg_admin_audit($actor,'save_malus',$kind.':'.$id,$before,['conditions'=>$values,'reason'=>$reason]);return rpg_sheet($kind,$id);
+ if(!is_array($input)||array_diff(array_keys($input),array_keys(rpgMalusFields()))){ throw new DomainException('Condizioni razziali non valide.',422); }$values=[];foreach(rpgMalusFields() as $key=>[$label,$min,$max]){ $values[$key]=rpgInt($input[$key]??0,$min,$max,$label); }$reason=rpgText($reason,500,true);
+ return rpgAtomic(function()use($kind,$id,$values,$reason,$actor){$before=rpgMalusState($kind,$id);if(!empty($before['silver_contact'])&&empty($values['silver_contact'])){ $values['silver_after']=1; }connectDB()->execute('INSERT INTO rpg_malus_state(owner_kind,owner_id,conditions,reason,actor_id,updated_at) VALUES(?,?,?,?,?,?) ON DUPLICATE KEY UPDATE conditions=VALUES(conditions),reason=VALUES(reason),actor_id=VALUES(actor_id),updated_at=VALUES(updated_at)',[$kind,$id,rpgJson($values),$reason,$actor,time()]);
+  foreach(connectDB()->query("SELECT c.session_id,c.state FROM ai_quest_cast c JOIN ai_quests q ON q.session_id=c.session_id WHERE c.kind=? AND c.actor_id=? AND q.status='active' FOR UPDATE",[$kind,$id]) as $row){$s=rpgDecode($row['state']);$s['racial_malus']=$values;connectDB()->execute('UPDATE ai_quest_cast SET state=? WHERE session_id=? AND kind=? AND actor_id=?',[rpgJson($s),$row['session_id'],$kind,$id]);}
+  rpgAdminAudit($actor,'save_malus',$kind.':'.$id,$before,['conditions'=>$values,'reason'=>$reason]);return rpgSheet($kind,$id);
   });
 }
 /** A single resistance roll, persisted in the verdict. Only the relevant acquired skill applies. */
@@ -83,5 +83,5 @@ function rpgMalusScene(array $actor,array $state,int $round,string $intent):arra
  $m['_round']=$round;return $m;
 }
 function rpgMalusContext(array $sheet):string {
- $m=$sheet['malus']??[];if(!$m){ return ''; }$lines=[];foreach($m['catalog'] as $rule){ $lines[]=$rule['name'].': '.$rule['effect']; }return "\nREGOLE RAZZIALI V2, PREVALENTI SUI VECCHI ESEMPI: ".implode(' ',$lines).' Condizioni accertate: '.rpg_json($m['state']).'. Comando soprannaturale attualmente registrato (da tentare in gioco, senza esito automatico): '.rpg_json($m['command']??[]).'. Valutazione di un’offerta corruttiva accertata: '.rpg_json($m['corruption']??[]).'. Penalità attive fisiche '.$m['physical']['penalty'].' p.p., mentali '.$m['mental']['penalty'].' p.p. Il modello narra soltanto: sole, argento e condizioni permanenti devono essere verificati dal backend o dal Master; non inventarli.';
+ $m=$sheet['malus']??[];if(!$m){ return ''; }$lines=[];foreach($m['catalog'] as $rule){ $lines[]=$rule['name'].': '.$rule['effect']; }return "\nREGOLE RAZZIALI V2, PREVALENTI SUI VECCHI ESEMPI: ".implode(' ',$lines).' Condizioni accertate: '.rpgJson($m['state']).'. Comando soprannaturale attualmente registrato (da tentare in gioco, senza esito automatico): '.rpgJson($m['command']??[]).'. Valutazione di un’offerta corruttiva accertata: '.rpgJson($m['corruption']??[]).'. Penalità attive fisiche '.$m['physical']['penalty'].' p.p., mentali '.$m['mental']['penalty'].' p.p. Il modello narra soltanto: sole, argento e condizioni permanenti devono essere verificati dal backend o dal Master; non inventarli.';
 }

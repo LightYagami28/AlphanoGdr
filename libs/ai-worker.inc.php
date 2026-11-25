@@ -39,7 +39,7 @@ function aiSyncLogs(bool $force=false): void {
 /** Non-model maintenance runs once per supervisor, outside consumer transactions. */
 function aiWorkerMaintenance(bool $force=false):void {
     static $last=0;$now=time();if(!$force&&$now-$last<5){ return; }$last=$now;
-    rpg_catalog(true);rpg_settings(true);companionshipReleaseExpired();alphanoLycanTick();
+    rpgCatalog(true);rpgSettings(true);companionshipReleaseExpired();alphanoLycanTick();
     require_once __DIR__.'/lineages.inc.php';lineageTick(null,true);
     aiPerceptionRecoverPending();aiSyncLogs();aiQuestSyncLogs();aiQuestMaintenance();
     static $demoCleaned=0;if($now-$demoCleaned>=300){aiDemoCleanup();$demoCleaned=$now;}

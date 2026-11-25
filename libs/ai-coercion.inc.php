@@ -10,7 +10,7 @@ function aiCoercionAssess(array $npc,array $job,array $episode):?array {
         foreach(json_decode($row['technical'],true)['results']??[] as $r){ if(($r['actor_kind']??'')==='pg'&&(int)($r['actor_id']??0)===$uid&&($r['target_kind']??'')==='npc'&&(int)($r['target_id']??0)===$nid&&(int)($r['damage']??0)>0&&(int)($r['source_id']??0)>$cut){$hurt=true;break 2;} }
     }
     $known=aiPerceptionKnownRace($nid,$uid);$p=aiNpcProfile($npc);$traits=aiNpcGame($nid)['traits'];
-    $own=rpg_actor_stats('npc',$nid);$opponent=rpg_actor_stats('pg',$uid);
+    $own=rpgActorStats('npc',$nid);$opponent=rpgActorStats('pg',$uid);
     $overwhelming=in_array($known,[2,3,5,6],true)&&(int)$opponent['strength']>max((int)$own['strength']+10,(int)round($own['strength']*1.7));
     if(!$overwhelming&&(!$hurt||((int)$opponent['strength']<(int)$own['strength']&&(int)$p['hit_points']>MAXPUNTIF*.3))){ return null; }
     $survival=(int)$traits['survival_instinct'];$resistance=(int)round(((int)$traits['courage']+(int)$traits['pride'])/2);

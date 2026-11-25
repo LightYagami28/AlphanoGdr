@@ -25,9 +25,9 @@ function aiRecognitionAction(string $raw,string $actor=''):array {
 }
 /** No trait score, admin permission, self-claim or ordinary perception grants this exception. */
 function aiRecognitionAbility(int $npc):?array {
-    if(!function_exists('rpg_ready')||!rpg_ready()){ return null; }
+    if(!function_exists('rpgReady')||!rpgReady()){ return null; }
     $rows=aiDb()->query("SELECT id FROM rpg_abilities WHERE enabled=1 AND kind='passive' AND JSON_EXTRACT(effect,'$.recognizes_disguise')=true ORDER BY id LIMIT 20");
-    foreach($rows as $row){ try{$a=rpg_get_ability('npc',$npc,(int)$row['id']);if(!empty($a['owned'])&&!empty($a['usable'])&&!empty($a['effect']['recognizes_disguise'])){ return ['id'=>(int)$a['id'],'name'=>$a['name']]; }}catch(DomainException){ continue; } }
+    foreach($rows as $row){ try{$a=rpgGetAbility('npc',$npc,(int)$row['id']);if(!empty($a['owned'])&&!empty($a['usable'])&&!empty($a['effect']['recognizes_disguise'])){ return ['id'=>(int)$a['id'],'name'=>$a['name']]; }}catch(DomainException){ continue; } }
     return null;
 }
 /** A bounded reconstruction also covers public messages written before this feature was installed. */

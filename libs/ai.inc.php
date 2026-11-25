@@ -151,7 +151,7 @@ function aiAfterMessage(string $chat, int $source, int $user, string $html, stri
         if (!$room || !(int)$room['enabled']) { if($abilityId){ throw new AiEngineDomainException('Le abilità richiedono la regia attiva in questo luogo.',422); }if($owned){ $db->commit(); } return $requested?['ai_notice'=>'Il Master IA non è attivo in questo luogo.']:[]; }
         aiPublicRoom($chat);
         $speaker=$db->query('SELECT nome FROM utenti WHERE id=?',[$user])[0]['nome']??'Viandante';
-        $ability=$abilityId?rpg_get_ability('pg',$user,$abilityId):null;
+        $ability=$abilityId?rpgGetAbility('pg',$user,$abilityId):null;
         $text=aiTurnText($raw,2300).($ability?' [Abilità verificata: '.$ability['name'].']':'');
         $db->execute('INSERT IGNORE INTO ai_events(chat_key,source_id,speaker,content,created_at) VALUES(?,?,?,?,?)',[$chat,$source,$speaker,$text,time()]);
         $npcs=aiDialogueNpcs($chat,$user);
@@ -166,7 +166,7 @@ function aiAfterMessage(string $chat, int $source, int $user, string $html, stri
         }
         if($ability){
             if(in_array($ability['effect']['type'],['attack','defence','mental','heal'],true)){ throw new AiEngineDomainException('Per questa abilità serve una quest attiva e un bersaglio presente. Scegli il destinatario o indica il suo nome nell’azione.',422); }
-            $reserved=rpg_use_ability('pg',$user,$abilityId,['event_key'=>'chat:'.$source,'session_id'=>0,'round'=>0]);if(isset($reserved['human_rules'])){$activation=$reserved['activated']?'attivata: '.$reserved['human_rules']['bonus_text']:'attivazione fallita, nessun bonus';$text.=' [ESITO VERIFICATO ATTIVAZIONE: '.$activation.'. Richiede '.$reserved['human_rules']['requirement_text'].' Non implica riuscita automatica dell’azione.]';$db->execute('UPDATE ai_events SET content=? WHERE chat_key=? AND source_id=?',[$text,$chat,$source]);$activationHtml=rpgActivationPublicHtml($reserved,$speaker);$db->execute('INSERT INTO chat(pg,chat,ora,msg,dest,lican) VALUES(0,?,?,?,0,0)',[$chat,time(),$activationHtml]);$db->execute('INSERT INTO registrazionichat(registrazione,testo) SELECT id,? FROM registrazioni WHERE chat=?',[$activationHtml,$chat]);}
+            $reserved=rpgUseAbility('pg',$user,$abilityId,['event_key'=>'chat:'.$source,'session_id'=>0,'round'=>0]);if(isset($reserved['human_rules'])){$activation=$reserved['activated']?'attivata: '.$reserved['human_rules']['bonus_text']:'attivazione fallita, nessun bonus';$text.=' [ESITO VERIFICATO ATTIVAZIONE: '.$activation.'. Richiede '.$reserved['human_rules']['requirement_text'].' Non implica riuscita automatica dell’azione.]';$db->execute('UPDATE ai_events SET content=? WHERE chat_key=? AND source_id=?',[$text,$chat,$source]);$activationHtml=rpgActivationPublicHtml($reserved,$speaker);$db->execute('INSERT INTO chat(pg,chat,ora,msg,dest,lican) VALUES(0,?,?,?,0,0)',[$chat,time(),$activationHtml]);$db->execute('INSERT INTO registrazionichat(registrazione,testo) SELECT id,? FROM registrazioni WHERE chat=?',[$activationHtml,$chat]);}
         }
         if (!$npcs) { if($owned){ $db->commit(); } return []; }
         if((!$requested||$npcId<1)&&$autoAddress){

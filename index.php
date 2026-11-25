@@ -12,7 +12,7 @@ $home=alphanoAppearance()['home']??[];
 $pinned=array_flip($home['manuals']??[]);
 $homeManuals=$pinned?array_values(array_filter(alphanoAppearancePublicManuals(),static fn($m)=>isset($pinned[(int)$m['id']]))):[];
 $csrf=alphanoCsrfToken();$config=alphanoLoadConfig(__DIR__.'/config/app.php');
-require_once __DIR__.'/libs/rpg.inc.php';$stats=rpg_catalog()['stats'];
+require_once __DIR__.'/libs/rpg.inc.php';$stats=rpgCatalog()['stats'];
 $config['initial_race']=alphanoHumanRaceId();
 $config['registration_enabled']=$config['registration_enabled']&&$config['initial_race']>0;
 $banner=($home['banner']??'')?:alphanoAppearancePage('/')['header'];

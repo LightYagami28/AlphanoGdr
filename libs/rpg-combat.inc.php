@@ -7,7 +7,7 @@ require_once __DIR__.'/rpg.inc.php';
 function rpgCombatScore(array $stats,string $test):int {
  $groups=['attack'=>['strength','dexterity','perception'],'defence'=>['dexterity','constitution','willpower'],'mental'=>['charisma','intelligence','willpower'],'resist'=>['willpower','wisdom']];
  if(!isset($groups[$test])){ throw new LogicException('Prova di combattimento non riconosciuta.'); }
- $settings=rpg_settings();$score=0;foreach($groups[$test] as $key){ $score+=(int)($stats[$key]??0)*(int)$settings[$test.'_'.$key]; }return (int)round($score/100);
+ $settings=rpgSettings();$score=0;foreach($groups[$test] as $key){ $score+=(int)($stats[$key]??0)*(int)$settings[$test.'_'.$key]; }return (int)round($score/100);
 }
 function rpgCombatHasWeapon(string $kind,int $id):bool {
  foreach(aiGameInventory($kind,$id) as $item){ if(in_array($item['slot'],['armadx','armasx'],true)&&(int)$item['consumo']<(int)$item['durata']){ return true; } }return false;
@@ -18,7 +18,7 @@ function rpgCombatAbilityIntent(array $ability):string {
 function rpgCombatAssertEquipment(string $kind,int $id,array $ability):void {
  $n=(int)($ability['rules']['number']??$ability['human_rules']['number']??0);$held=array_filter(aiGameInventory($kind,$id),static fn($i)=>in_array($i['slot'],['armadx','armasx'],true)&&(int)$i['consumo']<(int)$i['durata']);
  if($n===2){foreach(aiGameInventory($kind,$id) as $item){ if(in_array($item['slot'],['scudo','armadx','armasx'],true)&&(int)$item['consumo']<(int)$item['durata']){ return; } }}
- if(in_array($n,[1,5,7,8,9],true)){$valid=array_filter($held,static fn($i)=>in_array($n,[1,5],true)?rpgRangedFamily($i)==='':($n===9?rpgRangedFamily($i)==='firearm':rpgRangedFamily($i)!==''));if(!$valid){ throw new DomainException('Manca l’arma realmente impugnata richiesta da questa tecnica.',422); }$identity=rpg_identity($kind,$id);$allowed=array_filter($valid,static fn($i)=>rpgWeaponLineageReason($identity,$i)==='');if(!$allowed){ throw new DomainException(rpgWeaponLineageReason($identity,reset($valid)),422); }}
+ if(in_array($n,[1,5,7,8,9],true)){$valid=array_filter($held,static fn($i)=>in_array($n,[1,5],true)?rpgRangedFamily($i)==='':($n===9?rpgRangedFamily($i)==='firearm':rpgRangedFamily($i)!==''));if(!$valid){ throw new DomainException('Manca l’arma realmente impugnata richiesta da questa tecnica.',422); }$identity=rpgIdentity($kind,$id);$allowed=array_filter($valid,static fn($i)=>rpgWeaponLineageReason($identity,$i)==='');if(!$allowed){ throw new DomainException(rpgWeaponLineageReason($identity,reset($valid)),422); }}
  if($n===10&&(count($held)>=2||array_filter($held,static fn($i)=>(int)$i['mani']>=2))){ throw new DomainException('La presa richiede mani libere.',422); }
  if(!empty($ability['effect']['requires_weapon'])&&!rpgCombatHasWeapon($kind,$id)){ throw new DomainException('Questa abilità richiede un’arma utilizzabile realmente impugnata.',422); }
 }
@@ -29,7 +29,7 @@ function rpgCombatInferAbility(int $id,string $raw):int {
  if(preg_match('/^(?:\/\/|[$&#%@|])/u',ltrim($raw))){ return 0; }
  $reading=aiNarrativeParse($raw);$text=mb_strtolower($reading['action']);
  if($text===''||!$reading['intent']){ return 0; }
- $catalog=rpg_sheet('pg',$id,false)['abilities'];
+ $catalog=rpgSheet('pg',$id,false)['abilities'];
  foreach($catalog as $a){ if(preg_match('/(?<!\p{L})'.preg_quote(mb_strtolower($a['name']),'/').'(?!\p{L})/u',$text)){ return (int)$a['id']; } }
  if(preg_match('/\b(?:ipnosi|ipnotizz\p{L}*|dominazione|minore dominazione|controllo emotivo|soggiog\p{L}*)\b/u',$text)){ foreach($catalog as $a){ if($a['key']==='minor_domination'){ return (int)$a['id']; } } }
  return 0;
@@ -37,7 +37,7 @@ function rpgCombatInferAbility(int $id,string $raw):int {
 /** NPCs choose from actual available skills, never from powers invented by the model. */
 function rpgCombatChooseNpc(int $id,int $sid,int $round,string $decision):?array {
  if(!in_array($decision,['attacco','difesa','ritirata','aiuto','allenamento'],true)){ return null; }
- $sheet=rpg_sheet('npc',$id,false);$types=in_array($decision,['difesa','ritirata','aiuto'],true)?['defence','heal']:['attack'];$choices=[];
+ $sheet=rpgSheet('npc',$id,false);$types=in_array($decision,['difesa','ritirata','aiuto'],true)?['defence','heal']:['attack'];$choices=[];
  foreach($sheet['abilities'] as $a){if(!$a['usable']||!in_array($a['effect']['type'],$types,true)){ continue; }if($a['effect']['type']==='heal'&&$sheet['identity']['hit_points']>maxpuntif-30){ continue; }
   try{rpgCombatAssertEquipment('npc',$id,$a);}catch(DomainException){continue;}
   $last=aiDb()->query('SELECT round_number FROM rpg_ability_uses WHERE owner_kind=\'npc\' AND owner_id=? AND ability_id=? AND session_id=? ORDER BY id DESC LIMIT 1',[$id,$a['id'],$sid])[0]??null;
@@ -49,11 +49,11 @@ function rpgCombatChooseNpc(int $id,int $sid,int $round,string $decision):?array
  return $choices[0]??null;
 }
 function rpgCombatSettings():array {
- $rules=alphanoLoadConfig(__DIR__.'/../config/quest-rules.php');foreach(rpg_settings() as $key=>$value){ if(str_starts_with($key,'scene_')&&array_key_exists(substr($key,6),$rules)){ $rules[substr($key,6)]=$value; } }return $rules;
+ $rules=alphanoLoadConfig(__DIR__.'/../config/quest-rules.php');foreach(rpgSettings() as $key=>$value){ if(str_starts_with($key,'scene_')&&array_key_exists(substr($key,6),$rules)){ $rules[substr($key,6)]=$value; } }return $rules;
 }
 function rpgCombatContext(array $sheet,float $scale=1,string $action=''):string {
  if($scale<=.5){ return rpgCompactSkillContext($sheet,$action,$scale); }
- $parts=[];foreach($sheet['stats']??[] as $key=>$value){ $parts[]=rpg_stat_name($key).' '.(int)$value; }
+ $parts=[];foreach($sheet['stats']??[] as $key=>$value){ $parts[]=rpgStatName($key).' '.(int)$value; }
  $facts=rpgAiSkillFacts($sheet,$action);$lineage=$facts['lineage'];
  $out="\nCARATTERISTICHE RPG VERIFICATE: ".implode(', ',$parts).'. Stirpe tecnica: '.$lineage['native_name'].'; forma attuale: '.$lineage['form_name'].'. Le identità nascoste non sono conoscenza del PNG. Solo il backend calcola esiti, danni, cure e recuperi.';
  $usable=[];$locked=[];$automatic=[];foreach($facts['owned'] as $a){if($a['usable']){ $usable[]=$a['name']; }elseif($a['automatic']){ $automatic[]=$a['name']; }else { $locked[]=$a['name']; }}
@@ -71,13 +71,13 @@ function rpgCombatBadge(array $ability):string {
 }
 /** Completion rewards share the current quest transaction and have a durable receipt. */
 function rpgCombatQuestAward(int $sid,int $uid,int $rounds,int $actions):int {
- $cfg=rpg_settings();if(!$cfg['quest_xp_enabled']||$rounds<$cfg['quest_xp_min_rounds']||$actions<$cfg['quest_xp_min_actions']){ return 0; }
+ $cfg=rpgSettings();if(!$cfg['quest_xp_enabled']||$rounds<$cfg['quest_xp_min_rounds']||$actions<$cfg['quest_xp_min_actions']){ return 0; }
  // The actor lock also serializes the daily cap across different completed quests.
- rpg_identity('pg',$uid,true);rpg_progress('pg',$uid,true);$key='quest:'.$sid.':completion';
- $old=rpg_receipt('pg',$uid,$key,'grant');if($old){ return (int)$old['amount']; }
+ rpgIdentity('pg',$uid,true);rpgProgress('pg',$uid,true);$key='quest:'.$sid.':completion';
+ $old=rpgReceipt('pg',$uid,$key,'grant');if($old){ return (int)$old['amount']; }
  $daily=(int)getDB()->query("SELECT COALESCE(SUM(amount),0) n FROM rpg_ledger WHERE owner_kind='pg' AND owner_id=? AND entry_type='grant' AND actor_id=0 AND event_key LIKE 'quest:%:completion' AND created_at>?",[$uid,time()-86400])[0]['n'];
  $amount=max(0,min((int)$cfg['quest_xp_max'],(int)$cfg['quest_xp_base']+$rounds*(int)$cfg['quest_xp_per_round'],(int)$cfg['quest_xp_daily_cap']-$daily));
- if($amount){ rpg_grant_xp('pg',$uid,$amount,'Partecipazione alla quest #'.$sid.' · '.$rounds.' giri risolti',$key); }return $amount;
+ if($amount){ rpgGrantXp('pg',$uid,$amount,'Partecipazione alla quest #'.$sid.' · '.$rounds.' giri risolti',$key); }return $amount;
 }
 
 /** Ranged families and ammunition are shared by both quest resolution paths. */
@@ -108,13 +108,13 @@ function rpgWeaponLineageReason(array $identity,?array $weapon):string {
 /** Central attachment covers ordinary, compact, quest and transformation-reaction prompts. */
 function rpgPromptContext(array $npc,array $job,float $scale):string {
  $out="\nREGIA RPG RISERVATA, ignota al PNG. Non rivelare stirpi, punteggi o poteri segreti. Esiti backend; bonus non cumulabili; niente poteri estranei. Originale←Vampiro; Ancestrale←Lycan.";
- $action=(string)($job['prompt']??'');$out.="\nTU, PNG: ".rpgCombatContext(rpg_sheet('npc',(int)$npc['id'],false),$scale,$action);
- if((int)($job['user_id']??0)>0){ $out.="\nINTERLOCUTORE, PG: ".rpgCombatContext(rpg_sheet('pg',(int)$job['user_id'],false),$scale,$action); }
+ $action=(string)($job['prompt']??'');$out.="\nTU, PNG: ".rpgCombatContext(rpgSheet('npc',(int)$npc['id'],false),$scale,$action);
+ if((int)($job['user_id']??0)>0){ $out.="\nINTERLOCUTORE, PG: ".rpgCombatContext(rpgSheet('pg',(int)$job['user_id'],false),$scale,$action); }
  return $out;
 }
 function rpgCompactSkillContext(array $sheet,string $action,float $scale):string {
  $facts=rpgAiSkillFacts($sheet,$action);$l=$facts['lineage'];$identity=$sheet['identity'];
- $stats=[];foreach($sheet['stats'] as $key=>$value){ $stats[]=rpg_stat_name($key).' '.$value; }
+ $stats=[];foreach($sheet['stats'] as $key=>$value){ $stats[]=rpgStatName($key).' '.$value; }
  $usable=[];$locked=[];$automatic=[];foreach($facts['owned'] as $a){if($a['usable']){ $usable[]=$a['name']; }elseif($a['automatic']){ $automatic[]=$a['name']; }else { $locked[]=$a['name']; }}
  $out='Stirpe tecnica '.$l['native_name'].'; forma '.$l['form_name'].'. Dati reali: '.implode(', ',$stats).'.';
  $out.=' REPERTORIO UTILIZZABILE: '.($usable?implode('; ',$usable):'nessuno').'.';
@@ -129,6 +129,6 @@ function rpgCompactMalusContext(array $sheet):string {
  $m=$sheet['malus'];$state=array_filter($m['state'],static fn($v,$k)=>!empty($v)&&!str_starts_with((string)$k,'_'),ARRAY_FILTER_USE_BOTH);
  $limits=match($m['family']){'vampire'=>'sole diretto, distruzione fisica e oggetti sacri verificati; nessuna immunità inventata','lycan'=>'argento: ferite persistenti e blocco della rigenerazione','human'=>'mortale, condizioni accertate dal backend',default=>'vincoli della propria razza; nessuna azione fisica per le forme incorporee'};
  $out=' Vulnerabilità: '.$limits.'.';if($m['physical']['penalty']||$m['mental']['penalty']){ $out.=' Penalità fisica '.$m['physical']['penalty'].', mentale '.$m['mental']['penalty'].'.'; }
- if($state){ $out.=' Stato: '.rpg_json($state).'.'; }if($m['command']){ $out.=' Comando in vigore: '.mb_substr($m['command']['command']??rpg_json($m['command']),0,200).'.'; }if($m['corruption']){ $out.=' Concessione corruttiva attiva e proporzionata, senza obbedienza assoluta.'; }
+ if($state){ $out.=' Stato: '.rpgJson($state).'.'; }if($m['command']){ $out.=' Comando in vigore: '.mb_substr($m['command']['command']??rpgJson($m['command']),0,200).'.'; }if($m['corruption']){ $out.=' Concessione corruttiva attiva e proporzionata, senza obbedienza assoluta.'; }
  return $out;
 }

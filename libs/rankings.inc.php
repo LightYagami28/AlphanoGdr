@@ -7,12 +7,12 @@ require_once __DIR__.'/libequip.inc.php';
 /** Read-only public leaderboard: same characteristics and progress as the character sheet. */
 function alphanoRankingMetrics():array {
  $metrics=['caratteristiche'=>['label'=>'Caratteristiche','unit'=>'punti','description'=>'Somma delle otto caratteristiche attuali, inclusi i punti iniziali e gli allenamenti.']];
- foreach(rpg_catalog()['stats'] as $s){ $metrics[$s['key']]=['label'=>$s['name'],'unit'=>'punti','description'=>$s['description']]; }
+ foreach(rpgCatalog()['stats'] as $s){ $metrics[$s['key']]=['label'=>$s['name'],'unit'=>'punti','description'=>$s['description']]; }
  return $metrics+['esperienza'=>['label'=>'Esperienza','unit'=>'PE totali','description'=>'Esperienza complessiva maturata, compresa quella già spesa.'],'corone'=>['label'=>alphanoCurrencyText('Corone'),'unit'=>alphanoCurrencyText('Corone'),'description'=>alphanoCurrencyText('Corone attualmente possedute dal personaggio.')],'visite'=>['label'=>'Visite','unit'=>'visite','description'=>'Visite ricevute dalla scheda del personaggio.'],'vittime'=>['label'=>'Morti e vittime','unit'=>'vittime verificate','description'=>'PNG la cui morte è attribuita al personaggio da un esito di gioco verificato. Le rettifiche sono escluse.'],'materiali'=>['label'=>'Materie prime','unit'=>'unità di materiali','description'=>'Unità di materie prime possedute nella borsa e nei contenitori personali. Ogni istanza conta una unità; oggetti lavorati, magazzini di gruppo e beni dei PNG sono esclusi.']];
 }
 function alphanoRankingView(string $metric,int $page,int $viewer):array {
  $metrics=alphanoRankingMetrics();if(!isset($metrics[$metric])){ throw new DomainException('Classifica non valida.',404); }
- $races=array_column(rpg_catalog()['races'],'name','id');$players=[];
+ $races=array_column(rpgCatalog()['races'],'name','id');$players=[];
  $counts=[];
  if($metric==='materiali'){
   $ph=implode(',',array_fill(0,count(MATERIE_PRIME),'?'));
@@ -21,7 +21,7 @@ function alphanoRankingView(string $metric,int $page,int $viewer):array {
   $counts=array_column(connectDB()->query("SELECT p.idpg AS id,COUNT(*) AS value FROM equippg p JOIN equip e ON e.id=p.uid JOIN tipo t ON t.id=e.tipo WHERE p.idpg>0 AND t.tipoG='risorsa' AND e.materiaprima IN ($ph) GROUP BY p.idpg",MATERIE_PRIME),'value','id');
  }elseif($metric==='vittime'&&connectDB()->query("SHOW TABLES LIKE 'npc_deaths'")){ $counts=array_column(connectDB()->query("SELECT killer_id AS id,COUNT(*) AS value FROM npc_deaths WHERE status='active' AND killer_kind='pg' GROUP BY killer_id"),'value','id'); }
  foreach(connectDB()->query("SELECT u.id,u.nome,u.razza,u.vampire_human_form,u.sesso,u.avatar,u.avatar2,u.puntif,u.denari,u.visite,u.dataregistrazione,p.initial_stats,p.trained_stats,p.xp_total FROM utenti u LEFT JOIN rpg_progress p ON p.owner_kind='pg' AND p.owner_id=u.id WHERE u.bloccato=0") as $u){
-  $visibleRace=alphanoVisibleRace($u);if($visibleRace===ALPHANO_RACE_LEGACY_SPIRIT){ $visibleRace=ALPHANO_RACE_SPIRIT; }$stats=rpg_stat_values(['race_id'=>$visibleRace],['initial_stats'=>$u['initial_stats']??'{}','trained_stats'=>$u['trained_stats']??'{}']);
+  $visibleRace=alphanoVisibleRace($u);if($visibleRace===ALPHANO_RACE_LEGACY_SPIRIT){ $visibleRace=ALPHANO_RACE_SPIRIT; }$stats=rpgStatValues(['race_id'=>$visibleRace],['initial_stats'=>$u['initial_stats']??'{}','trained_stats'=>$u['trained_stats']??'{}']);
   $value=match($metric){'caratteristiche'=>array_sum($stats),'esperienza'=>(int)($u['xp_total']??0),'corone'=>(int)$u['denari'],'visite'=>(int)$u['visite'],'materiali','vittime'=>(int)($counts[(int)$u['id']]??0),default=>$stats[$metric]};
   $portrait=alphanoProfilePortrait($u);$players[]=['id'=>(int)$u['id'],'name'=>$u['nome'],'value'=>$value,'race'=>$races[$visibleRace]??'','portrait'=>$portrait['url'],'fallback'=>$portrait['default'],'registered'=>(int)$u['dataregistrazione']];
  }

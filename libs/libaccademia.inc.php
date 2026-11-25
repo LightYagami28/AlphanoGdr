@@ -196,7 +196,7 @@ function approvaOrg(int $org): bool
         $branch=(int)$db->lastInsertID();
         $db->execute('INSERT INTO caricheorganizzazioni(organizzazione,nome,prima,ramo,livello,descrizione) VALUES(?,?,1,?,0,?)',[$org,'Fondatore',$branch,'Fondatore']);
         $role=(int)$db->lastInsertID();
-        if (!alphano_save_badge(['error'=>UPLOAD_ERR_NO_FILE],'/uploads/badges/organizzazioni/'.$org.'/'.$role.'.gif')) { return false; }
+        if (!alphanoSaveBadge(['error'=>UPLOAD_ERR_NO_FILE],'/uploads/badges/organizzazioni/'.$org.'/'.$role.'.gif')) { return false; }
         $db->execute('UPDATE organizzazioni SET approvato=1 WHERE id=?',[$org]);
         $db->execute('DELETE FROM accademia WHERE org=?',[$org]);
         $db->execute('UPDATE utenti SET organizzazione=?,ramoorganizzazione=?,caricaorganizzazione=?,adminorganizzazione=1 WHERE id=?',[$org,$branch,$role,$master]);
@@ -541,7 +541,7 @@ function approvaCorp(int $corp): bool
         $branch=(int)$db->lastInsertID();
         $db->execute('INSERT INTO carichecorporazioni(corporazione,nome,prima,ramo,livello,descrizione) VALUES(?,?,1,?,0,?)',[$corp,'Fondatore',$branch,'Fondatore']);
         $role=(int)$db->lastInsertID();
-        if (!alphano_save_badge(['error'=>UPLOAD_ERR_NO_FILE],'/uploads/badges/corporazioni/'.$corp.'/'.$role.'.gif')) { return false; }
+        if (!alphanoSaveBadge(['error'=>UPLOAD_ERR_NO_FILE],'/uploads/badges/corporazioni/'.$corp.'/'.$role.'.gif')) { return false; }
         $db->execute('UPDATE corporazioni SET approvato=1 WHERE id=?',[$corp]);
         $db->execute('DELETE FROM accademia WHERE corp=?',[$corp]);
         $db->execute('UPDATE utenti SET corporazione=?,ramocorporazione=?,caricacorporazione=?,admincorporazione=1,admincatalogo=1,admintrasfcorp=1 WHERE id=?',[$corp,$branch,$role,$master]);

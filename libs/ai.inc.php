@@ -82,12 +82,12 @@ function aiMemory(string $chat, int $npc): string {
     return 'Fatti canonici prioritari: '.($row['canonical']??'')."\nCronaca dei dialoghi (non fatti verificati): ".($row['summary']??'');
 }
 function aiRemember(string $chat, int $npc, string $text): void {
-    aiDb()->execute("INSERT INTO aiMemory(chat_key,npc_id,summary,canonical,updated_at) VALUES(?,?,'',?,?) ON DUPLICATE KEY UPDATE canonical=VALUES(canonical),updated_at=VALUES(updated_at)",[$chat,$npc,$text,time()]);
+    aiDb()->execute("INSERT INTO ai_memory(chat_key,npc_id,summary,canonical,updated_at) VALUES(?,?,'',?,?) ON DUPLICATE KEY UPDATE canonical=VALUES(canonical),updated_at=VALUES(updated_at)",[$chat,$npc,$text,time()]);
 }
 function aiAppendMemory(string $chat, int $npc, string $text): void {
     $old=aiDb()->query('SELECT summary FROM ai_memory WHERE chat_key=? AND npc_id=?',[$chat,$npc])[0]['summary']??'';
     $chronicle=mb_substr($old."\n".$text,-900);
-    aiDb()->execute('INSERT INTO aiMemory(chat_key,npc_id,summary,updated_at) VALUES(?,?,?,?) ON DUPLICATE KEY UPDATE summary=VALUES(summary),updated_at=VALUES(updated_at)',[$chat,$npc,$chronicle,time()]);
+    aiDb()->execute('INSERT INTO ai_memory(chat_key,npc_id,summary,updated_at) VALUES(?,?,?,?) ON DUPLICATE KEY UPDATE summary=VALUES(summary),updated_at=VALUES(updated_at)',[$chat,$npc,$chronicle,time()]);
 }
 /** Sotto lock della stanza: idempotenza durevole, limiti globali e un solo turno pendente per luogo. */
 function aiEnqueueLocked(array $room, array $npc, int $user, string $key, string $prompt, string $kind, array $options=[]): array {

@@ -83,12 +83,12 @@ try {
     } elseif (!$room) { throw new DomainException('Salva prima l’ambientazione del luogo.',422); }
     elseif($action==='save_controls'){
         $nid=aiInteger($in,'npc_id',1,PHP_INT_MAX);if(!$db->query('SELECT id FROM ai_npcs WHERE id=? AND chat_key=? FOR UPDATE',[$nid,$chat])){ throw new DomainException(S1192_API_AI_PHP_49E634_PNG_NON_DISPONIBILE,404); }
-        $db->query('SELECT npc_id FROM ai_npc_rules WHERE npc_id=? FOR UPDATE',[$nid]);$db->query('SELECT npc_id FROM aiNpcGame WHERE npc_id=? FOR UPDATE',[$nid]);
+        $db->query('SELECT npc_id FROM ai_npc_rules WHERE npc_id=? FOR UPDATE',[$nid]);$db->query('SELECT npc_id FROM ai_npc_game WHERE npc_id=? FOR UPDATE',[$nid]);
         if(!hash_equals(aiNpcControlsRevision($nid),aiField($in,'revision',64,true))){ throw new DomainException('Regole modificate altrove: ricarica prima di salvare.',409); }
         if(!is_array($in['rules']??null)||!is_array($in['game']??null)){ throw new DomainException('Configurazione non valida.',422); }
         $reason=aiField($in,'reason',500,true);$before=['rules'=>aiSocialRules($nid),'game'=>aiNpcGame($nid)];$rules=aiSocialValidate($in['rules']);$game=aiNpcGameValidate($in['game'],$nid);
         $db->execute('INSERT INTO ai_npc_rules(npc_id,settings,updated_by,updated_at) VALUES(?,?,?,?) ON DUPLICATE KEY UPDATE settings=VALUES(settings),updated_by=VALUES(updated_by),updated_at=VALUES(updated_at)',[$nid,aiQuestJson($rules),$user,time()]);
-        $db->execute('INSERT INTO aiNpcGame(npc_id,settings,updated_by,updated_at) VALUES(?,?,?,?) ON DUPLICATE KEY UPDATE settings=VALUES(settings),version=version+1,updated_by=VALUES(updated_by),updated_at=VALUES(updated_at)',[$nid,aiQuestJson($game),$user,time()]);
+        $db->execute('INSERT INTO ai_npc_game(npc_id,settings,updated_by,updated_at) VALUES(?,?,?,?) ON DUPLICATE KEY UPDATE settings=VALUES(settings),version=version+1,updated_by=VALUES(updated_by),updated_at=VALUES(updated_at)',[$nid,aiQuestJson($game),$user,time()]);
         $db->execute("UPDATE ai_social_jobs s JOIN ai_jobs j ON j.id=s.job_id SET s.status='cancelled',s.error='Regole del PNG aggiornate dallo staff.' WHERE j.npc_id=? AND s.status IN('queued','running')",[$nid]);
         aiQuestAudit(0,'npc_controls_updated',['npc'=>$nid,'before'=>$before,'rules'=>$rules,'game'=>$game,'reason'=>$reason],$user);
     }

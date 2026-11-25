@@ -9,7 +9,7 @@ final class AiQuestDomainException extends DomainException {}
 final class AiQuestLogicException extends LogicException {}
 require_once __DIR__.'/notifications.inc.php';
 function aiQuestJson(mixed $v):string{return json_encode($v,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_INVALID_UTF8_SUBSTITUTE|JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);}
-function aiQuestAudit(int $session,string $type,array $data,int $actor=0):void{aiDb()->execute('INSERT INTO aiQuestAudit(session_id,actor_id,event_type,payload,created_at) VALUES(?,?,?,?,?)',[$session,$actor,$type,aiQuestJson($data),time()]);}
+function aiQuestAudit(int $session,string $type,array $data,int $actor=0):void{aiDb()->execute('INSERT INTO ai_quest_audit(session_id,actor_id,event_type,payload,created_at) VALUES(?,?,?,?,?)',[$session,$actor,$type,aiQuestJson($data),time()]);}
 /** Public output and its durable outbox share the transaction: replay never repeats announcements. */
 function aiQuestPublish(int $session,string $key,string $text,?string $html=null):int{
  $db=aiDb();$old=$db->query('SELECT chat_id FROM ai_quest_outbox WHERE event_key=?',[$key])[0]??null;if($old){ return (int)$old['chat_id']; }

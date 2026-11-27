@@ -7,15 +7,15 @@ require_once __DIR__.'/rpg.inc.php';
 function itemEngineReady():bool {static $r = null;return $r??=(bool)db()->query("SHOW TABLES LIKE 'equipment_state'");}
 /** A bounded, allowlisted specification travels through the existing model approval workflow. */
 function itemSpec(mixed $raw):array {
- $s=is_array($raw)?$raw:rpg_decode($raw);if(!$s){ return []; }
+ $s=is_array($raw)?$raw:rpgDecode($raw);if(!$s){ return []; }
  $kind=(string)($s['kind']??'tool');if(!in_array($kind,['tool','consumable','device','animal','container','feed','battery','generator'],true)){ throw new DomainException('Categoria funzionale non valida.',422); }
- $out=['kind'=>$kind,'charges'=>rpg_int($s['charges']??0,0,100,'Cariche'),'recharge_rounds'=>rpg_int($s['recharge_rounds']??0,0,30,'Ricarica'),'cooldown_rounds'=>rpg_int($s['cooldown_rounds']??0,0,20,'Recupero'),'effects'=>[],'target'=>($s['target']??'self')==='opponent'?'opponent':'self'];
- foreach(['capacity'=>500,'stock'=>10000,'training'=>3] as $k=>$max){ if(isset($s[$k])){ $out[$k]=rpg_int($s[$k],0,$max,$k); } }
+ $out=['kind'=>$kind,'charges'=>rpgInt($s['charges']??0,0,100,'Cariche'),'recharge_rounds'=>rpgInt($s['recharge_rounds']??0,0,30,'Ricarica'),'cooldown_rounds'=>rpgInt($s['cooldown_rounds']??0,0,20,'Recupero'),'effects'=>[],'target'=>($s['target']??'self')==='opponent'?'opponent':'self'];
+ foreach(['capacity'=>500,'stock'=>10000,'training'=>3] as $k=>$max){ if(isset($s[$k])){ $out[$k]=rpgInt($s[$k],0,$max,$k); } }
  if(isset($s['offensive_material'])){if(!in_array($s['offensive_material'],['ordinary','silver'],true)){ throw new DomainException('Materiale offensivo non valido.',422); }$out['offensive_material']=$s['offensive_material'];}
- foreach(['diet','family','utility','ammunition','fuel'] as $k){ if(isset($s[$k])&&trim((string)$s[$k])!==''){ $out[$k]=rpg_text($s[$k],$k==='utility'?700:80); } }
- foreach(['mount','stationary'] as $k){ if(isset($s[$k])){ $out[$k]=(bool)$s[$k]; } }if(isset($s['fuel_quantity'])){ $out['fuel_quantity']=rpg_int($s['fuel_quantity'],1,20,'Combustibile'); }
+ foreach(['diet','family','utility','ammunition','fuel'] as $k){ if(isset($s[$k])&&trim((string)$s[$k])!==''){ $out[$k]=rpgText($s[$k],$k==='utility'?700:80); } }
+ foreach(['mount','stationary'] as $k){ if(isset($s[$k])){ $out[$k]=(bool)$s[$k]; } }if(isset($s['fuel_quantity'])){ $out['fuel_quantity']=rpgInt($s['fuel_quantity'],1,20,'Combustibile'); }
  if(count($s['effects']??[])>4){ throw new DomainException('Massimo quattro effetti per oggetto.',422); }
- foreach($s['effects']??[] as $e){if(!is_array($e)||!in_array($e['type']??'',['heal','bonus','poison','stun','antidote','analgesia','distraction'],true)){ throw new DomainException('Effetto non valido.',422); }$stat=(string)($e['stat']??'strength');if(!in_array($stat,RPG_STATS,true)){ throw new DomainException('Caratteristica non valida.',422); }$out['effects'][]=['type'=>$e['type'],'amount'=>rpg_int($e['amount']??0,0,$e['type']==='heal'?250:($e['type']==='analgesia'?50:20),'Intensità'),'rounds'=>rpg_int($e['rounds']??0,0,10,'Durata'),'stat'=>$stat,'test'=>rpg_text($e['test']??'',40),'family'=>rpg_text($e['family']??($s['family']??$e['type']),80),'description'=>rpg_text($e['description']??'',600)];}
+ foreach($s['effects']??[] as $e){if(!is_array($e)||!in_array($e['type']??'',['heal','bonus','poison','stun','antidote','analgesia','distraction'],true)){ throw new DomainException('Effetto non valido.',422); }$stat=(string)($e['stat']??'strength');if(!in_array($stat,RPG_STATS,true)){ throw new DomainException('Caratteristica non valida.',422); }$out['effects'][]=['type'=>$e['type'],'amount'=>rpgInt($e['amount']??0,0,$e['type']==='heal'?250:($e['type']==='analgesia'?50:20),'Intensità'),'rounds'=>rpgInt($e['rounds']??0,0,10,'Durata'),'stat'=>$stat,'test'=>rpgText($e['test']??'',40),'family'=>rpgText($e['family']??($s['family']??$e['type']),80),'description'=>rpgText($e['description']??'',600)];}
  if(in_array($kind,['feed','consumable'],true)){ $out['charges']=1; }return $out;
 }
 function itemInstance(int $id,int $owner,bool $lock=false):array {
@@ -32,7 +32,7 @@ function itemEffectiveState(array $i,int $session=0,int $round=0):array {
  $s['_waiting']=$waiting;return $s;
 }
 function itemConditions(string $kind,int $id,int $session=0,int $round=0):array {
- if(!itemEngineReady()){ return []; }$rows=db()->query('SELECT * FROM equipment_conditions WHERE owner_kind=? AND owner_id=? AND ((session_id=? AND expires_round>=? AND session_id>0) OR (session_id=0 AND expires_at>?))',[$kind,$id,$session,$round,time()]);foreach($rows as &$r){ $r['effect']=rpg_decode($r['effect']); }return $rows;
+ if(!itemEngineReady()){ return []; }$rows=db()->query('SELECT * FROM equipment_conditions WHERE owner_kind=? AND owner_id=? AND ((session_id=? AND expires_round>=? AND session_id>0) OR (session_id=0 AND expires_at>?))',[$kind,$id,$session,$round,time()]);foreach($rows as &$r){ $r['effect']=rpgDecode($r['effect']); }return $rows;
 }
 function itemScoreModifier(array $conditions,string $test):float {
  $groups=['attack'=>['strength','dexterity','perception'],'defence'=>['dexterity','constitution','willpower'],'mental'=>['charisma','intelligence','willpower'],'resist'=>['willpower','wisdom','constitution'],'perception'=>['perception']];$families=[];
@@ -45,7 +45,7 @@ function itemStockDelivery(array $model,int $qty):void {
 }
 function itemUseCommit(int $owner,int $instance,string $operation,string $key,int $session=0,int $round=0,int $target=0):array {
  if(!db()->inTransaction()){ throw new LogicException('Uso oggetto fuori transazione.'); }
- $old=db()->query('SELECT after_state,instance_id,operation FROM equipment_ledger WHERE request_key=?',[$key])[0]??null;if($old){if((int)$old['instance_id']!==$instance||$old['operation']!==$operation){ throw new DomainException('Richiesta già usata per un’altra operazione.',409); }return rpg_decode($old['after_state']);}
+ $old=db()->query('SELECT after_state,instance_id,operation FROM equipment_ledger WHERE request_key=?',[$key])[0]??null;if($old){if((int)$old['instance_id']!==$instance||$old['operation']!==$operation){ throw new DomainException('Richiesta già usata per un’altra operazione.',409); }return rpgDecode($old['after_state']);}
  $u=db()->query('SELECT id,chat,razza,puntif,ferite FROM utenti WHERE id=? FOR UPDATE',[$owner])[0]??null;if(!$u||$u['puntif']<=0||in_array((int)$u['razza'],[4,7,8],true)){ throw new DomainException('Il personaggio non può usare oggetti.',403); }
  $i=itemInstance($instance,$owner,true);itemUsagePrecheck($i,$operation,$target,$round,$session);$spec=$i['rules'];if(!$spec){ throw new DomainException('Questo oggetto non ha un’attivazione speciale.',422); }$s=itemEffectiveState($i,$session,$round);unset($s['_waiting']);$before=['item'=>$i['shortDesc'],'state'=>$s];
  if($operation==='recharge'){
@@ -76,17 +76,17 @@ function itemUseCommit(int $owner,int $instance,string $operation,string $key,in
   if(in_array($spec['kind'],['consumable','feed'],true)){ db()->execute(ITEM_ENGINE_INC_DELETE_FROM_EQUIPPG_WHERE_ID,[$instance]); }
  }else { throw new DomainException('Operazione sconosciuta.',422); }
  if(db()->query('SELECT id FROM equippg WHERE id=?',[$instance])){ itemSaveState($s); }
- $after=['state'=>$s,'operation'=>$operation,'name'=>$i['shortDesc']];db()->execute('INSERT INTO equipment_ledger(request_key,actor_id,instance_id,operation,session_id,round_number,before_state,after_state,created_at) VALUES(?,?,?,?,?,?,?,?,?)',[$key,$owner,$instance,$operation,$session,$round,rpg_json($before),rpg_json($after),time()]);return $after;
+ $after=['state'=>$s,'operation'=>$operation,'name'=>$i['shortDesc']];db()->execute('INSERT INTO equipment_ledger(request_key,actor_id,instance_id,operation,session_id,round_number,before_state,after_state,created_at) VALUES(?,?,?,?,?,?,?,?,?)',[$key,$owner,$instance,$operation,$session,$round,rpgJson($before),rpgJson($after),time()]);return $after;
 }
 /** Out-of-quest effects are strictly self-targeted; harmful items need a verified quest declaration. */
 function itemUsePersonal(int $owner,int $instance,string $op,int $target,string $request):array {
  return equipAtomico(static function()use($owner,$instance,$op,$target,$request):array{
-  db()->query('SELECT id FROM utenti WHERE id=? FOR UPDATE',[$owner]);$key='personal:'.$owner.':'.$request;$old=db()->query('SELECT after_state,instance_id,operation FROM equipment_ledger WHERE request_key=?',[$key])[0]??null;if($old){if((int)$old['instance_id']!==$instance||$old['operation']!==$op){ throw new DomainException('Richiesta già usata per un’altra operazione.',409); }return rpg_decode($old['after_state']);}
+  db()->query('SELECT id FROM utenti WHERE id=? FOR UPDATE',[$owner]);$key='personal:'.$owner.':'.$request;$old=db()->query('SELECT after_state,instance_id,operation FROM equipment_ledger WHERE request_key=?',[$key])[0]??null;if($old){if((int)$old['instance_id']!==$instance||$old['operation']!==$op){ throw new DomainException('Richiesta già usata per un’altra operazione.',409); }return rpgDecode($old['after_state']);}
   if(function_exists('aiQuestRow')){$u=db()->query('SELECT chat FROM utenti WHERE id=?',[$owner])[0];if(aiQuestRow($u['chat'])){ throw new DomainException('Durante una quest dichiara l’uso dalla chat nel tuo turno.',409); }}
   $i=itemInstance($instance,$owner,true);$spec=$i['rules'];if($op==='activate'&&($spec['target']??'self')!=='self'){ throw new DomainException('Questo effetto richiede un bersaglio e la risoluzione del Master in quest.',422); }
   if($op==='activate'&&array_filter($spec['effects']??[],static fn($e)=>$e['type']==='heal')){$hp=(int)db()->query('SELECT puntif FROM utenti WHERE id=?',[$owner])[0]['puntif'];if($hp>=MAXPUNTIF){ throw new DomainException('Salute già al massimo: la dose non viene consumata.',409); }}
   $result=itemUseCommit($owner,$instance,$op,$key,0,0,$target);
-  if($op==='activate'){ foreach($spec['effects'] as $e){if($e['type']==='heal'){ db()->execute('UPDATE utenti SET puntif=LEAST(?,puntif+?) WHERE id=?',[MAXPUNTIF,$e['amount'],$owner]); }elseif($e['type']==='antidote'){ db()->execute("DELETE FROM equipment_conditions WHERE owner_kind='pg' AND owner_id=? AND family=?",[$owner,$e['family']]); }else { db()->execute("INSERT INTO equipment_conditions(owner_kind,owner_id,family,effect,expires_at,source_instance) VALUES('pg',?,?,?,?,?)",[$owner,$e['family'],rpg_json($e),time()+max(1,$e['rounds'])*60,$instance]); }} }
+  if($op==='activate'){ foreach($spec['effects'] as $e){if($e['type']==='heal'){ db()->execute('UPDATE utenti SET puntif=LEAST(?,puntif+?) WHERE id=?',[MAXPUNTIF,$e['amount'],$owner]); }elseif($e['type']==='antidote'){ db()->execute("DELETE FROM equipment_conditions WHERE owner_kind='pg' AND owner_id=? AND family=?",[$owner,$e['family']]); }else { db()->execute("INSERT INTO equipment_conditions(owner_kind,owner_id,family,effect,expires_at,source_instance) VALUES('pg',?,?,?,?,?)",[$owner,$e['family'],rpgJson($e),time()+max(1,$e['rounds'])*60,$instance]); }} }
   return $result;
  });
 }
@@ -96,12 +96,12 @@ function itemInventory(int $owner):array {
 function itemDeclare(int $owner,int $instance,string $operation,int $provider,int $sid,int $round):array {
  $i=itemInstance($instance,$owner,true);itemUsagePrecheck($i,$operation,$provider,$round,$sid);$s=itemState($i,true);if(!$i['rules']){ throw new DomainException('Oggetto senza proprietà speciali.',422); }if(!in_array($operation,['activate','recharge','feed'],true)){ throw new DomainException('Operazione non dichiarabile.',422); }
  if($i['rules']['kind']==='animal'||$i['rules']['kind']==='container'){ throw new DomainException('Gestisci questo bene dall’equipaggiamento.',422); }
- $snapshot=['instance'=>$instance,'model'=>(int)$i['uid'],'name'=>$i['shortDesc'],'rules'=>$i['rules'],'state'=>$s,'provider'=>$provider,'operation'=>$operation];db()->execute("INSERT INTO equipment_declarations(session_id,round_number,owner_kind,owner_id,instance_id,operation,snapshot) VALUES(?,?,'pg',?,?,?,?)",[$sid,$round,$owner,$instance,$operation,rpg_json($snapshot)]);return ['id'=>(int)db()->lastInsertId(),'name'=>$i['shortDesc']];
+ $snapshot=['instance'=>$instance,'model'=>(int)$i['uid'],'name'=>$i['shortDesc'],'rules'=>$i['rules'],'state'=>$s,'provider'=>$provider,'operation'=>$operation];db()->execute("INSERT INTO equipment_declarations(session_id,round_number,owner_kind,owner_id,instance_id,operation,snapshot) VALUES(?,?,'pg',?,?,?,?)",[$sid,$round,$owner,$instance,$operation,rpgJson($snapshot)]);return ['id'=>(int)db()->lastInsertId(),'name'=>$i['shortDesc']];
 }
 function itemDeclaration(array $action,int $sid,int $round):?array {
- $d=rpg_decode($action['details']);if(empty($d['item'])){ return null; }
+ $d=rpgDecode($action['details']);if(empty($d['item'])){ return null; }
  $r=db()->query('SELECT * FROM equipment_declarations WHERE id=? AND session_id=? AND round_number=? AND owner_kind=? AND owner_id=?',[(int)$d['item']['id'],$sid,$round,$action['kind'],$action['actor_id']])[0]??null;if(!$r){ throw new DomainException('Dichiarazione oggetto non verificabile.',422); }
- $snap=rpg_decode($r['snapshot']);$i=itemInstance((int)$r['instance_id'],(int)$r['owner_id']);if($i['rules']!==$snap['rules']||itemState($i)!==$snap['state']){ throw new DomainException('L’oggetto o le sue cariche sono cambiati: dichiara nuovamente l’azione.',409); }return $snap;
+ $snap=rpgDecode($r['snapshot']);$i=itemInstance((int)$r['instance_id'],(int)$r['owner_id']);if($i['rules']!==$snap['rules']||itemState($i)!==$snap['state']){ throw new DomainException('L’oggetto o le sue cariche sono cambiati: dichiara nuovamente l’azione.',409); }return $snap;
 }
 function itemActiveScene(array $state,int $sid,int $round,string $kind,int $id):array {
  $entries=array_values(array_filter($state['item_effects']??[],static fn($e)=>!isset($e['id'])&&(int)$e['expires_round']>=$round));return [...$entries,...itemConditions($kind,$id,$sid,$round)];
@@ -116,7 +116,7 @@ function itemSceneAction(array $declaration,array $actor,array $target,int $sid,
  if($training){$result['outcome']='simula l’impiego del manufatto';$result['reason']='L’allenamento non consuma dosi né cariche e non applica effetti persistenti.';return true;}
  if($s['effects']&&count($s['effects'])===1&&$s['effects'][0]['type']==='heal'&&$hp[$key]>=MAXPUNTIF){$result['outcome']='conserva la dose';$result['reason']='La salute è già al massimo: nessuna dose viene consumata.';return true;}
  $changes[]=['type'=>'item-use','kind'=>'pg','id'=>$owner,'declaration'=>$declaration];$text=[];$harmSucceeded=true;
- if($s['target']==='opponent'){$attack=rpg_actor_stats($actor['kind'],$owner)['dexterity']+$roll;$resist=rpg_actor_stats($target['kind'],(int)$target['id'])['constitution']+$defence;$harmSucceeded=$attack>$resist;$text[]=$harmSucceeded?'Il bersaglio non supera la prova di resistenza.':'Il bersaglio resiste: la dose o carica impiegata è consumata, ma l’effetto ostile non si applica.';}
+ if($s['target']==='opponent'){$attack=rpgActorStats($actor['kind'],$owner)['dexterity']+$roll;$resist=rpgActorStats($target['kind'],(int)$target['id'])['constitution']+$defence;$harmSucceeded=$attack>$resist;$text[]=$harmSucceeded?'Il bersaglio non supera la prova di resistenza.':'Il bersaglio resiste: la dose o carica impiegata è consumata, ma l’effetto ostile non si applica.';}
  foreach($s['effects'] as $e){$hostile=in_array($e['type'],['poison','stun','distraction'],true);if($hostile&&!$harmSucceeded){ continue; }$dest=$hostile?$targetKey:$key;
   if($e['type']==='heal'){$gain=min($e['amount'],MAXPUNTIF-$hp[$key]);$hp[$key]+=$gain;$result['healing']=$gain;$text[]='Recupera '.$gain.' PF senza cancellare ferite permanenti.';}
   elseif($e['type']==='antidote'){$conditions[$key]['item_effects']=array_values(array_filter($conditions[$key]['item_effects']??[],static fn($r)=>$r['effect']['type']!=='poison'||$r['family']!==$e['family']));$text[]='Il veleno della famiglia '.$e['family'].' viene neutralizzato, senza recuperare danni già subiti.';}

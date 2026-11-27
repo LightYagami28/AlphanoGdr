@@ -3,11 +3,11 @@ declare(strict_types=1);
 require_once __DIR__.'/rpg.inc.php';
 require_once __DIR__.'/profile-art.inc.php';
 require_once __DIR__.'/manuals.inc.php';
-function alphanoRaceMemberCounts():array {return array_column(connectDB()->query('SELECT '.alphano_race_sql().' AS race_id,COUNT(*) AS total FROM utenti GROUP BY race_id'),'total','race_id');}
+function alphanoRaceMemberCounts():array {return array_column(connectDB()->query('SELECT '.alphanoRaceSql().' AS race_id,COUNT(*) AS total FROM utenti GROUP BY race_id'),'total','race_id');}
 function alphanoRaceMembers(?int $raceId=null,int $offset=0,?int $limit=null):array {
- $groups=[];$where=$raceId===null?'':' WHERE '.alphano_race_sql().'=?';$params=$raceId===null?[]:[$raceId];
+ $groups=[];$where=$raceId===null?'':' WHERE '.alphanoRaceSql().'=?';$params=$raceId===null?[]:[$raceId];
  $pagination=$limit===null?'':' LIMIT '.max(1,min(20,$limit)).' OFFSET '.max(0,$offset);
- foreach(connectDB()->query('SELECT id,nome,razza,vampire_human_form,sesso,infetto,ancestrale,avatar,avatar2,'.alphano_race_sql().' AS logical_race FROM utenti'.$where.' ORDER BY nome,id'.$pagination,$params) as $user){
+ foreach(connectDB()->query('SELECT id,nome,razza,vampire_human_form,sesso,infetto,ancestrale,avatar,avatar2,'.alphanoRaceSql().' AS logical_race FROM utenti'.$where.' ORDER BY nome,id'.$pagination,$params) as $user){
   $race=(int)$user['logical_race'];$portrait=alphanoProfilePortrait($user);$visible=alphanoVisibleRace($user);$groups[$race][]=['id'=>(int)$user['id'],'name'=>$user['nome'],'portrait'=>$portrait['url'],'portrait_default'=>$portrait['default'],'human_form'=>$visible===alphanoHumanRaceId()&&$visible!==$race];
  }
  return $groups;
@@ -18,11 +18,11 @@ function alphanoRaceLore(array $race):array {
 }
 
 function alphanoRaceView(?int $id):array {
- $catalog=rpg_catalog();$races=$catalog['races'];$selected=null;$counts=alphanoRaceMemberCounts();$members=$id===null?[]:alphanoRaceMembers($id,0,20);
- foreach($races as &$race){$race['banner']=alphanoProfileDefaultBanner();$race['icon']=alphanoRaceIcon();$race['members']=$members[$race['id']]??[];$race['members_count']=(int)($counts[$race['id']]??0);$race['counts']=['innate'=>0,'special'=>0,'purchasable'=>0];foreach($catalog['abilities'] as $a){ if($a['enabled']&&rpg_ability_race_allowed($a,(int)$race['id'])){ $race['counts'][$a['category']]++; } }if($id===$race['id']){ $selected=$race; }}unset($race);
+ $catalog=rpgCatalog();$races=$catalog['races'];$selected=null;$counts=alphanoRaceMemberCounts();$members=$id===null?[]:alphanoRaceMembers($id,0,20);
+ foreach($races as &$race){$race['banner']=alphanoProfileDefaultBanner();$race['icon']=alphanoRaceIcon();$race['members']=$members[$race['id']]??[];$race['members_count']=(int)($counts[$race['id']]??0);$race['counts']=['innate'=>0,'special'=>0,'purchasable'=>0];foreach($catalog['abilities'] as $a){ if($a['enabled']&&rpgAbilityRaceAllowed($a,(int)$race['id'])){ $race['counts'][$a['category']]++; } }if($id===$race['id']){ $selected=$race; }}unset($race);
  if($id!==null&&!$selected){ throw new DomainException('Razza non trovata.',404); }
  $groups=['innate'=>[],'purchasable'=>[]];$abilityNames=array_column($catalog['abilities'],'name','id');$statNames=array_column($catalog['stats'],'name','key');
- if($selected){ foreach($catalog['abilities'] as $a){ if($a['enabled']&&rpg_ability_race_allowed($a,(int)$selected['id'])){
+ if($selected){ foreach($catalog['abilities'] as $a){ if($a['enabled']&&rpgAbilityRaceAllowed($a,(int)$selected['id'])){
   $a['requirements_text']=[];foreach($a['requirements']['stats']??[] as $key=>$value){ $a['requirements_text'][]=$statNames[$key].' ≥ '.$value; }
   foreach($a['requirements']['abilities']??[] as $required){ $a['requirements_text'][]=$abilityNames[$required]??'Abilità #'.$required; }
   if(($a['requirements']['sentient']??null)===true){ $a['requirements_text'][]='Senzienza'; }

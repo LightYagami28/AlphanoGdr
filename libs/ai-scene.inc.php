@@ -21,7 +21,7 @@ function aiNarrativeRoleAliases(string $role):array {
 function aiNarrativeSceneContext(string $chat,int $player,int $source=0,?array $npcs=null,bool $withPlayers=false):array {
     $db=aiDb();$npcs??=aiDialogueNpcs($chat,$player);$present=[];$ids=[];
     foreach($npcs as $n){ if(($n['chat_key']??$chat)===$chat&&!empty($n['active'])){ $ids[]=(int)$n['id']; } }
-    $settings=[];if($ids){ foreach($db->query('SELECT npc_id,settings FROM aiNpcGame WHERE npc_id IN('.implode(',',array_fill(0,count($ids),'?')).')',$ids) as $row){ $settings[(int)$row['npc_id']]=json_decode($row['settings'],true)?:[]; } }
+    $settings=[];if($ids){ foreach($db->query('SELECT npc_id,settings FROM ai_npc_game WHERE npc_id IN('.implode(',',array_fill(0,count($ids),'?')).')',$ids) as $row){ $settings[(int)$row['npc_id']]=json_decode($row['settings'],true)?:[]; } }
     foreach($npcs as $n){if(!in_array((int)$n['id'],$ids,true)){ continue; }$p=aiNpcProfile($n);$g=$settings[(int)$n['id']]??[];$present[]=['kind'=>'npc','id'=>(int)$n['id'],'name'=>$n['name'],'active'=>true,'gender'=>$p['sex'],'race_id'=>(int)$p['race_id'],'titles'=>aiNarrativeRoleAliases(($g['rank']??'').' '.$p['occupation'])];}
     if($withPlayers){ foreach($db->query('SELECT id,nome,sesso,razza FROM utenti WHERE chat=? AND id<>? AND bloccato=0 AND puntif>0',[$chat,$player]) as $p){ $present[]=['kind'=>'pg','id'=>(int)$p['id'],'name'=>$p['nome'],'gender'=>$p['sesso'],'race_id'=>(int)$p['razza'],'active'=>true]; } }
     $context=['actor'=>'pg:'.$player];

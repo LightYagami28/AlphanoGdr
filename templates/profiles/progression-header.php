@@ -1,14 +1,14 @@
 <?php
 /* Render actual values with the page; JavaScript adds training and live updates. */
 require_once __DIR__.'/../../libs/rpg.inc.php';
-$progressKind=rpg_kind((string)($sheet['rpg_kind']??(isset($sheet['npc_id'])?'npc':'pg')));
+$progressKind=rpgKind((string)($sheet['rpg_kind']??(isset($sheet['npc_id'])?'npc':'pg')));
 $progressId=(int)($sheet['rpg_id']??$sheet['npc_id']??0);
-$progressIdentity=rpg_identity($progressKind,$progressId);
-$progressState=rpg_progress($progressKind,$progressId);
-$progressStats=rpg_characteristics($progressIdentity,$progressState);
+$progressIdentity=rpgIdentity($progressKind,$progressId);
+$progressState=rpgProgress($progressKind,$progressId);
+$progressStats=rpgCharacteristics($progressIdentity,$progressState);
 $progressSex=($sheet['design']['sex']??'Maschio')==='Femmina'?'female':'male';
 $progressSeal=$sheet['seal']??alphanoProfileRaceSeal();
-$progressSealLabel=$sheet['seal_label']??rpg_race($progressIdentity['race_id'])['name'];
+$progressSealLabel=$sheet['seal_label']??rpgRace($progressIdentity['race_id'])['name'];
 $progressEscape=static fn($value)=>htmlspecialchars((string)$value,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
 ?>
  <header class="progression-summary">

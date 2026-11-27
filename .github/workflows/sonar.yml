@@ -70,6 +70,6 @@ jobs:
             -Dsonar.sources=. \
             -Dsonar.tests=tests \
             -Dsonar.exclusions=vendor/**,tests/** \
-            -Dsonar.coverage.exclusions=vendor/**,libs/web-push.inc.php \
+            -Dsonar.coverage.exclusions=vendor/** \
             -Dsonar.php.coverage.reportPaths=tests/runtime/coverage.xml \
             -Dsonar.javascript.lcov.reportPaths=tests/runtime/js-coverage.lcov

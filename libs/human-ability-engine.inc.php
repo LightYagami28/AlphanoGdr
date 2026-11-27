@@ -12,7 +12,7 @@ function rpgHumanActiveBuffs(array $state,int $round):array {return array_values
 function rpgHumanBuff(array &$state,array $a,int $round,array $tests,string $source):void {
  $state['human_buffs']=array_values(array_filter($state['human_buffs']??[],static fn($b)=>$b['key']!==$a['key']));$state['human_buffs'][]=['key'=>$a['key'],'number'=>$a['human_rules']['number'],'name'=>$a['name'],'bonus'=>$a['effect']['bonus'],'tests'=>$tests,'source'=>$source,'owner_kind'=>$a['owner_kind']??null,'owner_id'=>$a['owner_id']??null,'single_use'=>!empty($a['human_rules']['single_use']),'from'=>$round,'until'=>$round+$a['human_rules']['duration']-1];
 }
-function rpgWeaponSilver(?array $weapon):bool {if(!$weapon){ return false; }$rules=rpg_decode($weapon['game_rules']??'{}');return ($rules['offensive_material']??'')==='silver';}
+function rpgWeaponSilver(?array $weapon):bool {if(!$weapon){ return false; }$rules=rpgDecode($weapon['game_rules']??'{}');return ($rules['offensive_material']??'')==='silver';}
 /** The first applicable attempt consumes single-use buffs even when the final action misses. */
 function rpgHumanConsume(array &$state,string $test,int $round):void {
  $state['human_buffs']=array_values(array_filter($state['human_buffs']??[],static fn($b)=>!((int)$b['from']<=$round&&(int)$b['until']>=$round&&in_array($test,$b['tests'],true)&&!empty($b['single_use']))));
@@ -23,9 +23,9 @@ function rpgHumanValidBuffs(array $state,int $round,array $actor):array {
  return array_values(array_filter(rpgHumanActiveBuffs($state,$round),static function($b)use($actor){
   $result=false;
   if(!empty($b['owner_kind'])&&!empty($b['owner_id'])){
-   try{rpg_get_ability($b['owner_kind'],(int)$b['owner_id'],(int)(array_column(array_filter(rpg_catalog()['abilities'],static fn($a)=>$a['key']===$b['key']),'id')[0]??0));$result=true;}catch(DomainException){$result=false;}
+   try{rpgGetAbility($b['owner_kind'],(int)$b['owner_id'],(int)(array_column(array_filter(rpgCatalog()['abilities'],static fn($a)=>$a['key']===$b['key']),'id')[0]??0));$result=true;}catch(DomainException){$result=false;}
   }else{
-   foreach(rpg_catalog()['abilities'] as $a){ if($a['key']===$b['key']){ $result=rpgAbilityFormReason($a,rpg_identity($actor['kind'],(int)$actor['id']))===''; break; } }
+   foreach(rpgCatalog()['abilities'] as $a){ if($a['key']===$b['key']){ $result=rpgAbilityFormReason($a,rpgIdentity($actor['kind'],(int)$actor['id']))===''; break; } }
   }
   return $result;
  }));

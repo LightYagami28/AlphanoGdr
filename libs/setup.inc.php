@@ -22,17 +22,17 @@ function alphanoSetupSave(string $step,array $in,int $actor):void {
  $db=connectDB();$pdo=$db->getConnection();$insert=static fn($table,$values)=>alphanoSeedInsert($pdo,$table,$values);
  if($step==='races'){
   $input=$in;$input['name']=$in['name']??'';foreach(['special','enabled','human_default','transformation_enabled','loses_human_language'] as $k){ $input[$k]=!empty($in[$k]); }
-  rpg_admin_save_race($input,$actor);$default=alphanoHumanRaceId(true);alphanoSetupSettings(['initial_race'=>$default]);
+  rpgAdminSaveRace($input,$actor);$default=alphanoHumanRaceId(true);alphanoSetupSettings(['initial_race'=>$default]);
   if($default){ $db->execute('UPDATE utenti SET razza=? WHERE razza=0',[$default]); }return;
  }
  if($step==='appearance'){
   $out=[];foreach(['theme'=>array_keys(alphanoThemes()),'sidebar_position'=>['left','right'],'header_position'=>['top','bottom']] as $k=>$allowed){if(!in_array($in[$k]??'', $allowed,true)){ throw new DomainException('Opzione template non valida.'); }$out[$k]=$in[$k];}alphanoSetupSettings($out);return;
  }
  if($step==='rules'){
-  $points=rpg_int($in['initial_points']??20,0,100,'Punti iniziali');
+  $points=rpgInt($in['initial_points']??20,0,100,'Punti iniziali');
   // Creation and combat share eight stable keys; labels are freely editable.
-  $names=[];foreach(rpg_catalog()['stats'] as $stat){ $names[$stat['key']]=rpg_text($in['stat_names'][$stat['key']]??'',80,true); }
-  $privacy=rpg_text($in['privacy_text']??'',20000,true);$terms=rpg_text($in['terms_text']??'',20000,true);
+  $names=[];foreach(rpgCatalog()['stats'] as $stat){ $names[$stat['key']]=rpgText($in['stat_names'][$stat['key']]??'',80,true); }
+  $privacy=rpgText($in['privacy_text']??'',20000,true);$terms=rpgText($in['terms_text']??'',20000,true);
   foreach($names as $key=>$name){ $db->execute('UPDATE rpg_characteristics SET name=? WHERE stat_key=?',[$name,$key]); }
   alphanoSetupSettings(['initial_points'=>$points,'abilities_enabled'=>!empty($in['abilities_enabled']),'privacy_text'=>$privacy,'terms_text'=>$terms]);return;
  }
@@ -46,21 +46,21 @@ function alphanoSetupSave(string $step,array $in,int $actor):void {
  $db->beginTransaction();try{
   if($step==='chats'){
    $area=(int)($in['area_id']??0);$parent=$db->query('SELECT * FROM world_areas WHERE id=?',[$area])[0]??null;
-   if(!$parent){$title=rpg_text($in['area_title']??'',120,true);$slug='area_'.bin2hex(random_bytes(6));$area=$insert('world_areas',['slug'=>$slug,'title'=>$title,'description'=>'','image'=>S1192_LIBS_SETUP_INC_PHP_546606_ASSETS_PLACEHOLDER_SVG]);$parent=['slug'=>$slug];}
-   if(($in['action']??'')==='demo_chats'){ $titles=['Piazza','Locanda','Giardino','Biblioteca']; }else { $titles=[rpg_text($in['name']??'',120,true)]; }
-   foreach($titles as $i=>$title){ $insert('mappe',['chat_key'=>'room_'.bin2hex(random_bytes(8)),'chat'=>1,'title'=>$title,'position'=>$parent['slug'],'descrizione'=>rpg_text($in['description']??'',10000),'scene_image'=>S1192_LIBS_SETUP_INC_PHP_546606_ASSETS_PLACEHOLDER_SVG,'scene_thumbnail'=>S1192_LIBS_SETUP_INC_PHP_546606_ASSETS_PLACEHOLDER_SVG,'public_enabled'=>1,'area_id'=>$area,'sort_order'=>$i]); }
+   if(!$parent){$title=rpgText($in['area_title']??'',120,true);$slug='area_'.bin2hex(random_bytes(6));$area=$insert('world_areas',['slug'=>$slug,'title'=>$title,'description'=>'','image'=>S1192_LIBS_SETUP_INC_PHP_546606_ASSETS_PLACEHOLDER_SVG]);$parent=['slug'=>$slug];}
+   if(($in['action']??'')==='demo_chats'){ $titles=['Piazza','Locanda','Giardino','Biblioteca']; }else { $titles=[rpgText($in['name']??'',120,true)]; }
+   foreach($titles as $i=>$title){ $insert('mappe',['chat_key'=>'room_'.bin2hex(random_bytes(8)),'chat'=>1,'title'=>$title,'position'=>$parent['slug'],'descrizione'=>rpgText($in['description']??'',10000),'scene_image'=>S1192_LIBS_SETUP_INC_PHP_546606_ASSETS_PLACEHOLDER_SVG,'scene_thumbnail'=>S1192_LIBS_SETUP_INC_PHP_546606_ASSETS_PLACEHOLDER_SVG,'public_enabled'=>1,'area_id'=>$area,'sort_order'=>$i]); }
   }elseif($step==='ethnicities'){
-   $id=(int)($in['id']??0);$name=rpg_text($in['name']??'',120,true);$desc=rpg_text($in['description']??'',10000);
+   $id=(int)($in['id']??0);$name=rpgText($in['name']??'',120,true);$desc=rpgText($in['description']??'',10000);
    if($id){if(!$db->query('SELECT id FROM etnie WHERE id=?',[$id])){ throw new DomainException('Etnia non trovata.'); }$db->execute('UPDATE etnie SET nome=?,descrizione=? WHERE id=?',[$name,$desc,$id]);}else { $insert('etnie',['nome'=>$name,'descrizione'=>$desc]); }
   }elseif($step==='cities'){
-   $id=(int)($in['id']??0);$name=rpg_text($in['name']??'',100,true);$description=rpg_text($in['description']??'',10000);$elections=(int)!empty($in['elections_enabled']);
+   $id=(int)($in['id']??0);$name=rpgText($in['name']??'',100,true);$description=rpgText($in['description']??'',10000);$elections=(int)!empty($in['elections_enabled']);
    if($id){if(!$db->query('SELECT id FROM city WHERE id=?',[$id])){ throw new DomainException('Città non trovata.'); }$db->execute('UPDATE city SET city=?,statuto=?,elections_enabled=?,elezioni=? WHERE id=?',[$name,$description,$elections,(string)$elections,$id]);}
    else{$id=$insert('city',['city'=>$name,'statuto'=>$description,'newstatuto'=>'','budget'=>0,'elections_enabled'=>$elections,'elezioni'=>(string)$elections]);$insert('araldiche',['nome'=>'Cittadino','prima'=>'1','city'=>$id,'descrizione'=>'Cittadinanza','livello'=>1]);}
    $area=(int)($in['area_id']??0);
    if($area){if(!$db->query('SELECT id FROM world_areas WHERE id=?',[$area])){ throw new DomainException('Destinazione non trovata.'); }$db->execute('UPDATE world_areas SET city_id=?,title=?,description=? WHERE id=?',[$id,$name,$description,$area]);}
    elseif(!$db->query('SELECT id FROM world_areas WHERE city_id=?',[$id])){ $insert('world_areas',['city_id'=>$id,'slug'=>'city_'.bin2hex(random_bytes(6)),'title'=>$name,'description'=>$description,'image'=>S1192_LIBS_SETUP_INC_PHP_546606_ASSETS_PLACEHOLDER_SVG]); }
   }elseif(in_array($step,['organizations','corporations'],true)){
-   $org=$step==='organizations';$table=$org?'organizzazioni':'corporazioni';$singular=$org?'organizzazione':'corporazione';$id=(int)($in['id']??0);$name=rpg_text($in['name']??'',100,true);$desc=rpg_text($in['description']??'',10000);$city=(int)($in['city_id']??0);$c=$city?$db->query('SELECT city FROM city WHERE id=?',[$city])[0]??null:null;if($city&&!$c){ throw new DomainException('Città non valida.'); }$town=$org?($c['city']??''):$city;
+   $org=$step==='organizations';$table=$org?'organizzazioni':'corporazioni';$singular=$org?'organizzazione':'corporazione';$id=(int)($in['id']??0);$name=rpgText($in['name']??'',100,true);$desc=rpgText($in['description']??'',10000);$city=(int)($in['city_id']??0);$c=$city?$db->query('SELECT city FROM city WHERE id=?',[$city])[0]??null:null;if($city&&!$c){ throw new DomainException('Città non valida.'); }$town=$org?($c['city']??''):$city;
    if($id){if(!$db->query('SELECT id FROM '.$table.' WHERE id=?',[$id])){ throw new DomainException('Gruppo non trovato.'); }$db->execute('UPDATE '.$table.' SET nome=?,descrizione=?,city=? WHERE id=?',[$name,$desc,$town,$id]);}
    else{$id=$insert($table,['nome'=>$name,'idmaster'=>$actor,'newidmaster'=>$actor,'approvato'=>'1','city'=>$town,'statuto'=>$desc,'newstatuto'=>$desc,'descrizione'=>$desc,'budget'=>0]);$insert('cariche'.$table,[$singular=>$id,'nome'=>'Responsabile','prima'=>'1','livello'=>10,'descrizione'=>'Responsabile del gruppo']);$insert('cariche'.$table,[$singular=>$id,'nome'=>'Membro','prima'=>'0','livello'=>1,'descrizione'=>'Membro del gruppo']);}
   }else { throw new DomainException('Passaggio non modificabile da questa pagina.'); }

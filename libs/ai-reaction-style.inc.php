@@ -139,7 +139,7 @@ function aiReactionStylePreface(array $npc,array $profile,array $reaction,array 
     $game=aiNpcGame($nid);
     // Reuse RPG formulas without the full sheet's ability/equipment/history queries.
     $race=(int)$profile['race_id'];if($race===ALPHANO_RACE_LEGACY_SPIRIT){ $race=ALPHANO_RACE_SPIRIT; }
-    $stats=rpg_stat_values(['race_id'=>$race],rpg_progress('npc',$nid));
+    $stats=rpgStatValues(['race_id'=>$race],rpgProgress('npc',$nid));
     $relation=$actor>0?aiRelation($nid,$actor):[];$rules=aiSocialRules($nid);
     return aiReactionStyleCompose($npc,$profile,$reaction,$event,['traits'=>$game['traits'],'stats'=>$stats,'relation'=>$relation,'hidden_emotions'=>!empty($rules['hidden_emotions'])],$witnesses);
 }

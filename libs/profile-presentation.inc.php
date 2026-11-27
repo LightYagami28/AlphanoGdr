@@ -10,7 +10,7 @@ function alphanoProfileLabel(string $value):string {
 }
 /** Strength shown in the sheet comes from the same progression as combat. */
 function alphanoProfileStrength(string $kind,int $id,int $race):int {
- if(rpg_ready()){ return (int)rpg_actor_stats($kind,$id)['strength']; }
+ if(rpgReady()){ return (int)rpgActorStats($kind,$id)['strength']; }
  return (int)(connectDB()->query('SELECT forza FROM razze WHERE id=?',[$race])[0]['forza']??0);
 }
 /** Public sheet decoration; controllers keep all authorization and private fields. */

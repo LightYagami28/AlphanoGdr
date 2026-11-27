@@ -4,10 +4,10 @@ const AI_NPC_TRAITS=['aggression'=>'Aggressività','courage'=>'Coraggio','impuls
 const AI_NPC_STANCES=['combattivo','difensivo','prudente','noncombattente'];
 const AI_NPC_SUPER_RULES=['ordinary_cap'=>20,'elite_cap'=>5,'training_min'=>50,'courage_min'=>60,'stats_min'=>30,'stats_full'=>60,'abilities_full'=>3,'decisive_hp_percent'=>10];
 const AI_GAME_SLOTS=['','guanti','elmo','mantello','veste','armasx','armatura','armadx','bracciali','faretra','stivali','scudo','musica','anellosx','collana','anellodx','attrezzi'];
-function aiNpcSuperRaces():array{return array_values(array_filter(rpg_catalog()['races'],static fn($r)=>(!empty($r['special'])||!empty($r['transformation_enabled']))&&!empty($r['enabled'])&&empty($r['human_default'])));}
+function aiNpcSuperRaces():array{return array_values(array_filter(rpgCatalog()['races'],static fn($r)=>(!empty($r['special'])||!empty($r['transformation_enabled']))&&!empty($r['enabled'])&&empty($r['human_default'])));}
 function aiNpcSuperDefaults():array{return ['enabled'=>0,'target_race_ids'=>[],'training'=>0,'important_role'=>0,'ordinary_victory_cap'=>AI_NPC_SUPER_RULES['ordinary_cap'],'elite_victory_cap'=>AI_NPC_SUPER_RULES['elite_cap']];}
 function aiNpcGameDefaults():array{return ['super'=>aiNpcSuperDefaults(),'traits'=>array_fill_keys(array_keys(AI_NPC_TRAITS),50),'stance'=>'prudente','faction'=>'','rank'=>'','superior_kind'=>'none','superior_id'=>0,'organization_office_id'=>0,'corporation_office_id'=>0,'allies'=>[],'enemies'=>[],'autonomous'=>0,'sentient'=>0,'conditions'=>'','duties'=>''];}
-function aiNpcGame(int $id):array{$row=aiDb()->query('SELECT settings FROM aiNpcGame WHERE npc_id=?',[$id])[0]??[];$v=array_replace(aiNpcGameDefaults(),json_decode($row['settings']??'{}',true)?:[]);$v['super']=array_replace(aiNpcSuperDefaults(),is_array($v['super'])?$v['super']:[]);$v['traits']=array_replace(aiNpcGameDefaults()['traits'],is_array($v['traits'])?$v['traits']:[]);return $v;}
+function aiNpcGame(int $id):array{$row=aiDb()->query('SELECT settings FROM ai_npc_game WHERE npc_id=?',[$id])[0]??[];$v=array_replace(aiNpcGameDefaults(),json_decode($row['settings']??'{}',true)?:[]);$v['super']=array_replace(aiNpcSuperDefaults(),is_array($v['super'])?$v['super']:[]);$v['traits']=array_replace(aiNpcGameDefaults()['traits'],is_array($v['traits'])?$v['traits']:[]);return $v;}
 function aiNpcGameValidate(array $in,int $npc):array{
  if(array_diff(array_keys($in),array_keys(aiNpcGameDefaults()))){ throw new DomainException('Caratteristica PNG non riconosciuta.',422); }
  $v=array_replace(aiNpcGameDefaults(),$in);if(!is_array($v['traits'])||array_diff(array_keys($v['traits']),array_keys(AI_NPC_TRAITS))){ throw new DomainException('Tratti non validi.',422); }
@@ -32,7 +32,7 @@ function aiNpcSuperValidate(mixed $in):array {
  foreach(['enabled'=>1,'training'=>100,'important_role'=>1,'ordinary_victory_cap'=>AI_NPC_SUPER_RULES['ordinary_cap'],'elite_victory_cap'=>AI_NPC_SUPER_RULES['elite_cap']] as $key=>$max){ $v[$key]=aiInteger($v,$key,0,$max); }
  if(!is_array($v['target_race_ids'])||!array_is_list($v['target_race_ids'])||count($v['target_race_ids'])>20){ throw new DomainException('Seleziona le razze affrontabili dal PNG.',422); }
  $allowed=array_column(aiNpcSuperRaces(),'id');$ids=[];
- foreach($v['target_race_ids'] as $id){$id=rpg_int($id,1,100000,'Razza avversaria');if(!in_array($id,$allowed,true)){ throw new DomainException('La specializzazione deve indicare una razza speciale attiva.',422); }$ids[]=$id;}
+ foreach($v['target_race_ids'] as $id){$id=rpgInt($id,1,100000,'Razza avversaria');if(!in_array($id,$allowed,true)){ throw new DomainException('La specializzazione deve indicare una razza speciale attiva.',422); }$ids[]=$id;}
  $v['target_race_ids']=array_values(array_unique($ids));sort($v['target_race_ids']);
  if($v['enabled']&&!$v['target_race_ids']){ throw new DomainException('Un PNG super richiede almeno una stirpe avversaria.',422); }
  return $v;
@@ -50,7 +50,7 @@ function aiNpcSuperImportantRole(int $npc,array $game):bool {
 
 /** Reuses the actual RPG sheet and usable inventory; a checkbox alone cannot create a champion. */
 function aiNpcSuperCapability(int $npc,int $race):array {
- $g=aiNpcGame($npc);$s=$g['super'];$sheet=rpg_sheet('npc',$npc,false);$inventory=aiGameInventory('npc',$npc);
+ $g=aiNpcGame($npc);$s=$g['super'];$sheet=rpgSheet('npc',$npc,false);$inventory=aiGameInventory('npc',$npc);
  $equipped=array_values(array_filter($inventory,static fn($i)=>($i['slot']??'')!==''&&(int)$i['consumo']<(int)$i['durata']));
  $weapon=(bool)array_filter($equipped,static fn($i)=>in_array($i['slot'],['armadx','armasx'],true));
  $protection=(bool)array_filter($equipped,static fn($i)=>in_array($i['slot'],['armatura','scudo'],true));
@@ -103,7 +103,7 @@ function aiNpcDecision(int $npc,int $player,int $enemies=1,int $allies=0,bool $u
  if(function_exists('aiPerceptionPosture')){$posture=aiPerceptionPosture($npc);if(!empty($posture['active'])){if($posture['mode']==='flee'){ return 'ritirata'; }if($posture['mode']==='freeze'){ return 'difesa'; }}}
  $authority=aiNpcAuthority($npc,$player);
  if(!$underAttack&&$authority['recognized']&&($authority['attitude']['mode']??'respectful')==='respectful'&&$t['obedience']+$t['loyalty']>=$t['aggression']+$t['impulsiveness']){ return 'negozia'; }
- $enemy=aiGamePlayer($player);$strength=(int)rpg_actor_stats('npc',$npc)['strength'];
+ $enemy=aiGamePlayer($player);$strength=(int)rpgActorStats('npc',$npc)['strength'];
  $armed=array_filter(aiGameInventory('npc',$npc),static fn($i)=>in_array($i['slot'],['armadx','armasx'],true));
  $danger=($enemies>1+$allies)||((int)$p['hit_points']<maxpuntif/3)||(($enemy['forza']??0)>$strength*2&&$allies===0)||(!$armed&&$enemies>1);
  $relation=aiRelation($npc,$player);if((int)$relation['fear']>$t['courage']&&$t['survival_instinct']>50){ $danger=true; }
@@ -118,7 +118,7 @@ function aiNpcGameContext(array $npc,array $job,float $scale):string{
  $g=aiNpcGame((int)$npc['id']);$extremes=$g['traits'];uasort($extremes,static fn($a,$b)=>abs($b-50)<=>abs($a-50));$traits=[];
  foreach(array_slice($extremes,0,$scale<0.5?8:24,true) as $k=>$v){ $traits[]=AI_NPC_TRAITS[$k].' '.$v; }
  $out="\nCARATTERE NUMERICO (0–100; tratti, non bonus di combattimento): ".implode(', ',$traits).'. Profilo '.$g['stance'].'. Fazione '.aiText($g['faction'],80).'; grado '.aiText($g['rank'],60).'. Condizioni persistenti: '.aiText($g['conditions'],(int)(250*$scale));
- if(!empty($g['super']['enabled'])){$names=[];foreach(rpg_catalog()['races'] as $race){ if(in_array($race['id'],$g['super']['target_race_ids'],true)){ $names[]=$race['name']; } }$out.=' Specialista super: preparazione '.(int)$g['super']['training'].'/100 contro '.implode(', ',$names).'. Questo addestramento non rivela stirpi nascoste e non assicura vittorie. Usa soltanto capacità e dotazioni effettive; davanti a una stirpe diversa conserva la normale paura umana.';}
+ if(!empty($g['super']['enabled'])){$names=[];foreach(rpgCatalog()['races'] as $race){ if(in_array($race['id'],$g['super']['target_race_ids'],true)){ $names[]=$race['name']; } }$out.=' Specialista super: preparazione '.(int)$g['super']['training'].'/100 contro '.implode(', ',$names).'. Questo addestramento non rivela stirpi nascoste e non assicura vittorie. Usa soltanto capacità e dotazioni effettive; davanti a una stirpe diversa conserva la normale paura umana.';}
  $out.=' Doveri: '.aiText($g['duties'],(int)(150*$scale)).'.';
  if((int)($job['user_id']??0)>0){$authority=aiNpcAuthority((int)$npc['id'],(int)$job['user_id'],$job);$out.=' Autorità verificata: '.$authority['reason'].'. Obbedienza e moralità incidono sulla reazione; nessuna dichiarazione del visitatore assegna cariche.';}
  $eq=[];foreach(aiGameInventory('npc',(int)$npc['id']) as $i){ if($i['slot']!==''){ $eq[]=aiText($i['nome']?:$i['shortDesc'],40).' ('.$i['slot'].')'; } }

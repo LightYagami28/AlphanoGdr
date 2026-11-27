@@ -70,7 +70,7 @@ function rpgLineageSheet(array $identity):array {
  if($native===$human){ $summary='Quattro innate iniziali e tecniche umane. I poteri delle stirpi speciali non sono apprendibili.'; }
  elseif(in_array($native,rpgLineagePolicy()['human_heritage_races'],true)){ $summary='Conoscenze e PE restano del personaggio. Le capacità si apprendono soltanto dalla propria stirpe, dai suoi ranghi inferiori e dal patrimonio umano compatibile.'; }
  else{ $summary='Sono disponibili soltanto le capacità della propria razza, con i limiti della forma attuale.'; }
- return ['version'=>rpgLineagePolicy()['version'],'native_race_id'=>$native,'native_name'=>rpg_race($native)['name'],'form_name'=>rpg_race((int)$identity['race_id'])['name'],'sentient'=>(bool)$identity['sentient'],'loses_human_language'=>alphanoRaceLosesHumanLanguage((int)$identity['race_id']),'heritage'=>in_array($native,rpgLineagePolicy()['human_heritage_races'],true),'parent_race_id'=>rpgLineagePolicy()['parents'][$native]??null,'balance'=>rpgLineagePolicy()['balance'],'summary'=>$summary];
+ return ['version'=>rpgLineagePolicy()['version'],'native_race_id'=>$native,'native_name'=>rpgRace($native)['name'],'form_name'=>rpgRace((int)$identity['race_id'])['name'],'sentient'=>(bool)$identity['sentient'],'loses_human_language'=>alphanoRaceLosesHumanLanguage((int)$identity['race_id']),'heritage'=>in_array($native,rpgLineagePolicy()['human_heritage_races'],true),'parent_race_id'=>rpgLineagePolicy()['parents'][$native]??null,'balance'=>rpgLineagePolicy()['balance'],'summary'=>$summary];
 }
 
 /** Catalogue editing may tune mechanics, but cannot mix or reverse authored bloodlines. */

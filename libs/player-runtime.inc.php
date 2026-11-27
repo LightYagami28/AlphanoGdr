@@ -112,7 +112,7 @@ function playerSearchQuery(array $input): array
     if ($filters['city']!=='') { $where[]='u.araldica IN(SELECT id FROM araldiche WHERE city=?)'; $params[]=$filters['city']; }
     $roles=['Accademia'=>'adminaccademia','Master'=>'fatepower','Governatori'=>'admin','Capi Organizzazione'=>'adminorganizzazione','Capi Corporazione'=>'admincorporazione','Guaritori'=>'adminferite','Resurrettori'=>'adminmorti','Cerimonieri'=>'adminstatosociale','Sindaci'=>'sindaco'];
     if (isset($roles[$filters['categoria']])) {$where[]='u.'.$roles[$filters['categoria']].'=1';}
-    return ['SELECT u.id,u.nome,u.razza,u.vampire_human_form,u.avatar,u.avatar2,'.alphano_race_sql().' AS logical_race,u.sesso,u.etnia,u.allineamento,u.posizione,u.araldica,u.organizzazione,u.caricaorganizzazione,u.corporazione,u.caricacorporazione FROM utenti u'.($where?' WHERE '.implode(' AND ',$where):'').' ORDER BY u.nome,u.id',$params];
+    return ['SELECT u.id,u.nome,u.razza,u.vampire_human_form,u.avatar,u.avatar2,'.alphanoRaceSql().' AS logical_race,u.sesso,u.etnia,u.allineamento,u.posizione,u.araldica,u.organizzazione,u.caricaorganizzazione,u.corporazione,u.caricacorporazione FROM utenti u'.($where?' WHERE '.implode(' AND ',$where):'').' ORDER BY u.nome,u.id',$params];
 }
 
 /** Canonicalize legacy local media names; never render a missing relative file as a broken URL. */

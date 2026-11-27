@@ -25,7 +25,7 @@ function companionshipPartner(array $npc): int {
 function companionshipNpcAvailable(array $npc): bool {
     $profile=aiNpcProfile($npc);
     if (empty($npc['active']) || (int)$profile['age']<18 || (int)$profile['hit_points']<=0) { return false; }
-    $settings=connectDB()->query('SELECT settings FROM aiNpcGame WHERE npc_id=?',[(int)$npc['id']])[0]['settings']??'{}';
+    $settings=connectDB()->query('SELECT settings FROM ai_npc_game WHERE npc_id=?',[(int)$npc['id']])[0]['settings']??'{}';
     $conditions=(string)((json_decode($settings,true)?:[])['conditions']??'');
     // This is the staff-maintained current condition field, never biography or player dialogue.
     $conditions=preg_replace('/\bnon\s+(?:è\s+)?(?:incosciente|svenut[ao]|mort[ao]|privo di sensi|priva di sensi)\b/iu','',$conditions);

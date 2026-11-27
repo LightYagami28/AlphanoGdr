@@ -84,9 +84,9 @@ try {
     $submittedAbilityId=$abilityId;$itemId=filter_var($input['rpg_item_instance']??0,FILTER_VALIDATE_INT,['options'=>['min_range'=>0]]);if($itemId===false){ throw new DomainException('Oggetto non valido.',422); }$itemOperation=(string)($input['rpg_item_operation']??'activate');$itemProvider=max(0,(int)($input['rpg_item_provider']??0));$GLOBALS['alphano_item_claim']=$itemId?['instance'=>$itemId,'operation'=>$itemOperation,'provider'=>$itemProvider]:null;
     require_once __DIR__.'/../libs/session-control.inc.php';
     require_once __DIR__.'/../libs/chat-work.inc.php';
-    $workId=rpg_int($input['work_id']??0,0,2147483647,'Lavoro');
-    $workQuote=rpg_text($input['work_quote']??'',64);
-    $workConfirmed=rpg_bool($input['work_confirmed']??false);
+    $workId=rpgInt($input['work_id']??0,0,2147483647,'Lavoro');
+    $workQuote=rpgText($input['work_quote']??'',64);
+    $workConfirmed=rpgBool($input['work_confirmed']??false);
     if($workId&&($abilityId||$itemId||isset($room['private_kind']))){ throw new DomainException('Il lavoro richiede un’azione pubblica separata da abilità e oggetti.',422); }
     if(!$workId&&str_starts_with(ltrim($text),'+')&&$db->query('SELECT id FROM lavori WHERE chat=? AND azione=? LIMIT 1',[$chat,trim(substr(ltrim($text),1))])){ throw new DomainException('Questa è un’azione lavoro: selezionala dal menu Lavori e raccolta e conferma il tentativo.',409); }
     if(!$workId&&!$itemId&&!$abilityId&&!isset($room['private_kind'])&&(aiRoom($chat)['quest_rules']??'legacy')==='alphano_scene_v1'){ $abilityId=rpgCombatInferAbility($idpg,$text); }
@@ -123,7 +123,7 @@ try {
         $db->query('SELECT id FROM utenti WHERE id=? FOR UPDATE',[$idpg]);
         $saved=$db->query('SELECT payload_hash,response_json FROM rpg_chat_receipts WHERE player_id=? AND chat_key=? AND request_key=?',[$idpg,$chat,$requestId])[0]??null;
         if($saved){if(!hash_equals($saved['payload_hash'],$skillHash)){ throw new DomainException(S1192_CHAT_MESSAGES_PHP_C9C1E4_IDENTIFICATIVO_GIA_USATO_PER_UN_AL,409); }$db->commit();session_write_close();echo strip_tags(json_encode(json_decode($saved['response_json'], true, 512, JSON_THROW_ON_ERROR),JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_INVALID_UTF8_SUBSTITUTE|JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR));exit;}
-        if($abilityId){$ability=rpg_get_ability('pg',$idpg,$abilityId);rpgCombatAssertEquipment('pg',$idpg,$ability);}if($itemId){require_once __DIR__.'/../libs/item-engine.inc.php';itemInstance($itemId,$idpg,true);if(!aiQuestRow($chat)){ throw new DomainException('Per dichiarare un oggetto dalla chat serve una quest attiva. Fuori quest usa l’equipaggiamento.',409); }}
+        if($abilityId){$ability=rpgGetAbility('pg',$idpg,$abilityId);rpgCombatAssertEquipment('pg',$idpg,$ability);}if($itemId){require_once __DIR__.'/../libs/item-engine.inc.php';itemInstance($itemId,$idpg,true);if(!aiQuestRow($chat)){ throw new DomainException('Per dichiarare un oggetto dalla chat serve una quest attiva. Fuori quest usa l’equipaggiamento.',409); }}
         if($hasDeclaration&&!str_starts_with(ltrim($text),'+')){ $text='+'.ltrim($text); }
     }
     $workPrepared=$workId?alphanoWorkPrepare($idpg,$chat,$workId,$text,$workConfirmed,$workQuote):null;

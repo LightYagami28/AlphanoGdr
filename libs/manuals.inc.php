@@ -86,7 +86,7 @@ function alphanoManualLive(string $name):string {
         require_once __DIR__.'/board-games.inc.php';if(!bgReady()){ return '<p>I parametri saranno disponibili all’attivazione del tavolo.</p>'; }$s=bgSettings();
         return alphanoManualTable(['Parametro del tavolo','Valore attuale'],[['Sistema',$s['enabled']?'Attivo':'Disabilitato'],['Scacchi / Dama',($s['scacchi']?'Sì':'No').' / '.($s['dama']?'Sì':'No')],['Tempo totale consentito',$s['min_total'].'–'.$s['max_total'].' secondi per giocatore'],['Predefiniti: totale / mossa / incremento',$s['default_total'].' / '.$s['default_move'].' / '.$s['default_increment'].MANUALS_INC_SECONDI],['Validità invito',$s['invite_seconds'].MANUALS_INC_SECONDI],[alphanoCurrencyText('Massimo Corone / beni per giocatore'),$s['max_stake_coins'].' / '.$s['max_stake_assets']],['Premio massimo nelle ultime 24 ore',$s['reward_daily'].' Intelligenza'],['Mosse individuali / tempo attivo per livello',$s['reward_step_plies'].' / '.$s['reward_step_active'].MANUALS_INC_SECONDI],['Minimo mosse per partecipante',$s['reward_min_each']],['Partite premiate contro lo stesso avversario / 24 ore',$s['reward_pair_daily']],['ELO: minimo mosse / durata',$s['min_rating_plies'].' / '.$s['min_rating_seconds'].MANUALS_INC_SECONDI],['ELO: coefficiente / partite valide per coppia',$s['elo_k'].' / '.$s['pair_rated_daily']],['Premi ed ELO sulla stessa connessione',$s['reward_shared_network']?'Consentiti':'Disabilitati'],['Interazione prima dell’invito: finestra spettatori',$s['spectator_hours'].' ore']]);
     }
-    $catalog=rpg_catalog();$settings=rpg_settings();$rules=rpgCombatSettings();$rows=[];
+    $catalog=rpgCatalog();$settings=rpgSettings();$rules=rpgCombatSettings();$rows=[];
     if($name==='characteristics'){
         foreach($catalog['stats'] as $s){ $rows[]=[$s['name'],$s['description']]; }return alphanoManualTable(['Caratteristica','A cosa serve'],$rows);
     }
@@ -107,7 +107,7 @@ function alphanoManualLive(string $name):string {
         $raceNames=array_column($catalog['races'],'name','id');
         foreach($catalog['abilities'] as $a){ if($a['enabled']){
             $races=array_map(static fn($id)=>$raceNames[$id]??'Razza',$a['race_ids']);$requirements=[];
-            foreach($a['requirements']['stats']??[] as $k=>$v){ $requirements[]=rpg_stat_name($k).' '.$v; }
+            foreach($a['requirements']['stats']??[] as $k=>$v){ $requirements[]=rpgStatName($k).' '.$v; }
             foreach($a['requirements']['abilities']??[] as $id){ foreach($catalog['abilities'] as $prior){ if($prior['id']===$id){ $requirements[]=$prior['name']; } } }
             $rows[]=[$a['name'],implode(', ',$races),rpgAbilityLearnable($a)?($a['category']==='innate'?'Innata · 4 gratuite, altre ':'').$a['cost'].' PE':'Innata di razza',implode('; ',$requirements)?:'Nessun prerequisito aggiuntivo',$a['cooldown']?$a['cooldown'].' giri':'Nessun recupero'];
         }
@@ -126,7 +126,7 @@ function alphanoManualLive(string $name):string {
         $html='';$families=['human'=>'Umani','vampire'=>'Vampiri','lycan'=>'Lycan'];foreach(rpgHumanManual()['malus'] as $m){ $html.='<details class="manual-racial-malus"><summary><img src="'.$h($m['image']).'" alt="" width="64" height="64" loading="lazy"><span>'.$h($m['name']).' · '.$h($families[$m['family']]??$m['family']).'</span></summary><p>'.$h($m['description']).'</p><p><strong>Innesco:</strong> '.$h($m['trigger']).'</p><p><strong>Durata:</strong> '.$h($m['duration']).'</p><p>'.$h($m['effect']).'</p><p>'.$h($m['mechanic'].' '.$m['note']).'</p></details>'; }return $html;
     }
     if($name==='combat'){
-        foreach(['attack'=>['Attacco fisico',['strength','dexterity','perception']],'defence'=>['Difesa fisica',['dexterity','constitution','willpower']],'mental'=>['Potere mentale',['charisma','intelligence','willpower']],'resist'=>['Resistenza mentale',['willpower','wisdom']]] as $key=>[$label,$stats]){ $rows[]=[$label,implode(' + ',array_map(static fn($s)=>rpg_stat_name($s).' × '.number_format($settings[$key.'_'.$s]/100,2,',',''),$stats))]; }
+        foreach(['attack'=>['Attacco fisico',['strength','dexterity','perception']],'defence'=>['Difesa fisica',['dexterity','constitution','willpower']],'mental'=>['Potere mentale',['charisma','intelligence','willpower']],'resist'=>['Resistenza mentale',['willpower','wisdom']]] as $key=>[$label,$stats]){ $rows[]=[$label,implode(' + ',array_map(static fn($s)=>rpgStatName($s).' × '.number_format($settings[$key.'_'.$s]/100,2,',',''),$stats))]; }
         return alphanoManualTable(['Punteggio prima del dado','Composizione attuale'],$rows).alphanoManualTable(['Parametro della scena','Valore attuale'],[['Tempo per turno sotto regia IA',ceil($rules['turn_seconds']/60).' minuti'],['Bonus della difesa dichiarata',$rules['defence_bonus']],['Sostegno per alleato / massimo alleati',$rules['support_bonus'].' / '.$rules['max_support']],['Portata massima armi da tiro',$rules['ranged_max_range']],['Ricarica armi da tiro',$rules['reload_rounds'].' giri'],['Assorbimento della protezione',$rules['armor_absorption']],['Limiti del danno per risoluzione',$rules['damage_min'].'–'.$rules['damage_max']]]);
     }
     if($name==='materials'){ return alphanoManualTable(['Materie prime riconosciute'],array_map(static fn($v)=>[mb_convert_case($v,MB_CASE_TITLE,'UTF-8')],MATERIE_PRIME)); }
